@@ -86,6 +86,76 @@ sub is_logged {
 	return 1;
 }
 
+my %wrap_dest;
+my $compdb;
+
+sub ui_wrap {
+	my $path = shift;
+	if($CGI::values{ui_destination}) {
+		my $sub = $wrap_dest{$CGI::values{ui_destination}} || return 1;
+		return $sub->($path);
+	}
+	$Vend::Cfg->{VendURL} .= '/ui_wrap';
+	$UI::Editing = \&resolve_var;
+	$compdb = ::database_exists_ref($::Variable->{UI_COMPONENT_TABLE} ||= 'component');
+	$path =~ s:([^/]+)::;
+	$Vend::RedoAction = 1;
+	my $snoop = $1;
+	return $snoop;
+}
+
+=head1 test
+
+sub wrap_edit {
+	package Vend::Interpolate;
+	my $name = shift;
+::logGlobal("entering wrap_edit $name");
+	my $ref;
+	if ($compdb->record_exists($name)) {
+		$ref = $compdb->row_hash($name);
+	}
+	else {
+		return $::Variable->{$name} if ! $::Variable->{$name};
+		$ref = { variable => $::Variable->{$name} };
+	}
+	
+	my $edit_link;
+	my $url = $Vend::Cfg->{VendURL};
+	$url =~ s!/ui_wrap$!$::Variable->{UI_BASE}||$Global::Variable->{UI_BASE}||'admin'!;
+	$url .= "/$:
+	if(not $edit_link = $::Variable->{UI_EDIT_LINK}) {
+		$edit_link = <<EOF;
+<A HREF="[area href="$::Variable->{UI_BASE}/compedit" arg="[scratch ui_component]"]" target=_blank><u>edit</u></A>
+EOF
+		chop $edit_link;
+	}
+	my $out = <<EOF;
+[calc] \$C_stack = [] unless \$C_stack;
+		push \@\$C_stack, \$Scratch->{ui_component} || '';
+		\$Scratch->{ui_component} = q{$name}; return; [/calc]
+EOF
+	chop $out;
+	for( qw/preedit preamble variable postamble postedit/ ) {
+		$out .= $ref->{$_};
+	}
+	$out .= qq{[calc] \$Scratch->{ui_component} = pop \@\$C_stack; return; [/calc]};
+	$out =~ s:\[comment\]\s*\$EDIT_LINK\$\s*\[/comment\]:$edit_link:
+		or $out .= $edit_link;
+::logGlobal("returning wrap_edit $out");
+	return $out;
+}
+
+=cut
+
+sub resolve_var {
+	my ($name, $ref) = @_;
+	if ($compdb) {
+		return wrap_edit($name);
+	}
+	return $ref->{$name} if $ref and defined $ref->{$name};
+	return $::Variable->{$name};
+}
+
 sub ui_acl_enabled {
 	my $try = shift;
 	my $table;
