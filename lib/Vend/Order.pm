@@ -156,20 +156,22 @@ my %Parse = (
 							$code =~ s/(\w+)\s*//;
 							my $tab = $1
 								or return (0, $name, errmsg("no table specified"));
+							my $msg = $code;
+
 							my $db = database_exists_ref($tab)
 								or do {
-									my $msg = errmsg(
+									$msg = errmsg(
 										"Table %s doesn't exist",
 										$tab,
 									);
 									return(0, $name, $msg);
 								};
 							if($db->record_exists($value)) {
-								my $msg = errmsg(
+								$msg = errmsg(
 										"Key %s already exists in %s, try again.",
 										$value,
 										$tab,
-									);
+									) unless $msg;
 								return(0, $name, $msg);
 							}
 							return (1, $name, '');
