@@ -1871,17 +1871,20 @@ sub parse_locale {
 			%{$sethash} = Text::ParseWords::shellwords($settings);
 		}
 		$c = $store->{$name} || {};
+		my $nodefaults = delete $sethash->{MV_LOCALE_NO_DEFAULTS};
 		for (keys %{$sethash}) {
 			$c->{$_} = $sethash->{$_};
 		}
 		if($item eq 'Locale') {
 			$Vend::Cfg->{DefaultLocale} = $name;
-			$c->{mon_thousands_sep} = ','
-				unless defined $c->{mon_thousands_sep};
-			$c->{decimal_point} = '.'
-				unless $c->{decimal_point};
-			$c->{frac_digits} = 2
-				unless defined $c->{frac_digits};
+			unless ($nodefaults) {
+				$c->{mon_thousands_sep} = ','
+					unless defined $c->{mon_thousands_sep};
+				$c->{decimal_point} = '.'
+					unless $c->{decimal_point};
+				$c->{frac_digits} = 2
+					unless defined $c->{frac_digits};
+			}
 		}
 	}
 	else {
