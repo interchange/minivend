@@ -2209,7 +2209,7 @@ sub parse_locale {
 		my($sethash);
 		if ($eval) {
 			$sethash = $safe->reval($settings)
-				or config_warn("bad Locale setting in %s: %s", $name,$settings),
+				or config_warn("bad Locale setting in %s: %s", $name, $@),
 						$sethash = {};
 		}
 		else {
