@@ -212,6 +212,10 @@ sub columns {
     return @{$s->[$COLUMN_NAMES]};
 }
 
+sub column_exists {
+	return defined test_column(@_);
+}
+
 sub test_column {
     my ($s, $column) = @_;
 	$s = $s->import_db() if ! defined $s->[$TIE_HASH];

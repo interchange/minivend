@@ -619,6 +619,8 @@ e:logDebug("opt is: " . Vend::Util::uneval($opt));
 
 # Unfortunate hack need for Safe searches
 *column_index	= \&Vend::Table::Common::column_index;
+*column_exists	= \&Vend::Table::Common::column_exists;
 *numeric		= \&Vend::Table::Common::numeric;
+*test_column	= \&Vend::Table::Common::test_column;
 
 1;

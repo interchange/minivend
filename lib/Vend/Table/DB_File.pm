@@ -115,6 +115,7 @@ sub open_table {
 
 # Unfortunate hack need for Safe searches
 *column_index	= \&Vend::Table::Common::column_index;
+*column_exists	= \&Vend::Table::Common::column_exists;
 *columns		= \&Vend::Table::Common::columns;
 *config			= \&Vend::Table::Common::config;
 *delete_record	= \&Vend::Table::Common::delete_record;
