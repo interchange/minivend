@@ -322,6 +322,15 @@ sub set_slice {
 		return undef;
 	}
 
+	if(ref $fary ne 'ARRAY') {
+		my $href = $fary;
+		if(ref $href ne 'HASH') {
+			$href = { $fary, $vary, @_ }
+		}
+		$vary = [ values %$href ];
+		$fary = [ keys   %$href ];
+	}
+
 	my $keyname = $s->[$CONFIG]{KEY};
 
 	my ($found_key) = grep $_ eq $keyname, @$fary;
@@ -978,7 +987,7 @@ EndOfExcel
 	my @i;  # Array of field names for sort
 	my @o;  # Array of sort options
 	my %comma;
-	if($options->{INDEX}) {
+	if($options->{INDEX} and ! $options->{NO_ASCII_INDEX}) {
 		my @f; my $f;
 		my @n;
 		my $i;
