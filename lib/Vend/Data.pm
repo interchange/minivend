@@ -707,7 +707,12 @@ sub import_database {
 
 	if ($class_config->{RestrictedImport}) {
 		$obj->{db_file_extended} = $database_dbm;
-		if (-f $database_dbm or ! -f $database_txt) {
+		if (
+			$Vend::Cfg->{NoImportExternal}
+			or -f $database_dbm
+			or ! -f $database_txt
+			)
+		{
 			$no_import = 1;
 		}
 		else {
