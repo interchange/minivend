@@ -1790,6 +1790,7 @@ eval {
 	return wantarray ? ($ref, \%nh, \@na) : $ref;
 }
 
+*reset = \&Vend::Table::Common::reset;
 *autonumber = \&Vend::Table::Common::autonumber;
 
 1;

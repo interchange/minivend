@@ -76,6 +76,7 @@ my @Order = ( qw(
 	mv_more_id
 	mv_min_string
 	mv_max_matches
+	mv_no_hide
 	mv_orsearch
 	mv_range_min
 	mv_range_max
@@ -146,6 +147,7 @@ my %Scan = ( qw(
 	ms  mv_min_string
 	ne  mv_negate
 	ng  mv_negate
+	nh  mv_no_hide
 	np  mv_nextpage
 	ns  mv_next_search
 	nu  mv_numeric
@@ -195,6 +197,7 @@ my %Parse = (
 	mv_substring_match      =>  \&_yes_array,
 	mv_column_op            =>  \&_array,
 	mv_coordinate           =>  \&_yes,
+	mv_no_hide              =>  \&_yes,
 
 	mv_field_names          =>	\&_array,
 	mv_spelling_errors      => 	sub { my $n = int($_[1]); $n < 8 ? $n : 1; },

@@ -119,4 +119,10 @@ sub each_nokey {
 	return $s->[$OBJ]->each_nokey($qual);
 }
 
+sub reset {
+	my ($s, $key) = @_;
+	$s = $s->import_db() unless defined $s->[$OBJ];
+	$s->[$OBJ]->reset();
+}
+
 1;

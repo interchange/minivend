@@ -663,6 +663,7 @@ eval {
 *column_exists	= \&Vend::Table::Common::column_exists;
 *numeric		= \&Vend::Table::Common::numeric;
 *isopen			= \&Vend::Table::Common::isopen;
+*reset			= \&Vend::Table::Common::reset;
 *suicide		= \&Vend::Table::Common::suicide;
 *test_column	= \&Vend::Table::Common::test_column;
 
