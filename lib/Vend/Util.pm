@@ -770,6 +770,7 @@ sub get_option_hash {
 			$_[0]->{$_} = $_[1]->{$_}
 				unless defined $_[0]->{$_};
 		}
+		return $_[0];
 	}
 	return {} unless $_[0] =~ /\S/;
 	my $string = shift;
