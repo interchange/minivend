@@ -112,8 +112,10 @@ The type of transaction to be run. Valid values are:
     Interchange         Signio
     ----------------    -----------------
 	sale                S
-	auth                C
+	auth                A
+	credit              C
 	void                V
+	settle              D (from previous A trans)
 
 Default is C<sale>.
 
@@ -329,17 +331,20 @@ sub signio {
     my %type_map = (
         qw/
                         sale          S
-                        auth          C
-                        authorize     C
+                        auth          A
+                        authorize     A
                         void          V
+                        settle        D
+                        credit        C
                         mauthcapture  S
-                        mauthonly     C
+                        mauthonly     A
                         mauthdelay    D
-                        mauthreturn   V
+                        mauthreturn   C
                         S             S
                         C             C
                         D             D
                         V             V
+                        A             A
         /
     );
 
