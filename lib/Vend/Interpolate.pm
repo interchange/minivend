@@ -2199,8 +2199,7 @@ sub tag_accessories {
 
 	return $data if "\L$type" eq 'show';
 
-	my $attrib_value = $item ? $item->{$attribute} : '';
-	HTML::Entities::encode($attrib_value);
+	my $attrib_value = $item ? HTML::Entities::encode($item->{$attribute}) : '';
 
 	if($ishash) {
 #::logDebug("tag_accessories: name=$name item=$item=" . ::uneval_it($item) . " opt_item=$opt->{item} attr=$attribute");
