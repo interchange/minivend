@@ -869,7 +869,7 @@ sub tag_data {
 					}
 					$mon =~ s/^0//;
 					$day =~ s/^0//;
-					$val = sprintf("%d%02d%02d", $yr, $mon, $day);
+					$val = sprintf("%04d%02d%02d", $yr, $mon, $day);
 					return $val unless $time;
 					$val .= sprintf('%04d', $time);
 					return $val;
