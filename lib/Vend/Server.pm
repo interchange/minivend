@@ -282,9 +282,18 @@ sub create_cookie {
 		$out .= " path=$path;";
 		$out .= " domain=" . $domain . ";" if $domain;
 		if (defined $expire or $Vend::Expire) {
-			$expire = $Vend::Expire unless defined $expire;
-			$out .= " expires=" .
-						strftime "%a, %d-%b-%y %H:%M:%S GMT ", gmtime($expire);
+			my $expstring;
+			if(! $expire) {
+				$expire = $Vend::Expire;
+			}
+			elsif($expire =~ /\s\S+\s/) {
+				$expstring = $expire;
+			}
+			$expstring = strftime "%a, %d-%b-%Y %H:%M:%S GMT ", gmtime($expire)
+				unless $expstring;
+			$expstring = "expires=$expstring" if $expstring !~ /^\s*expires=/i;
+			$expstring =~ s/^\s*/ /;
+			$out .= $expstring;
 		}
 		$out .= "\r\n";
 	}
