@@ -566,7 +566,11 @@ sub query {
 			($spec, $stmt) = Vend::Scan::sql_statement($query, $ref);
 		};
 		if(! CORE::ref $spec) {
-			::logError("Bad SQL, query was: $query");
+			if($@) {
+				::logError("Bad SQL, error was: $@, query was: $query");
+			} else {
+				::logError("Bad SQL, query was: $query");
+			}
 			return ($opt->{failure} || undef);
 		}
 		my @additions = grep length($_) == 2, keys %$opt;
