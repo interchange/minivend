@@ -1019,23 +1019,18 @@ sub set_slice {
 	$tkey = $s->quote($key, $s->[$KEY]) if defined $key;
 #::logDebug("tkey now $tkey");
 
-
 	if ( defined $tkey and $s->record_exists($key) ) {
 		my $fstring = join ",", map { "$_=?" } @$fary;
 		$sql = "update $s->[$TABLE] SET $fstring WHERE $s->[$KEY] = $tkey";
 	}
 	else {
-		my $found;
-		for(my $i = 0; $i < @$fary; $i++) {
-			next unless $fary->[$i] eq $s->[$KEY];
-			splice @$fary, $i;
-			splice @$vary, $i;
-			last;
+		my ($found_key) = grep $_ eq $s->[$KEY], @$fary;
+		unless ($found_key) {
+			unshift @$fary, $s->[$KEY];
+			unshift @$vary, $key;
 		}
-		unshift @$fary, $s->[$KEY];
-		unshift @$vary, $key;
 		my $fstring = join ",", @$fary;
-		my $vstring	= join ",", map {"?"} @$vary;
+		my $vstring = join ",", map {"?"} @$vary;
 		$sql = "insert into $s->[$TABLE] ($fstring) VALUES ($vstring)";
 	}
 
