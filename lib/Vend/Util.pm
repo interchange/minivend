@@ -203,7 +203,8 @@ sub round_to_frac_digits {
 		# use what we were given
 	}
 	elsif ( $Vend::Cfg->{Locale} ) {
-		$digits = $Vend::Cfg->{Locale}{frac_digits} || 2;
+		$digits = $Vend::Cfg->{Locale}{frac_digits};
+		$digits = 2 if ! defined $digits;
 	}
 	else {
 		$digits = 2;
