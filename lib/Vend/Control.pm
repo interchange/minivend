@@ -226,7 +226,7 @@ sub change_global_directive {
 	$Global::Structure->{$ref->[0]} = $ref->[1]
 		if $Global::DumpStructure;
 
-	dump_structure($Global::Structure, $Global::ConfigFile)
+	dump_structure($Global::Structure, "$Global::ConfDir/$Global::ConfigFile")
 		if $Global::DumpStructure;
 	return 1;
 }
