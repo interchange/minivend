@@ -890,6 +890,10 @@ sub find_locale_bit {
 
 sub readin {
     my($file, $only) = @_;
+
+	## We don't want to try if we are forcing a flypage
+	return undef if $Vend::ForceFlypage;
+
     my($fn, $contents, $gate, $pathdir, $dir, $level);
     local($/);
 
