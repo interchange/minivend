@@ -620,6 +620,14 @@ sub filter_value {
 				if length($value) > $_;
 			next;
 		}
+		if ( /^words(\d+)(\.?)$/ ) {
+			my @str = (split /\s+/, $value);
+			if (scalar @str > $1) {
+				my $num = $1;
+				$value = join(' ', @str[0..--$num]);
+				$value .= $2 ? '...' : '';
+			}
+		}
 		unless (defined $Filter{$_}) {
 			logError ("Unknown filter '%s'", $_);
 			next;
