@@ -610,6 +610,7 @@ sub guess_cc_type {
 	elsif ($ccnum =~ /^3(?:6\d{12}|0[0-5]\d{11})$/)			{ 'dinersclub' }
 	elsif ($ccnum =~ /^38\d{12}$/)							{ 'carteblanche' }
 	elsif ($ccnum =~ /^2(?:014|149)\d{11}$/)				{ 'enroute' }
+	elsif ($ccnum =~ /^56\d{14}$/)                          { 'bankcard' }
 	elsif ($ccnum =~ /^(?:3\d{15}|2131\d{11}|1800\d{11})$/)	{ 'jcb' }
 	else													{ 'other' }
 }
