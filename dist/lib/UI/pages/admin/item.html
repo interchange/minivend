@@ -106,6 +106,7 @@
 
 [perl tables="[cgi mv_data_table] __UI_META_TABLE__"]
 	my $tab = $CGI->{mv_data_table};
+	$CGI->{showinactive} = $Values->{mv_no_hide} = 1;
 	my $view = $CGI->{ui_meta_view} || 'item_select';
 	my $ref = $Db{$tab};
 	my $meta = $Tag->meta_record($tab, $view);
