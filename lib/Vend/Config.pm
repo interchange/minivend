@@ -491,7 +491,7 @@ sub catalog_directives {
 	['UserDatabase',	 undef,		     	 ''],  #undocumented
 	['RobotLimit',		 'integer',		      0],
 	['OrderLineLimit',	 'integer',		      0],
-	['StaticPage',		 'boolean',     	 ''],
+	['StaticPage',		 'array',     	     ''],
 	['StaticPath',		 undef,     	     '/'],
 	['StaticPattern',	 'regex',     	     ''],
 	['StaticSuffix',	 undef,     	     '.html'],
