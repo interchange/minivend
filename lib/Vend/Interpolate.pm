@@ -2857,6 +2857,21 @@ sub escape_scan {
 	return join '/', 'scan', escape_mv('/', $scan);
 }
 
+sub escape_form {
+	my $val = shift;
+
+	$val =~ s/^\s+//mg;
+	$val =~ s/\s+$//mg;
+	my @args = split /\n+/, $val;
+
+	for(@args) {
+		s!\0!-_NULL_-!g;
+		s!(\w=)(.*)!$1 . esc($2)!eg
+			or (undef $_, next);
+	}
+	return join $Global::UrlJoiner, grep length($_), @args;
+}
+
 sub escape_mv {
 	my ($joiner, $scan, $not_scan, $esc) = @_;
 
@@ -2919,8 +2934,7 @@ sub form_link {
 	$arg = '' if ! $arg;
 	$arg = "mv_arg=$arg\n" if $arg && $arg !~ /\n/; 
 	$extra .= $arg . $opt->{form};
-	$extra = escape_mv($Global::UrlJoiner, $extra, 1);
-	return $href . '?' . $extra;
+	return $href . '?' . escape_form($extra);
 }
 
 PAGELINK: {
