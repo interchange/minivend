@@ -79,6 +79,7 @@ my @Map =
      'script_name' => 'SCRIPT_NAME',
      'secure' => 'HTTPS',
      'server_name' => 'SERVER_NAME',
+     'server_host' => 'HTTP_HOST',
      'server_port' => 'SERVER_PORT',
      'useragent' => 'HTTP_USER_AGENT',
 );
