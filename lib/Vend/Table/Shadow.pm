@@ -200,6 +200,7 @@ sub field {
 		if (exists $map->{table}) {
 			$db = Vend::Data::database_exists_ref($map->{table})
 				or die "unknown table $map->{table} in mapping for column $column of $s->[$TABLE] for locale $locale";
+			return unless $db->record_exists($key);
 			return $db->field($key, $map->{column});
 		} else {
 			$column = $map->{column};
@@ -226,7 +227,6 @@ sub record_exists {
 sub each_nokey {
 	my ($s, $qual) = @_;
 	$s = $s->import_db() unless defined $s->[$OBJ];
-	::logDebug('COLUMNS: ' . $s->columns());
 	return $s->[$OBJ]->each_nokey($qual);
 }
 
