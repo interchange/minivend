@@ -2183,7 +2183,7 @@ sub time_to_seconds {
 	($n, $dur) = ($str =~ m/(\d+)[\s\0]*(\w+)?/);
 	return undef unless defined $n;
 	if (defined $dur) {
-		$_ = $dur;
+		local($_) = $dur;
 		if (m/^s|sec|secs|second|seconds$/i) {
 		}
 		elsif (m/^m|min|mins|minute|minutes$/i) {
