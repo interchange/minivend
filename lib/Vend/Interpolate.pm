@@ -1175,6 +1175,10 @@ sub tag_data {
 	'decode_entities' => sub {
 					return HTML::Entities::decode(shift);
 				},
+	encrypt => sub {
+					my ($val, $tag, $key) = @_;
+					return Vend::Order::pgp_encrypt($val, $key);
+				},
 	'yesno' => sub {
 					my $val = shift(@_) ? 'Yes' : 'No';
 					return $val unless $Vend::Cfg->{Locale};
