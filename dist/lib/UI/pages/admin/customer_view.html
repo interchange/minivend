@@ -328,7 +328,7 @@
 [query list=1 sql="select * from transactions where username = '[loop-param username]'"]
             <tr class="[sql-alternate 2]rowalt[else]rownorm[/else][/sql-alternate]"> 
                <td style="padding: 5px">[page href="admin/order_status"
-			   							 form="order=[loop-code]"
+			   							 form="order=[sql-code]"
 									]
                 [display    table=transactions
                             column=status
