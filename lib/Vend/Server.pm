@@ -450,7 +450,7 @@ sub canon_status {
 	$_ = shift;
 	s:^\s+::;
 	s:\s+$::;
-	s:\s*\n:\r\n:mg;
+	s:\s*\n\s*:\r\n:g;
 	return "$_\r\n";
 }
 
