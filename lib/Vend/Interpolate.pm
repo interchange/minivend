@@ -628,10 +628,14 @@ sub interpolate_html {
 	my ($name, @post);
 	my ($bit, %post);
 
-	defined $::Variable->{MV_AUTOLOAD}
-		and $html =~ s/^/$::Variable->{MV_AUTOLOAD}/;
-
+	my $toplevel;
+	if(defined $Vend::PageInit and ! $Vend::PageInit) {
+		defined $::Variable->{MV_AUTOLOAD}
+			and $html =~ s/^/$::Variable->{MV_AUTOLOAD}/;
+		$toplevel = 1;
+	}
 #::logDebug("opt=" . uneval($opt));
+
 	vars_and_comments(\$html)
 		unless $opt and $opt->{onfly};
 
@@ -639,6 +643,12 @@ sub interpolate_html {
 	my $parse = new Vend::Parse;
 	$parse->parse($html);
 	while($parse->{_buf}) {
+		if($toplevel and $parse->{SEND}) {
+			delete $parse->{SEND};
+			substitute_image(\$parse->{OUT});
+			::response(\$parse->{OUT});
+			$parse->{OUT} = '';
+		}
 		$parse->parse('');
 	}
 	substitute_image(\$parse->{OUT});

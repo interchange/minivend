@@ -684,11 +684,17 @@ If you want another behavior the same widget can be constructed with:
 sub yesno {
 	my $opt = shift;
 	$opt->{value} = is_yes($opt->{value});
-	my @opts = (
+	my @opts;
+	my $routine = $opt->{subwidget} || \&dropdown;
+	if($opt->{variant} eq 'checkbox') {
+		@opts = [1, ' '];
+	}
+	else {
+		@opts = (
 					['', errmsg('No')],
 					['1', errmsg('Yes')],
 				);
-	my $routine = $opt->{subwidget} || \&dropdown;
+	}
 	return $routine->($opt, \@opts);
 }
 

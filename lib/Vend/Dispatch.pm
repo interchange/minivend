@@ -1367,7 +1367,7 @@ EOF
 		$CGI::values{mv_todo} = $CGI::values{mv_action}
 			if ! defined $CGI::values{mv_todo}
 			and ! defined $CGI::values{mv_doit};
-		$Vend::Action = 'process';
+		$Vend::Action = $CGI->{mv_ui} ? 'ui' : 'process';
 		$CGI::values{mv_nextpage} = $Vend::FinalPath
 			if ! defined $CGI::values{mv_nextpage};
 	}
