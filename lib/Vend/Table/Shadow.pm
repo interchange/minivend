@@ -295,7 +295,6 @@ sub _parse_config_line {
 	my ($d, $p, $val) = @_;
 	my @f = split(/\s+/, $val);
 	my %parms;
-	my %map_global_options = (share => 0);
 	my %map_options = (fallback => 1);
 	my ($map_table, $map_column);
 
@@ -304,6 +303,7 @@ sub _parse_config_line {
 	}
 	
 	if ($p eq 'MAP_OPTIONS') {
+		@f = split(/\s+/, $val, 3);
 		if ($f[0] eq 'share') {
 			if (@f != 3) {
 				Vend::Config::config_error("Two parameters needed for MAP option share");
@@ -499,7 +499,6 @@ sub _shared_databases {
 	
 	if ($s->[$CONFIG]->{MAP_OPTIONS}->{share}) {
 		my $tables = $s->[$CONFIG]->{MAP_OPTIONS}->{share}->{$::Scratch->{mv_locale}};
-		::logError ("Tables: $tables");
 		return split(/[\s,]+/, $tables);
 	}
 }
