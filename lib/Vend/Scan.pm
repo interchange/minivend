@@ -625,7 +625,7 @@ sub sql_statement {
 		if($db) {
 			$codename = $db->config('KEY') || 'code';
 			$nuhash = $db->config('NUMERIC') || undef;
-			push_spec( 'fi', $Vend::Cfg->{Database}{$t}{file}, $ary, $hash);
+			push_spec( 'fi', $db->config('file'), $ary, $hash);
 		}
 # GLIMPSE
 		elsif ("\L$t" eq 'glimpse') {

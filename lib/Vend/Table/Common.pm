@@ -717,7 +717,19 @@ sub query {
 	for (@tabs) {
 		s/\..*//;
 	}
-	if (! defined $s || $tabs[0] ne $s->[$CONFIG]{name}) {
+
+	my $reroute;
+	my $tname = $s->[$CONFIG]{name};
+	if ($tabs[0] ne $tname) {
+		if("$tabs[0]_txt" eq $tname or "$tabs[0]_asc" eq $tname) {
+			$tabs[0] = $spec->{fi}[0] = $tname;
+		}
+		else {
+			$reroute = 1;
+		}
+	}
+
+	if($reroute) {
 		unless ($s = $Vend::Database{$tabs[0]}) {
 			::logError("Table %s not found in databases", $tabs[0]);
 			return $opt->{failure} || undef;
@@ -1302,6 +1314,7 @@ EndOfRoutine
 		}
 	}
 	delete $out->[$CONFIG]{Clean_start};
+	delete $out->[$CONFIG]{_Dirty};
 	unlockfile(\*IN) or die "unlock\n";
     close(IN);
 	if($numeric_guess) {
