@@ -6,6 +6,7 @@
 # $Id$
 #
 # Copyright (C) 1996-2002 Red Hat, Inc. <interchange@redhat.com>
+# Copyright (C) 2003 ICDEVGROUP <interchange@icdevgroup.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -231,7 +232,7 @@ sub parse_menufile {
 	}
 	while (<ICMENU>) {
 		@cols = split (/\t/);
-		write_structure (undef, $cols[$namecol]);
+		write_structure (undef, $cols[$namecol]) if $cols[$namecol];
 		write_structure (undef, $cols[$dsccol]) if $cols[$dsccol];
 	}
 	close (ICMENU);
