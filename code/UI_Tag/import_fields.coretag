@@ -231,6 +231,11 @@ EOF
 	my $idx = 0;
 	my $ignore_sub;
 	
+	# check key name
+	if ($key !~ /^[\w_-]+$/) {
+		die "Invalid key '$key' for table $table (wrong file format ?)\n";
+	}
+
 	if ($opt->{ignore_fields}) {
 		my %fmap;
 		for (my $ct = 0; $ct < @names; $ct++) {
