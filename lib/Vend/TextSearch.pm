@@ -113,8 +113,10 @@ sub search {
 		$s->{$key} = $val;
 	}
 
-	@searchfiles = @{$s->{mv_search_file}};
-
+	unless (@searchfiles = @{$s->{mv_search_file}}) {
+		@searchfiles = @{$::Variable->{MV_DEFAULT_SEARCH_FILE}};
+	}
+#::logDebug("searchfiles=@searchfiles");
 	for(@searchfiles) {
 		$_ = Vend::Util::catfile($s->{mv_base_directory}, $_)
 			unless Vend::Util::file_name_is_absolute($_);
