@@ -965,22 +965,50 @@ sub tag_data {
 					}
 					return '';
 				},
+	'line2options' =>		sub {
+					my ($value, $tag, $delim) = @_;
+					return $value unless length $value;
+					$value =~ s/\s+$//;
+					$value =~ s/^\s+//;
+					my @opts = split /[\r\n]+/, $value;
+					for(@opts) {
+						s/^\s+//g;
+						s/\s+$//g;
+						s/,/&#44;/g;
+					}
+					return join ",", @opts;
+				},
+	'options2line' =>		sub {
+					my ($value, $tag, $delim) = @_;
+					return $value unless length $value;
+					$value =~ s/\s+$//;
+					$value =~ s/^\s+//;
+					my @opts = split /\s*,\s*/, $value;
+					for(@opts) {
+						s/&#44;/,/g;
+					}
+					$value = return join "\n", @opts;
+					return $value;
+				},
 	'option_format' =>		sub {
 					my ($value, $tag, $delim) = @_;
 
 					return $value unless $value =~ /\0.*\0/s;
 
+					my $scrubcommas;
 					if(! length($delim) ) {
 						$delim = ',';
+						$scrubcommas = 1;
 					}
 					else {
 						$delim =~ /pipe/i and $delim = '|' 
 						 or
-						$delim =~ ';'  and $delim =~ /semicolon/i
+						$delim =~ /semicolon/i and $delim = ';'  
 						 or
-						$delim =~ ':'  and $delim =~ /colon/i
+						$delim =~ /colon/i and $delim = ':'  
 						 or
-						$delim =~ ':'  and $delim =~ /null/i;
+						$delim =~ /null/i and $delim = "\0"
+						;
 					}
 
 					my @opts = split /\0/, $value;
@@ -989,6 +1017,7 @@ sub tag_data {
 					while(@opts) {
 						my ($v, $l, $d) = splice @opts, 0, 3;
 						$l = length($l) ? "=$l" : '';
+						$l =~ s/,/&#44;/g if $scrubcommas;
 						$d = $d ? '*' : '';
 						next unless length("$v$l");
 						push @out, "$v$l$d";
