@@ -2841,11 +2841,7 @@ sub tag_area {
 
 	$urlroutine = $opt->{secure} ? \&secure_vendUrl : \&vendUrl;
 
-	my $anchor = '';
-	if($opt->{anchor}) {
-		$anchor = '#' . $opt->{anchor};
-	}
-	return $urlroutine->($page, $arg, undef, $opt) . $anchor;
+	return $urlroutine->($page, $arg, undef, $opt);
 }
 
 }
