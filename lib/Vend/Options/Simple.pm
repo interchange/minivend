@@ -100,7 +100,7 @@ sub price_options {
 		push @rf, ($map->{$_} || $_);
 	}
 
-	my $q = "SELECT " . join (",", @rf) . " FROM $tname where $fsel = $rsel and $rf[1] != ''";
+	my $q = "SELECT " . join (",", @rf) . " FROM $tname where $fsel = $rsel and $rf[1] <> ''";
 #::logDebug("Simple module price_options query=$q");
 	my $ary = $db->query($q); 
 	return if ! $ary->[0];

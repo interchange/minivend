@@ -287,7 +287,7 @@ sub price_options {
 		push @rf, ($map->{$_} || $_);
 	}
 
-	my $q = "SELECT " . join (",", @rf) . " FROM $table where $fsel = $rsel and $rf[1] != ''";
+	my $q = "SELECT " . join (",", @rf) . " FROM $table where $fsel = $rsel and $rf[1] <> ''";
 #::logDebug("option_cost query=$q");
 	my $ary = $db->query($q); 
 	return if ! $ary->[0];
