@@ -288,6 +288,7 @@ sub global_directives {
 	['TagDir',      	 'root_dir_array', 	 'code'],
 	['TemplateDir',      'root_dir_array', 	 ''],
 	['DomainTail',		 'yesno',            'Yes'],
+	['TrustProxy',		 'list_wildcard_full', ''],
 	['AcrossLocks',		 'yesno',            'No'],
 	['RobotUA',			 'list_wildcard',      ''],
 	['RobotIP',			 'list_wildcard_full', ''],

@@ -116,6 +116,30 @@ sub populate {
         ${"CGI::$field"} = $cgivar->{$cgi} if defined $cgivar->{$cgi};
 #::logDebug("CGI::$field=" . ${"CGI::$field"});
     }
+
+	# try to get originating host's IP address if request was
+	# forwarded through a trusted proxy
+	my $ip;
+	if ($Global::TrustProxy
+		and ($CGI::remote_addr =~ $Global::TrustProxy
+			or $CGI::remote_host =~ $Global::TrustProxy)
+		and $ip = $cgivar->{HTTP_X_FORWARDED_FOR}) {
+		# trim off intermediate proxies in comma-separated list
+		$ip =~ s/,.*//;
+		$ip =~ s/^\s+//; $ip =~ s/\s+$//;
+		if ($ip =~ /^\d\d?\d?\.\d\d?\d?\.\d\d?\d?\.\d\d?\d?$/) {
+			$CGI::remote_addr = $ip;
+			undef $CGI::remote_host;
+		}
+		else {
+			::logGlobal(
+				{ level => 'info' },
+				"Unknown HTTP_X_FORWARDED_FOR header set from trusted proxy %s: '%s'",
+				$CGI::remote_addr,
+				$cgivar->{HTTP_X_FORWARDED_FOR},
+			);
+		}
+	}
 }
 
 sub log_http_data {
