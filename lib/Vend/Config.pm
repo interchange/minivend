@@ -3532,6 +3532,7 @@ $StdTags = <<'EOF';
 					attr_list
 					banner
 					calc
+					calcn
 					cart
 					catch
 					cgi
@@ -3602,6 +3603,7 @@ $StdTags = <<'EOF';
 					time
 					timed_build
 					tmp
+					tmpn
 					total_cost
 					tree
 					try
@@ -3627,7 +3629,7 @@ $StdTags = <<'EOF';
 						seti
 						tag
 						tmp
-						tmp_no
+						tmpn
 						value
 				"
 				:commerce "
@@ -3738,7 +3740,7 @@ $StdTags = <<'EOF';
 				:perl "
 					perl
 					calc
-					calc_no
+					calcn
 					mvasp
 				"
 				:time "
