@@ -240,6 +240,7 @@ sub output_cat {
 		$out .= ${$Vend::Output[$_]};
 		undef $Vend::Output[$_];
 	}
+	$out =~ s/^\s+// if $::Pragma->{strip_white};
 	return $out;
 }
 
