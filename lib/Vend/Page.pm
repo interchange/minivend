@@ -100,6 +100,9 @@ sub display_page {
 		return 1;
 	}
 	else {
+		$name =~ s/\&/&amp;/g;
+		$name =~ s/\[/&#91;/g;
+		$name =~ s/\</&lt;/g;
 		display_special_page(find_special_page('missing'), $name);
 		return 0;
 	}
