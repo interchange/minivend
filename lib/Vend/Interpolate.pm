@@ -914,14 +914,8 @@ sub tag_data {
 
 %Filter = (
 	
-	'value' =>	sub {
-					my $var = shift;
-					return $var ? $::Values->{$var} : '';
-				},
-	'cgi' =>	sub {
-					my $var = shift;
-					return $var ? $CGI::values{$var} : '';
-				},
+	'value' =>	sub { $::Values->{$_[0]} },
+	'cgi' =>	sub { $CGI::values{$_[0]} },
 	'filesafe' =>	sub {
 						return Vend::Util::escape_chars(shift);
 				},
