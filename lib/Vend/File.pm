@@ -305,12 +305,12 @@ my $unlock_function = \&flock_unlock;
 
 sub set_lock_type {
 	if ($Global::LockType eq 'none') {
-		logDebug("using NO locking");
+		::logDebug("using NO locking");
 		$lock_function = sub {1};
 		$unlock_function = sub {1};
 	}
 	elsif ($Global::LockType =~ /fcntl/i) {
-		logDebug("using fcntl(2) locking");
+		::logDebug("using fcntl(2) locking");
 		$lock_function = \&fcntl_lock;
 		$unlock_function = \&fcntl_unlock;
 	}
