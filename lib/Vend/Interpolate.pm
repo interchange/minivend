@@ -5625,8 +5625,13 @@ sub tag_loop_list {
 	#	[/loop]
 	if (ref $list) {
 #::logDebug("opt->list in: " . ::uneval($list) );
+		unless (ref $list eq 'ARRAY' and ref $list->[0] eq 'ARRAY') {
+			::logError("loop was passed invalid list=`...` argument");
+			return;
+		}
 		my ($ary, $fh, $fa) = @$list;
 		$opt->{object}{mv_results} = $ary;
+		$opt->{object}{matches} = scalar @$ary;
 		$opt->{object}{mv_field_names} = $fa if $fa;
 		$opt->{object}{mv_field_hash} = $fh if $fh;
 		return region($opt, $text);
