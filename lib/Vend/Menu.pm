@@ -357,7 +357,13 @@ EOF
 			row_repository => [],
 			full        => '1',
 			spacing     => '4',
+			_transform   => $opt->{_transform},
 		);
+	
+	for(@{$opt->{_transform} || []}) {
+		$o{$_} = $opt->{$_};
+	}
+
 	push @out, Vend::Tags->tree(\%o);
 
 	my $rows = $o{row_repository} || [];
@@ -639,7 +645,13 @@ EOF
 			iterator    => \&tree_line,
 			full        => '1',
 			spacing     => '4',
+			_transform   => $opt->{_transform},
 		);
+	
+	for(@{$opt->{_transform} || []}) {
+		$o{$_} = $opt->{$_};
+	}
+
 	push @out, Vend::Tags->tree(\%o);
 #::logDebug("out now=" . ::uneval(\@out) );
 	if(defined $CGI::values{open}) {
