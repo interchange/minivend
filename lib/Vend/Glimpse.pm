@@ -150,7 +150,7 @@ sub search {
 		push @cmd, '-' . $s->{mv_spelling_errors};
 	}
 
-	push @cmd, "-i" unless $s->{mv_case};
+	push @cmd, "-i" unless $s->{mv_case} and $s->{mv_case}[0];
 	push @cmd, "-h" unless $s->{mv_return_file_name};
 	push @cmd, "-y -L $s->{mv_max_matches}:0:$s->{mv_max_matches}";
 	push(@cmd, "-F '$s->{mv_search_file}[0]'")
