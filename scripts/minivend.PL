@@ -460,7 +460,7 @@ sub update_data {
 	my (@k);
 	my (@v);
 	my (@c);
-::logDebug("update_data:db=$db key=$prikey VALUES=" . ::uneval(\%CGI::values));
+#::logDebug("update_data:db=$db key=$prikey VALUES=" . ::uneval(\%CGI::values));
 	my $select_key;
 	for($i = 0; $i < @{$data{$prikey}}; $i++) {
 		@k = (); @v = ();
@@ -1377,14 +1377,14 @@ sub rpc_dispatch {
 		}
 	}
 
-::logDebug ("end rpc dispatch: " . (join " ", times()) . "\n");
+#::logDebug ("end rpc dispatch: " . (join " ", times()) . "\n");
 
 	put_session() if $Vend::HaveSession;
 	close_database();
 
 	undef $Vend::Cfg;
 
-::logDebug ("closed all rpc: " .  join " ", times() . "\n");
+#::logDebug ("closed all rpc: " .  join " ", times() . "\n");
 
 	return $response;
 }
@@ -1837,7 +1837,7 @@ EOF
 		$Vend::Action = shift @path;
 	}
 
-::logGlobal("action=$Vend::Action path=$Vend::FinalPath");
+#::logGlobal("action=$Vend::Action path=$Vend::FinalPath");
 	my ($sub, $status);
 	Vend::Interpolate::reset_calc();
 	if(defined $Vend::Cfg->{ActionMap}{$Vend::Action}) {
