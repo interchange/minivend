@@ -45,6 +45,7 @@ addhistory
 can_do_suid
 conf_parse_http
 copy_current_to_dir
+copy_dir
 description
 do_msg
 findexe
@@ -85,6 +86,8 @@ my %Pretty = qw(
 	sampleurl			SampleUrl
 	serverconf			ServerConf
 	servername			ServerName
+	sharedir			ShareDir
+	shareurl			ShareUrl
 	catroot				CatRoot
 	vendroot			VendRoot
 
@@ -199,6 +202,22 @@ EOF
 #
 # Normally this is left blank.
 # 
+EOF
+	sharedir => <<EOF,
+# This is a directory path name (not a URL) where the administration user
+# interface images from share/ should be copied to. These will normally be
+# shared by all catalogs. Often this is the same as your DocumentRoot.
+#
+EOF
+	shareurl => <<EOF,
+# The URL base for the administration user interface images. Sets the
+# Variable UI_IMG directive in the UI configuration file, ui.cfg.
+# This is a URL fragment, not an entire URL. If you set ShareDir to be
+# the same as DocumentRoot, this would just be a '/'.
+#
+#         <IMG SRC="/akopia/ui/bg.gif">
+#                   ^
+#
 EOF
 	imagedir   =>  <<EOF,
 # Where the image files should be copied. A directory path
@@ -456,6 +475,8 @@ sub copy_dir {
     };
     File::Find::find($wanted, '.');  
 
+	# also exclude directories that match $exclude_pattern
+	@files = grep !m{$exclude_pattern}o, @files if $exclude_pattern;
 	eval {
 		for(@files) {
 			install_file('.', $target_dir, $_);
