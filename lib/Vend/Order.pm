@@ -1583,6 +1583,12 @@ sub route_order {
 			}
 		}
 
+		if($Vend::Session->{mv_order_number}) {
+			$value_save->{mv_order_number} =
+				$::Values->{mv_order_number} =
+					$Vend::Session->{mv_order_number};
+		}
+
 		$Vend::Interpolate::Values = $::Values = { %$value_save };
 		$::Values->{mv_current_route} = $c;
 		my $pre_encrypted;
