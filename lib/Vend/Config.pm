@@ -988,7 +988,7 @@ CONFIGLOOP:
 	# check for unspecified directives that don't have default values
 
 	# but set some first if appropriate
-	set_defaults();
+	set_defaults() unless $C->{BaseCatalog};
 
 	REQUIRED: {
 		last REQUIRED if defined $subconfig;
