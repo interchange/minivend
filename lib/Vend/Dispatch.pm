@@ -964,6 +964,7 @@ EOF
 
 	chdir $Vend::Cfg->{VendRoot} 
 		or die "Couldn't change to $Vend::Cfg->{VendRoot}: $!\n";
+	POSIX::setlocale('LC_ALL', $Vend::Cfg->{ExecutionLocale});
 	set_file_permissions();
 # STATICPAGE
 	tie_static_dbm() if $Vend::Cfg->{StaticDBM};

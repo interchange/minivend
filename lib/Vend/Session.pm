@@ -460,8 +460,7 @@ sub init_session {
 		if $CGI::secure;
 	$::Values     = $Vend::Session->{'values'};
 	$::Scratch	  = $Vend::Session->{scratch};
-	$::Scratch->{mv_locale} = $Vend::Cfg->{DefaultLocale}
-		if ! $::Scratch->{mv_locale} and $Vend::Cfg->{DefaultLocale};
+	$::Scratch->{mv_locale} ||= $Vend::Cfg->{DefaultLocale};
 	$::Carts	  = $Vend::Session->{carts};
 	tie $Vend::Items, 'Vend::Cart';
 	$::Values->{mv_shipmode} = $Vend::Cfg->{DefaultShipping}

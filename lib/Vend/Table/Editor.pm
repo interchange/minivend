@@ -2762,7 +2762,8 @@ $l_pkey</td>};
 		}
 		elsif (defined $default->{$c} and ! length($data->{$c}) ) {
 			$currval = $default->{$c};
-#::logDebug("hit preload for $col,currval=$currval");
+			$overridden = 1;
+#::logDebug("hit default setting for $col,currval=$currval");
 		}
 		else {
 #::logDebug("hit data->col for $col, t=$t, c=$c, k=$k, currval=$currval");
