@@ -440,11 +440,12 @@ undef %T;
 
 sub get_joiner {
 	my ($joiner, $default) = @_;
+	return $default      unless defined $joiner and length $joiner;
 	if($joiner eq '\n') {
 		$joiner = "\n";
 	}
 	elsif($joiner =~ m{\\}) {
-		$joiner = tag_calc("qq{$joiner}");
+		$joiner = $safe_safe->reval("qq{$joiner}");
 	}
 	return length($joiner) ? $joiner : $default;
 }
