@@ -1248,7 +1248,7 @@ sub userdb {
 		delete $Vend::Session->{username};
 		undef $Vend::username;
 		undef $Vend::admin;
-		::put_session;
+		::put_session();
 		$user = new Vend::UserDB %options;
 		unless (defined $user) {
 			$Vend::Session->{failure} = "Unable to access user database.";
