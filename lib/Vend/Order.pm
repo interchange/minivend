@@ -849,19 +849,18 @@ sub do_check {
 					);
 			return undef;
 		}
-#::logDebug("&Vend::Order::do_check returning \$val $val, \$var $var, \$message $message");
+#::logDebug("&Vend::Order::do_check returning val=$val, var=$var, message=$message");
 		return ($val, $var, $message);
 }
 
 sub check_order {
 	my ($profiles, $vref) = @_;
-	my @profiles = split /\0+/, $profiles;
 	my $status;
 	@Errors = ();
 	$Vend::Session->{errors} = {}
 		unless ref $Vend::Session->{errors} eq 'HASH';
 
-	for my $profile (@profiles) {
+	for my $profile (split /\0+/, $profiles) {
 
 		$status = check_order_each($profile, $vref);
 
@@ -880,7 +879,7 @@ sub check_order {
 						"You might want to order something! No items in cart.",
 					);
 		}
-::logDebug("FINISH checking profile $profile: Fatal=$Fatal Final=$Final Status=$status");
+#::logDebug("FINISH checking profile $profile: Fatal=$Fatal Final=$Final Status=$status");
 
 		# first profile to fail prevents all other profiles from running
 		last unless $status;
@@ -888,7 +887,7 @@ sub check_order {
 	}
 
 	my $errors = join "\n", @Errors;
-::logDebug("Errors after checking profile(s) " . join(", ", @profiles) . ":\n" . $errors);
+#::logDebug("Errors after checking profile(s):\n$errors") if $errors;
 	$errors = '' unless defined $errors and ! $Success;
 	return ($status, $Final, $errors);
 }
