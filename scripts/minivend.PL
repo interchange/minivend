@@ -123,7 +123,7 @@ use vars qw($VERSION);
 require Exporter;
 
 BEGIN {
-	$VERSION = '4.5.5';
+	$VERSION = '4.5.6';
 }
 
 
@@ -1170,6 +1170,7 @@ sub url_history {
 
 my %action = (
     process	=> \&do_process,
+	ui_wrap => \&UI::Primitive::ui_wrap,
     ui=> sub { 
 					&UI::Primitive::ui_acl_global();
 					\&do_process(@_);
