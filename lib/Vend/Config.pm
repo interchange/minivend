@@ -3141,7 +3141,10 @@ sub parse_configdb {
 	my ($file, $type);
 	return '' if ! $value;
 	local($Vend::Cfg) = $C;
-	my ($db, $table) = get_configdb($var, $value);
+	my ($db, $table);
+	eval {
+		($db, $table) = get_configdb($var, $value);
+	};
 
 	return '' if ! $db;
 
@@ -3224,7 +3227,10 @@ sub parse_dbconfig {
 	return '' if ! $value;
 	local($Vend::Cfg) = $C;
 
-	my ($db, $table) = get_configdb($var, $value);
+	my ($db, $table);
+	eval {
+		($db, $table) = get_configdb($var, $value);
+	};
 
 	return '' if ! $db;
 
