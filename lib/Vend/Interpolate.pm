@@ -2968,10 +2968,10 @@ sub tag_page {
 	return '<A HREF="' . form_link(@_) . '">' if defined $opt and $opt->{form};
 
 	if ($opt->{search}) {
-		$page = escape_scan($opt->{search});
+		$page = escape_scan($opt->{search},undef,1);
 	}
 	elsif ($page eq 'scan') {
-		$page = escape_scan($arg);
+		$page = escape_scan($arg,undef,1);
 		undef $arg;
 	}
 
@@ -2994,10 +2994,10 @@ sub tag_area {
 	$page = '' if ! defined $page;
 
 	if ($opt->{search}) {
-		$page = escape_scan($opt->{search});
+		$page = escape_scan($opt->{search},undef,1);
 	}
 	elsif ($page eq 'scan') {
-		$page = escape_scan($arg);
+		$page = escape_scan($arg,undef,1);
 		undef $arg;
 	}
 
