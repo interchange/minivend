@@ -1743,13 +1743,14 @@ EOF
 						 };
 
 	unless ($Conf{sharedir} eq 'NONE') {
-		print do_msg("Copying share/ files to $Conf{sharedir}");
+		print do_msg("Copying share/ files to $Conf{relocate}$Conf{sharedir}");
 		my $oldpwd = cwd();
 		my @sharedirs;
 		eval {
-			chdir $Conf{vendroot} or die "\nchdir $Conf{vendroot}: $!\n";
+			chdir "$Conf{relocate}$Conf{vendroot}"
+				or die "\nchdir $Conf{relocate}$Conf{vendroot}: $!\n";
 			# remember directories so we can chown below
-			chdir "share" or die "\nchdir $Conf{vendroot}: $!\n";
+			chdir "share" or die "\nchdir 'share': $!\n";
 			map { push @sharedirs, $_ if -d $_ } glob('*');
 			chdir "..";
 			# copy everything except some HTML help file stuff
