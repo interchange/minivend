@@ -557,8 +557,6 @@ sub tie_database {
 		copyref($Global::Database, $Vend::Cfg->{Database});
 	}
     while (($name,$data) = each %{$Vend::Cfg->{Database}}) {
-		$Vend::UPPERCASE{$name} = 1
-				if $data->{UPPERCASE};
 		if( $data->{type} > 6 or $data->{HOT} ) {
 #::logDebug("Importing $data->{name}...");
 			$Vend::Database{$name} = import_database($data);
@@ -575,8 +573,6 @@ sub tie_database {
 				}
 			}
 			my $class = $db_config{$data->{Class}}->{Class};
-			$Vend::UPPERCASE{$name} = 1
-				if $data->{UPPERCASE};
 			$Vend::Database{$name} = new $class ($data);
 		}
 	}
@@ -591,8 +587,6 @@ sub dummy_database {
 			next;
 		}
 		my $class = $db_config{$data->{Class}}->{Class};
-		$Vend::UPPERCASE{$name} = 1
-			if $data->{UPPERCASE};
 		$Vend::Database{$name} =
 				new $class ($data);
 	}
