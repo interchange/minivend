@@ -1835,6 +1835,7 @@ EOF
 			unless $Vend::Cfg->{Static};
 	}
 	$::Variable = $Vend::Cfg->{Variable};
+	$::Pragma   = $Vend::Cfg->{Pragma};
 
 	if (defined $Global::SelectorAlias{$CGI::script_name}
 		and ! defined $Vend::InternalHTTP                 )
