@@ -220,11 +220,8 @@ sub search {
 		elsif(defined $limit_sub) {
 #::logDebug("f and limit, dbref=$dbref");
 			while($_ = join "\t", $dbref->each_nokey($qual || undef) ) {
-#::logDebug("cand: $_");
 				next unless &$f();
-#::logDebug("cand: $_ survived");
 				next unless &$limit_sub($_);
-#::logDebug("cand: $_ survived again");
 				push @out, &$return_sub($_);
 			}
 		}

@@ -585,8 +585,9 @@ sub each_record {
     my ($s, $qual) = @_;
 #::logDebug("qual=$qual");
 	$s = $s->import_db() if ! defined $s->[$DBI];
-    my ($table, $db, $each) = @{$s}[$TABLE,$DBI,$EACH];
-    unless(defined $each) {
+    my ($table, $db, $each);
+    unless(defined $s->[$EACH]) {
+		($table, $db, $each) = @{$s}[$TABLE,$DBI,$EACH];
 		my $query = $db->prepare("select * from $table " . ($qual || '') )
             or die $DBI::errstr;
 		$query->execute();
@@ -598,7 +599,7 @@ sub each_record {
 		};
         push @$s, $each;
     }
-	my ($key, $return) = $each->();
+	my ($key, $return) = $s->[$EACH]->();
 	if(! defined $key) {
 		pop @$s;
 		return ();
@@ -611,8 +612,22 @@ sub each_nokey {
     my ($s, $qual) = @_;
 #::logDebug("qual=$qual");
 	$s = $s->import_db() if ! defined $s->[$DBI];
-    my ($table, $db, $each) = @{$s}[$TABLE,$DBI,$EACH];
-    unless(defined $each) {
+    my ($table, $db, $each);
+    unless(defined $s->[$EACH]) {
+		($table, $db, $each) = @{$s}[$TABLE,$DBI,$EACH];
+		my $restrict;
+		if($restrict = $Vend::Cfg->{TableRestrict}{$table}
+			and (
+				! defined $Global::SuperUserFunction
+					or
+				! $Global::SuperUserFunction->()
+				)
+			) {
+			$qual = $qual ? "$qual AND " : 'WHERE ';
+			my ($rfield, $rsession) = split /\s*=\s*/, $restrict;
+#::logDebug("qual=$qual");
+			$qual .= "$rfield = '$Vend::Session->{$rsession}'";
+		}
 		my $query = $db->prepare("select * from $table " . ($qual || '') )
             or die $DBI::errstr;
 		$query->execute();
@@ -624,7 +639,7 @@ sub each_nokey {
 		};
         push @$s, $each;
     }
-	my ($return) = $each->();
+	my ($return) = $s->[$EACH]->();
 	if(! defined $return->[0]) {
 		pop @$s;
 		return ();

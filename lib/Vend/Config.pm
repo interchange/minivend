@@ -352,6 +352,7 @@ sub catalog_directives {
     ['NoSearch',         'wildcard',         'userdb'],
     ['OrderCounter',	 undef,     	     ''],
     ['ImageAlias',	 	 'hash',     	     ''],
+    ['TableRestrict',	 'hash',     	     ''],
     ['Filter',		 	 'hash',     	     ''],
     ['ImageDirSecure',   undef,     	     ''],
     ['ImageDirInternal', undef,     	     ''],

@@ -433,21 +433,51 @@ sub each_record {
     }
 }
 
+my $sup;
+my $restrict;
+my $rfield;
+my $rsession;
+
 sub each_nokey {
     my ($s) = @_;
 	$s = $s->import_db() if ! defined $s->[$TIE_HASH];
-    my $key;
+    my ($key);
+
+	if (
+		! defined $restrict
+		and 
+		$restrict = ($Vend::Cfg->{TableRestrict}{$s->config('name')} || 0)
+		)
+	{
+		$sup =  ! defined $Global::SuperUserFunction
+					||
+				$Global::SuperUserFunction->();
+		if($sup) {
+			$restrict = 0;
+		}
+		else {
+			($rfield, $rsession) = split /\s*=\s*/, $restrict;
+			$s->test_column($rfield) and $rfield = $s->column_index($rfield)
+				or $restrict = 0;
+			$rsession = $Vend::Session->{$rsession};
+		}
+	}
 
     for (;;) {
         $key = each %{$s->[$TIE_HASH]};
-        if (defined $key) {
-            if ($key =~ s/^k//) {
-                return ($s->row($key));
-            }
-        }
-        else {
-            return ();
-        }
+#::logDebug("each_nokey: $key field=$rfield sup=$sup");
+		if(! defined $key) {
+			undef $restrict;
+			return ();
+		}
+		$key =~ s/^k// or next;
+		if($restrict) {
+			my (@row) = $s->row($key);
+##::logDebug("each_nokey: '$row[$rfield]' eq '$rsession' ??");
+			next if $row[$rfield] ne $rsession;
+			return @row;
+		}
+		return $s->row($key);
     }
 }
 
