@@ -530,7 +530,7 @@ sub movecombo {
 	if(! $template) {
 		if($opt->{rows} > 1) {
 			$template .= q(<textarea rows="{ROWS|4}" wrap="{WRAP|virtual}");
-			$template .= q( cols="{COLS|20} name="{NAME}">{ENCODED}</textarea>);
+			$template .= q( cols="{COLS|20}" name="{NAME}">{ENCODED}</textarea>);
 		}
 		else {
 			$template .= qq(<input TYPE="text" size="{COLS||40}");
