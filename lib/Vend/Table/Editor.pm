@@ -3666,12 +3666,16 @@ show_times("end table editor call item_id=$key") if $Global::ShowTimes;
 			logError("must have chunk {%s} defined in overall template.", $item);
 			return undef;
 		};
-		$overall_template =~ /{TOP_OF_FORM}/
-			or return $death->('TOP_OF_FORM');
-		$overall_template =~ /{HIDDEN_FIELDS}/
-			or return $death->('HIDDEN_FIELDS');
-		$overall_template =~ /{BOTTOM_OF_FORM}/
-			or return $death->('BOTTOM_OF_FORM');
+
+		unless($opt->{incomplete_form_ok}) {
+			$overall_template =~ /{TOP_OF_FORM}/
+				or return $death->('TOP_OF_FORM');
+			$overall_template =~ /{HIDDEN_FIELDS}/
+				or return $death->('HIDDEN_FIELDS');
+			$overall_template =~ /{BOTTOM_OF_FORM}/
+				or return $death->('BOTTOM_OF_FORM');
+		}
+
 		while($overall_template =~ m/\{((?:_INCLUDE_|COLUMN_|_SPREAD_).*?)\}/g) {
 			my $name = $1;
 			my $orig = $name;
