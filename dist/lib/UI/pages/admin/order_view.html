@@ -39,7 +39,7 @@
                <td width="25%" nowrap class="block4bold">
 			   	Order Status: &nbsp;
 					[page href="admin/order_status" form="order=[loop-code]"]
-						<span class="alert">Pending</span>
+						<span class="alert">[display table=transactions col=status type=display key="[loop-code]"]</span>
 					</a>
 					[if-loop-data transactions archived == 1]
 					([L]archived[/L])
