@@ -3107,7 +3107,7 @@ sub tag_page {
 		undef $arg;
 	}
 
-	resolve_static(), $url = $urlroutine->($page)
+	resolve_static(), $url = $urlroutine->($page, $arg)
 		unless $url;
 
     return qq{<a href="$url"$extra>};
