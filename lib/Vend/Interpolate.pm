@@ -4547,9 +4547,9 @@ sub labeled_list {
 	local($Safe_data);
 	$Safe_data = 1 if $opt->{safe_data};
 
-	if($opt->{prefix} eq 'item') {
+#	if($opt->{prefix} eq 'item') {
 #::logDebug("labeled list: opt:\n" . ::uneval($opt) . "\nobj:" . ::uneval($obj) . "text:" . substr($text,0,100));
-	}
+#	}
 	$Orig_prefix = $Prefix = $opt->{prefix} || 'item';
 
 	$B  = qr(\[$Prefix)i;
@@ -4659,8 +4659,7 @@ sub labeled_list {
 				$fh->{$_} = $idx++;
 			}
 		}
-		logError("Missing mv_field_hash and/or mv_field_names in Vend::Interpolate::labeled_list")
-			unless ref $fh eq 'HASH';
+#::logDebug("Missing mv_field_hash and/or mv_field_names in Vend::Interpolate::labeled_list") unless ref $fh eq 'HASH';
 		$r = iterate_array_list($i, $end, $count, $text, $ary, $opt_select, $fh);
 	}
 	$MVSAFE::Unsafe = $save_unsafe;
@@ -4951,6 +4950,15 @@ my $once = 0;
 					  {
 					  	resolve_nested_if($1, $2)
 					  }se;
+
+	# log helpful errors if any unknown field names are
+	# used in if-prefix-param or prefix-param tags
+	my @field_msg = ('error', "Unknown field name '%s' used in tag %s");
+	$run = $text;
+	$run =~ s#$B$QR{_param}# defined $fh->{$1} ||
+		::logOnce(@field_msg, $1, "$Orig_prefix-param") #ige;
+	$run =~ s#$IB$QR{_param_if}# defined $fh->{$3} ||
+		::logOnce(@field_msg, $3, "if-$Orig_prefix-param") #ige;
 
 	for( ; $i <= $end ; $i++, $count++ ) {
 		$row = $ary->[$i];
