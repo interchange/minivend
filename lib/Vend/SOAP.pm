@@ -168,6 +168,16 @@ sub tag_soap {
 	return $result;
 }
 
+sub tag_soap_entity {
+	my ($opt) = @_;
+	my ($obj);
+        
+	if ($opt->{tree}) {
+		$opt->{value} = map {$Tag->soap_data_entity($_)} @{$opt->{value}};
+	}
+	$obj = new SOAP::Data (%$opt);
+}
+
 my %intrinsic = (local => sub {$CGI::remote_addr eq '127.0.0.1'},
 				never => sub {return 0},
 				always => sub {return 1});
