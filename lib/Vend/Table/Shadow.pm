@@ -190,7 +190,8 @@ sub foreign {
 sub field {
 	my ($s, $key, $column) = @_;
 	my ($map, $locale, $db);
-	
+
+	$s = $s->import_db() unless defined $s->[$OBJ];
 	$s->_map_column($key, $column);
 }
 
