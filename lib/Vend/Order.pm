@@ -856,7 +856,10 @@ sub check_order {
 	elsif(defined $::Scratch->{$profile}) {
 		$params = $::Scratch->{$profile};
 	}
-	else { return undef }
+	else {
+		::logError("Order profile %s not found", $profile);
+		return undef;
+	}
 	return undef unless $params;
 
 	my $ref = \%CGI::values;
