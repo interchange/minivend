@@ -754,6 +754,31 @@ sub set_values {
 	  return undef;
 	}
 
+# Changes made to support Accounting Interface.
+
+	if(my $l = $Vend::Cfg->{Accounting}) {
+		my %hashvar;
+		my $indexvar = 0;
+		while ($indexvar <= (scalar @bfields)) {
+			$hashvar{ $bfields[$indexvar] } = $bvals[$indexvar];
+			$indexvar++;
+		};
+		my $obj;
+		my $class = $l->{Class};
+		eval {
+			$obj = $class->new;
+		};
+
+		if($@) {
+			die errmsg(
+				"Failed to save customer data with accounting system %s: %s",
+				$class,
+				$@,
+				);
+		}
+		my $returnval = $obj->save_customer_data($user, \%hashvar);
+	}
+
 	return 1;
 }
 
@@ -1254,12 +1279,36 @@ sub change_pass {
 }
 
 sub assign_username {
-        my $self = shift;
-        my $file = shift || $self->{OPTIONS}{'counter'};
-        my $start = $self->{OPTIONS}{username} || 'U00000';
-        $file = './etc/username.counter' if ! $file;
-        my $ctr = Vend::CounterFile->new($file, $start);
-        return $ctr->inc();
+	my $self = shift;
+	my $file = shift || $self->{OPTIONS}{'counter'};
+	my $start = $self->{OPTIONS}{username} || 'U00000';
+	$file = './etc/username.counter' if ! $file;
+	my $ctr = Vend::CounterFile->new($file, $start);
+
+	my $custno = $ctr->inc();
+
+	if(my $l = $Vend::Cfg->{Accounting}) {
+
+		my $class = $l->{Class};
+
+#::logDebug("Accounting class is $class");
+		my $obj;
+		eval {
+			$obj = $class->new;;
+		};
+#::logDebug("Accounting object is $obj");
+
+		if($@) {
+			die errmsg(
+				"Failed to assign new customer number with accounting system %s",
+				$class,
+				);
+		}
+		$custno = $obj->assign_customer_number();
+#::logDebug("assigned new customer number $custno");
+	}
+
+	return $custno;
 }
 
 sub new_account {
@@ -1477,14 +1526,11 @@ sub userdb {
 
 #::logDebug("Called userdb function=$function opt=$opt " .  Data::Dumper::Dumper($opt));
 
-	if(ref $opt eq 'HASH') {
+	if(ref $opt) {
 		%options = %$opt;
 	}
-	elsif (! ref $opt) {
-		%options = ($opt, @_);
-	}
 	else {
-		%options = @_;
+		%options = ($opt, @_);
 	}
 
 	my $status = 1;

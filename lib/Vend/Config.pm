@@ -128,7 +128,7 @@ my %HashDefaultBlank = (qw(
 					SOAP			1
 					Mail			1
 					DatabaseDefault	1
-					SQL_Ledger		1
+					Accounting		1
 				));
 
 my %DumpSource = (qw(
@@ -485,7 +485,7 @@ sub catalog_directives {
 	['PriceDefault',	 undef,              'price'],
 	['PriceField',		 undef,              'price'],
 	['Shipping',         'locale',           ''],
-	['SQL_Ledger',	 	 'hash',     	 	 ''],
+	['Accounting',	 	 'locale',     	 	 ''],
 	['AutoVariable',	 'autovar',     	 ''],
 
 	];
