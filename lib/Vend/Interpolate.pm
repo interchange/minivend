@@ -2868,12 +2868,35 @@ sub tag_area {
 		$Vend::Session->{$aloc}{$page} = $opt->{alias};
 	}
 
+	my $r;
+
 	if ($opt->{search}) {
 		$page = escape_scan($opt->{search});
 	}
 	elsif ($page =~ /^[a-z][a-z]+:/) {
 		### Javascript or absolute link
-		return $page;
+		return $page unless $opt->{form};
+		$page =~ s{(\w+://[^/]+)/}{}
+			or return $page;
+		my $intro = $1;
+		my @pieces = split m{/}, $page, 9999;
+		$page = pop(@pieces);
+		if(! length($page)) {
+			$page = pop(@pieces);
+			if(! length($page)) {
+				$r = $intro;
+				$r =~ s{/([^/]+)}{};
+				$page = "$1/";
+			}
+			else {
+				$page .= "/";
+			}
+		}
+		$r = join "/", $intro, @pieces unless $r;
+		$opt->{add_dot_html} = 0;
+		$opt->{no_session} = 1;
+		$opt->{secure} = 0;
+		$opt->{no_count} = 1;
 	}
 	elsif ($page eq 'scan') {
 		$page = escape_scan($arg);

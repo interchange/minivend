@@ -1193,7 +1193,7 @@ sub vendUrl {
 
 	my $extra;
 	if($opt->{form}) {
-		$path = 'process' unless $path;
+		$path = $Vend::Cfg->{ProcessPage} unless $path;
 		if($opt->{form} eq 'auto') {
 			my $form = '';
 			while( my ($k, $v) = each %$opt) {
