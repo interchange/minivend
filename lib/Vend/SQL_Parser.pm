@@ -165,7 +165,7 @@ sub tables {
 		push @try, grep /\S/, split /\s*,\s*/, $tab;
 	}
 	elsif($s->{command} eq 'SELECT') {
-		$st =~ s/(.*?)\s+from\s+//;
+		$st =~ s/(.*?)\s+from\s+//is;
 		$s->{raw_columns} = $1;
 		my @t = Text::ParseWords::quotewords('\s*,\s*', 0, $st);
 		my $last;
