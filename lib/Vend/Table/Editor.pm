@@ -1682,11 +1682,13 @@ show_times("begin table editor call item_id=$key") if $Global::ShowTimes;
 
 	if($opt->{cgi}) {
 		$key ||= $CGI->{item_id};
-		$opt->{item_id_left} ||= $CGI::values{item_id_left};
-		$opt->{ui_sequence_edit} ||= $CGI::values{ui_sequence_edit};
+		unless($opt->{ui_multi_key} = $CGI->{ui_multi_key}) {
+			$opt->{item_id_left} ||= $CGI::values{item_id_left};
+			$opt->{ui_sequence_edit} ||= $CGI::values{ui_sequence_edit};
+		}
 	}
 
-	if($opt->{ui_sequence_edit}) {
+	if($opt->{ui_sequence_edit} and ! $opt->{ui_multi_key}) {
 		delete $opt->{ui_sequence_edit};
 		my $left = delete $opt->{item_id_left}; 
 

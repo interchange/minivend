@@ -73,6 +73,7 @@ BEGIN {
 # SQL
 	if($Global::DBI) {
 		require Vend::Table::DBI;
+		require Vend::Table::DBI_CompositeKey;
 	}
 # END SQL
 # LDAP
@@ -550,6 +551,7 @@ my %Delimiter = (
 	6 => ["\t", "\n"],
 	7 => ["\t", "\n"],
 	8 => ["\t", "\n"],
+	10 => ["\t", "\n"],
 	LINE => ["\n", "\n\n"],
 	'%%%' => ["\n%%\n", "\n%%%\n"],
 	'%%' => ["\n%%\n", "\n%%%\n"],
@@ -615,6 +617,13 @@ use vars '%db_config';
 
 %db_config = (
 # SQL
+		'DBI_CompositeKey' => {
+				qw/
+					Extension			 sql
+					RestrictedImport	 1
+					Class                Vend::Table::DBI_CompositeKey
+				/
+				},
 		'DBI' => {
 				qw/
 					Extension			 sql
@@ -1947,6 +1956,8 @@ sub update_data {
 	}
 #::logDebug("autonumber=$autonumber");
 
+	my $multikey = $base_db->config('MULTIPLE_KEYS');
+
  	if(@file_fields) {
 		my $Tag = new Vend::Tags;
 		my $acl_func;
@@ -2184,7 +2195,7 @@ sub update_data {
 			}
 			while($field = shift @k) {
 				$value = shift @v;
-				next if $field eq $prikey;
+				next if $field eq $prikey and ! $multikey;
 				
 				## DATA IS SET HERE
 				# We are going to set the field unless it is only for
@@ -2218,7 +2229,8 @@ sub update_data {
 
 			for(keys %$qd) {
 #::logDebug("update_data: Getting ready to set_slice");
-				$qret = $qd->{$_}->set_slice($key, $qf->{$_}, $qv->{$_});
+				my $k = $multikey ? undef : $key;
+				$qret = $qd->{$_}->set_slice($k, $qf->{$_}, $qv->{$_});
 				$rows_set[$i] = $qret unless $rows_set[$i];
 			}
 			if($blob) {

@@ -3299,6 +3299,22 @@ sub parse_database {
 			$d->{$p} = [] unless defined $d->{$p};
 			push @{$d->{$p}}, @v;
 		}
+		elsif ($p eq 'MULTIPLE_KEYS') {
+		    ## Magic hardcode
+			if($d->{type} == 8) {
+				$d->{Class} = 'DBI_CompositeKey';
+				$d->{$p} = $val;
+			}
+			else {
+				config_warn(
+					'Database %s parameter in type with no handling. Ignored.', 
+					$p,
+					);
+			}
+		}
+		elsif ($p eq 'CLASS') {
+			$d->{Class} = $val;
+		}
 		elsif ($p =~ /^(MEMORY|SDBM|GDBM|DB_FILE|LDAP)$/i) {
 			$d->{Class} = uc $p;
 		}
