@@ -948,6 +948,8 @@ sub login {
 	}
 
 	$Vend::Session->{login_table} = $self->{DB_ID};
+	$Vend::username = $Vend::Session->{username} = $self->{USERNAME};
+	$Vend::Session->{logged_in} = 1;
 	
 	1;
 }
@@ -1090,6 +1092,8 @@ sub new_account {
 
 		$self->log('new account') if $options{'log'};
 		$self->set_values();
+		$self->login()
+			or die "Cannot log in after new account creation: $self->{ERROR}";
 	};
 
 	if($@) {
@@ -1102,8 +1106,6 @@ sub new_account {
 		return undef;
 	}
 	
-	$Vend::Session->{login_table} = $self->{DB_ID};
-
 	1;
 }
 
@@ -1253,8 +1255,6 @@ sub userdb {
 			return undef;
 		}
 		if ($status = $user->login(%options) ) {
-			$Vend::Session->{logged_in} = 1;
-			$Vend::username = $Vend::Session->{username} = $user->{USERNAME};
 			if(
 				! $Vend::Cfg->{AdminUserDB} or
 				$Vend::Cfg->{AdminUserDB}{$user->{PROFILE}}
