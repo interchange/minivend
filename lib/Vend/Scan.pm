@@ -161,11 +161,8 @@ my %Scan = ( qw(
                     sr  mv_search_relate
                     st  mv_searchtype
                     su  mv_substring_match
-                    td  mv_table_cell
                     tf  mv_sort_field
-                    th  mv_table_header
                     to  mv_sort_option
-                    tr  mv_table_row
                     un  mv_unique
                     va  mv_value
 
@@ -481,12 +478,15 @@ sub perform_search {
 			$q = $pre_made;
 			@{$q}{keys %options} = (values %options);
 		}
-		elsif (! defined $options{mv_searchtype} or $options{mv_searchtype} eq 'text') {
-			$q = new Vend::TextSearch %options;
-		}
-		elsif ( $options{mv_searchtype} =~ /db|sql/i){
+		elsif (
+				! $options{mv_searchtype} && $::Variable->{MV_DEFAULT_SEARCH_DB}
+				or $options{mv_searchtype} =~ /db|sql/i
+			)
+		{
 			$q = new Vend::DbSearch %options;
-#::logDebug("Glimpsesearch object: " . ::uneval($q));
+		}
+		elsif (! $options{mv_searchtype} or $options{mv_searchtype} eq 'text') {
+			$q = new Vend::TextSearch %options;
 		}
 # GLIMPSE
 		elsif ( $options{mv_searchtype} eq 'glimpse'){
