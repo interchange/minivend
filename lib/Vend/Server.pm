@@ -380,6 +380,7 @@ sub parse_multipart {
 sub create_cookie {
 	my($domain,$path) = @_;
 	my  $out;
+	return '' if $Vend::tmp_session;
 	my @jar;
 	push @jar, [
 				($::Instance->{CookieName} || 'MV_SESSION_ID'),
