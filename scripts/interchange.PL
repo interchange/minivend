@@ -136,7 +136,7 @@ use vars qw($VERSION);
 require Exporter;
 
 BEGIN {
-	$VERSION = '4.6.4';
+	$VERSION = '4.6.5';
 }
 
 use Fcntl;
@@ -1799,7 +1799,7 @@ interchange [--options] [file]
 
 =head1 VERSION
 
-4.6.4
+4.6.5
 
 =head1 DESCRIPTION
 
