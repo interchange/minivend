@@ -882,6 +882,18 @@ sub tag_data {
 					$val =~ s:':'':g; # '
 					return $val;
 				},
+	'textarea_put' => sub {
+					my $val = shift;
+					$val =~ s/\&/\&amp;/g;
+					$val =~ s/\[/&#91;/g;
+					$val =~ s/</&lt;/g;
+					return $val;
+				},
+	'textarea_get' => sub {
+					my $val = shift;
+					$val =~ s/\&amp;/\&/g;
+					return $val;
+				},
 	'text2html' => sub {
 					my $val = shift;
 					$val =~ s|\r?\n\r?\n|<P>|;
@@ -1741,7 +1753,6 @@ sub flag {
 		@status = ("Set build flag: %s name=%s", $value, $Vend::ScanName);
 	}
 	elsif($flag eq 'checkhtml') {
-		$value = $text if ! defined $opt->{value};
 		$Vend::CheckHTML = $value;
 		@status = ("Set CheckHTML flag: %s", $value);
 	}
