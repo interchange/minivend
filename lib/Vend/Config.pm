@@ -2678,8 +2678,10 @@ sub parse_config_db {
 		}
 		else {
 			defined $d->{$p}
+			and ! defined $C->{DatabaseDefault}{$p}
 				and config_warn(
-						"ConfigDatabase scalar parameter %s redefined to '%s', was %s.",
+						"ConfigDatabase %s scalar parameter %s redefined to '%s', was %s.",
+						$d->{name},
 						$p,
 						$val,
 						$d->{$p},
@@ -2854,9 +2856,11 @@ sub parse_database {
 
 		else {
 			defined $d->{$p}
+			and ! defined $C->{DatabaseDefault}{$p}
 				and
 				config_warn(
-					"ConfigDatabase scalar parameter %s redefined to '%s', was %s.",
+					"Database %s scalar parameter %s redefined to '%s', was %s.",
+					$d->{name},
 					$p,
 					$val,
 					$d->{$p},
