@@ -289,7 +289,9 @@ sub {
 	Vend::Tags->warning("$ship_mesg $email_mesg");
 	delete $::Scratch->{ship_notice_username};
 	delete $::Scratch->{ship_notice_email};
+	delete $::Scratch->{ship_notice_order_number};
 	if($wants_copy) {
+		$::Scratch->{ship_notice_order_number} = $on;
 		$::Scratch->{ship_notice_username} = $user;
 		$::Scratch->{ship_notice_email} = $trec->{email}
 			or delete $::Scratch->{ship_notice_username};
