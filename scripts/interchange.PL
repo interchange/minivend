@@ -804,9 +804,20 @@ sub update_data {
 #::logDebug("update_data: blob safe object=$safe");
 	}
 
+	my @multis;
+	if($CGI::values{mv_data_multiple}) {
+		my $re = qr/^\d+_$prikey$/;
+		@multis = grep $_ =~ $re, keys %CGI::values;
+		for(@multis) {
+			s/_.*//;
+		}
+		@multis = sort { $a <=> $b } @multis;
+	}
+
 #::logDebug("update_data:db=$db key=$prikey VALUES=" . ::uneval(\%CGI::values));
 #::logDebug("update_data:db=$db key=$prikey data=" . ::uneval(\%data));
 	my $select_key;
+ SETDATA: {
 	for($i = 0; $i < @{$data{$prikey}}; $i++) {
 #::logDebug("iteration of update_data:db=$db key=$prikey data=" . ::uneval(\%data));
 		@k = (); @v = ();
@@ -930,6 +941,16 @@ sub update_data {
 				if $CGI::values{mv_data_email};
 		}
 	}
+	if(my $new = shift(@multis)) {
+#::logDebug("Doing multi for $new");
+		last SETDATA unless length $CGI::values{"${new}_$prikey"};
+		for(@fields) {
+			my $value = $CGI::values{$_} = $CGI::values{"${new}_$_"};
+			$data{$_} = [ $value ];
+		}
+		redo SETDATA;
+	}
+ } # end SETDATA
 
 	if($CGI::values{mv_data_return_key}) {
 		my @keys = split /\0/, $CGI::values{mv_data_return_key};
