@@ -132,7 +132,7 @@ if (defined $Trysu) {
 	if($^O =~ /bsd|solaris|irix/i) {
 	exec <<EndOfExec or die "Couldn't exec: $!\n";
 su $name <<EOF
-$Global::VendBin/minivend $force -r
+$Global::VendBin/interchange $force -r
 EOF
 EndOfExec
 	}
