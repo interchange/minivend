@@ -1778,7 +1778,7 @@ sub parse_require {
 		$name = 'Perl module';
 		$testsub = sub {
 			my $module = shift;
-			my $oldtype;
+			my $oldtype = '';
 			if($module =~ s/\.pl$//) {
 				$oldtype = '.pl';
 			}
