@@ -290,14 +290,14 @@ sub new {
 			DB_ID		=>	$options{database} || 'userdb',
 			OPTIONS		=>	\%options,
 			LOCATION	=>	{
-						USERNAME	=> $options{user_field} || 'user',
+						USERNAME	=> $options{user_field} || 'username',
 						BILLING		=> $options{bill_field} || 'accounts',
 						SHIPPING	=> $options{addr_field} || 'address_book',
 						PREFERENCES	=> $options{pref_field} || 'preferences',
 						ORDERS     	=> $options{ord_field}  || 'orders',
 						CARTS		=> $options{cart_field} || 'carts',
 						PASSWORD	=> $options{pass_field} || 'password',
-						LAST		=> $options{time_field} || 'time',
+						LAST		=> $options{time_field} || 'mod_time',
 						EXPIRATION	=> $options{expire_field} || 'expiration',
 						ACL			=> $options{acl}		|| 'acl',
 						FILE_ACL	=> $options{file_acl}	|| 'file_acl',
@@ -587,8 +587,8 @@ sub get_values {
 	if($self->{OPTIONS}->{scratch}) {
 		my (@s) = split /[\s,]+/, $self->{OPTIONS}{scratch} ;
 		@scratch{@s} = @s;
+::logError("scratch ones: " . join " ", @s);
 	}
-
 	for(@fields) {
 		if($ignore{$_}) {
 			$self->{PRESENT}->{$_} = 1;
@@ -635,7 +635,7 @@ sub set_values {
 	}
 
 	for( @fields ) {
-#::logDebug("saving $_ as $::Values->{$_}\n");
+#::logDebug("set_values saving $_ as $::Values->{$_}\n");
 		if ($scratch{$_}) {
 			$self->{DB}->set_field($user, $_, $::Scratch->{$_})
 				if defined $::Scratch->{$_};	
@@ -1072,9 +1072,12 @@ sub new_account {
 		die "Must have longer username.\n" unless length($self->{USERNAME}) > 1;
 		die "Can't have '$1' as username, unsafe characters.\n"
 			if $self->{USERNAME} !~ m{^$GOOD_CHARS+$};
+#::logDebug("new_account username: '$self->{USERNAME}'");
 		if ($self->{DB}->record_exists($self->{USERNAME})) {
+#::logDebug("new_account username: '$self->{USERNAME}' exists");
 			die "Username already exists.\n"
 		}
+#::logDebug("new_account username: '$self->{USERNAME}' doesn't exist");
 		my $pass = $self->{DB}->set_field(
 						$self->{USERNAME},
 						$self->{LOCATION}{PASSWORD},
