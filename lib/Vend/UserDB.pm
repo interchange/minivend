@@ -560,13 +560,27 @@ sub clear_values {
 
 	@fields = @{ $self->{DB_FIELDS} } unless @fields;
 
+	my %scratch;
+
+	if($self->{OPTIONS}->{scratch}) {
+		my (@s) = split /[\s,]+/, $self->{OPTIONS}{scratch} ;
+		@scratch{@s} = @s;
+#::logError("scratch ones: " . join " ", @s);
+	}
+
 	for(@fields) {
-		delete $::Values->{$_};
-		delete $CGI::values{$_};
+		if($scratch{$_}) {
+			delete $::Scratch->{$_};
+		}
+		else {
+			delete $::Values->{$_};
+			delete $CGI::values{$_};
+		}
 	}
 
 	1;
 }
+
 sub get_values {
 	my($self, @fields) = @_;
 
