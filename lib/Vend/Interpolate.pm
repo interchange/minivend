@@ -703,7 +703,7 @@ sub tag_record {
 			if(! defined $db->test_column($_) ) {
 				splice (@cols, $i, 1);
 				my $tmp = splice (@vals, $i, 1);
-				::logError("bad field $_ in record update, value=$_");
+				::logError("bad field %s in record update, value=%s", $_, $tmp);
 				redo RESOLVE;
 			}
 			next unless defined $filter->{$_};
@@ -6686,8 +6686,8 @@ sub tag_error {
 			$found_error++;
 			my $string = '';
 			if ($opt->{show_label}) {
-				if ($Vend::Session->{errorlabels}{$_}) {
-					$string .= $Vend::Session->{errorlabels}{$_};
+				if ($string = $Vend::Session->{errorlabels}{$_}) {
+					$string =~ s/[:\s]+$//;
 					$string .= " ($_)" if $opt->{show_var};
 					$string .= ": ";
 				} else {
