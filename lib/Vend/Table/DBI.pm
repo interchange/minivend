@@ -1757,8 +1757,9 @@ eval {
 
 	if ($rc < 1 and CORE::ref($ref) and scalar(@$ref) ) {
 		$rc = scalar(@$ref);
-		$::Values->{mv_search_match_count} = $rc;
 	}
+	# force to numeric, to handle DBI "0E0"-type results
+	$::Values->{mv_search_match_count} = $rc + 0;
 	if ($opt->{row_count}) {
 		return $rc unless $opt->{list};
 		$ref = [ [ $rc ] ];
