@@ -5556,7 +5556,7 @@ sub shipping {
 
 	my($field, $code, $i, $total, $cost, $multiplier, $formula, $error_message);
 
-	my $ref = $Vend::Cfg;
+#	my $ref = $Vend::Cfg;
 #
 #	if(defined $Vend::Cfg->{Shipping_criterion}->{$mode}) {
 #		$ref = $Vend::Cfg;
@@ -5767,9 +5767,6 @@ sub shipping {
 			}
 
 			$cost = tag_ups($type,$geo,$total,$zselect,$o);
-			FIGURE: {
-				last FIGURE unless $cost;
-			}
 			$final += $cost;
 			last SHIPIT unless $o->{continue};
 		}
