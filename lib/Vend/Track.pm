@@ -103,8 +103,8 @@ sub header {
 		}
 	}
 	for(@hdr) {
-		s/\n/<CR>/g;
-		s/;/<SEMICOLON>/g;
+		s/\n/<LF>/g;
+		s/\r/<CR>/g;
 	}
 	join('&',@hdr);
 }
