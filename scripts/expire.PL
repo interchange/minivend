@@ -95,7 +95,8 @@ $Global::HammerLock = 20;
 $Global::ErrorFile = 'error.log';
 
 $Vend::ExternalProgram = 1;
-$Vend::SessionName = 'utility';
+$Vend::Quiet           = 1;
+$Vend::SessionName     = 'utility';
 
 #select a DBM
 
@@ -124,11 +125,9 @@ BEGIN {
 	}
 }
 
-$Vend::Quiet = 1;
-
 sub logGlobal {
 	ref $_[0] and shift(@_);
-	warn(errmsg(@_));
+	warn(errmsg(@_)) unless $Vend::Quiet;
 }
 
 sub is_retired {}
