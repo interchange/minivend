@@ -3397,7 +3397,7 @@ sub escape_mv {
 	for(@args) {
 		s!/!__SLASH__!g unless defined $not_scan;
 		s!\0!-_NULL_-!g;
-		s!(\w\w=)(.*)!$1 . esc($2)!eg
+		m!\w=!
 			or (undef $_, next);
 		s!__SLASH__!::!g unless defined $not_scan;
 	}
