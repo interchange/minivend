@@ -511,6 +511,7 @@ my %Routine = (
 			);
 
 my %attrAlias = (
+	 counter        => { 'name' => 'file' },
 	 query          => { 'query' => 'sql' },
 	 perl          	=> { 'table' => 'tables' },
 	 mvasp         	=> { 'table' => 'tables' },
