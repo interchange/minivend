@@ -608,6 +608,14 @@ EOF
 		response($template);
 	}
 
+	if($CGI::values{mv_cleanup}) {
+		my(@checks) = split /\s*[,\0]+\s*/, delete $CGI::values{mv_cleanup};
+		my($check);
+		foreach $check (@checks) {
+				parse_click $::Values, $check, \%CGI::values;	
+		}
+	}
+
 	return $status;
 }
 
