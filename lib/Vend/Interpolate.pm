@@ -2861,7 +2861,7 @@ sub escape_form {
 	for(@args) {
 		next if /^[\w=]+$/;
 		s!\0!-_NULL_-!g;
-		s!(\w=)(.*)!$1 . esc($2)!eg
+		s!([^=]+)=(.*)!esc($1) . '=' . esc($2)!eg
 			or (undef $_, next);
 	}
 	return join $Global::UrlJoiner, grep length($_), @args;
@@ -2916,7 +2916,7 @@ sub form_link {
 		$opt->{form} = $form;
 	}
 
-	$href = 'process' unless $href;
+	$href = 'process' unless length($href);
 	$href =~ s:^/+::;
 	$opt->{secure} = 1 if exists $Vend::Cfg->{AlwaysSecure}{$href};
 	my $base = ! $opt->{secure} ? ($Vend::Cfg->{VendURL}) : $Vend::Cfg->{SecureURL};
@@ -2927,8 +2927,7 @@ sub form_link {
 		unless $::Scratch->{mv_force_cache};
 	$extra .= "mv_pc=" . ++$Vend::Session->{pageCount} . "\n"
 		unless $::Scratch->{mv_force_cache};
-	$arg = '' if ! $arg;
-	$arg = "mv_arg=$arg\n" if $arg && $arg !~ /\n/; 
+	$arg = "mv_arg=$arg\n" if length($arg) && $arg !~ /\n/; 
 	$extra .= $arg . $opt->{form};
 	return $href . '?' . escape_form($extra);
 }
