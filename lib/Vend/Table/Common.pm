@@ -3,6 +3,7 @@
 # $Id$
 #
 # Copyright (C) 1996-2002 Red Hat, Inc. <interchange@redhat.com>
+# Copyright (C) 2003 ICDEVGROUP <interchange@icdevgroup.org>
 #
 # This program was originally based on Vend 0.2 and 0.3
 # Copyright 1995 by Andrew M. Wilcox <amw@wilcoxsolutions.com>
@@ -265,7 +266,8 @@ sub row_hash {
 sub unstuff_row {
     my ($s, $key) = @_;
     my $line = $s->[$TIE_HASH]{"k$key"};
-    die "There is no row with index '$key'" unless defined $line;
+    die "There is no row with index '$key' in database $s->[$FILENAME]"
+		unless defined $line;
     return map(unstuff($_), split(/\t/, $line, 9999))
 		unless $s->[$CONFIG]{FILTER_FROM};
 	my @f = map(unstuff($_), split(/\t/, $line, 9999));
