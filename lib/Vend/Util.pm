@@ -936,6 +936,30 @@ sub find_locale_bit {
 	return $text;
 }
 
+sub parse_locale {
+	my ($input) = @_;
+
+	# avoid copying big strings
+	my $r = ref($input) ? $input : \$input;
+	
+	if($Vend::Cfg->{Locale}) {
+		my $key;
+		$$r =~ s~\[L(\s+([^\]]+))?\]([\000-\377]*?)\[/L\]~
+						$key = $2 || $3;		
+						defined $Vend::Cfg->{Locale}{$key}
+						?  ($Vend::Cfg->{Locale}{$key})	: $3 ~eg;
+		$$r =~ s~\[LC\]([\000-\377]*?)\[/LC\]~
+						find_locale_bit($1) ~eg;
+		undef $Lang;
+	}
+	else {
+		$$r =~ s~\[L(?:\s+[^\]]+)?\]([\000-\377]*?)\[/L\]~$1~g;
+	}
+
+	# return scalar string if one get passed initially
+	return ref($input) ? $input : $$r;
+}
+
 sub teleport_name {
 	my ($file, $teleport, $table) = @_;
 	my $db;
@@ -1072,19 +1096,7 @@ EOF
 
 	return unless defined $contents;
 	
-	if($locale and $Vend::Cfg->{Locale}) {
-		my $key;
-		$contents =~ s~\[L(\s+([^\]]+))?\]([\000-\377]*?)\[/L\]~
-						$key = $2 || $3;		
-						defined $Vend::Cfg->{Locale}{$key}
-						?  ($Vend::Cfg->{Locale}{$key})	: $3 ~eg;
-		$contents =~ s~\[LC\]([\000-\377]*?)\[/LC\]~
-						find_locale_bit($1) ~eg;
-		undef $Lang;
-	}
-	else {
-		$contents =~ s~\[L(?:\s+[^\]]+)?\]([\000-\377]*?)\[/L\]~$1~g;
-	}
+	parse_locale(\$contents);
 
 	return $contents unless wantarray;
 	return ($contents, $record);
