@@ -1023,6 +1023,15 @@ sub tag_data {
 					$val =~ s|\s*</P>\s*||gi;
 					return $val;
 				},
+	'upload' => sub {
+					my ($fn, $vn) = @_;
+					if( tag_value_extended($vn, { test => 'isfile', })) {
+						return tag_value_extended($vn, { file_contents => 1 });
+					}
+					else {
+						return $fn;
+					}
+				},
 	'namecase' => sub {
 					use locale;
 					my $val = shift;

@@ -119,6 +119,15 @@ my $Tag = new Vend::Tags;
 		.
 		qq(>{APPEND})
 		,
+	filetext =>
+		qq({PREPEND}<input type="file" name="{NAME}" value="{ENCODED}")
+		.
+		qq({COLS?} size="{COLS}"{/COLS?})
+		.
+		qq({EXTRA?} {EXTRA}{/EXTRA?})
+		.
+		qq(><br><textarea cols="{WIDTH}" rows="{HEIGHT}" NAME="{NAME}">{ENCODED}</textarea>{APPEND})
+		,
 	text =>
 		qq({PREPEND}<input type="text" name="{NAME}" value="{ENCODED}")
 		.
