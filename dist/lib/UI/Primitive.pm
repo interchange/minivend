@@ -960,7 +960,7 @@ sub meta_display {
 		
 		my $w = Vend::Form::display($record);
 		my $filter;
-		if($opt->{filter}) {
+		if($record->{filter}) {
 			$w .= qq{<INPUT TYPE=hidden NAME="ui_filter:$opt->{name}" VALUE="};
 			$w .= $opt->{filter};
 			$w .= '">';
