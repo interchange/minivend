@@ -1291,6 +1291,7 @@ if ($Conf{interchangegroup}) {
 }
 else {
 	$mvgid = $Windows ? 'nogroup' : (getpwnam($Conf{interchangeuser}))[3];
+	$Conf{interchangegroup} = $Windows ? 'nogroup' : getgrgid($mvgid)
 }
 
 if($Windows) {
@@ -1300,6 +1301,15 @@ else {
 	($catuid,$catgid) = (getpwnam($Conf{catuser}))[2,3];
 	unless (defined $catuid) {
 		die "$Conf{catuser} is not a valid user name on this machine.\n";
+	}
+}
+
+if($isroot) {
+	if(! $Conf{permtype} or $Conf{permtype} =~ /^[MUmu]/) {
+		$Conf{catgroup} = getgrgid($catgid);
+	}
+	else {
+		$Conf{catgroup} = getgrgid($mvgid);
 	}
 }
 
