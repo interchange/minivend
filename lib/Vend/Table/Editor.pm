@@ -1409,13 +1409,12 @@ sub resolve_options {
 	if($opt->{wizard}) {
 		$opt->{noexport} = 1;
 		$opt->{next_text} = 'Next -->' unless $opt->{next_text};
-		$opt->{cancel_text} = 'Cancel' unless $opt->{cancel_text};
 		$opt->{back_text} = '<-- Back' unless $opt->{back_text};
 	}
 	else {
-		$opt->{cancel_text} = 'Cancel' unless $opt->{cancel_text};
 		$opt->{next_text} = "Ok" unless $opt->{next_text};
 	}
+	$opt->{cancel_text} = 'Cancel' unless $opt->{cancel_text};
 
 	for(qw/ next_text cancel_text back_text/ ) {
 		$opt->{$_} = errmsg($opt->{$_});
