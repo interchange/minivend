@@ -276,7 +276,7 @@ sub mm_acl_enabled {
 	return $default unless $db;
 	$db = $db->ref() unless $Vend::Interpolate::Db{$table};
 	my $uid = $Vend::Session->{username} || $CGI::remote_user;
-	if(! $db->record_exists($uid) ) {
+	if(! $uid or  ! $db->record_exists($uid) ) {
 		return 0;
 	}
 	$Vend::Session->{mm_username} = $uid;
