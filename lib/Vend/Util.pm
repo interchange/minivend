@@ -954,7 +954,9 @@ my $Lang;
 
 sub find_locale_bit {
 	my $text = shift;
-	$Lang = $::Scratch->{mv_locale} unless defined $Lang;
+	unless (defined $Lang) {
+		$Lang = $::Scratch->{mv_locale} || $Vend::Cfg->{DefaultLocale};
+	}
 	$text =~ m{\[$Lang\](.*)\[/$Lang\]}s
 		and return $1;
 	$text =~ s{\[(\w+)\].*\[/\1\].*}{}s;
