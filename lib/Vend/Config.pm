@@ -499,7 +499,6 @@ sub catalog_directives {
 	['CyberCash',	 	 'warn',     	     ''],
 	['CreditCardAuto',	 'yesno',     	     'No'],
 	['NoCache',	     	 'warn',    	     ''],
-	['ClearCache',	     'yesno',     	     'No'],
 	['FormIgnore',	     'boolean',    	     ''],
 	['EncryptProgram',	 undef,     	     $Global::EncryptProgram || ''],
 	['EncryptKey',		 undef,     	     ''],
