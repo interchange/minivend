@@ -1840,7 +1840,7 @@ sub parse_locale {
 			unless defined $c->{frac_digits};
 		$store->{$name} = $c;
 	}
-	elsif ($settings =~ s/^\s*(\w+)\s+//) {
+	elsif ($settings =~ s/^\s*([\w.@-]+)\s+//) {
 		$name = $1;
 
 		undef $eval;
