@@ -704,6 +704,7 @@ sub update_data {
 
 			# remove path components
 			$data{$file_fields[$i]}->[0] =~ s:.*/::; 
+			$data{$file_fields[$i]}->[0] =~ s:.*\\::; 
 
 			if (length ($file_paths[$i])) {
 				# real file upload
