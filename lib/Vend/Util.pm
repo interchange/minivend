@@ -1025,6 +1025,12 @@ sub readin {
     my($fn, $contents, $gate, $pathdir, $dir, $level);
     local($/);
 
+	if($file =~ m{[\[<]}) {
+		::logGlobal("Possible code/SQL injection attempt with file name '%s'", $file);
+		$file = escape_chars($file);
+		::logGlobal("Suspect file changed to '%s'", $file);
+	}
+
 	$Global::Variable->{MV_PREV_PAGE} = $Global::Variable->{MV_PAGE}
 		if defined $Global::Variable->{MV_PAGE};
 	$Global::Variable->{MV_PAGE} = $file;
