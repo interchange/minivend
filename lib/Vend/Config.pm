@@ -1056,7 +1056,7 @@ sub global_config {
 	$Global::Structure = {} unless $Global::Structure;
 
 	# Default to old #ifdef, #endif, #include syntax for backward compatibility
-	$Global::ConfigParseComments = 1 unless $Global::ConfigParseComments;
+	$Global::ConfigParseComments = 1;
 
 	# Prevent parsers from thinking it is a catalog
 	undef $C;
@@ -2063,7 +2063,10 @@ sub parse_wildcard {
 
 	$value =~ s/\./\\./g;
 	$value =~ s/\*/.*/g;
-	$value =~ s/\*/.*/g;
+	$value =~ s/\?/./g;
+	$value =~
+		s[({(?:.+?,)+.+?})]
+		 [ local $_ = $1; tr/{,}/(|)/; $_ ]eg;
 	$value =~ s/\s+/|/g;
 	eval {  
 		my $never = 'NeVAirBE';
