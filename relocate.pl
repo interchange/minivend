@@ -36,6 +36,8 @@ sub doit {
 	return $Config{$key};
 }
 
+no warnings 'void';
+
 DOIT: {
 	my ($input, $output);
 	$output = $ARGV[0];
