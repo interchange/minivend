@@ -513,12 +513,6 @@ my %Prefix = (
 
 );
 
-sub add_trailing_slash {
-	my $url = shift;
-	$url =~ s:[/\s]*$:/:;
-	return $url;
-}
-
 sub strip_trailing_slash {
 	my $url = shift;
 	$url =~ s:[/\s]+$::;
@@ -544,7 +538,7 @@ my %Postprocess = (
 	samplehtml		=> \&directory_process,
 	catroot			=> \&directory_process,
 	relocate		=> \&strip_trailing_slash,
-	shareurl		=> \&add_trailing_slash,
+	shareurl		=> \&strip_trailing_slash,
 
 );
 
