@@ -614,7 +614,7 @@ checkboxes with the [checked] and [selected] tags.
             VALUE=off [checked name=foo value=off]>
 
 This will output CHECKED if the variable C<var_name> is equal to
-C<value>. Not case sensitive.
+C<value>. Not case sensitive unless the optional C<case=1> parameter is used.
 
 The C<default> parameter, if true (non-zero and non-blank), will cause
 the box to be checked if the variable has never been defined.
@@ -625,6 +625,10 @@ so the box will not be reset. You must do something like:
     <INPUT TYPE=checkbox NAME=foo
             VALUE=1 [checked name=foo value=1 default=1]>
     [value name=foo set=""]
+
+By default, the Values space (i.e. [value foo]) is checked -- if you
+want to use the volatile CGI space (i.e. [cgi foo]) use the option
+C<cgi=1>.
 
 %%%
 comment
@@ -2411,7 +2415,8 @@ checkboxes with the [checked] and [selected] tags.
 
 This will output SELECTED if the variable C<var_name> is equal to
 C<value>. If the optional MULTIPLE argument is present, it will
-look for any of a variety of values. Not case sensitive.
+look for any of a variety of values. Not case sensitive unless
+the optional C<case=1> parameter is used.
 
 Here is a drop-down menu that remembers an item-modifier
 color selection:
@@ -2430,6 +2435,10 @@ selection
     <OPTION [selected [modifier-name color] green]> Green
     <OPTION [selected [modifier-name color] red]> Red
     </SELECT>
+
+By default, the Values space (i.e. [value foo]) is checked -- if you
+want to use the volatile CGI space (i.e. [cgi foo]) use the option
+C<cgi=1>.
 
 %%%
 set
