@@ -96,6 +96,12 @@ sub close_table {
 	$s->[$OBJ]->close_table();
 }
 
+sub name {
+	my ($s) = shift;
+	$s = $s->import_db() unless defined $s->[$OBJ];
+	return $s->[$OBJ]->name();
+}
+
 sub columns {
 	my ($s) = shift;
 	$s = $s->import_db() unless defined $s->[$OBJ];
@@ -249,6 +255,14 @@ sub each_nokey {
 sub query {
 	my($s, $opt, $text, @arg) = @_;
 
+	if (! CORE::ref($opt)) {
+		unshift @arg, $text if defined $text;
+		$text = $opt;
+		$opt = {};
+	}
+	$opt->{query} = $opt->{sql} || $text if ! $opt->{query};
+	$s = $s->import_db() unless defined $s->[$OBJ];
+	
 	if ($opt->{query}) {
 		# we try to analyse the query
 		my $qref = $s->_parse_sql($opt->{query});
