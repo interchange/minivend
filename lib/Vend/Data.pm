@@ -438,7 +438,8 @@ sub read_accessories {
 
 	my $file = $Vend::Cfg->{Special}{'accessories.asc'}
 				|| Vend::Util::catfile($Vend::Cfg->{ProductDir}, 'accessories.asc');
-    open(Vend::ACCESSORIES, $file) or return undef;
+	return undef unless -f $file;
+    open(Vend::ACCESSORIES, "< $file") or return undef;
     while(<Vend::ACCESSORIES>) {
 		chomp;
 		tr/\r//d;
@@ -460,7 +461,7 @@ sub read_salestax {
 	return unless $Vend::Cfg->{SalesTax};
 	my $file = Vend::Util::catfile($Vend::Cfg->{ProductDir}, "salestax.asc");
 	$Vend::Cfg->{SalesTaxTable} = {};
-    open(Vend::SALESTAX, $file) or do {
+    -f $file and open(Vend::SALESTAX, "< $file") or do {
 					logError( "Could not open salestax file %s: %s" ,
 								$file,
 								$!

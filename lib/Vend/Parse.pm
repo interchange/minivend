@@ -240,6 +240,7 @@ my %addAttr = (
 					process         1
 					query			1
                     sql             1
+					setlocale       1
                     record          1
                     region          1
                     search_region   1
@@ -790,6 +791,9 @@ use vars '%myRefs';
 sub do_tag {
 	my $tag = shift;
 #::logDebug("Parse-do_tag: tag=$tag caller=" . caller());
+	die errmsg("Unauthorized for admin tag %s", $tag)
+		if defined $Vend::Cfg->{AdminSub}{$tag} and ! $Vend::admin;
+	
 	if (! defined $Routine{tag} and (not $tag = $Alias{$tag}) ) {
 		::logError("Tag '$tag' not defined.");
 		return undef;
@@ -938,6 +942,13 @@ sub html_start {
     my($self, $tag, $attr, $attrseq, $origtext, $end_tag) = @_;
 #::logDebug("HTML tag=$tag Interp='$Interpolate{$tag}' origtext=$origtext attributes:\n" . ::uneval($attr));
 	$tag =~ tr/-/_/;   # canonical
+
+	if (defined $Vend::Cfg->{AdminSub}{$tag} and ! $Vend::admin) {
+		$Vend::StatusLine = "Status: 403\nContent-Type: text/html";
+		::response( errmsg("Unauthorized for admin tag %s", $tag) );
+		return ($self->{ABORT} = 1);
+	}
+
 	$end_tag = lc $end_tag;
 	my $buf = \$self->{_buf};
 #::logDebug("tag=$tag end_tag=$end_tag buf length " . length($$buf)) if $Monitor{$tag};
@@ -1243,6 +1254,12 @@ sub start {
 #::logDebug("tag=$tag buf length " . length($$buf));
 #::logDebug("tag=$tag Interp='$Interpolate{$tag}' origtext=$origtext attributes:\n" . ::uneval($attr));
 	my($tmpbuf);
+	if (defined $Vend::Cfg->{AdminSub}{$tag} and ! $Vend::admin) {
+		$Vend::StatusLine = "Status: 403\nContent-Type: text/html";
+		::response( errmsg("Unauthorized for admin tag %s", $tag) );
+		return ($self->{ABORT} = 1);
+	}
+
     # $attr is reference to a HASH, $attrseq is reference to an ARRAY
 	unless (defined $Routine{$tag}) {
 		if(defined $Alias{$tag}) {

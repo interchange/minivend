@@ -144,6 +144,7 @@ sub do_scan {
 
 	put_session();
 	my $c = {};
+	$Vend::ScanPassed = "scan/$path";
 	find_search_params($c,$path);
 
 	if ($c->{mv_more_matches}) {

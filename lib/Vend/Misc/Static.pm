@@ -245,7 +245,7 @@ EOF
 		print "Building from files listed in .build file.\n";
 		$build_list = 1;
 		$all = 0;
-		open(BUILD, "$basedir/.build")
+		open(BUILD, "< $basedir/.build")
 			or die "Couldn't open build spec $basedir/.build: $!\n";
 		my $suf = $Vend::Cfg->{StaticSuffix};
 		while(<BUILD>) {

@@ -581,7 +581,7 @@ sub fields_index {
 	for( my $i = 0; $i < @$fields; $i++) {
 		$idx{lc $fields->[$i]} = $i;
 		next unless defined $alias->{lc $fields->[$i]};
-::logDebug("alias found: $fields->[$i] = $alias->{lc $fields->[$i]} = $i");
+#::logDebug("alias found: $fields->[$i] = $alias->{lc $fields->[$i]} = $i");
 		$idx{ $alias->{ lc $fields->[$i] } } = $i;
 	}
 	return \%idx;

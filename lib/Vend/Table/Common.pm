@@ -767,6 +767,11 @@ sub import_ascii_delimited {
 	my $idx = 0;
 
 	my($field_count, @field_names);
+	
+	if($options->{hs}) {
+		my $i = 0;
+		<IN> while $i++ < $options->{hs};
+	}
 	if($options->{field_names}) {
 		@field_names = @{$options->{field_names}};
 
@@ -816,6 +821,7 @@ sub import_ascii_delimited {
 			$para_sep = $options->{NOTES_SEPARATOR} || "\f";
 		}
 	}
+
 	local($/) = "\n" . $para_sep ."\n"
 		if $para_sep;
 

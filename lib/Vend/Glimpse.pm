@@ -244,7 +244,7 @@ EOF
 			$s->{mv_field_file} =
 					::catfile($Vend::Cfg->{ProductDir}, $s->{mv_field_file})
 				unless ::file_name_is_absolute($s->{mv_field_file});
-			open(FF, $s->{mv_field_file})
+			open(FF, "< $s->{mv_field_file}")
 				or return $s->search_error("can't open fields file");
             chomp($field_names = <FF>);
         }

@@ -185,7 +185,7 @@ sub search {
 	while ( $searchfile = shift @searchfiles ) {
 
 		my $field_names;
-		open(SEARCH, $searchfile)
+		-f $searchfile && open(SEARCH, "< $searchfile")
 			or ::logError( "Couldn't open search file '$searchfile': $!"), next;
 		$s->adjust_delimiter(\*SEARCH) if $s->{mv_delimiter_auto};
 		my $line;
