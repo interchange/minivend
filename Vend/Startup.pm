@@ -1,6 +1,6 @@
 # Startup.pm:  startup Vend program and process command line arguments
 #
-# $Id: Startup.pm,v 1.18 1995/12/04 20:25:52 amw Exp $
+# $Id: Startup.pm,v 1.19 1995/12/05 21:14:26 amw Exp $
 #
 package Vend::Startup;
 
@@ -34,7 +34,7 @@ use Vend::Server;
 use Vend::Session;
 use Vend::Uneval;
 
-my $Vend_version = "0.3.1";
+my $Vend_version = "0.3.2";
 
 my $Running_as_cgi_bin;
 my $Mode;

@@ -12,6 +12,7 @@ if (lockfile(*PID, 1, 0)) {
     exit 0;
 }
 
+seek(PID, 0, 0) or die "Can't seek '$pidfile': $!\n";
 my $pid = <PID> or die "Couldn't read '$pidfile': $!\n";
 chomp $pid;
 
