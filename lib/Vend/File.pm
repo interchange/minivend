@@ -665,7 +665,12 @@ sub allowed_file {
 		absolute_or_relative($fn)
 		)
 	{
-		$status = $write ? check_user_write($fn) : check_user_read($fn);
+		if($Vend::admin and ! $write and $fn =~ /^$Global::RunDir/) {
+			$status = 1;
+		}
+		else {
+			$status = $write ? check_user_write($fn) : check_user_read($fn);
+		}
 	}
 	if($status and $Global::FileControl) {
 		$status &= file_control($fn, $write, 1, caller(0))
