@@ -528,7 +528,9 @@ sub respond {
 		else { print $fh "HTTP/1.0 $status\r\n"; }
 	}
 
-	if ( (	! $Vend::CookieID && ! $::Instance->{CookiesSet}
+	if ( ! $Vend::tmp_session
+		and (
+			! $Vend::CookieID && ! $::Instance->{CookiesSet}
 			or defined $Vend::Expire
 			or defined $::Instance->{Cookies}
 		  )
