@@ -2952,6 +2952,7 @@ my %tagCanon = ( qw(
 	posnumber		PosNumber
 	posroutine		PosRoutine
 	maproutine		MapRoutine
+	noreparse		NoReparse
 	replaceattr		replaceAttr
 	replacehtml		replaceHTML
 	required		Required
