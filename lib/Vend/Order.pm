@@ -1451,12 +1451,14 @@ sub route_order {
 		elsif($route->{increment}) {
 			$::Values->{mv_order_number} = counter_number();
 		}
+		my $pagefile;
 		my $page;
 		if($route->{empty} and ! $route->{report}) {
 			$page = '';
 		}
 		else {
-			$page = readfile($route->{'report'} || $main->{'report'});
+			$pagefile = $route->{'report'} || $main->{'report'};
+			$page = readfile($pagefile);
 		}
 		die errmsg(
 			"No order report %s or %s found.",
@@ -1470,8 +1472,12 @@ sub route_order {
 			$::Values->{mv_credit_card_info}
 				=~ s/^(\s*\w+\s+)(\d\d)[\d ]+(\d\d\d\d)/$1$2 NEED ENCRYPTION $3/;
 		}
-		$page = interpolate_html($page) if $page;
-
+		eval {
+			$page = interpolate_html($page) if $page;
+		};
+		if ($@) {
+			die "Error while interpolating page $pagefile:\n $@";
+		}
 		$use_mime   = $::Instance->{MIME} || undef;
 		$::Instance->{MIME} = $save_mime  || undef;
 
