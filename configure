@@ -2,11 +2,11 @@
 
 cat <<EOF
 
- MiniVend Version 3.0x Configuration
+ MiniVend Version 4.0x Configuration
 
- Copyright 1996-1998 Michael J. Heins, <mikeh@minivend.com>
+ Copyright 1996-2000 Michael J. Heins, <mikeh@minivend.com>
 
- MiniVend is largely based on Vend 0.2
+ MiniVend was originally based on Vend 0.2
  Copyright 1995 Andrew M. Wilcox <awilcox@maine.com>
  
  Portions from Vend 0.3
@@ -100,11 +100,6 @@ echo "should go away."
 echo
 fi
 
-if test -f dist/minivend.cfg.dist
-then
-	$PERL Makefile.PL
-	make
-	make test && make install
-else
-	$PERL ./configure.pl $DEBUG $INSTALL $PERL
-fi
+$PERL Makefile.PL
+make
+make test && make install

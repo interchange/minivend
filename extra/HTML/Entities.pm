@@ -1,6 +1,6 @@
 package HTML::Entities;
 
-# $Id: Entities.pm,v 1.1 1998/08/16 10:26:14 mike Exp $
+# $Id: Entities.pm,v 1.1 1999/11/12 08:46:23 mike Exp $
 
 =head1 NAME
 

@@ -1,2 +1,0 @@
-code	store_id	order_number	session	username	shipping	nitems	subtotal	payment_tax	city	state	zip	date	status	parent
-line	store_id	order_number	session	username	code	quantity	price	name	options	date	status	parent		

@@ -2,9 +2,15 @@
 #
 # MakeCat.pm - routines for catalog configurator
 #
-# $Id: MakeCat.pm,v 1.18 1999/08/13 18:35:48 mike Exp $
+# $Id: MakeCat.pm,v 1.4 2000/02/07 10:31:44 mike Exp $
 #
-# Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
+#
+# This program was originally based on Vend 0.2
+# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+#
+# Portions from Vend 0.3
+# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,9 +22,10 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+# You should have received a copy of the GNU General Public
+# License along with this program; if not, write to the Free
+# Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+# MA  02111-1307  USA.
 
 ## END CONFIGURABLE VARIABLES
 
@@ -54,7 +61,7 @@ sethistory
 use strict;
 
 use vars qw($Force $Error $History $VERSION);
-$VERSION = substr(q$Revision: 1.18 $, 10);
+$VERSION = substr(q$Revision: 1.4 $, 10);
 
 $Force = 0;
 $History = 0;
@@ -147,13 +154,17 @@ EOF
 #
 EOF
 	demotype   =>  <<EOF,
-# The type of demo catalog to use, simple or flycat.
+# The type of demo catalog to use. Standard types
+# distributed are:
 #
-#    simple -- database-based catalog
-#    flycat -- on-the-fly non-database catalog
+#    simple   -- database-based catalog, not really simple 8-)
+#    basic    -- simplified set of features
 #
 # If you have defined your own custom template catalog,
 # you can enter it's name.
+#
+# If you are new to MiniVend and not a sophisticated web designer,
+# use "basic" to start with.
 EOF
 	documentroot    =>  <<EOF,
 # The base directory for HTML for this (possibly virtual) domain.
@@ -257,7 +268,7 @@ sub findexe {
  
 sub findfiles {
     my($file) = @_;
-	return undef if $ =~ /win32/i;
+	return undef if $^O =~ /win32/i;
 	my $cmd;
 	my @files;
     if($cmd = findexe('locate')) {
@@ -282,7 +293,7 @@ sub description {
 }
 
 sub can_do_suid {
-	return 0 if $ =~ /win32/i;
+	return 0 if $^O =~ /win32/i;
 	my $file = "tmp$$.fil";
 	my $status;
 
@@ -295,7 +306,7 @@ sub can_do_suid {
 }
 
 sub get_id {
-	return 'everybody' if $ =~ /win32/i;
+	return 'everybody' if $^O =~ /win32/i;
     my $file = -f "$::VendRoot/error.log"
                 ? "$::VendRoot/error.log" : '';
     return '' unless $file;
@@ -307,7 +318,7 @@ sub get_id {
 }
 
 sub get_ids {
-	return ('everybody', 'nogroup') if $ =~ /win32/i;
+	return ('everybody', 'nogroup') if $^O =~ /win32/i;
 	my $file = "tmp$$.fil";
 	my ($name, $group);
 
@@ -320,7 +331,7 @@ sub get_ids {
 	return ($name,$group);
 }
 
-my $Windows = ($ =~ /win32/i ? 1 : 0);
+my $Windows = ($^O =~ /win32/i ? 1 : 0);
 
 sub compare_file {
     my($first,$second) = @_;
@@ -404,11 +415,16 @@ sub install_file {
 	if($opt->{Substitute}) {
 			my $bak = "$targfile.mv";
 			rename $targfile, $bak;
-			open(SOURCE, "$bak")			or die "open $bak: $!\n";
+			open(SOURCE, $bak)			or die "open $bak: $!\n";
 			open(TARGET, ">$targfile")		or die "create $targfile: $!\n";
 			local($/) = undef;
 			my $page = <SOURCE>; close SOURCE;
+
+			$page =~ s/^#>>(.*)(__MVR_(\w+)__.*)\n\1.*/#>>$1$2/mg;
+			$page =~ s/^#>>(.*__MVR_(\w+)__.*)/#>>$1\n$1/mg;
+			1 while $page =~ s/^([^#].*)__MVR_(.*)/$1__MVC_$2/mg;
 			$page =~ s/__MVC_(\w+)__/$opt->{Substitute}{lc $1}/g;
+
 			print TARGET $page				or die "print $targfile: $!\n";
 			close TARGET					or die "close $targfile: $!\n";
 			unlink $bak						or die "unlink $bak: $!\n";
@@ -459,7 +475,8 @@ eval {
     import Term::ReadLine;
     $term = new Term::ReadLine::Perl 'MiniVend Configuration';
 	die "No Term::ReadLine::Perl" unless defined $term;
-	$term->MinLine(4);
+
+	readline::rl_bind('C-B', 'catch_at');
     $Prompt_sub = sub {
                     my ($prompt, $default) = @_;
 					if($Force) {
@@ -468,7 +485,9 @@ eval {
 					}
                     $prompt =~ s/^\s*(\n+)/print $1/ge;
                     $prompt =~ s/\n+//g;
-                    return $term->readline($prompt, $default);
+                    my $out = $term->readline($prompt, $default);
+					return '@' if ! defined $out;
+					return $out;
                     };
     $History_add = sub {
                     my ($line) = @_;
@@ -696,7 +715,7 @@ sub conf_parse_http {
 				$servers->{$servname}->{$directive} = {}
 					unless defined $servers->{$servname}->{$directive};
 				($key,$val) = split /\s+/, $param, 2;
-				$val =~ s/^"// and $val =~ s/"$//;
+				$val =~ s/^\s*"// and $val =~ s/"\s*$//;
 				if (defined $Http_process{$directive}) {
 					$key = &{$Http_process{$directive}}('key', $key);
 					$val = &{$Http_process{$directive}}('value', $val);
@@ -704,6 +723,7 @@ sub conf_parse_http {
 				$servers->{$servname}->{$directive}->{$key} = $val;
 			}
 			elsif(defined $Http_scalar{$directive}) {
+				$param =~ s/^"// and $param =~ s/"\s*$//;
 				if (defined $servers->{$servname}->{$directive}) {
 					undef $servers->{$servname};
 					$Error = "$directive defined twice in $servname, only allowed once.";
@@ -718,6 +738,14 @@ sub conf_parse_http {
 	}
 			
 	return $servers;
+}
+
+package readline;
+
+use vars qw/$AcceptLine/;
+
+sub F_Catch_at {
+		$AcceptLine = '@';
 }
 
 __END__

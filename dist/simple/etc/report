@@ -1,83 +1,36 @@
-[tag flag write]transactions userdb[/tag][set name=import_results interpolate=1]
-[if session logged_in]
-[data
-	table=userdb
-	column=acl
-	key="[data session username]"
-	value="query/check_orders"
-	]
-[data
-	table=userdb
-	column=order_numbers
-	key="[data session username]"
-	value=" [value mv_order_number]"
-	append=1]
-[/if]
-Add main order [value mv_order_number] to transactions: [import table=transactions type=LINE continue=NOTES]
-code: [value mv_order_number]
-store_id: __STORE_ID__
-order_number: [value mv_order_number]
-session: [data session id]
-username: [data session username]
-shipping: [shipping-desc] - [shipping]
-nitems: [nitems]
-subtotal: [subtotal noformat=1]
-payment_tax: [value mv_payment] Tax: [salestax]
-city: [value city]
-state: [value state]
-zip: [value zip]
-order_date: [value name=order_date set="[tag time]%d-%b-%Y[/tag]"]
-status: pending
-parent: __PARENT__
-[/import]
-
-[item-list] Added [item-code] to transactions: [import table=transactions type=LINE continue=NOTES]
-code: [value mv_order_number]-[item-increment]
-store_id: __STORE_ID__
-order_number: [value mv_order_number]
-session: [data session id]
-username: [data session username]
-shipping: [item-code]
-nitems: [item-quantity]
-subtotal: [item-price noformat]
-payment_tax: [item-field title]
-city: [item-modifier size] [item-modifier color]
-order_date: [value order_date]
-status: pending
-parent: __PARENT__
-[/import][/item-list]
-[/set]
-
-[/set][set name=order_text interpolate=1]
--     ORDER DATE: [calc]localtime[/calc]
+[seti order_text]
+-     ORDER DATE: [tag time]%c[/tag]
     ORDER NUMBER: [value mv_order_number]
      LEAD SOURCE: [data session source]
    REFERRING URL: [data session referer]
 
-            Name: [value name]
+            Name: [value fname] [value lname]
 [if value company]         Company: [value company][/if]
    Email address: [value email][if value email_copy] - EMAIL COPY REQUESTED[/if]
+   Mail List Req: [if value mail_list]REQUESTED TO BE ON LIST[/if]
 
-         Address: [value address]
+         Address: [value address1][if value address2]
+                  [value address2][/if]
 City, State, Zip: [value city], [value state]  [value zip]
          Country: [value country]
 [if value mv_credit_card_info]         
 Credit Card Info:
 [value mv_credit_card_info]
 [else]
-  Payment Method: [value mv_payment]
 [/else][/if]
- Shipping Method: [shipping_desc]
+  Payment Method: [value mv_payment]
+ Shipping Method: [shipping-desc]
 
    Daytime Phone: [value phone_day]
    Evening Phone: [value phone_night]
-
-[if value s_address]
-   Shipping Name: [value s_name]
-Shipping Address: [value s_address]
-City, State, Zip: [value s_city][/if][if value s_state], [value s_state]  [value s_zip][/if]
-[if value s_country]Shipping Country: [value s_country][/if]
-
+[if value b_fname]
+[or value b_address1]
+    Billing Name: [value b_fname] [value b_lname]
+ Billing Address: [value b_address1][if value b_address2]
+                  [value b_address2][/if]
+City, State, Zip: [value b_city], [value b_state]  [value b_zip][/if]
+[if value b_country] Billing Country: [value b_country]
+[/if]
 
 Quan  Item No.    Description                            Price       Extension
 ---- ----------- -------------------------------- ------------- --------------- 
@@ -94,21 +47,21 @@ Quan  Item No.    Description                            Price       Extension
 
 [/item-list]
 [row 82]
-[column width=5  align=right][/column]
+[column width=5  align=right gutter=1][/column]
 [column width=12             gutter=1][/column]
 [column width=32 align=right gutter=1 wrap=1][/column]
 [column width=14             gutter=1]SUBTOTAL[/column]
 [column width=15 align=right gutter=0][subtotal][/column]
 [/row]
 [row 82]
-[column width=5      align=right][/column]
-[column width=12                 gutter=1][/column]
-[column width=32     align=right gutter=1 wrap=1][/column]
-[column width=14                 gutter=1]SALES TAX[/column]
-[column width=15     align=right gutter=0][salestax][/column]
+[column width=5  align=right gutter=1][/column]
+[column width=12             gutter=1][/column]
+[column width=32 align=right gutter=1 wrap=1][/column]
+[column width=14             gutter=1]SALES TAX[/column]
+[column width=15 align=right gutter=0][salestax][/column]
 [/row]
 [row 82]
-	[column width=5  align=right][/column]
+	[column width=5  align=right gutter=1][/column]
 	[column width=12             gutter=1][/column]
 	[column width=32 align=right gutter=1 wrap=1][/column]
 	[column width=14             gutter=1]SHIPPING[/column]
@@ -116,7 +69,7 @@ Quan  Item No.    Description                            Price       Extension
 [/row]
 
 [row 82]
-[column width=5  align=right][/column]
+[column width=5  align=right gutter=1][/column]
 [column width=12             gutter=1][/column]
 [column width=32 align=right gutter=1 wrap=1][/column]
 [column width=14             gutter=1]ORDER TOTAL[/column]
@@ -128,19 +81,15 @@ Gift Note or Special Instructions:
 ---------------------------------------------------
 [value gift_note]
 [/if]
-[/set]
-[tag mime type TEXT/PLAIN; CHARSET=US-ASCII][/tag]
-[tag op=mime type="Order Text" interpolate=1]
+[/seti]
+[tag op=mime description="Order Text" interpolate=1]
 [scratch order_text]
 [/tag]
-
-[tag op=log file="etc/[value mv_order_number]" interpolate=1]
-[scratch order_text]
-[/tag]
-
 [if value mv_credit_card_info]
-[tag mime type application/pgp-encrypted][/tag]
-[tag op=mime type="CreditCard_[value mv_order_number]"]
+[tag	op=mime
+		interpolate=1
+		type=application/pgp-encrypted
+		description="CreditCard_[value mv_order_number]"]
 [value mv_credit_card_info]
 [/tag]
 [/if]

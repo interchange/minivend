@@ -9,11 +9,11 @@ UserTag  db-date  PosNumber 2
 UserTag  db-date  Routine <<EOF
 sub {
     my ($format, $db) = @_;
-    $format = '%A %d %b %Y';
 
+    $format = '%A %d %b %Y' unless $format;
 	$db = 'products' unless $db;
 
-    my $mtime = (stat($Vend::Cfg->{Database}{'file'}))[9];
+    my $mtime = (stat($Vend::Cfg->{Database}{'db_file'}))[9];
     return POSIX::strftime($format, localtime($mtime));
 
 }

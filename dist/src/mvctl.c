@@ -1,7 +1,7 @@
 /* minivend.c:  runs as a command line or cgi program and starts up
 			    MiniVend in various modes
 
-   $Id: mvctl.c,v 1.2 1998/08/16 10:26:14 mike Exp $
+   $Id: mvctl.c,v 1.1 1999/11/12 08:46:23 mike Exp $
 
    Copyright 1997 by Mike Heins <mikeh@minivend.com>
 
@@ -15,9 +15,10 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+   You should have received a copy of the GNU General Public
+   License along with this program; if not, write to the Free
+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+   MA  02111-1307  USA.
 
 */
 

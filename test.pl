@@ -3,18 +3,19 @@ use Config;
 
 $cur_dir = cwd();
 $failed = 0;
-$num_tests = 2;
 
 die "Must be in build directory\n" unless -d 'blib';
+die "No tests defined for Windows\n" if $^O =~ /win32/i;
 
 $ENV{MINIVEND_ROOT} = "$cur_dir/blib";
-$ENV{MINIVEND_BADPOSIX} = 1;
+$ENV{MINIVEND_PORT} = 8786 unless defined $ENV{MINIVEND_PORT};
 
 open(CONFIG, ">$ENV{MINIVEND_ROOT}/minivend.cfg")
 	or die "open: $!\n";
 
 print CONFIG <<EOF;
 Catalog  test $ENV{MINIVEND_ROOT} /test
+TcpMap $ENV{MINIVEND_PORT} -
 EOF
 
 open(CONFIG, ">$ENV{MINIVEND_ROOT}/catalog.cfg")
@@ -32,11 +33,13 @@ mkdir ("$ENV{MINIVEND_ROOT}/pages", 0777);
 mkdir ("$ENV{MINIVEND_ROOT}/products", 0777);
 mkdir ("$ENV{MINIVEND_ROOT}/session", 0777);
 if( $ENV{PERL5LIB} ) {
-	$ENV{PERL5LIB} .= ":$cur_dir/extra";
+	$ENV{PERL5LIB} .= ":$cur_dir/extra:$cur_dir/blib/lib";
 }
 else {
-	$ENV{PERL5LIB} = "$cur_dir/extra";
+	$ENV{PERL5LIB} = "$cur_dir/extra:$cur_dir/blib/lib";
 }
+
+my $testnum = 1;
 
 open(CONFIG, ">$ENV{MINIVEND_ROOT}/products/products.asc")
 	or die "open: $!\n";
@@ -57,23 +60,49 @@ EOF
 
 close CONFIG;
 
-print "server.......";
-if ( system "$Config{'perlpath'} dist/bin/minivend -serve -u >/dev/null" ) {
-	print "not ok 1\n";
+$| = 1;
+
+print "server/unixmode.......";
+if ( system qq{$Config{'perlpath'} blib/script/minivend -q -r -u} ) {
+	print "not ok $testnum\n";
+	$failed++;
 }
 else {
-	print "ok 1\n";
+	print "ok $testnum\n";
+}
+$testnum++;
+
+print "server/startup........";
+for(1 .. 5) {
+	open(PID, "$ENV{MINIVEND_ROOT}/etc/minivend.pid") or sleep $_, next;
+	$pid = <PID>;
+	$pid =~ s/\D+//g;
+	last;
 }
 
-sleep 3;
-open(PID, "$ENV{MINIVEND_ROOT}/etc/minivend.pid") or die "read PID file: $!\n";
-$pid = <PID>;
+for(1 .. 5) {
+	unless (-e "$ENV{MINIVEND_ROOT}/etc/socket") {
+		system "ls -l $ENV{MINIVEND_ROOT}/*";
+		sleep $_;
+		next;
+	}
+	$LINK_FILE = "$ENV{MINIVEND_ROOT}/etc/socket";
+	last;
+}
 
-$pid =~ s/\D+//g;
+if(! $pid or ! $LINK_FILE) {
+	print "not ok $testnum\n";
+	$failed++;
+}
+else {
+	print "ok $testnum\n";
+}
+$testnum++;
 
 use Socket;
-my $LINK_FILE    = "$ENV{MINIVEND_ROOT}/etc/socket";
-my $LINK_TIMEOUT = 5;
+my $LINK_HOST    = 'localhost';
+my $LINK_PORT    = $ENV{MINIVEND_PORT};
+my $LINK_TIMEOUT = 15;
 my $ERROR_ACTION = "-none";
 
 $ENV{SCRIPT_NAME} = "/test";
@@ -108,46 +137,142 @@ sub send_environment () {
 $SIG{PIPE} = sub { die("signal"); };
 $SIG{ALRM} = sub { die("not communicating with server\n"); exit 1; };
 
-alarm $LINK_TIMEOUT;
-
-print "socket link..";
-socket(SOCK, PF_UNIX, SOCK_STREAM, 0)	or die "socket: $!\n";
-
-my $ok;
-
-do {
-   $ok = connect(SOCK, sockaddr_un($LINK_FILE));
-} while ( ! defined $ok and $! =~ /interrupt|such file or dir/i);
-
-my $undef = ! defined $ok;
-die "ok=$ok def: $undef connect: $!\n" if ! $ok;
-
-select SOCK;
-$| = 1;
-select STDOUT;
-
-print SOCK send_arguments();
-print SOCK send_environment();
-print SOCK "end\n";
 
 
-while(<SOCK>) {
-	$result .= $_;
-}
+print "link/unixmode.........";
+eval {
+	socket(SOCK, PF_UNIX, SOCK_STREAM, 0)	or die "socket: $!\n";
 
-close (SOCK)								or die "close: $!\n";
+	my $ok;
+	do {
+	   $ok = connect(SOCK, sockaddr_un($LINK_FILE));
+	} while ( ! defined $ok and $! =~ /interrupt|such file or dir/i);
+
+	my $undef = ! defined $ok;
+	die "ok=$ok def: $undef connect: $!\n" if ! $ok;
+
+	select SOCK;
+	$| = 1;
+	select STDOUT;
+
+	print SOCK send_arguments();
+	print SOCK send_environment();
+	print SOCK "end\n";
+
+
+	while(<SOCK>) {
+		$result .= $_;
+	}
+
+	close (SOCK)								or die "close: $!\n";
+
+};
 
 if(length($result) > 500 and $result =~ /test succeeded/i) {
-	print "ok 2\n";
+	print "ok $testnum\n";
 }
 else {
-	print "not ok 2\n";
+	print "not ok $testnum";
+	print " ($@)" if $@;
+	print "\n";
+	$failed++;
+}
+$testnum++;
+
+print "server/inetmode.......";
+if ( system qq{$Config{'perlpath'} blib/script/minivend -q -r -i} ) {
+	print "not ok $testnum\n";
+	$failed++;
+}
+else {
+	print "ok $testnum\n";
+}
+$testnum++;
+
+alarm 0;
+alarm $LINK_TIMEOUT;
+
+$result = '';
+
+print "link/inetmode.........";
+eval {
+	$remote = $LINK_HOST;
+	$port   = $LINK_PORT;
+
+	if ($port =~ /\D/) { $port = getservbyname($port, 'tcp'); }
+
+	die("no port") unless $port;
+
+	$iaddr = inet_aton($remote);
+	$paddr = sockaddr_in($port,$iaddr);
+
+	$proto = getprotobyname('tcp');
+
+	socket(SOCK, PF_INET, SOCK_STREAM, $proto)	or die "socket: $!\n";
+
+	my $ok;
+
+	do {
+	   $ok = connect(SOCK, $paddr);
+	} while ( ! defined $ok and $! =~ /interrupt/i);
+
+	my $undef = ! defined $ok;
+	die "ok=$ok def: $undef connect: $!\n" if ! $ok;
+
+	select SOCK;
+	$| = 1;
+	select STDOUT;
+
+	print SOCK send_arguments();
+	print SOCK send_environment();
+	print SOCK "end\n";
+
+
+	while(<SOCK>) {
+		$result .= $_;
+	}
+
+	close (SOCK)								or die "close: $!\n";
+
+};
+
+if(length($result) > 500 and $result =~ /test succeeded/i) {
+	print "ok $testnum\n";
+}
+else {
+	print "not ok $testnum\n";
+	$failed++;
+}
+$testnum++;
+
+print "server/control........";
+if ( system qq{$Config{'perlpath'} blib/script/minivend -q -stop} ) {
+	print "not ok $testnum\n";
 	$failed++;
 }
 
-print "$num_tests tests run";
+my $pid_there;
+
+for(1 .. 5) {
+	$pid_there = -f 'blib/etc/minivend.pid';
+	last unless $pid_there;
+	sleep 1;
+}
+
+if ($pid_there) {
+	print "not ok $testnum\n";
+	$failed++;
+}
+else {
+	print "ok $testnum\n";
+}
+$testnum++;
+
+
+$testnum--;
+print "$testnum tests run";
 if($failed) {
-	print " -- $failed/$numtests failed.\n";
+	print " -- $failed/$testnum failed.\n";
 	exit 1;
 }
 else {
@@ -156,5 +281,5 @@ else {
 }
 
 END {
-	kill 'KILL', $pid;
+	kill 'KILL', $pid if $pid;
 }

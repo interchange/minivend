@@ -1,9 +1,4 @@
-[tag flag build][/tag]
-<HTML>
-<HEAD>
-	<TITLE> __COMPANY__ Catalog </TITLE>
-</HEAD>
-<BODY MV="body 1">
+[set page_title]__COMPANY__ Catalog[/set]
 [comment]
 	The __VALUES__ below are MiniVend Variable settings.
 	In this case, they come from these settings in catalog.cfg:
@@ -25,6 +20,9 @@
 	They have the effect of predefining a page layout without
 	having to maintain different pages.
 
+	The only area that is edited in this page is a large standalone
+	table cell in the center middle or right area.
+
 [/comment]
 __LOGOBAR__
 __MENUBAR__
@@ -36,91 +34,89 @@ This is the default page of the catalog.
 [/comment]
 <!-- CONTENT HERE -->
 <!--  First product -->
-
 [comment]
 
     This [loop] repeats the container code for every product
-    code returned by the [random] tag. The [random] tag is 
-    set in catalog.cfg with the Random directive; in the demo
-    it takes its values from the rand1.html - rand5.html page.
+    code returned by the search with a random parameter. The random=2 
+    causes a random set (of 2) of the results returned from the search
+    to be iterated over.
 
     The effect is to have a changing "specials" display on 
     the front page.
 
 [/comment]
 
-[loop arg="[random]"]
-<TABLE CELLPADDING="3">
-    <TR>
-        <TD VALIGN="top">
-            <TABLE>
-                <TR>
-[calc]
-                    return <<EOF if $inc++ % 2;
-                    <TD VALIGN="top" ALIGN=LEFT>
-                        <A HREF="[area [loop-code]]">
-                        <IMG SRC="[loop-field image]" ALT="[loop-field title]" BORDER="0"></A>
-                    </TD>
-EOF
-                    return '';
-[/calc]
-                    <TD VALIGN="top">
-                        <FONT SIZE="3" FACE="verdana,arial,helvetica">          
-                        <B>[loop-field title]</B>
-                        </FONT><BR>
-                        <FONT SIZE="2" FACE="verdana,arial,helvetica">          
-                        By <A HREF="[area scan
-                            st=glimpse
-                            sf=artist
-                            se=[loop-field artist]
-                        ]"><B><FONT COLOR="#0000CC">
-                        [loop-field artist]
-                        </FONT></B></A><P>
-                        </FONT>
+<TABLE WIDTH="470" __TABLEFG__ VALIGN="TOP" ALIGN="left" CELLSPACING="0" BORDER="0" CELLPADDING="0">
+[loop random=3
+	search= |
+		sf=featured
+		se=front
+		ml=25
+			|
+]
+<TR VALIGN=top ALIGN=left>
+<TD WIDTH=10 BGCOLOR=__BARTEXT__ HEIGHT=13 VALIGN=top ALIGN=left></TD>
+<TD WIDTH=460 COLSPAN=3 BGCOLOR=__TITLEBG__ VALIGN=middle ALIGN=middle><FONT SIZE="+1" FACE="Tahoma, Arial, Helvetica" COLOR=__BARTEXT__><B>[data table=cat col=banner_text key="[loop-field category]"]</B></FONT></TD>
+</TR>
+<TR>
+<TD WIDTH=10 BGCOLOR=__BARTEXT__ HEIGHT="*" VALIGN=top ALIGN=left><IMG SRC="clear.gif" WIDTH=1 ALT="" HEIGHT=1 BORDER=0></TD>
+<TD WIDTH=1 BGCOLOR=__TITLEBG__ HEIGHT="*" VALIGN=top ALIGN=left><IMG SRC="clear.gif" WIDTH=1 ALT="" HEIGHT=1 BORDER=0></TD>
+<TD WIDTH=458 __TABLEFG__ HEIGHT="*" VALIGN=top ALIGN=left>
+<TABLE WIDTH=458 VALIGN=TOP ALIGN=left CELLSPACING=0 BORDER=0 CELLPADDING=0>
+<TR>
+<TD WIDTH=458 COLSPAN=5 HEIGHT=5 VALIGN=top ALIGN=left></TD>
+</TR>
+<TR VALIGN=top ALIGN=left>
+<TD WIDTH=10 HEIGHT=166 VALIGN=top ALIGN=left><IMG SRC="clear.gif" WIDTH=1 ALT="" HEIGHT=1 BORDER=0></TD>
+<TD WIDTH=126 HEIGHT=166 VALIGN=top ALIGN=center>[if-loop-field image]<A HREF="[area [loop-code]]"><IMG SRC="items/[loop-field image]" ALT="[loop-field title]" BORDER=0></A>[/if-loop-field]</TD>
+<TD WIDTH=8 HEIGHT=166 VALIGN=top ALIGN=left><IMG SRC="clear.gif" WIDTH=1 ALT="" HEIGHT=1 BORDER=0></TD>
+<TD WIDTH=310 HEIGHT=166 VALIGN=top ALIGN=left><FONT FACE=Arial COLOR=__HEADERTEXT__><B><A HREF="[area [loop-code]]">[loop-field title]</A></B></FONT><BR>
+<FONT SIZE="-1" FACE=Arial COLOR=__TITLEBG__><B>by 
+<A HREF="[area href=scan
+                   arg=|
+                          sf=artist
+                          se=[loop-field artist]
+                       |
+                ]">[filter name namecase][loop-field artist][/filter]</A></B></FONT><BR><BR>
+<FONT SIZE="-1" FACE=Arial COLOR=__CONTRAST__><B>Price: [loop-price]</B></FONT>&nbsp;&nbsp;&nbsp;<FONT SIZE="-1" FACE=Arial COLOR=__TITLEBG__><B><A HREF="[area order [loop-code]]">buy now <IMG SRC="template/cart.png" BORDER=0></A></B></FONT><BR><BR>
+<FONT SIZE=1 FACE=Arial COLOR=black>[loop-field comments]</FONT><BR><BR>
+<FONT SIZE=1 FACE=Arial COLOR=black><B>More <A HREF="[area 
+	href=scan
+	arg=|
+		sf=category
+		se=[loop-field category]
+		ml=2
+	|
+]">[filter lower][loop-field category][/filter]</A>...</B></FONT></TD>
+<TD WIDTH=4 HEIGHT=166 VALIGN=top ALIGN=left><IMG SRC="clear.gif" WIDTH=1 ALT="" HEIGHT=1 BORDER=0></TD>
+</TR>
+<TR>
+	<TD WIDTH=458 COLSPAN=5 HEIGHT=8 VALIGN=top ALIGN=middle></TD>
+</TR>
+<TR VALIGN=TOP ALIGN=LEFT>
+<TD WIDTH=14 HEIGHT=1 VALIGN=TOP ALIGN=middle></TD>
+<TD WIDTH=430 COLSPAN=3 BGCOLOR=__TITLEBG__ HEIGHT=1 VALIGN=TOP ALIGN=middle></TD>
+<TD WIDTH=14 HEIGHT=1 VALIGN=TOP ALIGN=middle></TD>
+</TR>
+<TR VALIGN=TOP ALIGN=LEFT>
+<TD WIDTH=458 COLSPAN=5 HEIGHT=8 VALIGN=top ALIGN=middle></TD>
+</TR>
 
-                        Our Price:</FONT><B><FONT SIZE="3" COLOR="#FF0000">
-                        [loop-price]
-                        </B></FONT>                                        
-                        &nbsp; <NOBR><A HREF="[area order [loop-code]]" CLASS="buybtn">
-                        <FONT SIZE="1" FACE="verdana,arial,helvetica" COLOR="#0000cc">
-                        Buy Now</FONT></A></NOBR><BR>
-                    </TD>
-[calc]
-                    return <<EOF if $inc % 2;
-                    <TD VALIGN="top" ALIGN=RIGHT>
-                        <A HREF="[area [loop-code]]">
-                        <IMG SRC="[loop-field image]" ALT="[loop-field title]" BORDER="0"></A>
-                    </TD>
-EOF
-                    return '';
-[/calc]
-                </TR>
-                <TR>
-                    <TD COLSPAN="2">                            
-                        <FONT SIZE="2"><P>
-                        [file name="text/[loop-code]"]
-                        <P>
-                        More <A HREF="[area scan
-                            dl=[loop-field category]
-                            di=category
-                            df=yes
-                            ]"><FONT COLOR="#0000CC">
-                        [loop-field category]</A></FONT> ...
-                    </TD>
-                </TR>
-            </TABLE>
-        </TD>
-    </TR>
+</TABLE>
+</TD>
+<TD WIDTH=1 BGCOLOR=__TITLEBG__ HEIGHT="*" VALIGN=top ALIGN=left><IMG SRC="clear.gif" WIDTH=1 ALT="" HEIGHT=1 BORDER=0></TD>
+</TR>
+<TR VALIGN=top ALIGN=left>
+<TD WIDTH=10 BGCOLOR=__TITLETEXT__ HEIGHT=1 VALIGN=top ALIGN=left></TD>
+<TD WIDTH=460 COLSPAN=3 BGCOLOR=__TITLEBG__ HEIGHT=1 VALIGN=top ALIGN=left><IMG SRC="clear.gif" WIDTH=1 ALT="" HEIGHT=1 BORDER=0></TD>
+</TR>
+[/loop]
 </TABLE>
 
-<HR WIDTH="90%" [var HEADERBG] HEIGHT="1">
-[/loop]
-<BR>
 
 [comment] And the footer as above. [/comment]
-__RIGHTSIDE__
+__NO_RIGHT__
 __MENUBOTTOM__
 __COPYRIGHT__
 
 <!-- current page: @@MV_PAGE@@ -->
-</BODY></HTML>

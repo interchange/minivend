@@ -1,21 +1,17 @@
-<HTML>
-<HEAD>
-<TITLE>[L]About Us[/L]</TITLE>
-</HEAD>
-<BODY MV="body 1">
+[set page_title]News[/set]
 __LOGOBAR__
 __MENUBAR__
 __LEFTSIDE__
 
 <BLOCKQUOTE>
 <FONT FACE="arial,helvetica" SIZE="-1">
-You may note a new look for MiniVend's simple demo.
+You may note a new look for MiniVend's "simple" demo.
 <P>
 [page reconfig/reconfig]Reconfigure the catalog[/page]
-(must be user <B><TT>__MVC_SUPERUSER__</TT></B>)
+(must be user <B><TT>minivend</TT></B>)
 <P>
 [page reconfig/upload]Upload/download files[/page]
-(must be user <B><TT>__MVC_SUPERUSER__</TT></B>)
+(must be user <B><TT>minivend</TT></B>)
 </FONT>
 <P>
 
@@ -109,6 +105,7 @@ You can use a form here, too:
             $Session->{key}          Direct reference to session area
             $Tag->tagname(@args)     Call a tag as a routine (UserTag too!)
             $Values->{key}           Direct reference to user form values
+            $Variable->{key}         Direct reference to MiniVend Variable 
             &Log($msg)               Log to the error log
 </XMP>
 
@@ -356,4 +353,3 @@ __MENUBOTTOM__
 __COPYRIGHT__
 
 <!-- current page: @@MV_PAGE@@ -->
-</body> </html>

@@ -1,8 +1,13 @@
 # Data.pm - Minivend databases
 #
-# $Id: Data.pm,v 1.52 1999/02/15 08:50:59 mike Exp mike $
+# $Id: Data.pm,v 1.8 2000/02/25 20:11:24 mike Exp mike $
 # 
-# Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
+#
+# This program was originally based on Vend 0.2
+# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+#
+# Portions from Vend 0.3
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -15,9 +20,10 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+# You should have received a copy of the GNU General Public
+# License along with this program; if not, write to the Free
+# Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+# MA  02111-1307  USA.
 
 package Vend::Data;
 require Exporter;
@@ -54,10 +60,9 @@ use strict;
 use File::Basename;
 use Vend::Util;
 use Vend::Interpolate;
-use Vend::Table::DummyDB;
-use Vend::Table::Import qw(import_ascii_delimited import_quoted);
+use Vend::Table::Common qw(import_ascii_delimited import_csv);
 
-File::Basename::fileparse_set_fstype($);
+File::Basename::fileparse_set_fstype($^O);
 
 BEGIN {
 # SQL
@@ -77,8 +82,11 @@ BEGIN {
 my ($Products, $Item_price);
 
 sub database_exists_ref {
-	return $_[0] if ref $_[0];
-	return $Vend::Database{$_[0]} || undef;
+	return $_[0]->ref() if ref $_[0];
+	return $Vend::Interpolate::Db{$_[0]}
+			if $Vend::Interpolate::Db{$_[0]};
+	return undef unless defined $Vend::Database{$_[0]};
+	return $Vend::Database{$_[0]}->ref() || undef;
 }
 
 sub database_key_exists {
@@ -88,19 +96,19 @@ sub database_key_exists {
 
 sub product_code_exists_ref {
     my ($code, $base) = @_;
-	my($ref,$real,$dummy);
-	if(defined $base and $base) {
-		return undef unless $ref = $Vend::Productbase{$base};
-		($real, $dummy) = $ref->record_exists($code);
-		return $Vend::Productbase{$base} if $real;
-		return 0;
-	}
+    my($ref);
+    if(defined $base and $base) {
+        return undef unless $ref = $Vend::Productbase{$base};
+        return $ref->ref() if $ref->record_exists($code);
+    }
 
-	foreach $ref (@Vend::Productbase) {
-		($real, $dummy) = $ref->record_exists($code);
-		return $dummy || $ref  if $real;
-	}
-	return 0;
+    my $return;
+    foreach $ref (@Vend::Productbase) {
+        $ref = $ref->ref();
+        next unless $ref->record_exists($code);
+        $return = $ref;
+    }
+    return $return || undef;
 }
 
 sub product_code_exists_tag {
@@ -110,12 +118,9 @@ sub product_code_exists_tag {
 		return $base if $Vend::Productbase{$base}->record_exists($code);
 		return 0;
 	}
-	my ($ref, $real, $dummy);
+	my ($ref);
 	foreach $ref (@Vend::Productbase) {
-		($real, $dummy) = $ref->record_exists($code);
-		next unless $real;
-		$base = $dummy || $ref;
-		return $Vend::Basefinder{$base};
+		return $Vend::Basefinder{$ref} if $ref->record_exists($code);
 	}
 	return 0;
 }
@@ -125,54 +130,11 @@ sub open_database {
 	dummy_database();
 }
 
-sub tie_database {
-	my ($name, $data);
-	if($Global::Database) {
-		copyref($Global::Database, $Vend::Cfg->{Database});
-	}
-    while (($name,$data) = each %{$Vend::Cfg->{Database}}) {
-# DEBUG
-#Vend::Util::logDebug
-#("Calling tie_database $name $data->{name}, $data->{file}, $data->{type}\n")
-#	if ::debug(0x4);
-# END DEBUG
-		if( $data->{type} =~ /^[87]$/ or $data->{MEMORY} ) {
-			$Vend::Database{$name} = 
-				import_database($data->{file},$data->{type},$data->{name});
-		}
-		else {
-			$Vend::Database{$name} = new Vend::Table::DummyDB $data;
-		}
-	}
-	update_productbase();
-}
-
-sub dummy_database {
-	my ($name, $data);
-    while (($name,$data) = each %{$Vend::Cfg->{Database}}) {
-# DEBUG
-#Vend::Util::logDebug
-#("dummy_database $name, $data\n")
-#	if ::debug(0x4);
-# END DEBUG
-		$Vend::UPPERCASE{$name} = 1
-			if $data->{UPPERCASE};
-		$Vend::Database{$name} = new Vend::Table::DummyDB $data;
-	}
-	update_productbase();
-}
-
 sub update_productbase {
 
 	if(defined $_[0]) {
-		return unless ( defined $Vend::Productbase{$_[0]} or
-						$_[0] eq $Vend::Cfg->{PriceDatabase} );
+		return unless defined $Vend::Productbase{$_[0]};
 	}
-# DEBUG
-#Vend::Util::logDebug
-#("Update productbase " . ($_[0] || '') . "\n")
-#	if ::debug(0x4);
-# END DEBUG
 	undef @Vend::Productbase;
 	for(@{$Vend::Cfg->{ProductFiles}}) {
 		unless ($Vend::Database{$_}) {
@@ -182,9 +144,8 @@ sub update_productbase {
 		$Vend::Basefinder{$Vend::Database{$_}} = $_;
 		push @Vend::Productbase, $Vend::Database{$_};
 	}
-	$Vend::Cfg->{Pricing} = $Vend::Database{$Vend::Cfg->{PriceDatabase}}
-		if $Vend::Database{$Vend::Cfg->{PriceDatabase}};
 	$Products = $Vend::Productbase[0];
+#::logError("Productbase: '@Vend::Productbase' --> " . ::uneval(\%Vend::Basefinder));
 
 }
 
@@ -206,15 +167,13 @@ sub product_price {
 
 sub product_description {
     my ($code, $base) = @_;
-    #return "NA" unless $base = product_code_exists_ref($code, $base || undef);
     return "" unless $base = product_code_exists_ref($code, $base || undef);
     return database_field($base, $code, $Vend::Cfg->{DescriptionField});
 }
 
 sub database_field {
     my ($db, $key, $field_name) = @_;
-    $db = database_exists_ref($db) or return '';
-	$db = $db->ref;
+    $db = database_exists_ref($db) or return undef;
     return '' unless $db->test_record($key);
     return '' unless defined $db->test_column($field_name);
     return $db->field($key, $field_name);
@@ -222,19 +181,18 @@ sub database_field {
 
 sub database_row {
     my ($db, $key, $field_name) = @_;
-    $db = database_exists_ref($db) or return '';
-	$db = $db->ref;
+    $db = database_exists_ref($db) or return undef;
+return undef unless defined $db;
     return '' unless $db->test_record($key);
     return $db->row_hash($key);
 }
 
 sub increment_field {
     my ($db, $key, $field_name, $adder) = @_;
-
-    my ($real, $ref) = $db->record_exists($key);
-    return undef unless $real;
-	$db = $ref if defined $ref;
+	$db = $db->ref();
+    return undef unless $db->test_record($key);
     return undef unless defined $db->test_column($field_name);
+#::logDebug(__PACKAGE__ . "increment_field: " . ::uneval(\@_));
     return $db->inc_field($key, $field_name, $adder);
 }
 
@@ -250,18 +208,18 @@ sub call_method {
 
 sub import_text {
 	my ($table, $type, $options, $text) = @_;
-#::logGlobal("Called import_text: table=$table type=$type opt=" . Data::Dumper::Dumper($options) . " text=$text");
+#::logDebug("Called import_text: table=$table type=$type opt=" . Data::Dumper::Dumper($options) . " text=$text");
 	my ($delimiter, $record_delim) = find_delimiter($type);
 	my $db = $Vend::Database{$table}
 		or die ("Non-existent table '$table'.\n");
 	$db = $db->ref();
 
 	my @columns;
-	@columns = ('code', $db->columns());
+	@columns = ($db->columns());
 
 	if($options->{'continue'}) {
 		$options->{CONTINUE} = uc $options->{'continue'};
-		$options->{SEPARATOR} = uc $options->{separator}
+		$options->{NOTES_SEPARATOR} = uc $options->{separator}
 			if defined $options->{separator};
 	}
 
@@ -278,7 +236,7 @@ sub import_text {
 		$text = "$add\n$text";
 	}
 	else {
-		$options->{'field_names'} = \@columns;
+		$options->{field_names} = \@columns;
 		$options->{'delimiter'} = $delimiter;
 	}
 
@@ -298,10 +256,10 @@ sub import_text {
 	local($/) = $record_delim if defined $record_delim;
 	$options->{Object} = $db;
 	if($delimiter ne 'CSV') {
-		import_ascii_delimited($fn, $options);
+		Vend::Table::Common::import_ascii_delimited($fn, $options);
 	}
 	else {
-		import_quoted($fn, $options);
+		Vend::Table::Common::import_csv($fn, $options);
 	}
 	$/ = $save;
 	unlink $fn unless $options->{'file'};
@@ -311,15 +269,11 @@ sub import_text {
 sub set_field {
     my ($db, $key, $field_name, $value, $append) = @_;
 
-	$db = $db->ref;
+	$db = database_exists_ref($db);
+    return undef unless defined $db->test_column($field_name);
 
 	# Create it if it doesn't exist
 	unless ($db->record_exists($key)) {
-# DEBUG
-#Vend::Util::logDebug
-#("Creating empty record $key\n")
-#	if ::debug(0x1);
-# END DEBUG
 		my @fields;
 		my $count = scalar $db->columns();
 		@fields = ('') x $count;
@@ -328,14 +282,15 @@ sub set_field {
 	elsif ($append) {
 		$value = $db->field($key, $field_name) . $value;
 	}
-
-    return undef unless defined $db->test_column($field_name);
     return $db->set_field($key, $field_name, $value);
 }
 
 sub product_field {
     my ($field_name, $code, $base) = @_;
+	return database_field($Vend::Cfg->{OnlyProducts}, $field_name, $code)
+		if $Vend::Cfg->{OnlyProducts};
 	my ($db);
+    $db = product_code_exists_ref($code, $base || undef);
     return "" unless $db = product_code_exists_ref($code, $base || undef);
     return "" unless defined $db->test_column($field_name);
     return $db->field($code, $field_name);
@@ -367,62 +322,72 @@ TAGBUILD: {
 
 # SQL
 sub sql_query {
-	my($type, $internal_query, $query, $msql, $table, $list) = @_;
+	my($type, $query, $opt, $list) = @_;
+
 	my ($db);
 
-	$table = $Vend::Cfg->{ProductFiles}[0] unless defined $table;
-	$db = $Vend::Database{$table}
-		or die "dbi_query: unknown base table $table.\n";
+	$opt->{table} = $Vend::Cfg->{ProductFiles}[0] unless defined $opt->{table};
+	$db = $Vend::Database{$opt->{table}}
+		or die "dbi_query: unknown base table $opt->{table}.\n";
 	$db = $db->ref();
 
 	$type = lc $type;
 
-	if (defined $list) {
-		$query = $internal_query if $internal_query and $type ne 'list';
+	if ($list and $type ne 'list') {
+		$query = '' if ! defined $query;
 		$query .= $list;
 	}
 
+	my $perlquery;
+
 	my @arg;
-	while ($query =~ s:$T{'arg'}\](.*?)$T{'/arg'}\]::o) {
+	while ($query =~ s:\[arg\](.*?)\[/arg\]::o) {
 		push(@arg, $1);
 	}
 
-	my $config = {};
-	while ($query =~ s:$T{'control'}\s+([\w][-\w]*)\]([\000-\377]*?)$T{'/control'}\]::) {
-		$config->{uc $1} = $2;
+	while ($query =~ s:\[control\s+([\w][-\w]*)\]([\000-\377]*?)\[/control\]::) {
+		my ($key, $val) = ($1, $2);
+		if($key =~ /PERL/i) {
+			$perlquery = 1;
+			$opt->{textref} = 0;
+		}
+		elsif ($key =~ /BOTH/i){
+			$perlquery = 1;
+			$opt->{textref} = 1;
+		}
+		else {
+			$opt->{"\L$key"} = $val;
+		}
 	}
 
 	if($type eq 'list') {
-		$list = $query;
-		$query = $internal_query;
-		push(@arg, $1) while $query =~ s:$T{'arg'}\](.*?)$T{'/arg'}\]::o;
-		$list =~ s:$T{'query'}\]([\000-\377]+)$T{'/query'}\]::o and $query = $1;
+		$opt->{list} = 1;
+		push(@arg, $1) while $query =~ s:\[arg\](.*?)\[/arg\]::o;
+		$list =~ s:\[query\]([\000-\377]+)\[/query\]::i and $query = $1;
 	}
-
-	$type eq 'list' and
-		return Vend::Interpolate::tag_sql_list(
-							$list,
-							$db->array_query($query, $table, $config, @arg)
-							);
-	$type eq 'array' and
-		return uneval $db->array_query($query, $table, $config, @arg);
-	$type eq 'hash' and
-		return uneval $db->hash_query($query, $table, $config, @arg);
-	$type eq 'set' and
-		return $db->set_query($query, $table, $config, @arg);
-	$type eq 'html' and
-		return $db->html_query($query, $table, $config, @arg);
-	$type eq 'param' and
-		return $db->param_query($query, $table, $config, @arg);
-	# shouldn't reach this if proper tag
-#	logError("Bad SQL query selector: '$type' for $table");
-	logError( errmsg('Data.pm:1', "Bad SQL query selector: '%s' for %s" , $type, $table) );
-	return '';
+	elsif ($type eq 'hash') {
+		$opt->{textref} = 1;
+		$opt->{hashref} = 1;
+	}
+	elsif ($type eq 'array') {
+		$opt->{textref} = 1;
+	}
+	elsif ($type eq 'param') {
+		warn "sql query type=param deprecated";
+		$opt->{list} = 1;
+		$list = '"[sql-code]" ';
+	}
+	elsif ($type eq 'html') {
+		$opt->{html} = 1;
+	}
+	$opt->{query} = $query if $query;
+	return $db->query($opt, $list, @arg);
 }
 # END SQL
 
 sub column_index {
     my ($field_name) = @_;
+	$Products = $Products->ref();
     return undef unless defined $Products->test_column($field_name);
     return $Products->column_index($field_name);
 }
@@ -442,7 +407,7 @@ sub close_database {
 	undef $Products;
 	while( ($name)	= each %Vend::Database ) {
     	$Vend::Database{$name}->close_table()
-			unless defined $Vend::Cfg->{SaveDatabase}->{$name};
+			unless defined $Vend::Cfg->{SaveDatabase}{$name};
 		delete $Vend::Database{$name};
 	}
 	undef %Vend::WriteDatabase;
@@ -451,158 +416,15 @@ sub close_database {
 
 sub database_ref {
 	my $db = $_[0] || $Products;
-	if (ref ($db) =~ /dummy/i) {
-		$db = $db->import_db($db);
-	}
-	$db;
+	return $db->ref() if $db;
+	return undef;
 }
 
 ## PRODUCTS
 
 # Read in the shipping file.
 
-sub make_three {
-	my $zone = shift;
-	while ( length($zone) < 3 ) {
-		$zone = "0$zone";
-	}
-	return $zone;
-}
-
-sub read_shipping {
-    my($code, $desc, $min, $criterion, $max, $cost, $mode);
-
-	my $file = $Vend::Cfg->{Special}{'shipping.asc'}
-				|| Vend::Util::catfile($Vend::Cfg->{ProductDir},'shipping.asc');
-    open(Vend::SHIPPING, $file) or do {
-			logError( errmsg('Data.pm:2',
-								"Could not open shipping file %s: %s" , $file, $!
-							)
-					)
-				if $Vend::Cfg->{CustomShipping};
-			return undef;
-		};
-	$Vend::Cfg->{Shipping_desc} = {};
-	$Vend::Cfg->{Shipping_criterion} = {};
-	$Vend::Cfg->{Shipping_min} = {};
-	$Vend::Cfg->{Shipping_max} = {};
-	$Vend::Cfg->{Shipping_cost} = {};
-	my %seen;
-	my $append = '00000';
-    while(<Vend::SHIPPING>) {
-		chomp;
-		if(s/\\$//) {
-			$_ .= <Vend::SHIPPING>;
-			redo;
-		}
-		elsif (s/<<(\w+)$//) {
-			my $mark = $1;
-			my $line = $_;
-			$line .= Vend::Config::read_here(\*Vend::SHIPPING, $mark);
-			$_ = $line;
-			redo;
-		}
-		next unless /\S/;
-		($mode, $desc, $criterion, $min, $max, $cost) = split(/\t/, $_, 6);
-		$code = defined $seen{$mode} ? $mode . $append++ : $mode; 
-		$seen{$code} = 1;
-# DEBUG
-#Vend::Util::logDebug
-#("reading shipping code $code\n")
-#	if ::debug(0x4);
-# END DEBUG
-		$Vend::Cfg->{Shipping_desc}->{$code} = $desc;
-		$Vend::Cfg->{Shipping_criterion}->{$code} = $criterion;
-		$Vend::Cfg->{Shipping_min}->{$code} = $min;
-		$Vend::Cfg->{Shipping_max}->{$code} = $max;
-		$Vend::Cfg->{Shipping_cost}->{$code} = $cost;
-		if ($cost =~ s/^\s*c\s+(\w+)\s*//) {
-			my $zone = $1;
-			next if defined $Vend::Cfg->{Shipping_zone}{$zone};
-			my $ref;
-			if ($cost =~ /^{[\000-\377]+}$/ ) {
-				eval { $ref = eval $cost };
-			}
-			else {
-				$ref = {};
-				my($name, $file, $length, $multiplier) = split /\s+/, $cost;
-				$ref->{zone_name} = $name || undef;
-				$ref->{zone_file} = $file if $file;
-				$ref->{mult_factor} = $multiplier if defined $multiplier;
-				$ref->{str_length} = $length if defined $length;
-			}
-			if ($@
-				or ref($ref) !~ /HASH/
-				or ! $ref->{'zone_name'}) {
-#				logError("Bad shipping configuration for mode $code, skipping.");
-				logError( errmsg('Data.pm:3', "Bad shipping configuration for mode %s, skipping." , $code) );
-				$Vend::Cfg->{Shipping_cost}->{$code} = 0;
-				next;
-			}
-			$ref->{zone_key} = $zone;
-			$ref->{str_length} = 3 unless defined $ref->{str_length};
-			$ref->{zone_file} = $Vend::Cfg->{ProductDir} . "/" . $ref->{zone_name}
-					unless defined $ref->{zone_file};
-			$Vend::Cfg->{Shipping_zone}{$zone} = $ref;
-		}
-		elsif ($cost =~ s/^\s*g\s+//) {
-			$Vend::Cfg->{Shipping_options}->{mv_global} = {}
-				unless defined $Vend::Cfg->{Shipping_options}{mv_global};
-			if ($cost =~ /\bpricedivide[\s=]*(\d*)/i) {
-				my $set = length($1) ? $1 : 1;
-				$Vend::Cfg->{Shipping_options}{mv_global}{PriceDivide} = $set;
-			}
-		}
-		elsif ($cost =~ s/^\s*o\s+//) {
-			$Vend::Cfg->{Shipping_options}->{$mode} = {}
-				unless defined $Vend::Cfg->{Shipping_options}{$mode};
-			if ($cost =~ /\bpricedivide[\s=]*(\d*)/i) {
-				my $set = length($1) ? $1 : 1;
-				$Vend::Cfg->{Shipping_options}{$mode}{PriceDivide} = $set;
-			}
-		}
-    }
-    close Vend::SHIPPING;
-	if($Vend::Cfg->{UpsZoneFile} and ! defined $Vend::Cfg->{Shipping_zone}{'u'} ) {
-		$Vend::Cfg->{Shipping_zone}{'u'} = {
-				zone_file	=> $Vend::Cfg->{UpsZoneFile},
-				zone_key	=> 'u',
-				zone_name	=> 'UPS',
-				};
-	}
-	UPSZONE: {
-		my $zone;
-		foreach $zone (keys %{$Vend::Cfg->{Shipping_zone}}) {
-			my $ref = $Vend::Cfg->{Shipping_zone}{$zone};
-			my @zone = split(/[\r\n]+/, readfile($ref->{zone_file}) );
-			unless (@zone) {
-#				logError("Bad shipping file for zone '$zone', lookup disabled.");
-				logError( errmsg('Data.pm:4', "Bad shipping file for zone '%s', lookup disabled." , $zone) );
-				next;
-			}
-			if($zone[0] !~ /\t/) {
-				@zone = grep /\S/, @zone;
-				@zone = grep /^[^"]/, @zone;
-				$zone[0] =~ s/[^\w,]//g;
-				$zone[0] =~ s/^\w+/low,high/;
-				@zone = grep /,/, @zone;
-				$zone[0] =~	s/\s*,\s*/\t/g;
-				for(@zone[1 .. $#zone]) {
-					s/^\s*(\w+)\s*,/make_three($1) . ',' . make_three($1) . ','/e;
-					s/^\s*(\w+)\s*-\s*(\w+),/make_three($1) . ',' . make_three($2) . ','/e;
-					s/\s*,\s*/\t/g;
-				}
-			}
-			$ref->{zone_data} = \@zone;
-# DEBUG
-#Vend::Util::logDebug
-#("\nZone fields: $zone[0]")
-#	if ::debug(0x4);
-# END DEBUG
-		}
-	}
-	1;
-}
+*read_shipping = \&Vend::Interpolate::read_shipping;
 
 # Read in the accessories file.
 
@@ -630,12 +452,15 @@ sub read_accessories {
 sub read_salestax {
     my($code, $percent);
 
+	return unless $Vend::Cfg->{SalesTax};
 	my $file = Vend::Util::catfile($Vend::Cfg->{ProductDir}, "salestax.asc");
 	$Vend::Cfg->{SalesTaxTable} = {};
     open(Vend::SALESTAX, $file) or do {
-#					logError("Could not open salestax file $file: $!")
-					logError( errmsg('Data.pm:5', "Could not open salestax file %s: %s" , $file, $!) )
-						if $Vend::Cfg->{SalesTax};
+					logError( "Could not open salestax file %s: %s" ,
+								$file,
+								$!
+							)
+						if ! $Vend::Cfg->{SalesTaxFunction};
 					return undef;
 				};
     while(<Vend::SALESTAX>) {
@@ -646,51 +471,11 @@ sub read_salestax {
     }
     close Vend::SALESTAX;
 
-	if(not defined $Vend::Cfg->{SalesTaxTable}->{'DEFAULT'}) {
-		$Vend::Cfg->{SalesTaxTable}->{'DEFAULT'} = 0;
+	if(not defined $Vend::Cfg->{SalesTaxTable}->{DEFAULT}) {
+		$Vend::Cfg->{SalesTaxTable}->{DEFAULT} = 0;
 	}
 
 	1;
-}
-
-# Read in the pricing file, if it exists
-sub read_pricing {
-    my($code, @breaks);
-	if($Vend::Cfg->{PriceBreaks} || $Vend::Cfg->{PriceAdjustment}) {
-		die "No price database '$Vend::Cfg->{PriceDatabase}' defined, PriceBreaks or PriceAdjustment enabled.\n"
-			 unless $Vend::Cfg->{Database}->{$Vend::Cfg->{PriceDatabase}};
-	}
-	return ( build_item_price(), build_quantity_price() );
-}
-
-sub quantity_price {
-	my ($code,$one,$quan) = @_;
-
-# DEBUG
-#Vend::Util::logDebug
-#("Called quantity price for '$code' '$one' '$quan'\n")
-#	if ::debug(0x1);
-# END DEBUG
-	return $one unless
-			database_key_exists($Vend::Cfg->{Pricing}, $code);
-	my(@prices);
-
-	my $fn = ! $Vend::Cfg->{Locale} ? 'price' : $Vend::Cfg->{PriceField};
-	@prices =
-			split /\s/, database_field($Vend::Cfg->{Pricing}, $code, $fn);
-
-	my ($break,$i,$price,$scratch);
-	$price = $one;
-
-	# Use the passed quantity if there
-	$quan = 1 unless defined $quan && $quan;
-
-	foreach $break (@{$Vend::Cfg->{PriceBreaks}}) {
-		last if $break > $quan;
-		$scratch = shift @prices;
-		$price = $scratch if $scratch;
-	}
-	return $price;
 }
 
 my %Delimiter = (
@@ -713,13 +498,9 @@ my %Delimiter = (
 sub find_delimiter {
 	my ($type) = @_;
 	$type = $type || 1;
-	return ($Vend::Cfg->{Delimiter}, "\n")
-		if $type eq '1' || $type eq 'DEFAULT';
-
 	return @{$Delimiter{$type}}
 		if defined $Delimiter{$type}; 
-	return ($Vend::Cfg->{FieldDelimiter}->{$type}, 
-			$Vend::Cfg->{RecordDelimiter}->{$type});
+	return ("\t", "\n");
 }
 
 my %db_config = (
@@ -757,62 +538,69 @@ my %db_config = (
 		},
 	);
 
+sub tie_database {
+	my ($name, $data);
+	if($Global::Database) {
+		copyref($Global::Database, $Vend::Cfg->{Database});
+	}
+    while (($name,$data) = each %{$Vend::Cfg->{Database}}) {
+		$Vend::UPPERCASE{$name} = 1
+				if $data->{UPPERCASE};
+		if( $data->{type} eq '8' or $data->{HOT} ) {
+#::logDebug("Importing $data->{name}...");
+			$Vend::Database{$name} = import_database($data);
+		}
+		else {
+			my $class = $db_config{$data->{Class}}->{Class};
+			$Vend::UPPERCASE{$name} = 1
+				if $data->{UPPERCASE};
+			$Vend::Database{$name} = new $class ($data);
+		}
+	}
+	update_productbase();
+}
+
+sub dummy_database {
+	my ($name, $data);
+    while (($name,$data) = each %{$Vend::Cfg->{Database}}) {
+		if (defined $Vend::Cfg->{SaveDatabase}{$name}) {
+			$Vend::Database{$name} = $Vend::Cfg->{SaveDatabase}{$name};
+			next;
+		}
+		my $class = $db_config{$data->{Class}}->{Class};
+		$Vend::UPPERCASE{$name} = 1
+			if $data->{UPPERCASE};
+		$Vend::Database{$name} =
+				new $class ($data);
+	}
+	update_productbase();
+}
+
 sub import_database {
-    my ($database,$type,$name) = @_;
+    my ($obj, $dummy) = @_;
 
-	my $obj;
-	if(ref $database) {
-		$obj = $database;
-		$database = $obj->{'file'};
-		$type     = $obj->{'type'};
-		$name     = $obj->{'name'};
-	}
-	else {
-		$obj = $Vend::Cfg->{Database}->{$name};
-	}
+#::logDebug ("enter import_database: dummy=$dummy obj=" . ::uneval($obj));
 
-	if($Vend::Cfg->{AdminDatabase}->{$name} and
-		! check_security (
-						$database,
-						2,
-						Vend::Util::check_gate($name,$Vend::Cfg->{ProductDir}),
-					)
-			)
-	{
-		logError("Attempt to access protected database by $CGI::host");
-		logGlobal("Attempt to access protected database by $CGI::host");
-		return undef;
-	}
-	else {
-# DEBUG
-#Vend::Util::logDebug
-#("Skipped security check for database $name\n")
-#	if ::debug(0x4);
-# END DEBUG
-	}
+	my $database = $obj->{'file'};
+	my $type     = $obj->{'type'};
+	my $name     = $obj->{'name'};
+#my @caller = caller();
+#::logDebug("opening table table=$database config=" . ::uneval($obj) . " caller=@caller");
+
+#::logDebug ("database=$database type=$type name=$name obj=" . ::uneval($obj));
+#::logDebug ("database=$database type=$type name=$name obj=" . ::uneval($obj)) if $obj->{HOT};
+	
 
 	return $Vend::Cfg->{SaveDatabase}->{$name}
 		if defined $Vend::Cfg->{SaveDatabase}->{$name};
-# DEBUG
-#Vend::Util::logDebug
-#("Import db: dir=$Vend::Cfg->{DataDir} name=$name db=$database type=$type\n")
-#	if ::debug(0x4);
-# END DEBUG
 
 	my ($delimiter, $record_delim, $change_delimiter, $cacheable);
 	my ($base,$path,$tail,$dir,$database_txt);
 
-	$delimiter = $Vend::Cfg->{Delimiter};
-
 	die "import_database: No database name!\n"
 		unless $database;
 
-
-# DEBUG
-#Vend::Util::logDebug
-#("start=$database_txt path='$path' base='$base' tail='$tail'\n")
-#	if ::debug(0x4);
-# END DEBUG
+#::logDebug ("start=$database_txt path='$path' base='$base' tail='$tail'");
 
 	my $database_dbm;
 	my $new_database_dbm;
@@ -834,6 +622,7 @@ sub import_database {
 	$class_config = $db_config{$obj->{Class} || $Global::Default_database};
 
 	$table_name     = $name;
+	my $export;
 
   IMPORT: {
 	last IMPORT if $no_import and $obj->{'dir'};
@@ -845,7 +634,7 @@ sub import_database {
 
 	if(Vend::Util::file_name_is_absolute($database_txt)) {
 		if ($Global::NoAbsolute) {
-			my $msg = errmsg('Data.pm:10',
+			my $msg = errmsg(
 							"Security violation for NoAbsolute, trying to import %s",
 							$database_txt);
 			logError( $msg );
@@ -854,7 +643,7 @@ sub import_database {
 		$dir = $path;
 	}
 	else {
-		$dir = $Vend::Cfg->{DataDir} || $Global::ConfigDir;
+		$dir = $Vend::Cfg->{ProductDir} || $Global::ConfigDir;
 		$database_txt = Vend::Util::catfile($dir,$database_txt);
 	}
 
@@ -883,7 +672,10 @@ sub import_database {
 		$table_name = $new_table_name = $base;
 	}
 
+	$cacheable = $class_config->{Cacheable} || undef;
+
 	if ($class_config->{RestrictedImport}) {
+		$obj->{db_file_extended} = $database_dbm;
 		if (-f $database_dbm or ! -f $database_txt) {
 			$no_import = 1;
 		}
@@ -898,26 +690,29 @@ sub import_database {
 
 	$change_delimiter = $obj->{DELIMITER} if defined $obj->{DELIMITER};
 
-    if (! defined $database_dbm
+	my $txt_time;
+	my $dbm_time;
+    if (
+		! defined $database_dbm
 		or ! -e $database_dbm
-        or file_modification_time($database_txt) >
-            file_modification_time($database_dbm)) {
+        or ($txt_time = file_modification_time($database_txt))
+				>
+           ($dbm_time = file_modification_time($database_dbm))
+		)
+	{
 		
-        warn "Importing $obj->{'name'} table from $database_txt\n";
+        warn "Importing $obj->{'name'} table from $database_txt\n"
+			unless $Vend::Quiet;
 
 		$type = 1 unless $type;
 		($delimiter, $record_delim) = find_delimiter($change_delimiter || $type);
 		$obj->{'delimiter'} = $delimiter;
-# DEBUG
-#Vend::Util::logDebug
-#("Type: $type delimiter: '$delimiter'\n")
-#	if ::debug(0x4);
-# END DEBUG
+
 		my $save = $/;
 		local($/) = $record_delim if defined $record_delim;
         $db = $delimiter ne 'CSV'
-			? import_ascii_delimited($database_txt, $obj, $new_table_name)
-        	: import_quoted($database_txt, $obj, $new_table_name);
+			? Vend::Table::Common::import_ascii_delimited($database_txt, $obj, $new_table_name)
+        	: Vend::Table::Common::import_csv($database_txt, $obj, $new_table_name);
 
 		$/ = $save;
 		if(defined $database_dbm) {
@@ -928,6 +723,10 @@ sub import_database {
             	or die "Couldn't move '$new_database_dbm' to '$database_dbm': $!\n";
 		}
     }
+	elsif ($obj->{AUTO_EXPORT} and $dbm_time > $txt_time) {
+		$obj->{export_now} = 1;
+	}
+
   }
 
 	my $read_only;
@@ -958,18 +757,29 @@ sub import_database {
 
 		$obj->{db_file} = $table_name unless $obj->{db_file};
 		$obj->{db_text} = $database_txt unless $obj->{db_text};
-    	$db = $class_config->{Class}->open_table( $obj, $table_name );
-		$obj->{NAME} = $db->[3] unless defined $obj->{NAME};
-
-#::logError ("Opening Database $obj->{name}: RO=$obj->{Read_only} WC=$obj->{WRITE_CONTROL} WA=$obj->{WRITE_ALWAYS}\n");
+		no strict 'refs';
+		eval { 
+			if($MVSAFE::Safe) {
+				$db = $Vend::Interpolate::Db{$class_config->{Class}}->open_table( $obj, $table_name );
+			}
+			else {
+#::logDebug("Opening $obj->{name}: table=$table_name");
+				$db = $class_config->{Class}->open_table( $obj, $table_name );
+#::logDebug("Opened $obj->{name}");
+			}
+			$obj->{NAME} = $db->[$Vend::Table::Common::COLUMN_INDEX]
+				unless defined $obj->{NAME};
+		};
 
 		if($@) {
+#::logDebug("Dieing of $@");
 			die $@ unless $no_import;
 			if(! -f $database_dbm) {
-				$Vend::ForceImport{$obj->{'name'}} = 1;
+				$Vend::ForceImport{$obj->{name}} = 1;
 				return import_database($obj);
 			}
 		}
+#::logDebug("Opening $obj->{name}: RO=$obj->{Read_only} WC=$obj->{WRITE_CONTROL} WA=$obj->{WRITE_ALWAYS}");
 	}
 
 	if(defined $cacheable) {
@@ -978,8 +788,8 @@ sub import_database {
 
 	$Vend::Basefinder{$db} = $name;
 
-	$db;
-}   
+	return $db;
+}
 
 sub index_database {
 	my($dbname, $opt) = @_;
@@ -989,10 +799,7 @@ sub index_database {
 	my $db;
 	$db = database_exists_ref($dbname)
 		or do {
-			logError( errmsg('Data.pm:6',
-						"Vend::Data export: non-existent database %s",
-						$db)
-					);
+			logError("Vend::Data export: non-existent database %s", $db);
 			return undef;
 		};
 
@@ -1005,7 +812,7 @@ sub index_database {
 	my $ix_fn = "$bx_fn.$ext";
 	my $type  = $opt->{type} || $db->config('type');
 
-#::logGlobal(
+#::logDebug(
 #	"dbname=$dbname db_fn=$db_fn bx_fn=$bx_fn ix_fn=$ix_fn\n" .
 #	"options: " . Vend::Util::uneval($opt) . "\n"
 #	);
@@ -1018,6 +825,8 @@ sub index_database {
 	{
 		export_database($dbname, $bx_fn, $type);
 	}
+
+	return if $opt->{export_only};
 
 	if(		-f $ix_fn
 				and 
@@ -1049,7 +858,7 @@ sub index_database {
 		@fn = split /\s*[\0,]+\s*/, $c->{mv_return_fields};
 	}
 
-#::logGlobal(
+#::logDebug(
 #	"search options: " . Vend::Util::uneval($c) . "\n"
 #	);
 
@@ -1076,61 +885,64 @@ sub index_database {
 }
 
 sub export_database {
-	my($db, $file, $type, $field, $delete) = @_;
+	my($db, $file, $type, $opt) = @_;
 	my(@data);
+	my ($field, $delete);
 	return undef unless defined $db;
+
+	$field  = $opt->{field}         if $opt->{field};
+	$delete = $opt->{delete}		if $opt->{delete};
 
 	$db = database_exists_ref($db)
 		or do {
-#			logError("Vend::Data export: non-existent database $db");
-			logError( errmsg('Data.pm:6', "Vend::Data export: non-existent database %s" , $db) );
+			logError("Vend::Data export: non-existent database %s" , $db);
 			return undef;
 		};
 
 	$db = $db->ref();
 
-	my $ref;
-	$ref = $Vend::Cfg->{Database}->{$Vend::Basefinder{$db}}
-		or die "Bad database '$db'.\n";
-
-
-	my $sql = 0;
-	# Some things not supported for SQL types -- can 
-	# usually do with [sql set] or [sql list] and [tag log ...]
-	if ($ref->{'type'} == 8) {
-		$sql = 1;
+	my $table_name = $db->config('name');
+	my $notes;
+	if("\U$type" eq 'NOTES') {
+		$type = 2;
+		$notes = 1;
 	}
 
-	my ($delim, $record_delim) = find_delimiter($type || $ref->{'type'});
+	my ($delim, $record_delim) = find_delimiter($type || $db->config('type'));
 
-	$file = $file || $ref->{'file'};
+	$file = $file || $db->config('file');
 
-	unless($file =~ m!^([A-Za-z]:)?/!) {
-		$file = Vend::Util::catfile( $Vend::Cfg->{DataDir}, $file);
-	}
+	$file = Vend::Util::catfile( $Vend::Cfg->{ProductDir}, $file)
+		unless Vend::Util::file_name_is_absolute($file);
 
 	my @cols = $db->columns();
 
-	my $first_name = 'code';
-
 	my ($notouch, $nuke);
-	if($sql) {
-		# do nothing about delete and add
-		# not supported for those types
-
-		# But put the proper first column name if there
-		$first_name = $ref->{FIRST_COLUMN_NAME} 
-									if defined $ref->{FIRST_COLUMN_NAME};
-	}
-	elsif ($field and ! $delete) {
-#		logError("Adding field $_");
-		logError( errmsg('Data.pm:7', "Adding field %s" , $field) );
+	if ($field and ! $delete) {
+#::logDebug("Trying for delete field=$field delete=$delete");
+		if($db->column_exists($field)) {
+			logError(
+				"Can't define column '%s' twice in table '%s'",
+				$field,
+				$table_name,
+			);
+			return undef;
+		}
+		logError("Adding column %s to table %s" , $field, $table_name);
 		push @cols, $field;
 		$notouch = 1;
 	}
-	elsif ($field and $delete) {
-#		logError("Deleting $field...");
-		logError( errmsg('Data.pm:8', "Deleting %s..." , $field) );
+	elsif ($field) {
+#::logDebug("Trying for add field=$field delete=$delete");
+		if(! $db->column_exists($field)) {
+			logError(
+				"Can't delete non-existent column '%s' in table '%s'",
+				$field,
+				$table_name,
+			);
+			return undef;
+		}
+		logError("Deleting column %s from table %s" , $field, $table_name);
 		my @new = @cols;
 		@cols = ();
 		my $i = 0;
@@ -1141,119 +953,119 @@ sub export_database {
 			else {
 				$nuke = $i;
 				$notouch = 1;
-#				logError("Deleting field $_");
-				logError( errmsg('Data.pm:9', "Deleting field %s" , $_) );
+				logError("Deleting field %s" , $_ );
 			}
 			$i++;
 		}
 	}
 
 	my $tempdata;
-	open(Vend::Data::EXPORT, "+<$file") or
-	   open(Vend::Data::EXPORT, "+>$file") or
+	open(EXPORT, "+<$file") or
+	   open(EXPORT, "+>$file") or
 	   		die "Couldn't open $file: $!\n";
-	lockfile(\*Vend::Data::EXPORT, 1, 1)
+	lockfile(\*EXPORT, 1, 1)
 		or die "Couldn't exclusive lock $file: $!\n";
-	open(Vend::Data::EXPORT, "+>$file") or
+	open(EXPORT, "+>$file") or
 	   	die "Couldn't write $file: $!\n";
+	
+#::logDebug("EXPORT_SORT=" . $db->config('EXPORT_SORT'));
+	if($opt->{sort} ||= $db->config('EXPORT_SORT')) {
+#::logDebug("Found EXPORT_SORT=$opt->{sort}");
+		my ($sort_field, $sort_option) = split /:/, $opt->{sort};
+#::logDebug("Found sort_field=$sort_field sort_option=$sort_option");
+		$db->sort_each($sort_field, $sort_option);
+	}
+
 	if($delim eq 'CSV') {
 		$delim = '","';
-		print Vend::Data::EXPORT qq%"$first_name","%;
-		print Vend::Data::EXPORT join $delim, @cols;
-		print Vend::Data::EXPORT qq%"\n%;
-		while( (@data) = $db->each_record() ) {
-			print Vend::Data::EXPORT '"';
+		print EXPORT '"';
+		print EXPORT join $delim, @cols;
+		print EXPORT qq%"\n%;
+		while( (undef, @data) = $db->each_record() ) {
+			print EXPORT '"';
 			splice(@data, $nuke, 1) if defined $nuke;
 			$tempdata = join $delim, @data;
 			$tempdata =~ tr/\n/\r/;
-			print Vend::Data::EXPORT $tempdata;
-			print Vend::Data::EXPORT qq%"\n%;
+			print EXPORT $tempdata;
+			print EXPORT qq%"\n%;
 		}
 	}
-	elsif ($delim eq "\n" and $ref->{CONTINUE} eq 'NOTES') {
-		my $sep = pop @cols;
-		my $nf  = pop @cols;
-		print Vend::Data::EXPORT join "\n", $first_name, @cols;
-		print Vend::Data::EXPORT "\n$nf $sep\n\n";
+	elsif ($delim eq "\n" and $notes || $db->config('CONTINUE') eq 'NOTES') {
+		my $sep;
+		my $nf_col;
+		my $nf;
+		if($db->config('CONTINUE') eq 'NOTES') {
+			$sep	= $db->config('NOTES_SEPARATOR');
+			$nf_col	= $#cols;
+			$nf		= pop @cols;
+		}
+		else {
+			$sep = $opt->{notes_separator} || "\f";
+			$nf = $opt->{notes_field} || 'notes_field';
+			for( my $i = 0; $i < @cols; $i++ ) {
+				next unless $cols[$i] eq $nf;
+				$nf_col = $i;
+				last;
+			}
+			$nf_col = scalar @cols if ! defined $nf_col;
+			splice(@cols, $nf_col, 1);
+		}
+		print EXPORT join "\n", @cols;
+		print EXPORT "\n$nf $sep\n\n";
 		my $i;
-		while( (@data) = $db->each_record() ) {
+		while( (undef, @data) = $db->each_record() ) {
 			splice(@data, $nuke, 1) if defined $nuke;
-			print Vend::Data::EXPORT "$first_name: ";
-			print Vend::Data::EXPORT shift(@data);
-			print Vend::Data::EXPORT "\n";
+			my $nd = splice(@data, $nf_col, 1);
 			# Yes, we don't want the last field yet. 8-)
 			for($i = 0; $i < $#data; $i++) {
-				print Vend::Data::EXPORT
+				next if $data[$i] eq '';
+				$data[$i] =~ tr/\n/\r/;
+				print EXPORT
 					"$cols[$i]: $data[$i]\n" unless $data[$i] eq '';
 			}
-			print Vend::Data::EXPORT "\n";
-			print Vend::Data::EXPORT pop(@data);
-			print Vend::Data::EXPORT "\n$sep\n";
+			print EXPORT "\n$nd\n$sep\n";
 		}
 	}
-	else {
-		print Vend::Data::EXPORT join $delim, $first_name, @cols;
-		print Vend::Data::EXPORT $record_delim;
-		while( (@data) = $db->each_record() ) {
-			splice(@data, $nuke, 1) if defined $nuke;
-			$tempdata = join $delim, @data;
-			if($record_delim eq "\n") {
-				$tempdata =~ tr/\n/\r/;
+	elsif($record_delim eq "\n") {
+		print EXPORT join $delim, @cols;
+		print EXPORT $record_delim;
+		if(defined $nuke) {
+			while( (undef, @data) = $db->each_record() ) {
+				splice(@data, $nuke, 1) if defined $nuke;
+				$tempdata = join $delim, @data;
+				$tempdata =~ s/\r?\n/\r/g;
+				print EXPORT $tempdata, $record_delim;
 			}
-			print Vend::Data::EXPORT $tempdata;
-			print Vend::Data::EXPORT $record_delim;
+		}
+		else {
+			while( (undef, @data) = $db->each_record() ) {
+				$tempdata = join $delim, @data;
+				$tempdata =~ s/\r?\n/\r/g;
+				print EXPORT $tempdata, $record_delim;
+			}
 		}
 	}
-	unlockfile(\*Vend::Data::EXPORT)
-		or die "Couldn't unlock $file: $!\n";
-	close(Vend::Data::EXPORT)
-		or die "Couldn't close $file: $!\n";
-	$db->touch() unless defined $notouch;
-	1;
-}
-
-sub build_quantity_price {
-	my $code = <<'EOF';
-sub {
-my ($code,$one,$quan) = @_;
-return $one unless database_key_exists($Vend::Cfg->{Pricing}, $code);
-my(@prices) = split /\s/, database_field($Vend::Cfg->{Pricing}, $code, 'price');
-my($break,$i,$price,$scratch);
-$price = $one;
-unless (defined $quan) {
-  $quan = 0;
-EOF
-
-	if ($Vend::Cfg->{MixMatch}) {
-		$code .= <<'EOF';
-  for(@{$Vend::Items}) {
-	  $quan += $_->{quantity};
-  }
-EOF
-	}		
 	else {
-		$code .= <<'EOF';
-  for(@{$Vend::Items}) {
-	$quan += $_->{quantity} if $_->{code} eq $code;
-  }
-EOF
+		print EXPORT join $delim, @cols;
+		print EXPORT $record_delim;
+		while( (undef, @data) = $db->each_record() ) {
+			splice(@data, $nuke, 1) if defined $nuke;
+			print EXPORT join($delim, @data);
+			print EXPORT $record_delim;
+		}
 	}
-
-	$code .= <<'EOF';
- }
-
-foreach $break (@{$Vend::Cfg->{PriceBreaks}}) {
-	last if $break > $quan;
-	$scratch = shift @prices;
-	$price = $scratch if $scratch;
-}
-	return $price;
-}
-EOF
-
-	my $sub = eval $code;
-	die "Bad quantity_price routine:\n\n$@\n" if $@;
-	return $sub;
+	unlockfile(\*EXPORT)
+		or die "Couldn't unlock $file: $!\n";
+	close(EXPORT)
+		or die "Couldn't close $file: $!\n";
+	if(defined $notouch) {
+		my $f = $db->config('db_file_extended');
+		unlink $f if $f;
+	}
+	else {
+		$db->touch() unless defined $notouch;
+	}
+	1;
 }
 
 sub chain_cost {
@@ -1277,7 +1089,7 @@ sub chain_cost {
 			return undef;
 	}
 
-#::logGlobal("chain_cost item = " . uneval ($item) );
+#::logDebug("chain_cost item = " . uneval ($item) );
 	my ($chain, $percent);
 	my $passed_key;
 	my $want_key;
@@ -1331,17 +1143,33 @@ CHAIN:
 					}
 				}
 				if(@breaks) {
-					my $attribute = 'quantity';
+					my $quantity;
+					my $attribute;
 					$attribute = shift @breaks  if $breaks[0] !~ /\d/;
+					if (! $attribute || ! $item->{$attribute}) {
+						$quantity = $item->{quantity};
+					}
+					else {
+						my $regex;
+						$regex = $item->{$attribute}
+							unless $item->{$attribute} =~ /^[\d.]+$/;
+						$quantity = Vend::Util::tag_nitems(
+									undef, 
+									{
+										qualifier => $attribute,
+										compare   => $regex || undef,
+									},
+						);
+					}
 
 					$field = shift @breaks;
 					my $test = $field;
 					$test =~ s/\D+//;
-					redo CHAIN if $item->{$attribute} < $test;
+					redo CHAIN if $quantity < $test;
 					for(@breaks) {
 						$test = $_;
 						$test =~ s/\D+//;
-						last if $test > $item->{$attribute};
+						last if $test > $quantity;
 						$field = $_;
 					}
 				}
@@ -1377,11 +1205,11 @@ CHAIN:
 					};
 			}
 			elsif($mod =~ /^\s*[[_]+/) {
-				$::Scratch->{'mv_item_object'} = $Vend::Interpolate::item = $item;
+				$::Scratch->{mv_item_object} = $Vend::Interpolate::item = $item;
 				$Vend::Interpolate::s = $final;
 				$Vend::Interpolate::q = $item->{quantity};
 				$price = Vend::Interpolate::interpolate_html($mod);
-				undef $::Scratch->{'mv_item_object'};
+				undef $::Scratch->{mv_item_object};
 				undef $Vend::Interpolate::item;
 				redo CHAIN;
 			}
@@ -1407,18 +1235,16 @@ CHAIN:
 		last if ($final and !$chain);
 		undef $chain;
 		undef $passed_key;
-#::logGlobal("chain_cost intermediate '$final'");
+#::logDebug("chain_cost intermediate '$final'");
 	}
-#::logGlobal("chain_cost returning '$final'");
+#::logDebug("chain_cost returning '$final'");
 	return $final;
 }
 
-sub build_item_price {
 
-###
-my $code = <<'EOF';
-	sub {
+sub item_price {
 	my($item, $quantity, $noformat) = @_;
+#::logDebug("item_price: " . ::uneval(\@_));
 	return $item->{mv_cache_price}
 		if ! $quantity and defined $item->{mv_cache_price};
 	my ($price, $base, $adjusted);
@@ -1426,107 +1252,15 @@ my $code = <<'EOF';
 	$base = product_code_exists_ref($item->{code}, $item->{mv_ib})
 		or $Vend::Cfg->{OnFly}
 		or return undef;
-	$price = database_field($base, $item->{code}, $Vend::Cfg->{PriceField});
-EOF
-###
-
-	if($Vend::Cfg->{PriceBreaks}) {
-
-###
-$code .= <<'EOF';
-	$price = &{$Vend::Cfg->{QuantityPriceRoutine}}($item->{code}, $price, $quantity || undef);
-EOF
-###
-
-	}
-
-	if($Vend::Cfg->{PriceAdjustment}) {
-
-###
-$code .= <<'EOF';
- for(@{$Vend::Cfg->{PriceAdjustment}}) {
-		next unless $item->{$_};
-EOF
-###
-
-		if($Vend::Cfg->{CommonAdjust}) {
-			if (defined $Vend::Database{$Vend::Cfg->{CommonAdjust}}) {
-###
-$code .= <<'EOF';
-	my $adder = database_field($Vend::Database{$Vend::Cfg->{CommonAdjust}},
-							 $item->{$_}, $_ ) || 0;
-	$price = 0 if $adder =~ s/^=//;
-	$price = 0 if $adder =~ /^\s*\[/
-				 and $Vend::Session->{'item_code'}     = $item->{'code'}
-				 and $Vend::Session->{'item_quantity'} = $item->{'quantity'}
-				 and $adder = interpolate_html($adder);
-	$price += $adder;
-EOF
-###
-			}
-			else {
-$code .= <<'EOF';
-$price = chain_cost($item,$price || $Vend::Cfg->{CommonAdjust});
-EOF
-###
-			}
-		}
-		else {
-###
-$code .= <<'EOF';
-	my $adder = database_field($Vend::Cfg->{Pricing},
-							 $item->{code}, $item->{$_} ) || 0;
-	$price = 0 if $adder =~ s/^=//;
-	$price += $adder;
-EOF
-###
-		}
-###
-$code .= <<'EOF';
- }
-EOF
-###
-
-	}
-	elsif ($Vend::Cfg->{CommonAdjust}) {
-$code .= <<'EOF';
-$price = chain_cost($item,$price || $Vend::Cfg->{CommonAdjust});
-EOF
-###
-	}
-		$code .= <<'EOF';
-$price = $price / $Vend::Cfg->{PriceDivide};
-$item->{mv_cache_price} = $price if ! $quantity and exists $item->{mv_cache_price};
-EOF
-###
-
-	if($Vend::Cfg->{Locale}) {
-###
-		$code .= <<'EOF';
-return international_number($price) unless $noformat;
-return $price;
+	$price = database_field($base, $item->{code}, $Vend::Cfg->{PriceField})
+		if $Vend::Cfg->{PriceField};
+	$price = chain_cost($item,$price || $Vend::Cfg->{CommonAdjust});
+	$price = $price / $Vend::Cfg->{PriceDivide};
+	$item->{mv_cache_price} = $price
+		if ! $quantity and exists $item->{mv_cache_price};
+#::logDebug("item_price final: $price");
+	return $price;
 }
-EOF
-###
-
-	}
-	else {
-###
-		$code .= <<'EOF';
-return $price;
-}
-EOF
-###
-	}
-	my $sub = eval $code;
-	die "Bad item_price routine:\n\n$@\n" if $@;
-	return $sub;
-}
-
-sub item_price {
-	&{$Vend::Cfg->{ItemPriceRoutine}}(@_);
-}
-
 
 sub item_description {
 	return item_field($_[0], $Vend::Cfg->{DescriptionField});

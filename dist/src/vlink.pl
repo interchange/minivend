@@ -1,7 +1,7 @@
 #!/usr/local/bin/perl -wT
 # vlink.pl: runs as a cgi program and passes request to Vend server
 #           via TCP UNIX-domain socket
-#   $Id: vlink.pl,v 1.2 1998/08/16 10:26:14 mike Exp $
+#   $Id: vlink.pl,v 1.1 1999/11/12 08:46:23 mike Exp $
 #
 # Copyright 1996,1997 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -15,16 +15,18 @@
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 #    General Public License for more details.
 #
-#    You should have received a copy of the GNU General Public License
-#    along with this program; if not, write to the Free Software
-#    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-
+# You should have received a copy of the GNU General Public
+# License along with this program; if not, write to the Free
+# Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+# MA  02111-1307  USA.
 
 require 5.002;
 use strict;
 use Socket;
-my $LINK_FILE    = '/usr/local/lib/minivend/etc/socket';
-my $LINK_TIMEOUT = 45;
+my $LINK_FILE    = '~@~INSTALLARCHLIB~@~/etc/socket';
+#my $LINK_FILE    = '~_~LINK_FILE~_~';
+my $LINK_TIMEOUT = 30;
+#my $LINK_TIMEOUT = ~_~LINK_TIMEOUT~_~;
 my $ERROR_ACTION = "-notify";
 $ENV{PATH} = "/bin:/usr/bin";
 $ENV{IFS} = " ";

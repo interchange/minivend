@@ -1,173 +1,261 @@
-<HTML>
-<HEAD>
-<TITLE>[L]Search[/L] __COMPANY__</TITLE>
-</HEAD>
-<BODY MV="body 1">
+[set page_title][L]Search[/L] __COMPANY__[/set]
 __LOGOBAR__
 __MENUBAR__
 __LEFTSIDE__
+
 <FONT FACE="arial,helvetica">
+
+[seti option_list]
+[table-font face="arial,helvetica" size=-2]
 <TABLE>
-	<TR VALIGN=TOP>
-		<TD>
-			<BR><BR>
-	<FORM ACTION="[process-target main]" METHOD=POST>
-[if config Glimpse]     
-    [L]Spelling errors allowed[/L]<BR>
-
-    <INPUT TYPE="hidden" NAME="mv_profile" VALUE="compensate_spelling">
-    <INPUT TYPE="radio" NAME="mv_spelling_errors" VALUE="0"
-            onClick="
-                    this.form.mv_search_field[0].checked=true;
-                    this.form.mv_search_field[1].checked=true;
-                    this.form.mv_search_field[2].checked=true;
-                "   
-            [checked name=mv_spelling_errors value=0 default=1]> 0
-    <INPUT TYPE="radio" NAME="mv_spelling_errors" VALUE="1"
-            onClick="
-                    this.form.mv_search_field[0].checked=false;
-                    this.form.mv_search_field[1].checked=false;
-                    this.form.mv_search_field[2].checked=false;
-                "
-            [checked name=mv_spelling_errors value=1]> 1
-    <INPUT TYPE="radio" NAME="mv_spelling_errors" VALUE="2"
-            onClick="
-                    this.form.mv_search_field[0].checked=false;
-                    this.form.mv_search_field[1].checked=false;
-                    this.form.mv_search_field[2].checked=false;
-                "
-            [checked name=mv_spelling_errors value=2]> 2
-[/if]
-		</TD>
-		<TD>
-	<TABLE>
 	<TR>
-		<TD VALIGN=BOTTOM><B>[L]Keyword[/L]</B></TD>
-		<TD></TD>
+	<TD ALIGN=CENTER><B>Compare</B></TD>
+	<TD ALIGN=CENTER><B>Numeric</B></TD>
+	<TD ALIGN=CENTER><B>Case</B></TD>
+	<TD ALIGN=CENTER><B>Negation</B></TD>
 	</TR>
-	<TR>
-		<TD COLSPAN=2>
-		<INPUT TYPE=text NAME="mv_searchspec" SIZE=20>
-		<INPUT TYPE="submit" VALUE="[L]Search[/L]">
-		<INPUT TYPE="hidden" NAME="mv_doit" VALUE="search">
-		</TD>
-	<TR>
-	<TD VALIGN=TOP>
-		<INPUT TYPE="radio" NAME="mv_orsearch" VALUE="no" [checked name=mv_orsearch value=no default=1]>[L]Must match all[/L]
-		<INPUT TYPE="radio" NAME="mv_orsearch" VALUE="yes">[L]Match any[/L]<BR>
-		<INPUT TYPE="hidden" NAME="mv_searchtype" VALUE="glimpse">
-		<INPUT TYPE="checkbox" NAME="mv_case" VALUE="yes">[L]Case sensitive[/L]<BR>
-		<INPUT TYPE="checkbox" NAME="mv_substring_match" VALUE="yes">
-		[L]Match substrings[/L]	
-	</TD>
-	<TD VALIGN=TOP>
-		<B>[L]Fields to search[/L]:<B><BR>
-		<INPUT TYPE="checkbox" NAME="mv_search_field" VALUE="artist" CHECKED>
-			[L]Artist[/L]<BR>
-		<INPUT TYPE="checkbox" NAME="mv_search_field" VALUE="title" CHECKED>
-			[L]Title[/L]<BR>
-		<INPUT TYPE="checkbox" NAME="mv_search_field" VALUE="display" CHECKED>
-			[L]Museum[/L]<BR>
-	</TD>
-	</TR>
-	<TR>
 	
-	<TD VALIGN=CENTER COLSPAN=2>
-		<CENTER><B>[L]Sort order[/L]<B></CENTER><BR>
-		<FONT SIZE=-1>
-		<SELECT NAME="sort_field1">
-			<OPTION VALUE="products:title"> Title
-			<OPTION VALUE="products:artist"> Artist
-			<OPTION VALUE="products:price:n"> Price
-			<OPTION VALUE="products:title:r"> Reverse Title
-			<OPTION VALUE="products:artist:r"> Reverse Artist
-			<OPTION VALUE="products:price:nr"> Reverse Price
-			<OPTION VALUE="">[L]none[/L] 
-		</SELECT>
-		<SELECT NAME="sort_field2">
-			<OPTION VALUE=""> none
-			<OPTION VALUE="products:artist"> [L]Artist[/L]
-			<OPTION VALUE="products:price:n"> [L]Price[/L]
-			<OPTION VALUE="products:title"> [L]Title[/L]
-			<OPTION VALUE="products:artist:r">[L]Reverse Artist[/L] 
-			<OPTION VALUE="products:price:rn">[L]Reverse Price[/L] 
-			<OPTION VALUE="products:title:r">[L]Reverse Title[/L] 
-		</SELECT>
-		<SELECT NAME="sort_field3">
-			<OPTION VALUE=""> none
-			<OPTION VALUE="products:price:n">[L]Price[/L] 
-			<OPTION VALUE="products:title:"> [L]Title[/L]
-			<OPTION VALUE="products:artist:"> [L]Artist[/L]
-			<OPTION VALUE="products:price:nr">[L]Reverse Price[/L] 
-			<OPTION VALUE="products:title:r">[L]Reverse Title[/L] 
-			<OPTION VALUE="products:artist:r">[L]Reverse Artist[/L] 
-		</SELECT>
-		</FONT>
+	<TD ALIGN=CENTER>
+	<SELECT NAME=mv_column_op>
+			[loop acclist=yes
+				list=|
+					rm=Contains,
+					em=Exact,
+					rn=Does not contain,
+					gt=Greater than,
+					lt=Less than,
+					ge=Greater than or equal,
+					le=Less than than or equal,
+				|]<OPTION VALUE="[loop-code]"> [loop-pos 1][/loop]
+	</SELECT></TD>
+	<TD ALIGN=CENTER><SELECT NAME=nu>
+			[loop acclist=yes
+				list=|
+					0=No,
+					1=Yes,
+				|]<OPTION VALUE="[loop-code]"> [loop-pos 1][/loop]
+			</SELECT>
+	</TD>
+	<TD ALIGN=CENTER><SELECT NAME=cs>
+			[loop acclist=yes
+				list=|
+					0=Not sensitive,
+					1=Sensitive,
+				|]<OPTION VALUE="[loop-code]"> [loop-pos 1][/loop]
+			</SELECT>
+	</TD>
+	<TD ALIGN=CENTER><SELECT NAME=ne>
+			[loop acclist=yes
+				list=|
+					0=No,
+					1=Yes,
+				|]<OPTION VALUE="[loop-code]"> [loop-pos 1][/loop]
+			</SELECT>
+	</TD>
+	<TD ALIGN=CENTER>
+		<INPUT TYPE=SUBMIT VALUE=Search>
 	</TD>
 	</TR>
-	</TABLE>
-	</FORM>
-		</TD>
-		<TD>
-<FORM ACTION="[process-search]" METHOD=POST>
-		<TABLE>
-		<TR>
-			<TD>
-			</TD>
-			<TD>
-			<B>[L]Search by Price[/L]</B><BR>
-			</TD>
-			<INPUT TYPE="hidden" NAME="mv_range_look" VALUE="price">
-			<INPUT TYPE="hidden" NAME="mv_matchlimit" VALUE="3">
-			<INPUT TYPE="hidden" NAME="mv_return_all" VALUE="yes">
-		</TR>
-		<TR>
-			<TD>
-		[L]Low[/L]	
-			</TD>
-			<TD>
-				<SELECT NAME="mv_range_min">
-					<OPTION value=0 SELECTED> [L]Any[/L]
-					<OPTION value=1000000> [currency convert=1]1000000[/currency]
-					<OPTION value=10000000> [currency convert=1]10000000[/currency]
-					<OPTION value=20000000> [currency convert=1]20000000[/currency]
-					<OPTION value=40000000> [currency convert=1]40000000[/currency]
-				</SELECT><BR>
-			</TD>
-		</TR>
-		<TR>
-			<TD>
-			[L]High[/L]
-			</TD>
-			<TD>
-		    <SELECT NAME="mv_range_max">
-					<OPTION value=0 SELECTED>[L]No object[/L] 
-					<OPTION value=1000000> [currency convert=1]1000000[/currency]
-					<OPTION value=10000000> [currency convert=1]10000000[/currency]
-					<OPTION value=20000000> [currency convert=1]20000000[/currency]
-					<OPTION value=40000000> [currency convert=1]40000000[/currency]
-				</SELECT>
-			</TD>
-		</TR>
-		<TR>
-			<TD>
-			</TD>
-			<TD>
-				<INPUT TYPE=HIDDEN NAME="mv_searchtype" VALUE="text">
-				<INPUT TYPE="submit" VALUE="[L]Search[/L]">
-				<INPUT TYPE="hidden" NAME="mv_doit" VALUE="search"><BR>
-			</TD>
-		</TR>
-		</TABLE>
+</TABLE>
+[/table-font]
+[/seti]
 
-	</FORM>
+[table-font face="arial,helvetica"]
+<FORM ACTION="[area search]" METHOD=POST>
+<TABLE BORDER=0>
+	<TR>
+		<TD COLSPAN=2 __HEADERBG__ VALIGN=CENTER ALIGN=CENTER>
+			<FONT COLOR="__HEADERTEXT__" SIZE="+2"><B>Full-text Search</B>
+		</TD>
+	<TR>
+		<TD VALIGN=TOP>
+			<B>Keywords:</B> <INPUT TYPE=text NAME="se" SIZE=20>
+		</TD>
+		<TD VALIGN=CENTER>
+			<B><INPUT TYPE=submit VALUE=Search></B>
+		</TD>
+	</TR>
+	<TR>
+		<TD VALIGN=TOP>
+			<FONT SIZE=-2>
+			<INPUT TYPE=radio NAME="os" VALUE=0 CHECKED> Match All<BR>
+			<INPUT TYPE=radio NAME="os" VALUE=1> Match Any
+			<BR><BR>
+			<INPUT TYPE=radio NAME="su" VALUE=0 CHECKED> Match whole words only<BR>
+			<INPUT TYPE=radio NAME="su" VALUE=1> Match partial words
+			<BR><BR>
+			<INPUT TYPE=radio NAME="cs" VALUE=0 CHECKED> Ignore Case<BR>
+			<INPUT TYPE=radio NAME="cs" VALUE=1> Do not ignore case
+			<BR><BR>
+		</TD>
+		<TD VALIGN=TOP>
+			<SMALL>
+			<B>Match specific fields:</B><BR><BR>
+			<TABLE>
+				<TR>
+				<TD><FONT SIZE=-2><INPUT TYPE=checkbox NAME=sf VALUE=artist> Artist</TD>
+				<TD><FONT SIZE=-2><INPUT TYPE=checkbox NAME=sf VALUE=title> Title</TD>
+				</TR>
+				<TR>
+				<TD><FONT SIZE=-2><INPUT TYPE=checkbox NAME=sf VALUE=display> Museum</TD>
+				<TD><FONT SIZE=-2><INPUT TYPE=checkbox NAME=sf VALUE=comment> Description</TD>
+				</TR>
+			</TABLE>
+			<BR><B>Matches per page:</B><BR>
+			<TABLE>
+				<TR>
+				<TD>
+			<SMALL>
+					<SELECT NAME="ml">
+					<OPTION>1
+					<OPTION SELECTED>2
+					<OPTION>3
+					<OPTION>4
+					<OPTION>5
+					<OPTION>10
+					<OPTION>25
+					<OPTION>50
+					<OPTION>100
+					</SELECT>
+				</TD>
+				</TR>
+			</TABLE>
 		</TD>
 	</TR>
 </TABLE>
-<P>
+<HR SIZE=4>
+</FORM>
+
+<FORM ACTION="[area search]" METHOD=POST>
+<INPUT TYPE=hidden NAME=mv_coordinate VALUE=1>
+<TABLE>
+	<TR>
+		<TD COLSPAN=2 __HEADERBG__ VALIGN=CENTER ALIGN=CENTER>
+			<FONT COLOR="__HEADERTEXT__" SIZE="+2"><B>Specialized Search</B></FONT>
+			<SMALL>Page size
+					<SELECT NAME="ml">
+					<OPTION>1
+					<OPTION SELECTED>2
+					<OPTION>3
+					<OPTION>4
+					<OPTION>5
+					<OPTION>10
+					<OPTION>25
+					<OPTION>50
+					<OPTION>100
+					</SELECT>
+					</SMALL>
+		</TD>
+	<TR>
+		<TD VALIGN=TOP>
+			Field <SELECT NAME=sf>
+			[loop acclist=yes
+				list=|
+					artist=Artist,
+					title=Title,
+					display=Where displayed,
+					price=Price
+				|]<OPTION VALUE="[loop-code]"> [loop-pos 1][/loop]
+			</SELECT>
+		</TD>
+		<TD VALIGN=CENTER>
+			Search for: <INPUT TYPE=text NAME="se" SIZE=20><BR>
+		</TD>
+	</TR>
+	<TR>
+		<TD COLSPAN=2>
+					[scratch option_list]
+		</TD>
+	</TR>
+	<TR><TD __HEADERBG__ COLSPAN=2>&nbsp;</TD></TR>
+	<TR>
+		<TD VALIGN=CENTER>
+			Field <SELECT NAME=sf>
+			[loop acclist=yes
+				list=|
+					title=Title,
+					display=Where displayed,
+					price=Price,
+					artist=Artist
+				|]<OPTION VALUE="[loop-code]"> [loop-pos 1][/loop]
+			</SELECT>
+		</TD>
+		<TD VALIGN=CENTER>
+			Search for: <INPUT TYPE=text NAME="se" SIZE=20><BR>
+		</TD>
+	</TR>
+	<TR>
+		<TD COLSPAN=2>
+					[scratch option_list]
+		</TD>
+	</TR>
+	<TR><TD __HEADERBG__ COLSPAN=2>&nbsp;</TD></TR>
+	<TR>
+		<TD VALIGN=CENTER>
+			Field <SELECT NAME=sf>
+			[loop acclist=yes
+				list=|
+					display=Where displayed,
+					price=Price,
+					artist=Artist,
+					title=Title
+				|]<OPTION VALUE="[loop-code]"> [loop-pos 1][/loop]
+			</SELECT>
+		</TD>
+		<TD VALIGN=CENTER>
+			Search for: <INPUT TYPE=text NAME="se" SIZE=20><BR>
+		</TD>
+	</TR>
+	<TR>
+		<TD COLSPAN=2>
+					[scratch option_list]
+		</TD>
+	</TR>
+	<TR><TD __HEADERBG__ COLSPAN=2>&nbsp;</TD></TR>
+	<TR>
+		<TD VALIGN=CENTER>
+			Field <SELECT NAME=sf>
+			[loop acclist=yes
+				list=|
+					price=Price,
+					artist=Artist,
+					title=Title,
+					display=Where displayed
+				|]<OPTION VALUE="[loop-code]"> [loop-pos 1][/loop]
+			</SELECT>
+		</TD>
+		<TD VALIGN=CENTER>
+			Search for: <INPUT TYPE=text NAME="se" SIZE=20><BR>
+		</TD>
+	</TR>
+	<TR>
+		<TD COLSPAN=2>
+					[scratch option_list]
+		</TD>
+	</TR>
+	<TR><TD __HEADERBG__ COLSPAN=2>&nbsp;</TD></TR>
+	<TR>
+		<TD VALIGN=CENTER>
+			Category <INPUT TYPE=hidden NAME=sf VALUE=category>
+		</TD>
+		<TD VALIGN=CENTER>
+			<SELECT NAME=se>
+			<OPTION VALUE=""> -- any --
+			[loop search=|
+					rf=category
+					tf=category
+					ra=yes
+					un=yes
+				|]<OPTION> [loop-code][/loop]
+			</SELECT>
+		</TD>
+	</TR>
+</TABLE>
+[/table-font]
+</FORM>
+
 
 __NO_RIGHT__
 __MENUBOTTOM__
 __COPYRIGHT__
 <!-- current page: @@MV_PAGE@@ -->
-</body> </html>

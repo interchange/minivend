@@ -18,7 +18,7 @@ sub {
 	$extra =~ s/\s*$/\n/ if $extra;
     $ok = 0;
     SEND: {
-        open(Vend::MAIL,"|$Vend::Cfg->{'SendMailProgram'} -t") or last SEND;
+        open(Vend::MAIL,"|$Vend::Cfg->{SendMailProgram} -t") or last SEND;
         print Vend::MAIL
 			"To: $to\n",
 			"From: $from\n",

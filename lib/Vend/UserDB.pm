@@ -1,17 +1,16 @@
 #!/usr/bin/perl
 #
-# $Id: UserDB.pm,v 1.20 1999/06/07 08:07:56 mike Exp $
+# $Id: UserDB.pm,v 1.6 2000/02/25 20:13:07 mike Exp mike $
 #
-# Copyright 1997-1999 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
 # **** ALL RIGHTS RESERVED ****
 
 package Vend::UserDB;
 
-$VERSION = substr(q$Revision: 1.20 $, 10);
-$DEBUG = 0;
+$VERSION = substr(q$Revision: 1.6 $, 10);
 
-use vars qw! $VERSION $DEBUG @S_FIELDS @B_FIELDS @P_FIELDS %S_to_B %B_to_S!;
+use vars qw! $VERSION @S_FIELDS @B_FIELDS @P_FIELDS %S_to_B %B_to_S!;
 
 use Vend::Data;
 use Vend::Util;
@@ -121,8 +120,22 @@ box or in a set of links.
 =cut
 
 @S_FIELDS = ( 
-qw!	s_nickname	name		address		city		state		zip
-	country		phone_day	mv_shipmode !
+qw!
+	s_nickname
+	name
+	fname
+	lname
+	address
+	address1
+	address2
+	address3
+	city
+	state
+	zip
+	country	
+	phone_day
+	mv_shipmode
+  !
 );
 
 =head2 Accounts Book
@@ -150,10 +163,45 @@ box or in a set of links.
 
 =cut
 
+@S_FIELDS = ( 
+qw!
+	s_nickname
+	name
+	fname
+	lname
+	address
+	address1
+	address2
+	address3
+	city
+	state
+	zip
+	country	
+	phone_day
+	mv_shipmode
+  !
+);
+
 @B_FIELDS = ( 
-qw!	b_nickname	b_name		b_address	b_city		b_state		b_zip
-	b_country	b_phone purchase_order
-	mv_credit_card_type	mv_credit_card_exp_month	mv_credit_card_exp_year
+qw!
+
+	b_nickname
+	b_name
+	b_fname
+	b_lname
+	b_address
+	b_address1
+	b_address2
+	b_address3
+	b_city
+	b_state
+	b_zip
+	b_country	
+	b_phone
+	purchase_order
+	mv_credit_card_type
+	mv_credit_card_exp_month
+	mv_credit_card_exp_year
 	mv_credit_card_info
 	!
 );
@@ -167,7 +215,7 @@ the preference set.
 
 =cut
 
-@P_FIELDS = qw ( p_nickname email fax phone_night fax_order );
+@P_FIELDS = qw ( p_nickname email fax email_copy phone_night mail_list fax_order );
 
 %S_to_B = ( 
 qw!
@@ -226,7 +274,7 @@ sub new {
 			LAST   		=> '',
 			CRYPT  		=> defined $options{'crypt'}
 							? $options{'crypt'}
-							: ! $Vend::Cfg->{Variable}{MV_NO_CRYPT},
+							: ! $::Variable->{MV_NO_CRYPT},
 			CGI			=>	( defined $options{cgi} ? is_yes($options{cgi}) : 1),
 			PRESENT		=>	{ },
 			DB_ID		=>	$options{database} || 'userdb',
@@ -393,7 +441,12 @@ sub _check_acl {
 	return undef unless $options{location};
 	my $acl = $self->{DB}->field( $self->{USERNAME}, $loc);
 	my $f = $ready->reval($acl);
-	return 1 if ! $options{mode} and exists $f->{$options{location}};
+	return 0 unless exists $f->{$options{location}};
+	return 1 if ! $options{mode};
+	if($options{mode} =~ /^\s*expire\b/i) {
+		my $cmp = $f->{$options{location}};
+		return $cmp < time() ? '' : 1;
+	}
 	return 1 if $f->{$options{location}} =~ /$options{mode}/i;
 	return '';
 }
@@ -401,6 +454,11 @@ sub _check_acl {
 sub _set_acl {
 	my ($self, $loc, %options) = @_;
 	return undef unless $self->{OPTIONS}{location};
+	if($options{mode} =~ /^\s*expire\s+(.*)/i) {
+		my $secs = Vend::Config::time_to_seconds($1);
+		my $now = time();
+		$options{mode} = $secs + $now;
+	}
 	my $acl = $self->{DB}->field( $self->{USERNAME}, $loc );
 	my $f = $ready->reval($acl) || {};
 	if($options{'delete'}) {
@@ -563,10 +621,7 @@ sub set_values {
 	}
 
 	for( @fields ) {
-# DEBUG
-#::logError("saving $_ as $::Values->{$_}\n")
-#	if $self->{OPTIONS}{debug};
-# END DEBUG
+#::logDebug("saving $_ as $::Values->{$_}\n");
 		if ($scratch{$_}) {
 			$self->{DB}->set_field($user, $_, $::Scratch->{$_})
 				if defined $::Scratch->{$_};	
@@ -807,7 +862,11 @@ sub login {
 		unless($self) {
 			$self = new Vend::UserDB %options;
 		}
-		if($Vend::Cfg->{CookieLogin}) {
+		if(
+			$Vend::Cfg->{CookieLogin}
+			and (! $Vend::Cfg->{DifferentSecure} || ! $CGI::secure)
+			)
+		{
 			$self->{USERNAME} = Vend::Util::read_cookie('MV_USERNAME')
 				if ! $self->{USERNAME};
 			$self->{PASSWORD} = Vend::Util::read_cookie('MV_PASSWORD')
@@ -852,7 +911,8 @@ sub login {
 		$self->{DB}->set_field( $self->{USERNAME},
 								$self->{LOCATION}{LAST},
 								time()
-								);
+								)
+			if $self->{LOCATION}{LAST} ne 'none';
 		$self->log('login') if $options{'log'};
 		
 		$self->get_values();
@@ -863,7 +923,7 @@ sub login {
 			$self->{ERROR} = $@;
 		}
 		else {
-			logError( errmsg('UserDB.pm:1', "Vend::UserDB error: %s\n", $@ ) );
+			::logError( "Vend::UserDB error: %s\n", $@ );
 		}
 		return undef;
 	}
@@ -924,7 +984,7 @@ sub change_pass {
 			$self->log('change password failed') if $options{'log'};
 		}
 		else {
-			logError( errmsg('UserDB.pm:3', "Vend::UserDB error: %s", $@ ) );
+			logError( "Vend::UserDB error: %s", $@ );
 		}
 		return undef;
 	}
@@ -983,7 +1043,7 @@ sub new_account {
 			};
 		}
 	
-		if($self->{OPTIONS}{'assign_username'}) {
+		if($self->{OPTIONS}{assign_username}) {
 			$self->{USERNAME} = $self->assign_username();
 			$self->{USERNAME} = lc $self->{USERNAME}
 				if $self->{OPTIONS}{ignore_case};
@@ -991,10 +1051,7 @@ sub new_account {
 		die "Must have longer username.\n" unless length($self->{USERNAME}) > 1;
 		die "Can't have '$1' as username, unsafe characters.\n"
 			if $self->{USERNAME} !~ m{^$GOOD_CHARS+$};
-		unless ($self->{DB}->record_exists($self->{USERNAME})) {
-			$self->{DB}->set_row($self->{USERNAME});
-		}
-		else {
+		if ($self->{DB}->record_exists($self->{USERNAME})) {
 			die "Username already exists.\n"
 		}
 		my $pass = $self->{DB}->set_field(
@@ -1016,7 +1073,7 @@ sub new_account {
 			$self->{ERROR} = $@;
 		}
 		else {
-			logError( errmsg('UserDB.pm:2', "Vend::UserDB error: %s\n", $@ ) );
+			logError( "Vend::UserDB error: %s\n", $@ );
 		}
 		return undef;
 	}
@@ -1026,6 +1083,7 @@ sub new_account {
 
 sub username_cookies {
 		my ($user, $pw) = @_;
+		return if $Vend::Cfg->{DifferentSecure} && $CGI::secure;
 		return unless
 			 $CGI::values{mv_cookie_password}		or
 			 $CGI::values{mv_cookie_username}		or
@@ -1049,19 +1107,16 @@ sub get_cart {
 	my $from = $self->{NICKNAME};
 	my $to;
 	if ($options{target}) {
-		if ($Vend::Session->{'carts'}->{$options{target}}) {
-			$to = $Vend::Session->{'carts'}->{$options{target}};
-		}
-		else {
-			$to = $Vend::Session->{'carts'}->{$options{target}} = [];
-		}
+		$to = ($::Carts->{$options{target}} ||= []);
 	}
 	else {
 		$to = $Vend::Items;
 	}
 
+#::logDebug ("to=$to nick=$options{target} from=$from cart=" . ::uneval($from));
+
 	my $field_name = $self->{LOCATION}->{CARTS};
-	my ($d);
+	my $cart = [];
 
 	eval {
 		die "no from cart name?"				unless $from;
@@ -1072,19 +1127,25 @@ sub get_cart {
 
 		die "no saved carts.\n" unless $s;
 
-		$d = $ready->reval($s);
+		my @carts = split /\0/, $from;
+		my $d = $ready->reval($s);
+#::logDebug ("saved carts=" . ::uneval($d));
 
 		die "eval failed?"				unless ref $d;
 
-		die "source cart '$from' does not exist.\n" unless ref $d->{$from};
+		for(@carts) {
+			die "source cart '$from' does not exist.\n" unless ref $d->{$_};
+			push @$cart, @{$d->{$_}};
+		}
+
 	};
 
 	if($@) {
 		$self->{ERROR} = $@;
 		return undef;
 	}
-#::logGlobal ("to=$options{target} from=$from ref=$d->{$from}");
-	@$to = @{$d->{$from}};
+#::logDebug ("to=$to nick=$options{target} from=$from cart=" . ::uneval($cart));
+	@$to = @$cart;
 
 }
 
@@ -1094,7 +1155,7 @@ sub set_cart {
 	my $from;
 	my $to   = $self->{NICKNAME};
 	if ($self->{OPTIONS}{source}) {
-		$from = $Vend::Session->{carts}->{$self->{OPTIONS}{source}} || [];
+		$from = $::Carts->{$self->{OPTIONS}{source}} || [];
 	}
 	else {
 		$from = $Vend::Items;
@@ -1142,7 +1203,7 @@ sub userdb {
 
 	my %options;
 
-#::logError("Called userdb function=$function opt=$opt " .  Data::Dumper::Dumper($opt));
+#::logDebug("Called userdb function=$function opt=$opt " .  Data::Dumper::Dumper($opt));
 
 	if(ref $opt) {
 		%options = %$opt;
@@ -1193,9 +1254,9 @@ sub userdb {
 		if( is_yes($options{clear}) ) {
 			$user->clear_values();
 		}
-		delete $Vend::Session->{'logged_in'};
+		delete $Vend::Session->{logged_in};
 		delete $Vend::Session->{'username'};
-		delete $Vend::Session->{'values'}{mv_username};
+		delete $::Values->{mv_username};
 		$user->log('logout') if $options{'log'};
 		$user->{MESSAGE} = 'Logged out.';
 	}
@@ -1222,14 +1283,14 @@ sub userdb {
 	
 	if(defined $status) {
 		delete $Vend::Session->{failure};
-#::logGlobal("userdb success=$user->{ERROR}\n"); # if $Global::DEBUG;
+#::logDebug("userdb success=$user->{ERROR}\n");
 		$Vend::Session->{success} = $user->{MESSAGE};
 		if($options{show_message}) {
 			$status = $user->{MESSAGE};
 		}
 	}
 	else {
-#::logGlobal("userdb failure=$user->{ERROR}\n"); # if $Global::DEBUG;
+#::logDebug("userdb failure=$user->{ERROR}\n");
 		$Vend::Session->{failure} = $user->{ERROR};
 		if($options{show_message}) {
 			$status = $user->{ERROR};

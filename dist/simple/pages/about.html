@@ -1,8 +1,3 @@
-<HTML>
-<HEAD>
-<TITLE>[L]About Us[/L]</TITLE>
-</HEAD>
-<BODY MV="body 1">
 [comment]
 	The __VALUES__ below are MiniVend Variable settings.
 	In this case, they come from these settings in catalog.cfg:
@@ -42,7 +37,7 @@ __LEFTSIDE__
 	<P>
 	Phone: __PHONE__<BR>
 	Fax: __FAX__<BR>
-	[if type=explicit compare="q{__TOLLFREE__}"]
+	[if variable TOLLFREE]
 	Tollfree: __TOLLFREE__<BR>
 	[/if]
 	<P>
@@ -54,4 +49,3 @@ __MENUBOTTOM__
 __COPYRIGHT__
 
 <!-- current page: @@MV_PAGE@@ -->
-</body> </html>

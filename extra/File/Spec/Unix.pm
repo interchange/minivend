@@ -8,7 +8,7 @@ use strict;
 use vars qw(@ISA $VERSION $Is_Mac $Is_OS2 $Is_VMS $Is_Win32);
 
 $VERSION = substr q$Revision: 1.1 $, 10;
-# $Id: Unix.pm,v 1.1 1998/08/16 10:26:14 mike Exp $
+# $Id: Unix.pm,v 1.1 1999/11/12 08:46:23 mike Exp $
 
 Exporter::import('File::Spec', '$Verbose');
 

@@ -1,9 +1,8 @@
-# SessionFile.pm:  stores session information in files
+# SessionDB.pm:  stores session information in files
 #
-# $Id: SessionDB.pm,v 1.2 1998/05/02 03:05:20 mike Exp $
+# $Id: SessionDB.pm,v 1.2 2000/02/06 01:51:27 mike Exp $
 #
-# Copyright 1996 by Andrew M. Wilcox <awilcox@world.std.com>
-# Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,12 +14,13 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+# You should have received a copy of the GNU General Public
+# License along with this program; if not, write to the Free
+# Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+# MA  02111-1307  USA.
 
 
-# $Id: SessionDB.pm,v 1.2 1998/05/02 03:05:20 mike Exp $
+# $Id: SessionDB.pm,v 1.2 2000/02/06 01:51:27 mike Exp $
 
 package Vend::SessionDB;
 require Tie::Hash;
@@ -41,7 +41,7 @@ sub TIEHASH {
 	my($self, $db) = @_;
 	$db = Vend::Data::database_exists_ref($db);
 	$db = $db->ref();
-#::logGlobal("$self: tied");
+#::logDebug("$self: tied");
 	die "Vend::SessionDB: bad database\n"
 		unless $db;
 	
@@ -50,11 +50,11 @@ sub TIEHASH {
 
 sub FETCH {
 	my($self, $key) = @_;
-#::logGlobal("$self fetch: $key");
+#::logDebug("$self fetch: $key");
 	return undef unless $self->{DB}->record_exists($key);
-#::logGlobal("$self exists: $key");
+#::logDebug("$self exists: $key");
 	return $self->{DB}->field($key, 'sessionlock') if $key =~ s/^LOCK_//;
-#::logGlobal("$self complex fetch: $key");
+#::logDebug("$self complex fetch: $key");
 	my $data = $self->{DB}->field($key, 'session');
 	return undef unless $data;
 	return $data;
@@ -76,7 +76,7 @@ sub NEXTKEY {
 
 sub EXISTS {
 	my($self,$key) = @_;
-#::logGlobal("$self EXISTS check: $key");
+#::logDebug("$self EXISTS check: $key");
 	if ($key =~ s/^LOCK_//) {
 		return undef unless $self->{DB}->record_exists($key);
 		return undef unless $self->{DB}->field($key, 'sessionlock');
@@ -88,7 +88,7 @@ sub EXISTS {
 
 sub DELETE {
 	my($self,$key) = @_;
-#::logGlobal("$self delete: $key");
+#::logDebug("$self delete: $key");
 	if($key =~ s/^LOCK_// ) {
 		return undef unless $self->{DB}->record_exists($key);
 		$self->{DB}->set_field($key,'sessionlock','');

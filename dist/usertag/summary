@@ -9,24 +9,26 @@
 # Calculates column totals (if used properly. 8-\)
 # 
 #
-UserTag summary Order amount name currency format total reset hide
-UserTag summary PosNumber 6
+UserTag summary Order amount
+UserTag summary PosNumber 1
+UserTag summary addAttr
 UserTag summary Routine <<EOF
 use vars qw/%summary_hash/;
 sub {
-    my ($amount, $name, $currency, $format, $total, $reset, $hide) = @_;
-	unless ($name) {
+    my ($amount, $opt) = @_;
+	my $name;
+	unless ($name = $opt->{name} ) {
 		$name = 'ONLY0000';
-		%summary_hash = () if Vend::Util::is_yes($reset);
+		%summary_hash = () if Vend::Util::is_yes($opt->{reset});
 	}
 	else {
-		$summary_hash{$name} = 0 if Vend::Util::is_yes($reset);
+		$summary_hash{$name} = 0 if Vend::Util::is_yes($opt->{reset});
 	}
 	$summary_hash{$name} += $amount if length $amount;
-	$amount = $summary_hash{$name} if Vend::Util::is_yes($total);
-	return '' if defined $hide && Vend::Util::is_yes($hide);
-	return sprintf $format, $amount if $format;
-    return Vend::Util::currency($amount) if $currency;
+	$amount = $summary_hash{$name} if Vend::Util::is_yes($opt->{total});
+	return '' if $opt->{hide};
+	return sprintf($opt->{format}, $amount) if $opt->{format};
+    return Vend::Util::currency($amount) if $opt->{currency};
     return $amount;
 }
 EOF

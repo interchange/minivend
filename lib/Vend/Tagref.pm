@@ -1,8 +1,8 @@
 # Tagref.pm - Document MiniVend tags
 # 
-# $Id: Tagref.pm,v 1.2 1999/08/14 10:28:01 mike Exp $
+# $Id: Tagref.pm,v 1.4 2000/02/25 20:13:03 mike Exp mike $
 #
-# Copyright 1997-1999 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,45 +14,46 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+# You should have received a copy of the GNU General Public
+# License along with this program; if not, write to the Free
+# Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+# MA  02111-1307  USA.
 
 package Vend::Tagref;
 use lib "$Global::VendRoot/lib";
 use lib '../lib';
 
-# $Id: Tagref.pm,v 1.2 1999/08/14 10:28:01 mike Exp $
+# $Id: Tagref.pm,v 1.4 2000/02/25 20:13:03 mike Exp mike $
 
 use Vend::Parse;
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.2 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.4 $ =~ /(\d+)\.(\d+)/);
 
 use vars '%myRefs';
 
 BEGIN {
-	my @Vars = qw/
+    my @Vars = qw/
      %Alias          
      %addAttr        
      %attrAlias      
-	 %canNest        
-	 %endHTML        
-	 %Documentation  
-	 %hasEndTag      
-	 %Implicit       
-	 %insertHTML	    
-	 %insideHTML	    
-	 %Interpolate    
-	 %InvalidateCache
-	 %isEndAnchor    
-	 %lookaheadHTML  
-	 %Order          
-	 %PosNumber      
-	 %PosRoutine     
-	 %replaceAttr    
-	 %replaceHTML    
-	 %Routine    
-	 /;
+     %canNest        
+     %endHTML        
+     %Documentation  
+     %hasEndTag      
+     %Implicit       
+     %insertHTML        
+     %insideHTML        
+     %Interpolate    
+     %InvalidateCache
+     %isEndAnchor    
+     %lookaheadHTML  
+     %Order          
+     %PosNumber      
+     %PosRoutine     
+     %replaceAttr    
+     %replaceHTML    
+     %Routine    
+     /;
 
 }
 
@@ -61,148 +62,164 @@ use vars @Vars;
 no strict;
 
 for ( keys %Vend::Parse::myRefs ) {
-	%{"$_"} = %{$Vend::Parse::myRefs{$_}};
+    %{"$_"} = %{$Vend::Parse::myRefs{$_}};
 }
 
 sub tag_reference {
 
-	my $out = '';
-	$out .= $Documentation{BEGIN};
+    my $out = '';
+    $out .= $Documentation{BEGIN};
 
-	for(sort keys %Routine) {
-		my $tag = $_;
-		$out .= "\n\n=head2 $tag\n\n=over 4\n\n";
-		$out .= "=item CALL INFORMATION\n\n";
-		my $val;
-		my @alias = %Alias;
-		my @val = ();
-		for (my $i = 1; $i < @alias; $i += 2) {
-			push @val, $alias[$i - 1] if $alias[$i] eq $tag;
-		}
+    for(sort keys %Routine) {
+        my $tag = $_;
+        $out .= "\n\n=head2 $tag\n\n=over 4\n\n";
+        $out .= "=item CALL INFORMATION\n\n";
+        my $val;
+        my @alias = %Alias;
+        my @val = ();
+        for (my $i = 1; $i < @alias; $i += 2) {
+            push @val, $alias[$i - 1] if $alias[$i] eq $tag;
+        }
 
 
-		if(@val) {
-			$out .= "Aliases for tag\n\n";
-			$out .= join "\n", @val;
-			$out .= "\n\n";
-		}
-		@val = ();
+        if(@val) {
+            $out .= "Aliases for tag\n\n";
+            $out .= join "\n", @val;
+            $out .= "\n\n";
+        }
+        @val = ();
 
-		my @parms = ();
-		if(defined $Order{$tag} and @{$Order{$tag}}) {
-			@parms = @{$Order{$tag}};
-			$out .= "Parameters: B<";
-			$out .= join " ", @parms;
-			$out .= ">\n\n";
-			if($PosNumber{$tag} >= @parms) {
-				$out .= "Positional parameters in same order.\n";
-			}
-			elsif ($tag eq 'loop' || $PosRoutine{$tag}) {
-				$out .= "THIS TAG HAS SPECIAL POSITIONAL PARAMETER HANDLING.\n\n";
-			}
-			else {
-				$out .= "ONLY THE B<";
-				$out .= join " ", @parms[0 .. $PosNumber{$tag} - 1];
-				$out .= "> PARAMETERS ARE POSITIONAL.\n";
-			}
-			$out .= "\n\n";
-		}
-		else {
-			$out .= "No parameters.\n\n";
-		}
+        my @parms = ();
+        if(defined $Order{$tag} and @{$Order{$tag}}) {
+            @parms = @{$Order{$tag}};
+            $out .= "Parameters: B<";
+            $out .= join " ", @parms;
+            $out .= ">\n\n";
+            if($PosNumber{$tag} >= @parms) {
+                $out .= "Positional parameters in same order.\n";
+            }
+            elsif ($tag eq 'loop' || $PosRoutine{$tag}) {
+                $out .= "THIS TAG HAS SPECIAL POSITIONAL PARAMETER HANDLING.\n\n";
+            }
+            else {
+                $out .= "ONLY THE B<";
+                $out .= join " ", @parms[0 .. $PosNumber{$tag} - 1];
+                $out .= "> PARAMETERS ARE POSITIONAL.\n";
+            }
+            $out .= "\n\n";
+        }
+        else {
+            $out .= "No parameters.\n\n";
+        }
 
-		if(defined $addAttr{$tag}) {
-			$out .= <<EOF if defined $hasEndTag{$tag};
+        if(defined $addAttr{$tag}) {
+            $out .= <<EOF if defined $hasEndTag{$tag};
 B<The attribute hash reference is passed> after the parameters but before
 the container text argument.
 B<This may mean that there are parameters not shown here.>
 
 EOF
-			$out .= <<EOF if ! defined $hasEndTag{$tag};
+            $out .= <<EOF if ! defined $hasEndTag{$tag};
 B<The attribute hash reference is passed> to the subroutine after
 the parameters as the last argument.
 B<This may mean that there are parameters not shown here.>
 
 EOF
-		}
-		else {
-			$out .= "Pass attribute hash as last to subroutine: B<no>\n\n";
-		}
+        }
+        else {
+            $out .= "Pass attribute hash as last to subroutine: B<no>\n\n";
+        }
 
-		if(! defined $Interpolate{$tag}) {
-			$out .= "Must pass named parameter interpolate=1 to cause interpolation.";
-		}
-		elsif($hasEndTag{$tag}) {
-			$out .= "Interpolates B<container text> by default>.";
-		}
-		elsif(!$Gobble{$tag}) {
-			$out .= "Interpolates B<its own output> by default.";
-		}
+        if(! defined $Interpolate{$tag}) {
+            $out .= "Must pass named parameter interpolate=1 to cause interpolation.";
+        }
+        elsif($hasEndTag{$tag}) {
+            $out .= "Interpolates B<container text> by default>.";
+        }
+        elsif(!$Gobble{$tag}) {
+            $out .= "Interpolates B<its own output> by default.";
+        }
 
-		$out .= "\n\n";
+        $out .= "\n\n";
 
-		if (defined $hasEndTag{$tag}) {
-			my $nest = defined $canNest{$tag} ? 'YES' : 'NO';
-			$out .= "This is a container tag, i.e. [$tag] FOO [/$tag].\nNesting: $nest\n\n";
-		}
+        if (defined $hasEndTag{$tag}) {
+            my $nest = defined $canNest{$tag} ? 'YES' : 'NO';
+            $out .= "This is a container tag, i.e. [$tag] FOO [/$tag].\nNesting: $nest\n\n";
+        }
 
-		$out .= "Invalidates cache: B<"							.
-				(defined $InvalidateCache{$tag} ? 'YES' : 'no')	.
-				">\n\n";
-		$out .= "This tag B<gobbles> all remaining page text if no end tag is passed.\n\n"
-			if $Gobble{$tag};
-		       
+        $out .= "Invalidates cache: B<"                         .
+                (defined $InvalidateCache{$tag} ? 'YES' : 'no') .
+                ">\n\n";
+        $out .= "This tag B<gobbles> all remaining page text if no end tag is passed.\n\n"
+            if $Gobble{$tag};
+               
 
-		$out .= "Called Routine: $RoutineName{$tag}\n\n";
-		$out .= "Called Routine for positonal: $PosRoutineName{$tag}\n\n" if $PosRoutine{$tag};
+        $out .= "Called Routine: $RoutineName{$tag}\n\n";
+        $out .= "Called Routine for positonal: $PosRoutineName{$tag}\n\n" if $PosRoutine{$tag};
 
-		$out .= "ASP/perl tag calls:\n\n";
-		$out .= '    $Tag->' . $tag . '(' ."\n        {\n";
-		for (@parms) {
-			$out .= "         $_ => VALUE,\n";
-		}
-		$out .= "        }";
-		$out .= ",\n        BODY" if defined $hasEndTag{$tag};
-		$out .= "\n    )\n  \n OR\n \n";
-		push @parms, 'ATTRHASH'		if defined $addAttr{$tag};
-		push @parms, 'BODY'			if defined $hasEndTag{$tag};
-		$out .= '    $Tag->' . $tag . '($' . join(', $', @parms) . ');' . "\n\n";
+        $out .= "ASP/perl tag calls:\n\n";
+        $out .= '    $Tag->' . $tag . '(' ."\n        {\n";
+        for (@parms) {
+            $out .= "         $_ => VALUE,\n";
+        }
+        $out .= "        }";
+        $out .= ",\n        BODY" if defined $hasEndTag{$tag};
+        $out .= "\n    )\n  \n OR\n \n";
+        push @parms, 'ATTRHASH'     if defined $addAttr{$tag};
+        push @parms, 'BODY'         if defined $hasEndTag{$tag};
+        $out .= '    $Tag->' . $tag . '($' . join(', $', @parms) . ');' . "\n\n";
 
-		if (defined $attrAlias{$tag}) {
-			$out .= "Attribute aliases\n\n";
-			for( sort keys %{$attrAlias{$tag}}) {
-				$out .= "            $_ ==> $attrAlias{$tag}{$_}\n";
-			}
-			$out .= "\n\n";
-		}
-		$out .= " \n\n";
-		$out .= "=item DESCRIPTION\n\n";
-		$out .= $Documentation{$tag} if defined $Documentation{$tag};
-		$out .= "B<NO DESCRIPTION>" if ! defined $Documentation{$tag};
-		$out .= "\n\n";
-		$out .= "=back\n\n";
+        if (defined $attrAlias{$tag}) {
+            $out .= "Attribute aliases\n\n";
+            for( sort keys %{$attrAlias{$tag}}) {
+                $out .= "            $_ ==> $attrAlias{$tag}{$_}\n";
+            }
+            $out .= "\n\n";
+        }
+        $out .= " \n\n";
+        $out .= "=item DESCRIPTION\n\n";
+        $out .= $Documentation{$tag} if defined $Documentation{$tag};
+        $out .= "B<NO DESCRIPTION>" if ! defined $Documentation{$tag};
+        $out .= "\n\n";
+        $out .= "=back\n\n";
 
-	}
+    }
 
-	$out .= $Documentation{END};
+    $out .= $Documentation{END};
 }
 
 LOCAL: {
-	local($/);
-	my $text = <DATA>;
-	my (@items) = grep /\S/, split /\n%%%\n/, $text;
-	for(@items) {
-		my ($k, $v) = split /\n%%\n/, $_, 2;
-		$Documentation{$k} = $v;
-	}
+    local($/);
+    my $text = <DATA>;
+    my (@items) = grep /\S/, split /\n%%%\n/, $text;
+    for(@items) {
+        my ($k, $v) = split /\n%%\n/, $_, 2;
+        $Documentation{$k} = $v;
+    }
 }
 
 if ($ARGV[0] eq 'print' || ! $Global::VendRoot) {
-	print tag_reference();
+    print tag_reference();
 }
 
 1;
+
 __DATA__
+and
+%%
+The [and ...] tag is only used in conjunction with [if ...]. Example:
+
+	[if value fname]
+	[and value lname]
+	Both first and last name are present.
+	[else]
+	Missing one of "fname" and "lname" from $Values.
+	[/else]
+	[/if]
+
+See C<[if ...]>.
+
+%%%
 accessories
 %%
 
@@ -240,7 +257,7 @@ handling. The scratch setting for C<mv_separate_items> has the same
 effect.
 
 The modifier value is accessed in the C<[item-list]> loop with the
-C<[item-modifier attribute]> tag, and form input fields are placed with the
+C<[item-param attribute]> tag, and form input fields are placed with the
 C<[modifier-name attribute]> tag. This is similar to the way that quantity
 is handled.
 
@@ -249,19 +266,20 @@ their names if the variable is the same name as the attribute name you
 select, as the C<[modifier-name size]> variables will be placed in the
 user session as the form variables size0, size1, size2, etc.
 
-You can use the C<[loop arg="attribute attribute"]> list to reference
-multiple display or selection fields for modifiers (in MiniVend 3.0,
-you can have it automatically generated --see below). The modifier value
-can then be used to select data from an arbitrary database for attribute
-selection and display.
-
-MiniVend 3.0 will automatically generate the above select box
+MiniVend will automatically generate the select boxes
 when the C<[accessories <code> size]> or C<[item-accessories size]>
 tags are called. They have the syntax:
 
-   [item_accessories attribute*, type*, field*, database*, name*, outboard*]
+   [item_accessories attribute, type*, column*, table*, name*, outboard*]
   
-   [accessories code attribute*, type*, field*, database*, name*, outboard*]
+   [accessories code=sku
+                attribute=modifier
+                type="select|radio|display|show|checkbox|text|textarea"*
+                column=column_name*
+                table=db_table*
+                name=varname
+                outboard=key
+                passed="value=label, value2, value3=label 3" ]
 
 =over 4
 
@@ -323,34 +341,39 @@ The action to be taken. One of:
                   is present and is a digit from 2 to 9, it will align
                   the options in that many columns.
 
+  textarea_XX_YY  A textarea with XX columns and YY rows
+
+  text_XX         A text box with XX size in characters
+
 The default is 'select', which builds an HTML select form entry for
 the attribute.  Also recognized is 'multiple', which generates a
 multiple-selection drop down list, 'show', which shows the list of
 possible attributes, and 'display', which shows the label text for the
 selected option only.
 
-=item field
+=item column
 
-The database field name to be used to build the entry (usually a field
+The database column name to be used to build the entry (usually a field
 in the products database).  Defaults to a field named the same as the
 attribute.
 
-=item database
+=item table
 
-The database to find B<field> in, defaults to the first products file
+The database table to find B<column> in, defaults to the first products file
 where the item code is found.
 
 =item name
 
 Name of the form variable to use if a form is being built. Defaults to
 mv_order_B<attribute> -- i.e.  if the attribute is B<size>, the form
-variable will be named B<mv_order_size>.
+variable will be named B<mv_order_size>. If the variable is set in the
+user session, the widget will "remember" its previous setting.
 
 =item outboard
 
 If calling the item-accessories tag, and you wish to select from an
-outboard database, you can pass the key to use to find the accessory
-data.
+outboard database table with a different key from the item code, you
+can pass the key to use to find the accessory data.
 
 =back
 
@@ -423,30 +446,20 @@ this can be used to allow entry of an attribute at time of order.
 =item EMULATING WITH LOOP
 
 Below is a fragment from a shopping basket display form which 
-shows a selectable size with "sticky" setting. Note that this
-would always be contained within the C<[item_list]> C<[/item-list]>
+shows a selectable size with "sticky" setting and a price that
+changes based upon the modifier setting. Note that this
+would normally be contained within the C<[item_list]> C<[/item-list]>
 pair.
 
     <SELECT NAME="[modifier-name size]">
-    <OPTION  [selected [modifier-name size] S]> S
-    <OPTION  [selected [modifier-name size] M]> M
-    <OPTION  [selected [modifier-name size] L]> L
-    <OPTION [selected [modifier-name size] XL]> XL
+    [loop option="[modifier-name size]" list="S, M, L, XL"]
+    <OPTION> [loop-code] -- [price code="[item-code]" size="[loop-code]"]
+    [/loop]
     </SELECT>
-
-It could just as easily be done with a radio button group combined
-with the C<[checked ...]> tag.
 
 The above is essentially the same as would be output with the
 [item-accessories size] tag if the product database field C<size>
-contained the value C<S, M, L, XL>. (The [item-accessories size] tag
-is much more efficient.)
-
-=item DEPRECATED BEHAVIOR
-
-If not given one of the optional arguments, expands into the value of
-the accessories database entry for the product identified by I<code>
-as found in the products database.
+contained the value C<S, M, L, XL>, but contains the adjusted price.
 
 =back
 
@@ -505,8 +518,7 @@ in quantity 2. Since the page is not set, you will go to the default
 shopping cart page -- equally you could set C<mv_orderpage=yourpage>
 to go to C<yourpage>.
 
-You must have TolerateGet set (which is the default) and 
-all normal MiniVend form caveats apply -- you must have an action,
+All normal MiniVend form caveats apply -- you must have an action,
 you must supply a page if you don't want to go to the default,
 etc.
 
@@ -515,49 +527,48 @@ included values can have newlines or trailing whitespace. If you want
 to do something like that you will have to write a UserTag.
 
 %%%
-areatarget
+banner
 %%
-
-Inserts a Vend URL in a format to provide a targeted reference for a
-client-side imagemap. You set up the <AREA> tag with:
-
-      <AREA COORDS="220,0,270,20" HREF="[areatarget page frame]">
-
-If frames are enabled, this will expand to:
-
-      <AREA COORDS="220,0,270,20"
-         HREF="http://machine.company.com/vlink/page?ErTxVV8l;;38" TARGET="frame">
-
-If frames are I<not> enabled, this will expand to:
-
-      <AREA COORDS="220,0,270,20"
-         HREF="http://machine.company.com/vlink/page?ErTxVV8l;;38">
-
-B<IMPORTANT NOTE:> This tag is DEPRECATED and may disappear in future
-versions of MiniVend. Don't use it!
+The [banner ...] tag is designed to implement random or rotating
+banner displays in your Minivend pages. See the main Minivend documentation,
+section I<Banner/Ad rotation>.
 
 %%%
-body
+bounce
 %%
+The [bounce ...] tag is designed to send an HTTP redirect (302 status code)
+to the browser and redirect it to another (possibly MiniVend-parsed) page.
 
-Selects from the predefined color schemes and/or backgrounds set with
-C<Mv_LinkColor>, C<Mv_BgColor>, etc., and just becomes a <BODY> tag
-if none are defined. The C<extra> parameter is always appended. See
-I<CONTROLLING PAGE APPEARANCE>.
+It will stop MML code execution at that point; further tags will not
+be run through the parser. Bear in mind that if you are inside a looping
+list, that list will run to completion and the [bounce] tag will not
+be seen until the loop is complete.
 
-This tag is mildly deprecated in that it will not be further enhanced;
-It should remain in some form through future versions of MiniVend.
+Example of bouncing to a MiniVend parsed page:
 
-%%%
-buttonbar
-%%
+	[if !scratch real_user]
+	[bounce href="[area violation]"]
+	[/if]
 
-Selects from the predefined buttonbars, and is stripped if it
-doesn't exist. See I<CONTROLLING PAGE APPEARANCE>. This is somewhat 
-superceded by Variable and [include filename].
+Note the URL is produced by the C<[area ...]> MML tag.
 
-B<IMPORTANT NOTE:> This tag is DEPRECATED and may disappear in future
-versions of MiniVend. Don't use it!
+Since the HTTP says the URL needs to be absolute, this one might
+cause a browser warning:
+
+	[if value go_home]
+	[bounce href="/"]
+	[/if]
+
+But running something like one of the MiniVend demos you can
+do:
+
+	[if value go_home]
+	[bounce href="__SERVER_NAME__/"]
+	[/if]
+
+	[if value go_home]
+	[bounce href="/"]
+	[/if]
 
 %%%
 calc
@@ -575,22 +586,20 @@ will display:
     4
 
 The [calc] tag is really the same as the [perl] tag, except
-that it doesn't accept arguments, is more efficient to parse, and
-is interpolated at a higher precedence.
+that it doesn't accept arguments, interpolates surrounded MiniVend
+tags by default, and is slightly more efficient to parse.
 
 TIP: The [calc] tag will remember variable values inside one page, so
 you can do the equivalent of a memory store and memory recall for a loop.
 
-ASP NOTE: There is almost no reason to use this tag in a [perl] or ASP section.
+ASP NOTE: There is never a reason to use this tag in a [perl] or ASP section.
 
 %%%
 cart
 %%
 
 Sets the name of the current shopping cart for display of shipping, price,
-total, subtotal, and nitems tags. (The C<shipping> tag doesn't use the cart.)
-If you wish to use a different price for the cart, all of the above except
-[shipping] will reflect the normal price field.
+total, subtotal, shipping, and nitems tags. 
 
 %%%
 checked
@@ -624,7 +633,7 @@ comment
 syntax: [comment] code [/comment]
 
 Comments out MiniVend tags (and anything else) from a page. The contents
-are not displayed unless DisplayComments is set in minivend.cfg.
+are never displayed to the user.
 
 %%%
 currency
@@ -639,8 +648,8 @@ will display:
 
     4.00
 
-Uses the I<Locale> and I<PriceCommas> settings as appropriate, and can
-contain a [calc] region. If the optional "convert" parameter is set,
+or something else depending on the I<Locale> and PriceCommas settings. It
+can contain a [calc] region. If the optional "convert" parameter is set,
 it will convert the value according to PriceDivide> for the current
 locale. If Locale is set to C<fr_FR>, and F<PriceDivide> for C<fr_FR>
 is 0.167, the following sequence
@@ -653,17 +662,31 @@ will cause the number 8.982,04 to be displayed.
 data
 %%
 
-Returns the value of the field in a database table, or from the C<session>
+Syntax:
+            [data table=db_table
+                  column=column_name
+                  key=key
+                  filter="uc|lc|name|namecase|no_white|etc."*
+                  append=1*
+                  value="value to set to"*
+                  increment=1*                         ]
+
+Returns the value of the field in a database table, or (DEPRECATED) from
+the C<session>
 namespace. If the optional B<value> is supplied, the entry will be
 changed to that value.  If the option increment* is present, the field
 will be atomically incremented with the value in B<value>. Use negative
-numbers in C<value> to decrement.
+numbers in C<value> to decrement. The C<append> attribute causes the value
+to be appended; and finally, the C<filter> attribute is a set of MiniVend
+filters that are applied to the data 1) after it is read; or 2)before it
+is placed in the table.
 
 If a DBM-based database is to be modified, it must be flagged writable
 on the page calling the write tag. Use [tag flag write]products[/tag]
 to mark the C<products> database writable, for example.
-B<This must be done before any access to that table.>
+B<This must be done before ANY access to that table.>
 
+DEPRECATED BEHAVIOR: (replace with C<session> tag).
 In addition, the C<[data ...]> tag can access a number of elements in
 the MiniVend session database:
 
@@ -688,7 +711,7 @@ the MiniVend session database:
 NOTE: Databases will hide session values, so don't name a database "session".
 or you won't be able to use the [data ...] tag to read them. Case is
 sensitive, so in a pinch you could call the database "Session", but it
-would be better not to.
+would be better not to use that name at all.
 
 %%%
 default
@@ -696,7 +719,7 @@ default
 
 Returns the value of the user form variable C<variable> if it is non-empty.
 Otherwise returns C<default>, which is the string "default" if there is no
-default supplied. Got that?
+default supplied. Got that? This tag is DEPRECATED anyway.
 
 %%%
 description
@@ -707,6 +730,10 @@ products database. This is the value of the database field that corresponds to
 the C<catalog.cfg> directive C<DescriptionField>. If there is more than one
 products file defined, they will be searched in order unless constrained by the
 optional argument B<base>.
+
+This tag is especially useful for multi-language catalogs. The C<DescriptionField>
+directive can be set for each locale and point to a different database field;
+for example C<desc_en> for English, C<desc_fr> for French, etc.
 
 %%%
 discount
@@ -778,6 +805,24 @@ doesn't correspond to a standard MiniVend tag, you can use the [calc] tag:
                                             [/calc][/currency]
     [/item-list]
 
+%%
+dump
+%%
+Prints a dump of the current user session as expanded by Data::Dumper.
+Includes any CGI environment passed from the server.
+
+%%
+either
+%%
+The C<[either]this[or]that[/either] implements a check for the first
+non-zero, non-blank value. It splits on [or], and then parses each
+piece in turn. If a value returns true (in the Perl sense -- non-zero, non-blank)
+then subsequent pieces will be discarded without interpolation.
+
+Example:
+
+  [either][value must_be_here][or][bounce href="[area incomplete]"][/either]
+
 %%%
 field
 %%
@@ -806,8 +851,274 @@ The optional C<type> parameter will do an appropriate ASCII translation
 on the file before it is sent.
 
 %%%
+filter
+%%
+
+Applies any of MiniVend's standard filters to an arbitray value, or 
+you may define your own. The filters are also available as parameters
+to the C<cgi>, C<data>, and C<value> tags.
+
+Filters can be applied in sequence and as many as needed can be
+applied.
+
+Here is an example. If you store your author or artist names in the
+database "LAST, First" so that they sort properly, you still might
+want to display them normally as "First Last". This call
+
+    [filter op="name namecase"]WOOD, Grant[/filter]
+
+will display as
+
+    Grant Wood
+
+Another way to do this would be:
+
+    [data table=products column=artist key=99-102 filter="name namecase"]
+
+Filters available include:
+
+=over 4
+
+=item cgi
+
+Returns the value of the CGI variable. Useful for starting a filter
+sequence with a seed value.
+
+    'cgi' =>    sub {
+                    return $CGI::values(shift);
+                },
+
+=item digits
+
+Returns only digits.
+
+    'digits' => sub {
+                    my $val = shift;
+                    $val =~ s/\D+//g;
+                    return $val;
+                },
+
+=item digits_dot
+
+Returns only digits and periods, i.e. [.0-9]. Useful for decommifying
+numbers.
+
+    'digits_dot' => sub {
+                    my $val = shift;
+                    $val =~ s/[^\d.]+//g;
+                    return $val;
+                },
+
+=item dos
+
+Turns linefeeds into carriage-return / linefeed pairs.
+
+    'dos' =>    sub {
+                    my $val = shift;
+                    $val =~ s/\r?\n/\r\n/g;
+                    return $val;
+                },
+
+=item entities
+
+Changes C<<> to C<&lt;>, C<"> to C<&quot;>, etc.
+
+    'entities' => sub {
+                    return HTML::Entities::encode(shift);
+                },
+
+
+
+=item gate
+
+Performs a security screening by testing to make sure a corresponding
+scratch variable has been set.
+
+    'gate' =>   sub {
+                    my ($val, $var) = @_;
+                    return '' unless $::Scratch->{$var};
+                    return $val;
+                },
+
+=item lc
+
+Lowercases the text.
+
+    'lc' =>     sub {
+                    return lc(shift);
+                },
+
+=item lookup
+
+Looks up an item in a database based on the passed table and
+column. Call would be:
+
+    [filter op="uc lookup.country.name"]us[/filter]
+
+This would be the equivalent of [data table=country column=name key=US].
+
+    'lookup' => sub {
+                        my ($val, $tag, $table, $column) = @_;
+                        return tag_data($table, $column, $val) || $val;
+                },
+
+=item mac
+
+Changes newlines to carriage returns.
+
+    'mac' =>    sub {
+                    my $val = shift;
+                    $val =~ s/\r?\n|\r\n?/\r/g;
+                    return $val;
+                },
+
+=item name
+
+Transposes a LAST, First name pair.
+
+    'name' => sub {
+                    my $val = shift;
+                    return $val unless $val =~ /,/;
+                    my($last, $first) = split /\s*,\s*/, $val, 2;
+                    return "$first $last";
+                },
+
+=item namecase
+
+Namecases the text. Only works on values that are uppercase in the first
+letter, i.e. [filter op=namecase]LEONARDO da Vinci[/filter] will return
+"Leonardo da Vinci".
+
+    'namecase' => sub {
+                    my $val = shift;
+                    $val =~ s/([A-Z]\w+)/\L\u$1/g;
+                    return $val;
+                },
+
+=item no_white
+
+Strips all whitespace.
+
+    'no_white' =>   sub {
+                    my $val = shift;
+                    $val =~ s/\s+//g;
+                    return $val;
+                },
+
+=item pagefile
+
+Strips leading slashes and dots.
+
+    'pagefile' => sub {
+                    $_[0] =~ s:^[./]+::;
+                    return $_[0];
+                },
+
+=item sql
+
+Change single-quote characters into doubled versions, i.e. ' becomes ''.
+
+    'sql'       => sub {
+                    my $val = shift;
+                    $val =~ s:':'':g; # '
+                    return $val;
+                },
+
+=item strip
+
+Strips leading and trailing whitespace.
+
+    'strip' =>  sub {
+                    my $val = shift;
+                    $val =~ s/^\s+//;
+                    $val =~ s/\s+$//;
+                    return $val;
+                },
+
+=item text2html
+
+Rudimentary HTMLizing of text.
+
+    'text2html' => sub {
+                    my $val = shift;
+                    $val =~ s|\r?\n\r?\n|<P>|;
+                    $val =~ s|\r?\n|<BR>|;
+                    return $val;
+                },
+
+
+=item uc
+
+Uppercases the text.
+
+    'uc' =>     sub {
+                    return uc(shift);
+                },
+
+=item unix
+
+Removes those crufty carriage returns.
+
+    'unix' =>   sub {
+                    my $val = shift;
+                    $val =~ s/\r?\n/\n/g;
+                    return $val;
+                },
+
+=item urlencode
+
+Changes non-word characters (except colon) to %3c notation.
+
+    'urlencode' => sub {
+                    my $val = shift;
+                    $val =~ s|[^\w:]|sprintf "%%%02x", ord $1|eg;
+                    return $val;
+                },
+
+=item value
+
+Returns the value of the user session variable. Useful for starting a filter
+sequence with a seed value.
+
+    'value' =>  sub {
+                    return $::Values->(shift);
+                },
+
+=item word
+
+Only returns word characters. Locale does apply if collation is properly set.
+
+    'word' =>   sub {
+                    my $val = shift;
+                    $val =~ s/\W+//g;
+                    return $val;
+                },
+
+You can define your own filters in an GlobalSub (or Sub or ActionMap):
+
+    package Vend::Interpolate;
+
+    $Filter{reverse} = sub { $val = shift; return scalar reverse $val  };
+
+That filter will reverse the characters sent.
+
+The arguments sent to the subroutine are the value to be filtered,
+any associated variable or tag name, and any arguments appended
+to the filter name with periods as the separator.
+
+A C<[filter op=lookup.products.price]99-102[/filter]> will send
+('99-102', undef, 'products', 'price') as the parameters. Assuming
+the value of the user variable C<foo> is C<bar>, the call
+C<[value name=foo filter="lookup.products.price.extra"]> will send
+('bar', 'foo', 'products', 'price', 'extra').
+
+=back
+
+%%%
 fly_list
 %%
+
+Syntax: [fly-list prefix=tag_prefix* code=code*]
 
 Defines an area in a random page which performs the flypage lookup
 function, implementing the tags below.
@@ -823,36 +1134,13 @@ display identical pages:
     [page 00-0011] One way to display the Mona Lisa [/page]
     [page flypage2 00-0011] Another way to display the Mona Lisa [/page]
 
-%%%
-framebase
-%%
+If you place a [fly-list] tag alone at the top of the page, it will
+cause any page to act as a flypage.
 
-Outputs a <BASE FRAME="name"> tag only if MiniVend is in frames mode.
-It should be used within the HTML <HEAD> section.
-
-=head2 frames_off
-
-Turns off the frames processing option. This can be used to disable
-frames, perhaps as a clickable option for users. It is persistent for
-the entire session, or until counteracted with a [frames_on] tag.
-
-B<IMPORTANT NOTE:> This tag is DEPRECATED and may disappear in future
-versions of MiniVend. Don't use it!
-
-IMPORTANT NOTE:  This doesn't turn of frames in your browser! If
-you let a TARGET tag escape, it will probably cause a new window
-to be opened, or other types of anomalous operation.
-
-=head2 frames_on
-
-Turns on the frames processing option, which is disabled by default.
-The proper way to use this is to put it ONLY in the first page which
-is loaded by frame-based browsers, as part of the initial frame load.
-It is persistent for the entire session, or until counteracted with a
-[frames_off] tag.
-
-B<IMPORTANT NOTE:> This tag is DEPRECATED and may disappear in future
-versions of MiniVend. Don't use it!
+By default, the prefix is C<item>, meaning the C<[item-code]> tag will
+display the code of the item, the C<[item-price]> tag will display price, etc.
+But if you use the prefix, i.e. C<[fly-list prefix=fly]>, then it will
+be [fly-code]; C<prefix=foo> would cause C<[foo-code]>, etc.
 
 %%%
 if
@@ -887,8 +1175,8 @@ session and database values. The general form is:
 
 The C<[if]> tag can also have some variants:
 
-    [if explicit][condition] CODE [/condition]
-                Displayed if valid Perl CODE returns a true value.
+    [if type=explicit compare=`$perl_code`]
+        Displayed if valid Perl CODE returns a true value.
     [/if]
 
 You can do some Perl-style regular expressions:
@@ -906,8 +1194,8 @@ You can do some Perl-style regular expressions:
     [/else]
     [/if]
 
-While the new tag syntax works for C<[if ...]>, it is more convenient
-to use the old in most cases.  It will work fine with both parsers.
+While named parameter tag syntax works for C<[if ...]>, it is more convenient
+to use positional calls in most cases.
 The only exception is if you are planning on doing a test on the 
 results of another tag sequence:
     
@@ -915,29 +1203,36 @@ results of another tag sequence:
         Shipping name matches billing name.
     [/if]
 
-Oops!  This will not work with the new parser. You must do instead
+Oops!  This will not work. You must do instead
 
-    [compat]
-    [if value name =~ /[value b_name]/]
-        Shipping name matches billing name.
-    [/if]
-    [/compat]
-
-or
-
-    [if type=value term=name op="=~" compare="/[value b_name]/"]
+    [if base=value field=name op="=~" compare="/[value b_name]/"]
         Shipping name matches billing name.
     [/if]
 
-The latter has the advantage of working with any tag:
+or better yet
 
-    [if type=value term=high_water op="<" compare="[shipping]"]
-        Shipping cost is too high, charter a truck.
+    [if type=explicit compare=`
+                        $Value->{name} =~ /$Value->{b_name}/
+                        `]
+        Shipping name matches billing name.
     [/if]
 
-If you wish to do AND and OR operations, you will have to use 
-C<[if explicit]>. This allows complex testing and parsing of
-values.
+MiniVend also supports a limited [and ...] and [or ...]
+capability:
+
+    [if value name =~ /Mike/]
+    [or value name =~ /Jean/]
+    Your name is Mike or Jean.
+    [/if]
+
+    [if value name =~ /Mike/]
+    [and value state =~ /OH/]
+    Your name is Mike and you live in Ohio.
+    [/if]
+
+If you wish to do very complex AND and OR operations, you will have to use 
+C<[if explicit]> or better yet embedded Perl/ASP. This allows complex
+testing and parsing of values.
 
 There are many test targets available:
 
@@ -1035,7 +1330,7 @@ Order status of individual items in the MiniVend shopping
 carts. If not specified, the cart used is the main cart.
 The following items refer to a part number of 99-102.
 
-  [if ordered 99-102] ... [/if]
+  [if ordered 99-102] Item 99-102 is in your cart. [/if]
     Checks the status of an item on order, true if item
     99-102 is in the main cart.
 
@@ -1050,19 +1345,10 @@ The following items refer to a part number of 99-102.
   [if ordered 99-102 main size =~ /large/i] ... [/if]
     Checks the status of an item on order in the main cart,
     true if it has a size attribute containing 'large'.
-    THE CART NAME IS REQUIRED IN THE OLD SYNTAX. The new
-    syntax for that one would be:
-
-    [if type=ordered term="99-102" compare="size =~ /large/i"]
 
     To make sure it is exactly large, you could use:
 
-    [if ordered 99-102 main size eq 'large'] ... [/if]
-
-  [if ordered 99-102 main lines] ... [/if]
-      Special case -- counts the lines that the item code is
-      present on. (Only useful, of course, when mv_separate_items
-      or SeparateItems is defined.)
+  [if ordered 99-102 main size eq 'large'] ... [/if]
 
 =item scratch
 
@@ -1070,45 +1356,46 @@ The MiniVend scratchpad variables, which can be set
 with the [set name]value[/set] element. 
 
     [if scratch mv_separate_items]
-    Ordered items will be placed on a separate line.
+    ordered items will be placed on a separate line.
     [else]
-    Ordered items will be placed on the same line.
+    ordered items will be placed on the same line.
     [/else]
     [/if]
 
 =item session
 
-The MiniVend session variables. Of particular interest
-are I<login>, I<frames>, I<secure>, and I<browser>.
+the minivend session variables. of particular interest
+are i<login>, i<frames>, i<secure>, and i<browser>.
 
 =item validcc
 
-A special case, takes the form [if validcc no type exp_date].
-Evaluates to true if the supplied credit card number, type
-of card, and expiration date pass a validity test. Does
-a LUHN-10 calculation to weed out typos or phony 
-card numbers.
+a special case, takes the form [if validcc no type exp_date].
+evaluates to true if the supplied credit card number, type
+of card, and expiration date pass a validity test. does
+a luhn-10 calculation to weed out typos or phony 
+card numbers. Uses the standard C<CreditCardAuto> variables
+for targets if nothing else is passed.
 
 =item value
 
-The MiniVend user variables, typically set in search,
-control, or order forms. Variables beginning with C<mv_>
-are MiniVend special values, and should be tested/used
+the minivend user variables, typically set in search,
+control, or order forms. variables beginning with c<mv_>
+are minivend special values, and should be tested/used
 with caution.
 
 =back
 
 The I<field> term is the specifier for that area. For example, [if session
-frames] would return true if the C<frames> session parameter was set.
+logged_in] would return true if the C<logged_in> session parameter was set.
 
 As an example, consider buttonbars for frame-based setups. It would be
 nice to display a different buttonbar (with no frame targets) for sessions
 that are not using frames:
 
-    [if session frames]
-        [buttonbar 1]
+    [if scratch frames]
+        __BUTTONBAR_FRAMES__
     [else]
-        [buttonbar 2]
+        __BUTTONBAR__
     [/else]
     [/if]
 
@@ -1180,7 +1467,7 @@ Named attributes:
 
 Import one or more records into a database. The C<type> is any
 of the valid MiniVend delimiter types, with the default being defined
-by the setting of I<Delimiter>. The table must already be a defined
+by the setting of the database I<DELIMITER>. The table must already be a defined
 MiniVend database table; it cannot be created on the fly. (If you need
 that, it is time to use SQL.)
 
@@ -1215,208 +1502,13 @@ include
 %%
 
 Same as C<[file name]> except interpolates for all MiniVend tags
-and variables.
+and variables. Does NOT do locale translations.
 
 %%%
 item_accessories
 %%
 
-MiniVend allows item attributes to be set for each ordered item. This
-allows a size, color, or other modifier to be attached to a common
-part number. If multiple attributes are set, then they should be
-separated by commas. Previous attribute values can be saved by means
-of a hidden field on a form, and multiple attributes for each item
-can be I<stacked> on top of each other.
-
-The configuration file directive I<UseModifier> is used to set
-the name of the modifier or modifiers. For example
-
-    UseModifier        size,color
-
-will attach both a size and color attribute to each item code that
-is ordered.
-
-B<IMPORTANT NOTE:> You may not use the following names for attributes:
-
-    item  group  quantity  code  mv_ib  mv_mi  mv_si
-
-You can also set it in scratch with the mv_UseModifier
-scratch variable -- [set mv_UseModifier]size color[/set] has the
-same effect as above. This allows multiple options to be set for
-products. Whichever one is in effect at order time will be used.
-Be careful, you cannot set it more than once on the same page.
-Setting the I<mv_separate_items> or global directive I<SeparateItems>
-places each ordered item on a separate line, simplifying attribute
-handling. The scratch setting for C<mv_separate_items> has the same
-effect.
-
-The modifier value is accessed in the [item-list] loop with the
-[item-modifier attribute] tag, and form input fields are placed with the
-[modifier-name attribute] tag. This is similar to the way that quantity
-is handled, except that attributes can be "stacked" by setting multiple
-values in an input form.
-
-You cannot define a modifier name of I<code> or I<quantity>, as they
-are already used. You must be sure that no fields in your forms
-have digits appended to their names if the variable is the same name
-as the attribute name you select, as the [modifier-name size] variables
-will be placed in the user session as the form variables size0, size1,
-size2, etc. 
-
-You can use the [loop item,item,item] list to reference multiple display
-or selection fields for modifiers (in MiniVend 3.0, you can have it
-automatically generated --see below). The modifier value can then be
-used to select data from an arbitrary database for attribute selection
-and display.
-
-Below is a fragment from a shopping basket display form which 
-shows a selectable size with "sticky" setting. Note that this
-would always be contained within the [item_list] [/item-list]
-pair.
-
-    <SELECT NAME="[modifier-name size]">
-    <OPTION  [selected [modifier-name size] S]> S
-    <OPTION  [selected [modifier-name size] M]> M
-    <OPTION  [selected [modifier-name size] L]> L
-    <OPTION [selected [modifier-name size] XL]> XL
-    </SELECT>
-
-It could just as easily be done with a radio button group combined
-with the [checked ...] tag.
-
-MiniVend 3.0 will automatically generate the above select box
-when the [accessories <code> size] or [item-accessories size]
-tags are called. They have the syntax:
-
-   [item_accessories attribute*, type*, field*, database*, name*, outboard*]
-  
-   [accessories code attribute*, type*, field*, database*, name*, outboard*]
-
-=over 4
-
-=item code
-
-Not needed for item-accessories, this is the product code of the item to
-reference.
- 
-=item attribute
-
-The item attribute as specified in the UseModifier configuration
-directive. Typical are C<size> or C<color>.
-
-=item type
-
-The action to be taken. One of:
-
-  select          Builds a dropdown <SELECT> menu for the attribute.
-                  NOTE: This is the default.
- 
-  multiple        Builds a multiple dropdown <SELECT> menu for the
-                  attribute.  The size is equal to the number of
-                  option choices.
-                   
-  display         Shows the label text for *only the selected option*.
-   
-  show            Shows the option choices (no labels) for the option.
-   
-  radio           Builds a radio box group for the item, with spaces
-                  separating the elements.
-                   
-  radio nbsp      Builds a radio box group for the item, with &nbsp;
-                  separating the elements.
-                   
-  radio left n    Builds a radio box group for the item, inside a
-                  table, with the checkbox on the left side. If "n"
-                  is present and is a digit from 2 to 9, it will align
-                  the options in that many columns.
-                   
-  radio right n   Builds a radio box group for the item, inside a
-                  table, with the checkbox on the right side. If "n"
-                  is present and is a digit from 2 to 9, it will align
-                  the options in that many columns.
-
-   
-  check           Builds a checkbox group for the item, with spaces
-                  separating the elements.
-                   
-  check nbsp      Builds a checkbox group for the item, with &nbsp;
-                  separating the elements.
-                   
-  check left n    Builds a checkbox group for the item, inside a
-                  table, with the checkbox on the left side. If "n"
-                  is present and is a digit from 2 to 9, it will align
-                  the options in that many columns.
-                   
-  check right n   Builds a checkbox group for the item, inside a
-                  table, with the checkbox on the right side. If "n"
-                  is present and is a digit from 2 to 9, it will align
-                  the options in that many columns.
-
-The default is 'select', which builds an HTML select form entry for
-the attribute.  Also recognized is 'multiple', which generates a
-multiple-selection drop down list, 'show', which shows the list of
-possible attributes, and 'display', which shows the label text for the
-selected option only.
-
-=item field
-
-The database field name to be used to build the entry (usually a field
-in the products database).  Defaults to a field named the same as the
-attribute.
-
-=item database
-
-The database to find B<field> in, defaults to the first products file
-where the item code is found.
-
-=item name
-
-Name of the form variable to use if a form is being built. Defaults to
-mv_order_B<attribute> -- i.e.  if the attribute is B<size>, the form
-variable will be named B<mv_order_size>.
-
-=item outboard
-
-If calling the item-accessories tag, and you wish to select from an
-outboard database, you can pass the key to use to find the accessory
-data.
-
-=back
-
-When called with an attribute, the database is consulted and looks for
-a comma-separated list of attribute options. They take the form:
-
-    name=Label Text, name=Label Text*
-
-The label text is optional -- if none is given, the B<name> will
-be used.
-
-If an asterisk is the last character of the label text, the item is
-the default selection. If no default is specified, the first will be
-the default. An example:
-
-    [item_accessories color]
-
-This will search the product database for a field named "color". If
-an entry "beige=Almond, gold=Harvest Gold, White*, green=Avocado" is found,
-a select box like this will be built:
-
-    <SELECT NAME="mv_order_color">
-    <OPTION VALUE="beige">Almond
-    <OPTION VALUE="gold">Harvest Gold
-    <OPTION SELECTED>White
-    <OPTION VALUE="green">Avocado
-    </SELECT>
-
-In combination with the I<mv_order_item> and I<mv_order_quantity> variables
-this can be used to allow entry of an attribute at time of order.
-
-If used in an item list, and the user has changed the value, the generated
-select box will automatically retain the current value the user has selected.
-
-The value can then be displayed with [item-modifier size] on the
-order report, order receipt, or any other page containing an
-[item_list]. 
+See C<accessories>.
 
 %%%
 item_list
@@ -1491,6 +1583,9 @@ table I<database>, for the current item.
 
 Evaluates to the product description (from the products file)
 for the current item.
+
+In support of C<OnFly>, if the description field is not found in the database,
+the C<description> setting in the shopping cart will be used instead.
 
 =item [item-field fieldname]
 
@@ -1768,8 +1863,7 @@ The additional argument will be passed to MiniVend and placed in the
 {arg} session parameter. This allows programming of a conditional page
 display based on where the link came from. The argument is then available
 with the tag [data session arg], or the embedded Perl session variable
-$Safe{'session'}->{arg}. If you set the catalog configuration option
-I<NewEscape>, which is the default, then spaces and some other characters
+$Session->{arg}. Spaces and some other characters
 will be escaped with the %NN HTTP-style notation and unescaped when the
 argument is read back into the session.
 
@@ -1800,28 +1894,13 @@ in quantity 2. Since the page is not set, you will go to the default
 shopping cart page -- equally you could set C<mv_orderpage=yourpage>
 to go to C<yourpage>.
 
-You must have TolerateGet set (which is the default) and
-all normal MiniVend form caveats apply -- you must have an action,
+All normal MiniVend form caveats apply -- you must have an action,
 you must supply a page if you don't want to go to the default,
 etc.
 
 You can theoretically submit any form with this, though none of the
 included values can have newlines or trailing whitespace. If you want
 to do something like that you will have to write a UserTag.
-
-%%%
-pagetarget
-%%
-
-Same as the page element above, except it specifies an output frame to
-target if frames are turned on. The name B<is> case-sensitive, and if
-it doesn't exist a new window will be popped up. This is the same as
-the [page ...] tag if frames are not activated.
-For example, [pagetarget shirts main] will expand into a link like <a
-href="http://machine.company.com/cgi-bin/vlink/shirts?WehUkATn;;1" TARGET="main">. The
-catalog page displayed will come from C<shirts.html> in the
-pages directory, and be output to the C<main> frame. Be careful,
-frame names are case-sensitive.
 
 MiniVend allows you to pass a search in a URL. Just specify the
 search with the special page reference C<scan>. Here is an
@@ -1840,16 +1919,28 @@ the CGI path for MiniVend's vlink):
         Impressionist Paintings
      </A>
 
+Sometimes, you will find that you need to pass characters that
+will not be interpreted positionally. In that case, you should
+quote the arguments:
+
+    [page href=scan
+          arg=|
+                se="Something with spaces"
+          |]
+
 The two-letter abbreviations are mapped with these letters:
 
   DL  mv_raw_dict_look
   MM  mv_more_matches
   SE  mv_raw_searchspec
   ac  mv_all_chars
+  ar  mv_arg
   bd  mv_base_directory
   bs  mv_begin_string
+  ck  mv_cache_key
   co  mv_coordinate
   cs  mv_case
+  cv  mv_verbatim_columns
   de  mv_dict_end
   df  mv_dict_fold
   di  mv_dict_limit
@@ -1863,16 +1954,23 @@ The two-letter abbreviations are mapped with these letters:
   fm  mv_first_match
   fn  mv_field_names
   hs  mv_head_skip
-  id  mv_index_delim
+  id  mv_session_id
+  il  mv_index_delim
+  ix  mv_index_delim
+  lb  mv_search_label
+  lo  mv_list_only
   lr  mv_line_return
+  lr  mv_search_line_return
   ml  mv_matchlimit
   mm  mv_max_matches
   mp  mv_profile
   ms  mv_min_string
   ne  mv_negate
+  np  mv_nextpage
   nu  mv_numeric
   op  mv_column_op
   os  mv_orsearch
+  pc  mv_pc
   ra  mv_return_all
   rd  mv_return_delim
   rf  mv_return_fields
@@ -1880,18 +1978,24 @@ The two-letter abbreviations are mapped with these letters:
   rl  mv_range_look
   rm  mv_range_min
   rn  mv_return_file_name
+  rr  mv_return_reference
   rs  mv_return_spec
   rx  mv_range_max
   se  mv_searchspec
   sf  mv_search_field
+  si  mv_search_immediate
   sp  mv_search_page
   sq  mv_sql_query
   st  mv_searchtype
   su  mv_substring_match
-  tc  mv_sort_command
+  td  mv_table_cell
   tf  mv_sort_field
+  th  mv_table_header
   to  mv_sort_option
-  ty  mv_sort_crippled
+  tr  mv_table_row
+  un  mv_unique
+  va  mv_value
+
 
 They can be treated just the same as form variables on the
 page, except that they can't contain spaces, '/' in a file
@@ -1901,11 +2005,11 @@ C</>, etc. -- C<&sp;> or C<&#32;> will not be recognized.
 If you use one of the methods below to escape these "unsafe"
 characters, you won't have to worry about this.
 
-Beginning in MiniVend 3.08, you may specify a one-click search in
-three different ways. The first is as used in previous versions, with
-the scan URL being specified completely as the page name.  The second
-two use the "argument" parameter to the C<[page ...]> or C<[area ...]>
-tags to specify the search (an argument to a scan is never valid anyway).
+You may specify a one-click search in three different ways. The first is as
+used in previous versions, with the scan URL being specified completely as the
+page name.  The second two use the "argument" parameter to the C<[page ...]> or
+C<[area ...]> tags to specify the search (an argument to a scan is never valid
+anyway).
 
 =over 4
 
@@ -1973,11 +2077,17 @@ tag.
 perl
 %%
 
+    [perl]
+        $name    = $Values->{name};
+        $browser = $Session->{browser};
+        return "Hi, $name! How do you like your $browser?
+    [/perl]
+
 HTML example:
 
-    <PRE mv=perl mv.arg="values browser">
-        $name = $Safe{'values'}{'name'};
-        $name = $Safe{'browser'};
+    <PRE mv=perl>
+        $name    = $Values->{name};
+        $browser = $Session->{browser};
         return "Hi, $name! How do you like your $browser?
     </PRE>
 
@@ -1985,249 +2095,53 @@ Perl code can be directly embedded in MiniVend pages. The code
 is specified as [perl arguments*] any_legal_perl_code [/perl]. The
 value returned by the code will be inserted on the page.
 
-Using MiniVend variables with embedded Perl capability is not recommended
-unless you are thoroughly familiar with Perl 5 references. You can insert
-Minivend tags inside the Perl code, though when using the new syntax,
-you will need to pass an INTERPOLATE=1 parameter to have tags inside
-[perl] and [/perl] interpreted. (In the old syntax, most tags are evaluated
-before [perl], though there are exceptions.)
+Object references are available for most MiniVend tags and 
+functions, as well as direct references to MiniVend session and
+configuration values.
 
-More often you will want to use the tag access routine B<&safe_tag>, which
-takes the tag name and any arguments as parameters. This has the advantage
-of only performing the operation when the code is executed. (A few tags can't
-be used with safe_tag, notably ones accessing a database that has not
-previously been accessed on the page.)
+  $CGI->{key}               Hash reference to raw submitted values
+  $CGI_array->{key}         Arrays of submitted values
+  $Carts->{cartname}        Direct reference to shopping carts
+  $Config->{key}            Direct reference to $Vend::Cfg
+  $DbSearch->array(@args)   Do a DB search and get results
+  $Document->header()       Writes header lines
+  $Document->send()         Writes to output
+  $Document->write()        Writes to page
+  $Scratch->{key}           Direct reference to scratch area
+  $Session->{key}           Direct reference to session area
+  $Tag->tagname(@args)      Call a tag as a routine (UserTag too!)
+  $TextSearch->array(@args) Do a text search and get results
+  $Values->{key}            Direct reference to user form values
+  $Variable->{key}          Config variables (same as $Config->{Variable});
+  &HTML($html)              Same as $Document->write($html);
+  &Log($msg)                Log to the error log
 
-Examples:
+For full descriptions of these objects, see I<MiniVend Programming>.
 
-    # Simple example, old syntax
-    [perl]
-    $comments = '[value comments]';
+If you wish to use database values in your Perl code, you must
+pre-open the table(s) you will be using. This can be done by including
+the table name in the C<tables> parameter of the Perl tag:
+
+    [perl tables=products]
+        $result = "You asked about $Values->{code}. Here is the description: ";
+        $result .= $Tag->data('products', 'description', $Values->{code});
+        return $result;
     [/perl]
 
-    # New syntax
-    # If the item might contain a single quote
-    [perl interpolate=1]
-    $comments = '[value comments escaped]';
-    [/perl]
-
-    # Another method to avoid escape problems
-    $comments = q{[value comments]};
-
-    # Works with all, only executed if code is reached
-    $comments = safe_tag('value', 'comments');
-
-This allows you to pass user-space variables for most needed
-operations. You can pass whole lists of items with constructs
-like:
-
-    # Perl ignores the trailing comma
-    my(%prices) = ( [item_list]
-                    '[item_code]', '[item-price]',
-                    [/item_list]);
-
-Even easier is the definition of a subroutine:
-
-    [set Thanks]
-    my($name, $number) = @_;
-    "Thanks, $name, for your order! The order number is $number.\n";
-    [/set]
-
-    # New syntax
-    [perl arg=sub interpolate=1]
-        Thanks ('[value name escaped]', '[value mv_order_number escaped]')
-    [/perl]
-
-    # Old syntax, depends on [value ...] interpolated before [perl]
-    [perl sub]
-        Thanks ('[value name escaped]', '[value mv_order_number escaped]')
-    [/perl]
-
-(The C<escaped> causes any single quotes which might be contained in the
-values to be escaped, preventing syntax errors in the case of a name like
-"O'Reilly".)
-
-The arguments that can be passed are any to all of:
-
-=over 4
-
-=item browser
-
-The browser string from the users browser, read-only. Referred
-to in your code as $Safe{browser}.
-
-=item carts
-
-Gives read-write access to all of the shopping carts. on order. This
-is an array of hashes, and includes the product code, quantity, and any
-modifiers you have specified.  Referred to in your code as a reference
-to the array, $Safe{items} or @{$Safe{items}}.
-
-    # Move contents of 'layaway' cart to main cart
-    $Safe{carts}->{main} = $Safe{carts}->{layaway};
-    $Safe{carts}->{main} = [];
-
-Careful with this -- you can lose the items on order with improper
-code, though syntax errors will be caught before the code is run.
-
-=item cgi
-
-Gives read-only access to the actual variables that were passed
-in the current CGI session. This is useful for testing what the
-user actually placed on the form, not just what MiniVend placed
-in the session. Called with
-
-  # Set if the user had a value for name in the *current* form
-  $name = $Safe{'cgi'}->{name};
-
-=item config
-
-Gives read-write access to the configuration of the catalog. USE WITH
-EXTREME CAUTION -- many of the variables are references to anonymous
-arrays and hashes. You can crash your catalog if you modify the wrong
-thing. Referred to in your code as $Safe{config}, a reference to the
-hash containing the configuration structure. If you use this, it
-is recommended that you refer frequently to the MiniVend source code.
-
-=item discount
-
-Gives read-write access to session discounts, an
-anonymous hash. Referred to in your code as $Safe->{discounts}.
-
-=item file
-
-If specified, the anchor text is a file name to read the Perl code from.
-This allows code to be maintained in separate files, though you need
-to remember that any MiniVend tags contained will generally not be
-interpolated (depending on interpolation order and use of the [[any]]
-and [post] modifiers). The file name is relative to the MiniVend base
-directory unless specified as an absolute path.
-
-=item frames
-
-The true/false value determining whether frames processing is
-enabled. Read-only -- you can set the value with [frames-off] or
-[frames-on]. Referred to in your code as $Safe{frames}.
-
-=item items
-
-Gives read-only access to the items on order, I<for the current cart>.
-This is an array of hashes, and includes the product code, quantity,
-and any modifiers you have specified. Referred to in your code as a
-reference to the array, $Safe{items} or @{$Safe{items}}.
-
-    # Product code of first item in cart
-    $item_code = $Safe{items}->[0]->{code};  
-
-    # Quantity for third item in cart
-    $item_code = $Safe{items}->[2]->{quantity};  
-
-    # Color of second item in cart
-    $item_code = $Safe{items}->[2]->{color};  
-
-=item scratch
-
-Gives read-write access to the scratch variables, a reference to an
-anonymous hash. Referred to in your code as $Safe{scratch}.
-
-=item sub
-
-If specified, the anchor text is a subroutine name and optional
-parameters to be passed. The subroutine can be defined in three
-ways; as a global subroutine (works for entire server); as a
-catalog-wide pre-defined subroutine; or in a scratchpad variable.
-All are called with the same syntax -- the arguments are passed
-in via the @_ argument array.
-
-B<IMPORTANT NOTE:> Global subroutines are not subject to the stringent
-security checking of the I<Safe> module, so almost anything goes
-there. The subroutine will be able to modify any variable in MiniVend,
-and will be able to write to read and write any file that the MiniVend
-daemon has permission to write. Though this gives great power, it should
-be used with caution. Careful! They are defined in the main minivend.cfg
-file, so should be safe from individual users in a multi-catalog system.
-
-Global subroutines are defined in I<minivend.cfg> with the
-I<GlobalSub> directive, or in user catalogs which have been
-enabled via I<AllowGlobal>. Global subroutines are much faster
-than the others as they are pre-compiled. (Faster still are I<UserTag>
-definitions.)
-
-Catalog subroutines are defined in I<catalog.cfg>, with
-the I<Sub> directive. They are subject to the stringent I<Safe.pm>
-security restrictions that are controlled by I<SafeUntrap>. If you
-wish to have default arguments supplied to them, use the I<SubArgs>
-directive.
-
-Scratch subroutines are defined in the pages, and are also subject
-to F<Safe.pm> checking. See the beginning of this section for an
-example of a subroutine definition. There is no "sub name { }" that
-surrounds it -- the subroutine is named from the name of the 
-scratch variable.
-
-=item values
-
-Gives read-write access to the user variables, including the MiniVend
-special variables, an anonymous hash. Referred to in your code as
-%{Safe{'values'}} or $Safe{'values'}->{variable}.
-
-    # Read the user's selected shipping mode
-    my $shipmode = $Safe{values}->{mv_shipmode};
-
-=back
-
-The code can be as complex as desired, but cannot use any operators
-that modify the file system or use "unsafe" operations like "system",
-"exec", or backticks. These constraints are enforced with the default
-permissions of the standard Perl module I<Safe> -- operations may
-be untrapped on a system-wide basis with the I<SafeUntrap> directive.
-
-The result of the tag will be the result of the last expression
-evaluated, just as in a subroutine. If there is a syntax error
-or other problem with the code, there will be no output.
-
-Here is a simple one which does the equivalent of the classic
-hello.pl program:
-
-    [perl] my $tmp = "Hello, world!"; $tmp; [/perl]
-
-Of course you wouldn't need to set the variable -- it is just there
-to show the capability.
-
-To echo the user's browser, but within some HTML tags:
-
-    [perl browser]
-    my $html = '<H5>';
-    $html .= $Safe{'browser'};
-    $html .= '</H5>';
-    $html;
-    [/perl]
-
-To show the user their name, and the current time:
-
-    [perl values]
-
-    my $string = "Hi, " . $Safe{values}->{'name'} ". The time is now ";
-    $string .= localtime;
-    $string;
-
-    [/perl]
-
-%%%
-post
-%%
-
-syntax: [post] DELAYED TAGS [/post]
-
-B<NOTE:> This is ignored if using the new syntax.
-
-Selects an area that will not be interpolated until after the rest of
-the page is interpolated. If followed by a number, will match a terminating
-[/post] tag with the corresponding number.
+If you do not do this, your code will fail with a runtime Safe
+error.
 
 %%%
 price
 %%
+
+Arguments:
+
+        code       Product code/SKU
+        base       Only search in product table *base*
+        quantity   Price for a quantity
+        discount   If true(1), check discount coupons and apply
+        noformat   If true(1), don't apply currency formatting
 
 Expands into the price of the product identified by code as found in
 the products database. If there is more than one products file defined,
@@ -2244,110 +2158,75 @@ For speed, MiniVend builds the code that is used to determine a product's
 price at catalog configuration time. If you choose to change a directive
 that affects product pricing you must reconfigure the catalog.
 
-There are several ways that MiniVend can modify the price of a product during 
-normal catalog operation. Several of them require that the I<pricing.asc>
-file be present, and that you define a pricing database. You do that by
-placing the following directive in I<catalog.cfg>:
+Quantity price breaks are configured by means of the I<CommonAdjust>
+directive. There are a number of CommonAdjust recipes which can be
+used; the standard example in the demo calls for a separate pricing
+table called C<pricing>. Observe the following:
 
-  Database  pricing pricing.asc 1
+   CommonAdjust  pricing:q2,q5,q10,q25, ;products:price, ==size:pricing
 
-Configurable directives and tags with regard to pricing:
+This says to check quantity and find the applicable
+column in the pricing database and apply it. In this case, it would be:
 
-=over 4
+    2-4      Column *q2*
+    5-9      Column *q5*
+    10-24    Column *q10*
+    25 up    Column *q25*
 
-=item *
+What happens if quantity is one? It "falls back" to the price that
+is in the table C<products>, column C<price>.
 
-Quantity price breaks are configured by means of the I<PriceBreaks> and
-I<MixMatch> directives. They require a field named specifically C<price>
-in the pricing database. The B<price> field contains a space-separated
-list of prices that correspond to the quantity levels defined in the
-F<PriceBreaks> directive. If quantity is to be applied to all items in
-the shopping cart (as opposed to quantity of just that item) then the
-I<MixMatch> directive should be set to B<Yes>.
+After that, if there is a size attribute for the product, the column
+in the pricing database corresponding to that column is checked for
+additions or subtractions (or even percentage changes).
 
-=item *
+If you use this tag in the demo:
 
-Individual line-item prices can be adjusted according to the value of
-their attributes. See I<PriceAdjustment> and I<CommonAdjust>. The
-pricing database B<must> be defined unless you define the F<CommonAdjust>
-behavior.
+    [price code=99-102 quantity=10 size=XL]
 
-=item *
+the price will be according to the C<q10> column, adjusted by what is in
+the XL column. (The row is of course 99-102.) The following entry in
+pricing:
 
-Product discounts for specific products, all products, or the entire
-order can be configured with the [discount ...] tag. Discounts are applied
-on a per-user basis -- you can gate the discount based on membership in a
-club or other arbitrary means. See I<Product Discounts>.
+  code    q2   q5   q10  q25  XL
+  99-102  10   9    8    7    .50
 
-=back
+Would yield 8.50 for the price. Quantity of 10 in the C<q10> column,
+with 50 cents added for extra large (XL).
 
-For example, if you decided to adjust the price of T-shirt part number
-99-102 up 1.00 when the size is extra large and down 1.00 when the size is small,
-you would have the following directives defined in <catalog.cfg>:
-
-  Database          pricing pricing.asc 1
-  UseModifier       size
-  PriceAdjustment   size
-
-To enable the automatic modifier handling of MiniVend 3.0, you would
-define a size field in products.asc:
+Following are several examples based on the above entry
+as well as this the entry in the C<products> table:
 
   code    description   price    size
   99-102  T-Shirt       10.00    S=Small, M=Medium, L=Large*, XL=Extra Large
 
-You would place the proper tag within your [item-list] on the shopping-basket
-or order page:
+NOTE: The examples below assume a US locale with 2 decimal places, use
+of commas to separate, and a dollar sign ($) as the currency formatting.
 
-    [item-accessories size]
+  TAG                                             DISPLAYS
+  ----------------------------------             ---------------------------
+  [price 99-102]                                  $10.00
+  [price code="99-102"]                           $10.00
+  [price code="99-102" quantity=1]                $10.00
+  [price code="99-102" noformat=1]                10
+  [price code="99-102" quantity=5]                $9.00
+  [price code="99-102" quantity=5 size=XL]        $9.50
+  [price code="99-102" size=XL]                   $10.50
+  [price code="99-102" size=XL noformat=1]        10.5
 
-In the pricing.asc database source, you would need:
+Product discounts for specific products, all products, or the entire
+order can be configured with the [discount ...] tag. Discounts are applied
+on a per-user basis -- you can gate the discount based on membership in a
+club or other arbitrary means.
 
-  code      S       XL
-  99-102    -1.00   1.00
+Adding [discount 99-102] $s * .9[/discount] deducts 10% from the
+price at checkout, but the price tag will not show that unless you
+add the discount=1 parameter.
 
-As of MiniVend 3.06, if you want to assign a price based on the option,
-precede the number with an equals sign:
+    [price code="99-102"]            -->   $10.00
+    [price code="99-102" discount=1] -->   $9.00
 
-  code    S       M       L       XL
-  99-102  =9.00   =10     =10     =11
-
-IMPORTANT NOTE: Price adjustments occur AFTER quantity price breaks, so
-the above would negate anything set with the I<PriceBreaks> directive/option.
-
-Numbers that begin with an equals sign (C<=>) are used as absolute
-prices and are I<interpolated for MiniVend tags first>, so you can
-use subroutines to set the price. To facilite coordination with the
-subroutine, the session variables C<item_code> and C<item_quantity> are
-set to the code and quantity of the item being evaluated. They would
-be accessed in a global subroutine with C<$Vend::Session->>C<{item_code}>
-and C<$Vend::Session->>C<{item_quantity}>.
-
-The pricing information must always come from a database because
-of security.
-
-See I<CommonAdjust> for another scheme that makes the same adjustment
-for any item having the attribute -- both schemes cannot be used at the
-same time. (This is true even if you were to change the value of 
-$Vend::Cfg->{CommonAdjust} in a subroutine -- the pricing algorithm
-is built at catalog configuration time.)
-
-%%%
-random
-%%
-
-Selects from the predefined random messages, and is stripped if none
-exist. See I<CONTROLLING PAGE APPEARANCE> in the MiniVend documentation.
-
-%%%
-rotate
-%%
-
-Selects from the predefined rotating banner messages, and is stripped if
-none exist. The optional C<ceiling> sets the highest number that will be
-selected -- likewise C<floor> sets the lowest. The default is to sequence
-through all defined rotating banners. Each user has a separate rotation
-pattern, and each floor/ceiling combination has a separate rotation
-value.
+See I<Product Discounts>.
 
 %%%
 row
@@ -2406,7 +2285,8 @@ currency formatting will be given.
 scratch
 %%
 
-Returns the contents of a scratch variable to the page.
+Returns the contents of a scratch variable to the page. (A scratch
+variable is set with a [set] value [/set] container pair.)
 
 %%%
 selected
@@ -2441,7 +2321,7 @@ selection
 set
 %%
 
-Sets a scratchpad variable to I<value>.
+Sets a scratch variable to I<value>.
 
 Most of the mv_* variables that are used for search and order conditionals are
 in another namespace -- they can be set by means of hidden fields in a
@@ -2463,6 +2343,9 @@ A search profile would be set with:
   [/set]
   <INPUT TYPE=hidden NAME=mv_profile VALUE="substring_case">
 
+Any of these profile values can be set in the OrderProfile files
+as well.
+
 %%%
 shipping
 %%
@@ -2483,145 +2366,10 @@ The text description of B<mode> -- the default is the
 shipping mode currently selected.
 
 %%%
-sql
-%%
-
-A complete array of arrays, suitable for I<eval> by Perl, can be returned
-by this query. This tag pair encloses any valid SQL query, and returns
-the results (if any) as a string representing rows and columns, in Perl
-array syntax. If placed in an embedded Perl area as:
-
- [perl]
-
-    my $string =<<'EOF';
- [sql array]select * from arbitrary where code <= '19'[/sql arbitrary]
-
- EOF
-    my $ary = eval $string;
-    my $out = '';
-    my $i;
-    foreach $i (@$ary) {
-        $out .= $i->[0];
-        $out .= "<BR>";
-    }
-    $out;
-
- [/perl]
-
-NOTE: The 'EOF' string terminator must START the line, and not
-have trailing characters. DOS users, beware of carriage returns!
-
-=head2 [sql ...]
-
-A complete hash of hashes, suitable for I<eval> by Perl, can be returned
-by this query. This tag pair encloses any valid SQL query, and returns
-the results (if any) as a string representing rows and columns, in Perl
-associative array, or hash, syntax. If placed in an embedded Perl area as:
-
- [perl]
-
-    my $string =<<'EOF';
- [sql hash]select * from arbitrary where code <= '19'[/sql]
-
- EOF
-    my $hash = eval $string;
-    my $out = '';
-    my $key;
-    foreach $key (keys %$hash) {
-        $out .= $key->{field1};
-        $out .= "<BR>";
-    }
-    $out;
-
- [/perl]
-
-=head2 [sql ...]
-
-This tag returns a set of HTML table rows with B<bold> field names at
-the top, followed by each row in a set of table cells. The <TABLE>
-and </TABLE> tags are not supplied, so you can set your own border
-and shading options. Example:
-
-  <TABLE BORDER=2>
-  [sql html]select * from arbitrary where code > '19' order by field2[/sql]
-  </TABLE>
-
-=head2 [sql ...]
-
-This tag differs from the rest in that it passes the query enclosed
-inside the tag itself. The enclosed text is then evaluated with the
-same method as with a loop list, with data items (in columns) iterated
-over for the contents of a list. The following snippet will place
-a three-column list in an HTML table:
-
-  <TABLE BORDER=2>
-  <TR><TH><B>SKU</B></TH><TH><B>Description</B></TH><TH><B>Price</B></TH>
-  [sql list
-    select * from arbitrary where code > '19' order by field2 ]
-  <TR>
-    <TD>[page [sql-code]][sql-code]</A></TD>
-    <TD>[sql-param 1]</TD>
-    <TD>[sql-param 2]</TD>
-  </TR>
-  [/sql]
-  </TABLE>
-
-It uses the same tags as in the [loop_list], except prefixed
-with C<sql>. Available are the following, in order of interpolation:
-
-  [sql_param n]        Field n of the returned query (in the row)
-  [if_sql_field fld]   Returns enclosed text only product field not empty
-  [/if_sql_field]      Terminator for above
-  [if_sql_data db fld] Returns enclosed text only if data field not empty
-  [/if_sql_field]      Terminator for above
-  [sql_increment]      Returns integer count of row
-  [sql_code]           The first field of each row returned
-  [sql_data db fld]    Database field for [sql_code]
-  [sql_description]    Product description for [sql_code]
-  [sql_field fld]      Product field for [sql_code]
-  [sql_link]           Same as item-link
-  [sql_price q*]       Price for [sql_code], optional quantity q
-
-=head2 [sql ...]
-
-A list of keys, or in fact any SQL fields, can be returned as a set of
-parameters suitable for passing to a program or list primitive. This tag pair
-encloses any valid SQL query, and returns the results (if any) as a series of
-space separated fields, enclosed in quotes. This folds the entire return
-into a single row, so it may be used as a list of keys.
-
-=head2 [sql ...]
-
-Any arbitrary SQL query can be passed with this method. No return
-text will be sent. This might be used for passing an order to an 
-order database, perhaps on the order report or receipt page. An
-example might be:
-
- [sql set]
-     insert into orders
-     values
-      ('[value mv_order_number]',
-       '[value name escape]',
-       '[value address escape]',
-       '[value city escape]',
-       '[value state escape]',
-       '[value zip escape]',
-       '[value phone escape]',
-       '[item-list]
-         Item: [item-code] Quan: [item-quantity] Price: [item-price]
-        [/item-list]'
-      )
- [/sql orders]
-
-The values entered by the user are escaped, which prevents errors if
-quote characters have slipped into their entry.
-
-%%%
 subtotal
 %%
 
-
-old: [subtotal cart* noformat*]
+Positional: [subtotal cart* noformat*]
 
 mandatory: NONE
 
@@ -2640,14 +2388,6 @@ Performs any of a number of operations, based on the presence of C<arg>.
 The arguments that may be given are:
 
 =over 4
-
-=item each database
-
-Returns a loop-list with every key in C<database> evaluated
-as the [loop-code]. This will return the key and field C<name>
-for every record in the C<products> database:
-
-    [tag each products][loop-code]  [loop-field name]<BR>[/tag]
 
 =item export database file* type*
 
@@ -2944,18 +2684,52 @@ fails. Defaults to the empty string.
 BEGIN
 %%
 
-=head1 MINIVEND TAG REFERENCE
+=head1 TITLE
 
-There are dozens of MiniVend pre-defined tag functions. If you don't see
+MML (Minivend Markup Language) TAG REFERENCE
+
+=head1 DESCRIPTION
+
+There are dozens of MML pre-defined tag functions. If you don't see
 just what you need, you can use C<USER DEFINED TAGS> to create tags just as
 powerful as the pre-defined ones.
 
-There are two styles of tag -- HTML/new, and old. Old style is a legacy
-from prior versions of MiniVend and is no longer in standard use, but
-its positional syntax can I<usually> still be used in New/HTML mode
-for convenience.
+There are two styles of supplying parameters to a tag -- named and
+positional. In addition, you can usually embed MiniVend tags within
+HTML tags.
 
-In the new style, you can specify constructs inside an HTML tag:
+In the named style you supply a parameter/value pair just as most
+HTML tags use:
+
+    [value name="foo"]
+
+The same thing can be accomplished for the C<[value]> tag with
+
+    [value foo]
+
+The parameter C<name> is the first positional parameter for the C<[value]>
+tag. Some people find positional usage simpler for common tags, and MiniVend
+interprets them somewhat faster. If you wish to avoid ambiguity you can
+always use named calling.
+
+In most cases, tags specified in the positional fashion will work
+the same as named parameters. The only time you will need to modify them
+is when there is some ambiguity as to which parameter is which (usually
+due to whitespace), or when you need to use the output of a tag as the
+attribute parameter for another tag.
+
+B<TIP:> This will not work:
+
+    [page scan se=[scratch somevar]]
+
+To get the output of the C<[scratch somevar]> interpreted, you must
+place it within a named and quoted attribute:
+
+    [page href=scan arg="se=[scratch somevar]"]
+
+
+MiniVend tags can be specified within HTML to make it easier to
+interface to some HTML editors. Consider:
 
     <TABLE MV="if items">
     <TR MV="item-list">
@@ -2981,25 +2755,6 @@ The same thing can be achieved with:
     [/item-list]</TABLE>
     [/if]
 
-To use the new more regular syntax by default, set the I<NewTags>
-directive to C<Yes>. The demo catalog is distributed with C<NewTags Yes>
-starting at MiniVend 3.07.
-
-In most cases, tags specified in the old positional fashion will work
-the same in the new style. The only time you will need to modify them
-is when there is some ambiguity as to which parameter is which (usually
-due to whitespace), or when you need to use the output of a tag as the
-attribute parameter for another tag.
-
-B<TIP:> This will not work in the new style as it did in the old:
-
-    [page scan se=[scratch somevar]]
-
-To get the output of the C<[scratch somevar]> interpreted, you must
-place it within a named and quoted attribute:
-
-    [page href=scan arg="se=[scratch somevar]"]
-
 What is done with the results of the tag depends on whether it is a
 I<container> or I<standalone> tag. A container tag is one which has
 an end tag, i.e. C<[tag] stuff [/tag]>. A standalone tag has no end
@@ -3008,57 +2763,374 @@ are B<not> container tags.)
 
 A container tag will have its output re-parsed for more MiniVend tags
 by default. If you wish to inhibit this behavior, you must explicitly
-set the attribute B<reparse> to 0. (Prior to MiniVend 3.09, B<reparse>
-did not exist.) Note that you will almost always wish the default action.
+set the attribute B<reparse> to 0.  Note that you will almost always
+wish the default action. The only container MML tag that doesn't have
+reparse set by default is C<[mvasp]>.
 
-With some exceptions ([include], [calc], [currency], and [buttonbar ..]
-among them) the output of a standalone tag will not be re-interpreted
-for MiniVend tag constructs. All tags accept the INTERPOLATE=1 tag
-modifier, which causes the interpretation to take place. It is frequent
-that you will B<not> want to interpret the contents of a [set variable]
-TAGS [/set] pair, as that might contain tags which should only be upon
-evaluating an order profile, search profile, or I<mv_click> operation. If
-you wish to perform the evaluation at the time a variable is set, you
-would use [set name=variable interpolate=1] TAGS [/set].
+With some exceptions ([include] is among them) among them) the
+output of a standalone tag will not be re-interpreted for MiniVend tag
+constructs. All tags accept the INTERPOLATE=1 tag modifier, which causes
+the interpretation to take place. It is frequent that you will B<not>
+want to interpret the contents of a [set variable] TAGS [/set] pair,
+as that might contain tags which should only be upon evaluating an
+order profile, search profile, or I<mv_click> operation. If you wish
+to perform the evaluation at the time a variable is set, you would use
+[set name=variable interpolate=1] TAGS [/set].
 
-To use the new syntax only on a particular page, place B<one> C<[new]>
-tag in your page. Likewise, to use old syntax when new is the default,
-place B<one> C<[old]> tag in the page.
+=head2 Looping tags and Sub-tags
 
-If you have regions of the page which work under the old style and fail
-with the new style, you can surround them with [compat] [/compat] tag
-pair. This will evaluate that region only with the old style repeated
-interpolation.
+Certain tags are not standalone; these are the
+ones that are interpreted as part of a surrounding looping tag
+like C<[loop]>, C<[item-list]>, C<[query]>, or C<[region]>.
+
+    [PREFIX-accessories]
+    [PREFIX-alternate]
+    [PREFIX-calc]
+    [PREFIX-change]
+    [PREFIX-change]
+    [PREFIX-code]
+    [PREFIX-data]
+    [PREFIX-description]
+    [PREFIX-discount]
+    [PREFIX-field]
+    [PREFIX-increment]
+    [PREFIX-last]
+    [PREFIX-match]
+    [PREFIX-modifier]
+    [PREFIX-next]
+    [PREFIX-param]
+    [PREFIX-price]
+    [PREFIX-quantity]
+    [PREFIX-subtotal]
+    [if-PREFIX-data]
+    [if-PREFIX-field]
+    [modifier-name]
+    [quantity-name]
+
+PREFIX represents the prefix that is used in that looping tag.
+They are only interpreted within their container and only accept
+positional parameters. The default prefixes:
+
+    Tag           Prefix     Examples
+    -----        --------   ----------
+    [loop]        loop       [loop-code], [loop-field price], [loop-increment]
+    [item-list]   item       [item-code], [item-field price], [item-increment]
+    [search-list] item       [item-code], [item-field price], [item-increment]
+    [query]       sql        [sql-code], [sql-field price], [sql-increment]
+
+Sub-tag behavior is consistent among the looping tags. 
+
+There are two types of looping lists; ARRAY and HASH.
+
+An array list is the normal output of a C<[query]>, a search, or a C<[loop]>
+tag. It returns from 1 to N C<return fields>, defined in the C<mv_return_fields>
+or C<rf> variable or implicitly by means of a SQL field list. The two 
+queries below are essentially identical:
+
+    [query sql="select foo, bar from products"]
+    [/query]
+
+    [loop search="
+                    ra=yes
+                    fi=products
+                    rf=foo,bar
+    "]
+
+Both will return an array of arrays consisting of the C<foo> column and
+the C<bar> column. The Perl data structure would look like:
+
+    [
+        ['foo0', 'bar0'],
+        ['foo1', 'bar1'],
+        ['foo2', 'bar2'],
+        ['fooN', 'barN'],
+    ]
+
+A hash list is the normal output of the [item-list] tag. It returns
+the value of all return fields in an array of hashes. A normal [item-list]
+return might look like:
+
+    [
+        {
+            code     => '99-102',
+            quantity => 1,
+            size     => 'XL',
+            color    => 'blue',
+            mv_ib    => 'products',
+        },
+        {
+            code     => '00-341',
+            quantity => 2,
+            size     => undef,
+            color    => undef,
+            mv_ib    => 'products',
+        },
+            
+    ]
+
+You can also return hash lists in queries:
+
+    [query sql="select foo, bar from products" type=hashref]
+    [/query]
+
+Now the data structure will look like:
+
+    [
+        { foo => 'foo0', bar => 'bar0' },
+        { foo => 'foo1', bar => 'bar1' },
+        { foo => 'foo2', bar => 'bar2' },
+        { foo => 'fooN', bar => 'barN' },
+    ]
+
+=over 4
+
+=item [PREFIX-accessories arglist]
+
+The same as the [accessories ...] tag except always supplied the current item
+code. If the list is a hash list, i.e. an [item-list], then the value of
+the current item hash is passed so that a value default can be established.
+
+=item [PREFIX-alternate N] DIVISIBLE [else] NOT DIVISIBLE [/else][/PREFIX-alternate]
+
+Set up an alternation sequence. If the item-increment is divisible by
+`N', the text will be displayed. If an `[else]NOT DIVISIBLE TEXT[/else]'
+is present, then the NOT DIVISIBLE TEXT will be displayed.
+    
+For example:
+
+    [item-alternate 2]EVEN[else]ODD[/else][/item-alternate]
+    [item-alternate 3]BY 3[else]NOT by 3[/else][/item-alternate]
+
+=item [PREFIX-calc] 2 + [item-field price] [/PREFIX-calc]
+
+Calls perl via the equivalent of the [calc] [/calc] tag pair. Much
+faster to execute.
+
+=item [PREFIX-change][conditoon] ... [/condition] TEXT [/PREFIX-change]
+
+Sets up a breaking sequence that occurs when the contents of 
+[condition] [/condition] change. The most common one is a category
+break to nest or place headers.
+
+The region is only output when a field or other repeating value between
+[condition] and [/condition] changes its value. This allows indented lists
+similar to database reports to be easily formatted.  The repeating value
+must be a tag interpolated in the search process, such as
+C<[PREFIX-field field]> or C<[PREFIX-data database field]>. If you need
+access to MML tags, you can use [PREFIX-calc] with a $Tag->foo() 
+call.
+
+Of course, this will only work as you expect when the search results
+are properly sorted.
+
+The value to be tested is contained within a
+C<[condition]value[/condition]> tag pair. The C<[PREFIX-change]> tag
+also processes an C<[else] [/else]> pair for output when the value does
+not change.
+
+Here is a simple example for a search list that has a field C<category> and
+C<subcategory> associated with each item:
+
+ <TABLE>
+ <TR><TH>Category</TH><TH>Subcategory</TH><TH>Product</TH></TR>
+ [search-list]
+ <TR>
+    <TD>
+         [item-change cat]
+ 
+         [condition][item-field category][/condition]
+ 
+                 [item-field category]
+         [else]
+                 &nbsp;
+         [/else]
+         [/item-change]
+    </TD>
+    <TD>
+         [item-change]
+ 
+         [condition][item-field subcategory][/condition]
+ 
+                 [item-field subcategory]
+         [else]
+                 &nbsp;
+         [/else]
+         [/on-change]
+    </TD>
+    <TD> [item-field name] </TD>
+ [/search-list]
+ </TABLE>
+
+The above should put out a table that only shows the category and
+subcategory once, while showing the name for every product. (The C<&nbsp;>
+will prevent blanked table cells if you use a border.)
+
+=item [PREFIX-code]
+
+The key or code of the current loop. In an [item-list] this is always
+the product code; in a loop list it is the value of the current argument;
+in a search it is whatever you have defined as the first mv_return_field (rf).
+
+=item [PREFIX-data table field]
+
+Calls the column C<field> in database table C<table> for the current
+[PREFIX-code]. This may or may not be equivalent to C<[PREFIX-field field]>
+depending on whether your search table is defined as one of the C<ProductFiles>.
+
+=item [PREFIX-description]
+
+The description of the current item, as defined in the C<catalog.cfg> directive
+C<DescriptionField>. In the demo, it would be the value of the field C<description>
+in the table C<products>.
+
+If the list is a hash list, and the lookup of C<DescriptionField> fails,
+then the attribute C<description> will be substituted. This is useful to 
+supply shopping cart descriptions for on-the-fly items.
+
+=item [PREFIX-discount]
+
+The price of the current item is calculated, and the difference between
+that price and the list price (quantity one) price is output. This may have
+different behavior than you expect if you set the [discount] [/discount]
+tag along with quantity pricing.
+
+=item [PREFIX-field]
+
+Looks up a field value for the current item in one of several places,
+in this order:
+
+    1. The first ProductFiles entry.
+    2. Additional ProductFiles in the order they occur.
+    3. The attribute value for the item in a hash list.
+    4. Blank
+
+A common user error is to do this:
+
+    [loop search="
+                    fi=foo
+                    se=bar
+                "]
+
+    [loop-field foo_field]
+    [/loop]
+
+In this case, you are searching the table C<foo> for a string
+of C<bar>. When it is found, you wish to display the value of C<foo_field>.
+Unless C<foo> is in C<ProductFiles> and the code is not present in a previous
+product file, you will get a blank or some value you don't want. What
+you really want is C<[loop-data foo foo_field]>, which specifically 
+addresses the table C<foo>.
+
+=item [PREFIX-increment]
+
+The current count on the list, starting from either 1 in a zero-anchored
+list like C<[loop]> or C<[item-list]>, or from the match count in a
+search list.
+
+If you skip items with [PREFIX-last] or [PREFIX-next], the count is NOT
+adjusted.
+
+=item [PREFIX-last] CONDITION [/PREFIX-last]
+
+If CONDITION evaluates true (a non-whitespace value that is not specifically
+zero) then this will be the last item displayed.
+
+=item [PREFIX-modifier attribute]
+
+If the item is a hash list (i.e. [item-list]), this will return the value
+of the C<attribute>.
+
+=item [PREFIX-next] CONDITION [/PREFIX-next]
+
+If CONDITION evaluates true (a non-whitespace value that is not specifically
+zero) then this item is skipped.
+
+=item [PREFIX-param name]
+
+=item [PREFIX-param N]
+
+Returns the array parameter associated with the looping tag row. Each
+looping list returns an array of C<return fields>, set in searches with
+C<mv_return_field> or C<rf>. The default is only to return the code of
+the search result, but by setting those parameters you can return more
+than one item.
+
+In a [query ...] MML tag you can select multiple return fields with
+something like:
+
+    [query prefix=prefix sql="select foo, bar from baz where foo=buz"]
+        [prefix-code]  [prefix-param foo]  [prefix-param bar]
+    [/query]
+
+In this case, [prefix-code] and [prefix-param foo] are synonymns, for
+C<foo> is the first returned parameter and becomes the code for this row.
+Another synonym is [prefix-param 0]; and [prefix-param 1] is the same
+as [prefix-param bar].
+
+=item [PREFIX-price]
+
+The price of the current code, formatted for currency. If
+MiniVend's pricing routines cannot determine the price (i.e. it is not
+a valid product or on-the-fly item) then zero is returned. If the list
+is a hash list, the price will be modified by its C<quantity> or other
+applicable attributes (like C<size> in the demo).
+
+=item [PREFIX-quantity]
+
+The value of the C<quantity> attribute in a hash list. Most commonly
+used to display the quantity of an item in a shopping cart [item-list].
+
+=item [PREFIX-subtotal]
+
+The [PREFIX-quantity] times the [PREFIX-price]. This does take discounts
+into effect.
+
+=item [if-PREFIX-data table field] IF text [else] ELSE text [/else] [/if-PREFIX-data]
+
+Examines the data field, i.e. [PREFIX-data table field], and if it is
+non-blank and non-zero then the C<IF text> will be returned. If it is false,
+i.e. blank or zero, the C<ELSE text> will be returned to the page.
+
+This is much more efficient than the otherwise equivalent
+C<[if type=data term=table::field::[PREFIX-code]]>.
+
+You cannot place a condition; i.e. [if-PREFIX-data table field eq 'something'].
+Use C<[if type=data ...]> for that.
+
+Careful, a space is not a false value!
+
+=item [if-PREFIX-field field] IF text [else] ELSE text [/else] [/if-PREFIX-field]
+
+Same as [if-PREFIX-data ...] except uses the same data rules as C<[PREFIX-field]>.
+
+=item [modifier-name attribute]
+
+Outputs a variable name which will set an appropriate variable name for setting
+the attribute in a form (usually a shopping cart). Outputs for successive items
+in the list:
+
+    1. attribute0
+    2. attribute1
+    3. attribute2
+
+etc.
+
+=item [quantity-name]
+
+Outputs for successive items in the list:
+
+    1. quantity0
+    2. quantity1
+    3. quantity2
+
+etc. C<[modifier-name quantity]> would be the same as C<[quantity-name]>.
+
+=back
 
 =head1 TAGS
 
-Each MiniVend tag is show below. Calling information is defined
-for the main tag. Certain tags are not standalone, i.e.:
-
-    [if-data ... ]
-    [if-field ... ]
-    [on-change ... ]
-    [item-... ]            --> [item-list], [fly-list], [search-list]
- 
-    [quantity-name ... ]
-    [modifier-name ... ]   --> [item-list]
-     
-    [on-change ... ]       --> [search-list]
-                          
-    [if-loop-... ]        
-    [loop-... ]            --> [loop]
-                          
-    [if-sql-... ]         
-    [sql-... ]             --> [sql]
-                          
-    [if-loop-... ]        
-    [loop-... ]            --> [loop]
-                          
-    [if-sql-... ]         
-    [sql-... ]             --> [sql]
-
-They are only interpreted within their container and are
-defined within the container.
+Each MML tag is show below. Calling information is defined for the main tag,
+sub-tags are described in C<Sub-tags>.
 
 
 %%%

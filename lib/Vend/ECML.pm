@@ -116,73 +116,15 @@ INIT: {
 
 local($^W) = 0;
 
-my $ecml_field_map = <<EOF;
-ecml	map_to	size	comment	widget	db	attribute	name
-Ecom_BillTo_Online_Email	b_email	40	email				
-Ecom_BillTo_Postal_City	b_city	22	city				
-Ecom_BillTo_Postal_CountryCode	b_country	2	country				
-Ecom_BillTo_Postal_Name_First	b_fname	15	first name				
-Ecom_BillTo_Postal_Name_Last	b_lname	15	last name				
-Ecom_BillTo_Postal_Name_Middle	b_mname	15	middle name				
-Ecom_BillTo_Postal_Name_Prefix	b_title	4	title				
-Ecom_BillTo_Postal_Name_Suffix	b_name_suffix	4	name suffix				
-Ecom_BillTo_Postal_PostalCode	b_zip	14	zip or postal code				
-Ecom_BillTo_Postal_StateProv	b_state	2	state or province				
-Ecom_BillTo_Postal_Street_Line1	b_address1	20	street1				
-Ecom_BillTo_Postal_Street_Line2	b_address2	20	street2				
-Ecom_BillTo_Postal_Street_Line3	b_address3	20	street3				
-Ecom_BillTo_Telecom_Phone_Number	b_phone_day	14	phone				
-Ecom_ConsumerOrderID	mv_order_number	20					
-Ecom_Payment_Card_ExpDate_Day	mv_credit_card_exp_day	2					
-Ecom_Payment_Card_ExpDate_Month	mv_credit_card_exp_month	2					
-Ecom_Payment_Card_ExpDate_Year	mv_credit_card_exp_year	4					
-Ecom_Payment_Card_Name	c_name	30	card				
-Ecom_Payment_Card_Number	mv_credit_card_number	19					
-Ecom_Payment_Card_Protocol	payment_protocols_available	20					
-Ecom_Payment_Card_Type	mv_credit_card_type	4					
-Ecom_Payment_Card_Verification	mv_credit_card_verify	4					
-Ecom_ReceiptTo_Online_Email	r_email	40	email				
-Ecom_ReceiptTo_Postal_City	r_city	22	city				
-Ecom_ReceiptTo_Postal_CountryCode	r_country	2	country				
-Ecom_ReceiptTo_Postal_Name_First	r_fname	15	first name				
-Ecom_ReceiptTo_Postal_Name_Last	r_lname	15	last name				
-Ecom_ReceiptTo_Postal_Name_Middle	r_mname	15	middle name				
-Ecom_ReceiptTo_Postal_Name_Prefix	r_title	4	title				
-Ecom_ReceiptTo_Postal_Name_Suffix	r_name_suffix	4	name suffix				
-Ecom_ReceiptTo_Postal_PostalCode	r_zip	14	zip or postal code				
-Ecom_ReceiptTo_Postal_StateProv	r_state	2	state or province				
-Ecom_ReceiptTo_Postal_Street_Line1	r_address1	20	street1				
-Ecom_ReceiptTo_Postal_Street_Line2	r_address2	20	street2				
-Ecom_ReceiptTo_Postal_Street_Line3	r_address3	20	street3				
-Ecom_ReceiptTo_Telecom_Phone_Number	r_phone	10	phone				
-Ecom_SchemaVersion	ecml_version	30					
-Ecom_ShipTo_Online_Email	email	40	email				
-Ecom_ShipTo_Postal_City	city	22	city				
-Ecom_ShipTo_Postal_CountryCode	country	2	country	select	country		
-Ecom_ShipTo_Postal_Name_Combined	name	40				name: :Ecom_ShipTo_Postal_Name_First,Ecom_ShipTo_Postal_Name_First,	
-Ecom_ShipTo_Postal_Name_First	fname	20	first name			name: :1
-Ecom_ShipTo_Postal_Name_Last	lname	20	last name			name: :0
-Ecom_ShipTo_Postal_Name_Middle	mname	3	middle name				
-Ecom_ShipTo_Postal_Name_Prefix	title	4	title				
-Ecom_ShipTo_Postal_Name_Suffix	name_suffix	4	name suffix				
-Ecom_ShipTo_Postal_PostalCode	zip	14	zip or postal code				
-Ecom_ShipTo_Postal_StateProv	state	2	state or province				
-Ecom_ShipTo_Postal_Street_Line1	address1	30	street1			address:, :1	
-Ecom_ShipTo_Postal_Street_Line2	address2	30	street2			address:, :2	
-Ecom_ShipTo_Postal_Street_Line3	address3	30	street3			address:, :3	
-Ecom_ShipTo_Telecom_Phone_Number	phone	14	phone				
-Ecom_TransactionComplete	end_transaction_flag	1					
-EOF
+	my $ecml_field_map;
 
 	my $ecml_map_fn;
-	if(-f $Global::Variable->{MV_ECML_FIELD_MAP}) {
-		$ecml_map_fn = $Global::Variable->{MV_ECML_FIELD_MAP};
-	}
-	elsif(-f "$Global::ConfigDir/ecml.map") {
-		$ecml_map_fn = "$Global::ConfigDir/ecml.map";
-	}
-	$ecml_field_map = Vend::Util::readfile($ecml_map_fn)
-		if defined $ecml_map_fn;
+	$ecml_map_fn = $Global::Variable->{MV_ECML_FIELD_MAP}
+				 || "$Global::ConfigDir/ecml.map";
+
+	$ecml_field_map = -s $ecml_map_fn 
+					? Vend::Util::readfile($ecml_map_fn)
+					: join "", <DATA>;
 
 	my (@fields) = split /\n/, $ecml_field_map;
 	my (@names) = split /\t/, shift @fields;
@@ -427,7 +369,7 @@ sub widget {
 	my $def = defined $ECML->{$self->{name}}
 				? $ECML->{$self->{name}}
 				: {};
-#::logError(Vend::Util::uneval($def));
+#::logDebug(Vend::Util::uneval($def));
 	my $name = defined $def->{ecml}
 				? $def->{ecml}
 				: $self->{name};
@@ -454,11 +396,13 @@ sub widget {
 
 	my $widget = $self->{widget} || $def->{widget} || 'text';
 
-#::logError ("ECML proposed widget='$widget' " . Vend::Util::uneval($def) );
+#::logDebug ("ECML proposed widget='$widget' " . Vend::Util::uneval($def) );
 	$widget = 'text' if ! $self->can($widget);
-#::logError ("ECML actual widget=$widget\n");
+#::logDebug ("ECML actual widget=$widget\n");
 
-	return $self->$widget($def, $value);
+	my $w = $self->$widget($def, $value);
+#::logDebug ("ECML widget returns: $w\n");
+	return $w;
 }
 
 sub mapback {
@@ -483,7 +427,7 @@ sub new {
 
 sub ecml {
 	my ($name, $function, $opt) = @_;
-#::logError("ecml name=$name func=$function opt=$opt");
+#::logDebug("ecml name=$name func=$function opt=$opt");
 	my $self = new Vend::ECML $opt;
 	$self->{name} = $name if $name;
 	$function = 'widget' unless $function;
@@ -495,7 +439,7 @@ sub ecml {
 		return undef unless $opt->{show};
 		return $::Scratch->{mv_ecml_error};
 	}
-#::logError(Vend::Util::uneval($self));
+#::logDebug(Vend::Util::uneval($self));
 	my $status = $self->$function();
 	if(! $status) {
 		$::Scratch->{mv_ecml_error} = $self->{failure}
@@ -522,3 +466,60 @@ Not really tested in real life yet. 8-)
 =cut
 
 1;
+
+__DATA__
+ecml	map_to	size	comment	widget	db	attribute	name
+Ecom_BillTo_Online_Email	b_email	40	email				
+Ecom_BillTo_Postal_City	b_city	22	city				
+Ecom_BillTo_Postal_CountryCode	b_country	2	country				
+Ecom_BillTo_Postal_Name_First	b_fname	15	first name				
+Ecom_BillTo_Postal_Name_Last	b_lname	15	last name				
+Ecom_BillTo_Postal_Name_Middle	b_mname	15	middle name				
+Ecom_BillTo_Postal_Name_Prefix	b_title	4	title				
+Ecom_BillTo_Postal_Name_Suffix	b_name_suffix	4	name suffix				
+Ecom_BillTo_Postal_PostalCode	b_zip	14	zip or postal code				
+Ecom_BillTo_Postal_StateProv	b_state	2	state or province				
+Ecom_BillTo_Postal_Street_Line1	b_address1	20	street1				
+Ecom_BillTo_Postal_Street_Line2	b_address2	20	street2				
+Ecom_BillTo_Postal_Street_Line3	b_address3	20	street3				
+Ecom_BillTo_Telecom_Phone_Number	b_phone_day	14	phone				
+Ecom_ConsumerOrderID	mv_order_number	20					
+Ecom_Payment_Card_ExpDate_Day	mv_credit_card_exp_day	2					
+Ecom_Payment_Card_ExpDate_Month	mv_credit_card_exp_month	2					
+Ecom_Payment_Card_ExpDate_Year	mv_credit_card_exp_year	4					
+Ecom_Payment_Card_Name	c_name	30	card				
+Ecom_Payment_Card_Number	mv_credit_card_number	19					
+Ecom_Payment_Card_Protocol	payment_protocols_available	20					
+Ecom_Payment_Card_Type	mv_credit_card_type	4					
+Ecom_Payment_Card_Verification	mv_credit_card_verify	4					
+Ecom_ReceiptTo_Online_Email	r_email	40	email				
+Ecom_ReceiptTo_Postal_City	r_city	22	city				
+Ecom_ReceiptTo_Postal_CountryCode	r_country	2	country				
+Ecom_ReceiptTo_Postal_Name_First	r_fname	15	first name				
+Ecom_ReceiptTo_Postal_Name_Last	r_lname	15	last name				
+Ecom_ReceiptTo_Postal_Name_Middle	r_mname	15	middle name				
+Ecom_ReceiptTo_Postal_Name_Prefix	r_title	4	title				
+Ecom_ReceiptTo_Postal_Name_Suffix	r_name_suffix	4	name suffix				
+Ecom_ReceiptTo_Postal_PostalCode	r_zip	14	zip or postal code				
+Ecom_ReceiptTo_Postal_StateProv	r_state	2	state or province				
+Ecom_ReceiptTo_Postal_Street_Line1	r_address1	20	street1				
+Ecom_ReceiptTo_Postal_Street_Line2	r_address2	20	street2				
+Ecom_ReceiptTo_Postal_Street_Line3	r_address3	20	street3				
+Ecom_ReceiptTo_Telecom_Phone_Number	r_phone	10	phone				
+Ecom_SchemaVersion	ecml_version	30					
+Ecom_ShipTo_Online_Email	email	40	email				
+Ecom_ShipTo_Postal_City	city	22	city				
+Ecom_ShipTo_Postal_CountryCode	country	2	country	select	country		
+Ecom_ShipTo_Postal_Name_Combined	name	40				name: :Ecom_ShipTo_Postal_Name_First,Ecom_ShipTo_Postal_Name_First,	
+Ecom_ShipTo_Postal_Name_First	fname	20	first name			name: :1
+Ecom_ShipTo_Postal_Name_Last	lname	20	last name			name: :0
+Ecom_ShipTo_Postal_Name_Middle	mname	3	middle name				
+Ecom_ShipTo_Postal_Name_Prefix	title	4	title				
+Ecom_ShipTo_Postal_Name_Suffix	name_suffix	4	name suffix				
+Ecom_ShipTo_Postal_PostalCode	zip	14	zip or postal code				
+Ecom_ShipTo_Postal_StateProv	state	2	state or province				
+Ecom_ShipTo_Postal_Street_Line1	address1	30	street1			address:, :1	
+Ecom_ShipTo_Postal_Street_Line2	address2	30	street2			address:, :2	
+Ecom_ShipTo_Postal_Street_Line3	address3	30	street3			address:, :3	
+Ecom_ShipTo_Telecom_Phone_Number	phone	14	phone				
+Ecom_TransactionComplete	end_transaction_flag	1					

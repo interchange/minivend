@@ -34,8 +34,12 @@
  * 
  */
 
-#define LINK_FILE      "/home/minivend/etc/socket"
+#define LINK_FILE      "~@~INSTALLARCHLIB~@~/etc/socket"
+/*#define LINK_FILE      "~_~LINK_FILE~_~"*/
 #define LINK_HOST      "127.0.0.1"
+/*#define LINK_HOST      "~_~LINK_HOST~_~"*/
 #define LINK_PORT      7786
-#define LINK_TIMEOUT   45
+/*#define LINK_PORT      ~_~LINK_PORT~_~*/
+#define LINK_TIMEOUT   30
+/*#define LINK_TIMEOUT   ~_~LINK_TIMEOUT~_~*/
 

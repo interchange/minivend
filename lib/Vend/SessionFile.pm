@@ -1,9 +1,8 @@
 # SessionFile.pm:  stores session information in files
 #
-# $Id: SessionFile.pm,v 1.7 1998/01/31 05:22:20 mike Exp $
+# $Id: SessionFile.pm,v 1.2 2000/02/06 01:51:34 mike Exp $
 #
-# Copyright 1996 by Andrew M. Wilcox <awilcox@world.std.com>
-# Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,12 +14,13 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+# You should have received a copy of the GNU General Public
+# License along with this program; if not, write to the Free
+# Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+# MA  02111-1307  USA.
 
 
-# $Id: SessionFile.pm,v 1.7 1998/01/31 05:22:20 mike Exp $
+# $Id: SessionFile.pm,v 1.2 2000/02/06 01:51:34 mike Exp $
 
 package Vend::SessionFile;
 require Tie::Hash;
@@ -30,11 +30,12 @@ use strict;
 use Vend::Util;
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.7 $, 10);
+$VERSION = substr(q$Revision: 1.2 $, 10);
 
 my $SessionDir;
 my $SessionFile;
 my $SessionLock;
+my %HaveLock;
 my $Last;
 my @Each;
 
@@ -46,38 +47,39 @@ sub TIEHASH {
 	bless {}, $self;
 }
 
+sub keyname {
+	return Vend::Util::get_filename(shift, 2, 1, $SessionDir);
+}
+
 sub FETCH {
 	my($self, $key) = @_;
-    $SessionFile = $SessionDir . "/$key";
-    $SessionLock = $SessionDir . "/LOCK_$key";
+    $SessionFile = keyname($key);
+    $SessionLock = $SessionFile . ".lock";
 	return undef unless -f $SessionFile;
 	my $str;
-	if($Global::Windows) {
-		open SESSION, $SessionFile
-			or return '';
-	}
-	else {
+	unless ($HaveLock{$SessionFile} || $Global::Windows) {
 		open(SESSIONLOCK, "+>>$SessionLock")
 			or die "Can't open '$SessionLock': $!\n";
-		open(SESSION, "+>>$SessionFile")
-			or die "Can't open '$SessionFile': $!\n";
-		lockfile(\*SESSION, 1, 1);
-
-		seek(SESSION, 0, 0) or die "Can't seek session: $!\n";
+		lockfile(\*SESSIONLOCK, 1, 1)
+			and $HaveLock{$SessionFile} = 1;
 	}
-    while(<SESSION>) {
-		$str .= $_;
-	}
-	#$self->{LEN} = length $str;
-	return $str;
+	my $ref = Vend::Util::eval_file($SessionFile);
+#::logDebug("retrieving from $SessionFile: " . ::uneval($ref));
+	return $ref;
 }
 
 sub FIRSTKEY {
 	my ($self) = @_;
-	opendir(SESSDIR, $SessionDir)
-		or die "Can't open session directory: $!\n";
-	@Each = grep !/^(\.|LOCK_)/, readdir SESSDIR; 
-	closedir SESSDIR;
+	require File::Find
+		or die "No standard Perl library File::Find!\n";
+	@Each = ();
+	File::Find::find( sub {
+						return if ! -f $File::Find::name;
+						return if $File::Find::name =~ /\.lock$/;
+						push @Each, $File::Find::name;
+					},
+					$SessionDir,
+	);
 	&NEXTKEY;
 }
 
@@ -89,36 +91,31 @@ sub NEXTKEY {
 }
 
 sub EXISTS {
-	return -f "$SessionDir/$_[1]";
+	return Vend::Util::exists_filename($_[1], 2, 1, $SessionDir);
 }
 
 sub DELETE {
 	my($self,$key) = @_;
-    my $filename = $SessionDir . "/$key";
-    my $lockname = $SessionDir . "/LOCK_$key";
-	(warn ("SessionFile.pm: $key not found.\n"), return 0) unless -f $filename;
-	unlink $filename or die "Couldn't delete key $key: $!\n";
+    my $filename = keyname($key);
+	unlink $filename;
 	return 1 if $Global::Windows;
-	unlink $lockname or die "Couldn't delete lock for key $key: $!\n";
+    my $lockname = $filename . ".lock";
+	unlink $lockname;
 }
 
 sub STORE {
-	my($self, $key, $val) = @_;
-    $SessionFile = $SessionDir . "/$key";
-    $SessionLock = $SessionDir . "/LOCK_$key";
-	close(SESSION);
+	my($self, $key, $ref) = @_;
+    $SessionFile = keyname($key);
+    $SessionLock = $SessionFile . ".lock";
     unlink $SessionFile;
-	if($Global::Windows) {
-		open SESSION, ">$SessionFile"
-        or die "Can't write '$SessionFile': $!\n";
+	unless ($HaveLock{$SessionFile} || $Global::Windows) {
+		open(SESSIONLOCK, "+>>$SessionLock")
+			or die "Can't open '$SessionLock': $!\n";
+		lockfile(\*SESSIONLOCK, 1, 1)
+			and $HaveLock{$SessionFile} = 1;
 	}
-	else {
-		open(SESSION, "+>$SessionFile")
-			or die "Can't open '$SessionFile': $!\n";
-	}
-    #seek(SESSION, 0, 0) or die "Can't seek session: $!\n";
-    #lockfile(\*SESSION, 1, 1);
-	print SESSION $val;
+#::logDebug("storing in $SessionFile: " . ::uneval($ref));
+	Vend::Util::uneval_file($ref,$SessionFile);
 }
 	
 sub DESTROY {

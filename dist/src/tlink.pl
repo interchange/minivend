@@ -1,7 +1,7 @@
 #!/usr/local/bin/perl -wT
 # tlink.pl: runs as a cgi program and passes request to Vend server
 #
-#   $Id: tlink.pl,v 1.2 1998/08/16 10:26:14 mike Exp $
+#   $Id: tlink.pl,v 1.1 1999/11/12 08:46:23 mike Exp $
 #
 # Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -15,16 +15,20 @@
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 #    General Public License for more details.
 #
-#    You should have received a copy of the GNU General Public License
-#    along with this program; if not, write to the Free Software
-#    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#    You should have received a copy of the GNU General Public
+#    License along with this program; if not, write to the Free
+#    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+#    MA  02111-1307  USA.
 
 require 5.002;
 use strict;
 use Socket;
-my $LINK_TIMEOUT = 45;
-my $LINK_PORT    = 7786;
+my $LINK_TIMEOUT = 30;
+#my $LINK_TIMEOUT = ~_~LINK_TIMEOUT~_~;
+my $LINK_PORT    = $ENV{MINIVEND_PORT} || 7786;
+#my $LINK_PORT    = $ENV{MINIVEND_PORT} || ~_~LINK_HOST~_~;
 my $LINK_HOST    = 'localhost';
+#my $LINK_HOST    = '~_~LINK_HOST~_~';
 my $ERROR_ACTION = "-notify";
 
 $ENV{PATH} = "/bin:/usr/bin";

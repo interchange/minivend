@@ -1,8 +1,8 @@
-# MiniVend V3.15
+# Minivend V4.x
 # 
-# Copyright 1996-1999 by Michael J. Heins <mikeh@minivend.com>
+# Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
-# Based on Vend 0.2
+# Originally based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox
 #
 # Portions from Vend 0.3
@@ -21,32 +21,23 @@
 #
 # You should have received a copy of the GNU General Public
 # License along with this program; if not, write to the Free
-# Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139,
-# USA.
+# Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+# MA  02111-1307  USA.
 
-Welcome to MiniVend, originally based on Vend.  This program is
-completely unsupported, without warranty of any kind. The author is
-interested in problems, suggestions, or comments, but does not have time
-to offer free individual support in most cases. See the MiniVend website at
-http://www.minivend.com/minivend/ for more information.
+Welcome to Minivend! This program is completely unsupported, without
+warranty of any kind. The author is interested in problems, suggestions,
+or comments, but does not have time to offer free individual support
+in most cases. See the Minivend website at http://www.minivend.com/
+for more information.
 
-   IMPORTANT NOTE:  MiniVend 3.15 requires Perl 5.004 or higher. It will
-                    run on no earlier version, period. 5.005 is recommended.
+IMPORTANT NOTE:  Minivend 4.0 requires, repeat REQUIRES, Perl 5.005 or Perl 5.6.
 
 The information you need is in the following files:
 
     README     Copyright info, roadmap to installation
                and pointers to support system
     
-    Copying    Your MiniVend license -- please read.
-
-    INSTALL    Installation instructions
-
-    UPGRADE    What to watch out for if updating from an earlier version
-
-    README.OS  OS-specific information, if any
-
-    doc/       The MiniVend documentation.
+    Copying    Your Minivend license -- please read.
 
     WHATSNEW   Change information for all versions in this
                version family.
@@ -55,86 +46,95 @@ The information you need is in the following files:
     
 Major files/directories in the distribution:
 
-    configure
-    configure.bat
-    Makefile.PL The installation scripts. Try typing "./configure"
-                or "configure" to install.
+    Makefile.PL The installation scripts
 
-    dist/       The distribution files, exclusive of library
-                modules. Includes:
+    dist/       The distribution files, exclusive of executable
+                files and modules. Includes:
 
                 minivend.cfg.dist   Distribution minivend.cfg
-                flycat/             The flycat demo application.
-                simple/             The simple demo application.
-                bin/                Executables including scripts
+                checkout/           Checkout-only demo application.
+                simple/             The not so aptly named "simple" demo
+				                    application.
                 src/                C and Perl code for CGI links
+				compat/             Some Minivend-3 compatibility tags
+				usertag/            Some fairly-standard usertags
 
-    doc/        The documentation.
+	extra/      Some not-always-needed Perl libraries.
 
-    lib/        The library modules needed to run MiniVend.
+    lib/        The library modules needed to run Minivend.
                  
+	scripts/    The executable files, relocated to bin in the run
+	            directory.
+
+	test.pl     The installation test script.
+
     win/        Windows-specific files
             
 --------------------------------------------------------------
 
                         M I N I V E N D
                                        
-   MiniVend is a full-featured electronic catalog system (commonly known
-   as a shopping cart) with online ordering capability. It is designed to
-   provide an interface complete with SSL security and full database
-   support.
+   Minivend is a full-featured electronic catalog system (commonly known
+   as a shopping cart) with online ordering capability. It is a high-end
+   database access and retrieval system with SQL support via the Perl DBI.
    
-   MiniVend is freely-redistributable under the GNU General Public
+   Minivend is freely-redistributable under the GNU General Public
    License -- you can download it via FTP.
 
-    MiniVend 3.0 Features
+    Minivend 4.0 Features
 
        * Users maintain a "shopping cart" for ordered items
        * Multiple independent or shared catalogs allow one server
          to run many storefronts or a "mall"
        * SSL support means secure and practical credit card ordering
-       * PGP support for secure off-site mailing of orders
+       * PGP and GPG support for secure off-site mailing of orders
+       * Complete addressable database support with virtually
+         unlimited rows and columns
+       * Complete SQL support via DBI
        * Catalogs can be of almost unlimited size with excellent
          performance
        * Multi-server mode for very high capacity on systems with
          sufficient memory
        * Cookie support allows browsers to leave catalog and come
          back without losing session state
-       * Complete addressable database support with virtually
-         unlimited rows and columns
-       * Complete SQL support including ODBC
+	   * Minimate web administration interface (separate package)
+	   * Complete user authentication and database with address
+	     books and stored shopping carts
        * Many, many, other features
 
     Powerful search capability
 
        * One-click scan and search -- build a whole search in a single HREF
+	   * Pageable results, configurable in many ways
        * Versatile built-in text search
-       * Complete Glimpse interface
+	   * Complete Glimpse support
        * Fast binary search
+       * Independent field search selection and return
        * Range searching, numeric and alphanumeric
        * Search sorting with reverse, numeric and case-insensitive options
-       * Independent field search selection and return
        * Search any file, build results from any database
 
     Complete control of appearance
 
-       * Full frames support
-       * Catalog pages automatically selected -- either built
-         "on the fly" from the database or pre-made for popular items
-       * The on-the-fly page is selectable from the database
-       * Embedded Perl and conditional HTML allow complex and
-         flexible catalog pages to be completely built from
-         the database
+	   * Over 90 predefined tag functions
+	   * Powerful user-definable tags
+	   * Catalog pages automatically selected -- either built
+	     "on the fly" from the database or pre-made for popular items
+	   * Embedded Perl and conditional HTML allow complex and
+	     flexible catalog pages to be completely built from the database
+	   * ASP-like syntax available
 
     Flexible Ordering Process
 
-        * Multi-level order screens with configurable field
+        * Single- or multi-level order screens with configurable field
           verification
         * Multiple shopping carts per catalog, allows both buy
           and sell operations
         * Shipping calculation, mixed modes, with UPS table lookup
         * Sales tax calculation, with fully independent non-taxable
           item and taxed shipping
+        * Route orders to multiple fulfillment houses with
+		  complete configurability
         * PGP encryption of credit card information or
           the entire emailed order
         * Fully-configurable discounts with coupons or
@@ -142,33 +142,15 @@ Major files/directories in the distribution:
         * Fully-configurable quantity pricing
         * Fully-configurable item price adjustments
         * Sophisticated back end order entry capability including CyberCash(R)
-        * Full client-side imagemap support, including frame targets and form
-          submits
         * Fully configurable order reports and receipts
 
-    Easy Administration
+    Miscellaneous
 
         * Automated installation and configuration
-        * Runs under Perl 5.004, Windows, and almost any UNIX
+        * Runs under Perl 5.005/5.6, Windows, and almost any UNIX
         * Designed to be secure
-        * Offline database builds
         * Static page build option for high performance
         * Works well with all browsers
-
-
--------------------------------------------------------------------
-
-                         D E M O
-
-There is a simple demo application included. 
-
-To install the demo, go to the MiniVend installation directory
-and run:
-
-    bin/makecat simple
-
-Follow the prompts and after restarting the MiniVend server you
-should be able to access the demo catalogs.
 
 -------------------------------------------------------------------
 
@@ -176,66 +158,63 @@ should be able to access the demo catalogs.
                               A N D
                      C O M P A T I B I L I T Y
 
-MiniVend has been well-tested on Solaris 2, SunOS, Linux, HP-UX,
-BSDI, FreeBSD, and OSF/Alpha. It also reportedly runs on SCO,
-AIX, and other Unix ports.  It should work on any UNIX or Win32
-OS with Perl 5.004 or higher.
+Minivend 4 has been tested on Solaris 2, Linux, FreeBSD, and Digital
+UNIX/Tru64. Its predecessor Minivend 3 also reportedly runs on SCO, AIX,
+and other Unix ports.  It should work on any UNIX or Win32 OS with Perl
+5.005 or higher.
 
-IMPORTANT NOTE FOR WINDOWS: MiniVend will NOT run with the early
-ActiveState ports, otherwise known as 5.003 build 1XX. It REQUIRES, repeat
-REQUIRES, the standard version Perl 5.004 or 5.005 ActiveState "merge"
-ports. See http://www.perl.com/ for information on how to obtain it.
-
-Windows does not support fork(), so the server runs in the foreground. You
-need the DB_File module for best results, and that is not included in the
-standard distribution. You can get it at http://www.perl.com/CPAN-local
-(or any CPAN archive) in the ports/win32/Standard/x86/ directory.
-
--------------------------------------------------------------
-
-                      I N S T A L L A T I O N
-
-WINDOWS INSTALLATION
---------------------
-
-    Obtain the self-extracting executable minivend-3.15.exe
-    and double-click on it. You MUST already have Perl 5.004
-    INSTALLED and in your PATH.
-
-    Alternatively, you can unzip the file yourself and run
-    "setup".
+Windows does not support fork(), so the server runs in the foreground. There
+are other differences; the canonical installation is UNIX.
 
 UNIX INSTALLATION
 ------------------
 Here is the short version:
 
-    gzip -dc minivend-3.15.tar.gz | tar xvf -
-    cd minivend-3.15
-    ./configure
-
-More information is in the file INSTALL.
+    gzip -dc minivend-4.xxx.tar.gz | tar xvf -
+    cd minivend-4*
+    perl Makefile.PL
+	make test && make install
 
 -- WHEN IN DOUBT, RE-START THE SERVER.  It won't take but a few
    seconds, and changes in configurable options don't take effect
    until it is done. You may even change a page and not see the
    effect until the server is restarted.
 
+WINDOWS INSTALLATION
+--------------------
+
+	Not yet. You can manually create a software directory and
+	get things going if you know your way around Perl. But I 
+	don't recommend trying unless you are prepared for some
+	serious work.
+
+-------------------------------------------------------------------
+
+                         D E M O
+
+There are two demo applications included; one is not so aptly named "simple",
+the other is "basic". For the best instructional experience, start
+with "basic" and then try "simple".
+
+To install the demo, go to the directory where you installed 
+Minivend (default is "mvend" in your home directory or /usr/local/minivend
+for root installations) and run:
+
+    bin/makecat basic
+
+	 or 
+
+	bin/makecat simple
+
+Follow the prompts and after restarting the Minivend server you
+should be able to access the demo catalog.
+
 -------------------------------------------------------------
 
                      D O C U M E N T A T I O N
 
-The documentation is in 3 files in the doc/ subdirectory of
-the main MiniVend directory:
-
-       toc.html       Table of contents
-       frtoc.html     Frames table of contents
-       minivend.html  Main documentation file
-
-These files will be copied to the same HTML directory as
-the simple demo gateway files -- they would normally
-be referenced as:
-
-           http:/www.yourserver.com/simple/toc.html
+The documentation is in several man pages and HTML files in the doc/
+subdirectory of the main Minivend directory.
 
 There is an extended documentation package available
 at www.minivend.com.
@@ -244,58 +223,10 @@ at www.minivend.com.
 
                     K N O W N   P R O B L E M S
 
-RedHat Linux 5.0:
-        RedHat Linux 5.0 has a bad Perl distribution that causes
-        problems with POSIX. The real solution is to obtain the
-        latest.tar.gz file from CPAN and build a new Perl. Here
-        is the script to do that once you have obtained the 
-        latest.tar.gz file:
-
-            tar xzf latest.tar.gz
-            cd perl5.005*
-            perl -pi.dist -e \
-                "s:/ bsd / /:/ net / /' | sed -e 's/ bsd / c g /:; \
-                s/^#(POSIX_cflags)/POSIX_cflags/" \
-                hints/linux.sh
-            ./Configure -des && make test
-
-        That should get you a Perl which passes make test
-        one hundred percent and that works with MiniVend and
-        other programs which use the POSIX library. After
-        you have verified the "make test" passes fully
-        you should of course su to root and "make install".
-
-        This may soon be corrected by the Perl porters or by
-        RedHat, so bear in mind this is time-sensitive. The above
-        works well as of Jun. 3, 1998.
-
-IRIX, Solaris, Digital UNIX:
-       The server may not terminate immediately,
-       as the select() call blocks signals. It
-       will stop at the next request, or at the
-       end of the occasional houskeeping
-       cycle, set by the directive HouseKeeping in
-       minivend.cfg. Set to less than 10 to achieve
-       decent response.
-
 BSDI, FreeBSD:
-       The BSDI library code is not safely re-entrant
-       when used in combination with signals, so no
-       signals are sent during server usage.  This is
-       transparent to the user.
+       If installing as root, you should use this procedure:
 
-       MiniVend may not as of this writing work with
-       BSDI 3.0 in UNIX mode, so you should use the INET
-       mode and the tlink program. This is the catalog
-       configurator default.
-
-       If the kernel parameter CHILD_MAX is not configured
-       above the default of 40, expect problems. Same with
-       SO_MAXCONN and some other kernel parameters. 
-
-Solaris:
-       It is STRONGLY RECOMMENDED that you update to Perl 5.005
-       when running on Solaris.
+	   	   perl Makefile.PL PREFIX=/usr/local/minivend
 
 Windows:
        Just a few things don't work the same as UNIX. See the
@@ -304,7 +235,7 @@ Windows:
 ---------------------------------------------------------------------
 
 I, the author, am very interested in learning your problems with
-MiniVend, and am interested in clarifying the documentation for
+Minivend, and am interested in clarifying the documentation for
 future improvements.  I am not much interested in BEING your
 documentation, though, unless you pay well and promptly. Please
 send kudos, comments, questions, and complaints to:
@@ -316,5 +247,10 @@ answer them all. The more research you do on your own the more likely
 I am to respond. Helpful suggestions and real bug reports are almost
 always acknowledged.
 
-Good luck with MiniVend!
+There is an active user support mail list, minivend-users@minivend.com,
+which has traffic of about 600-900 messages per month. To subscribe,
+send "subscribe minivend-users" in the *body* of a message to
+majordomo@minivend.com, or visit the mail list page at www.minivend.com.
+
+Good luck with Minivend!
 

@@ -1,7 +1,7 @@
 /* tlink.c:  runs as a cgi program and passes request to Vend server
 			 via TCP/IP 
 
-   $Id: tlink.c,v 1.5 1998/08/16 10:26:14 mike Exp $
+   $Id: tlink.c,v 1.1 1999/11/12 08:46:23 mike Exp $
 
    Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 
@@ -17,9 +17,10 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+   You should have received a copy of the GNU General Public
+   License along with this program; if not, write to the Free
+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+   MA  02111-1307  USA.
 
 */
 
@@ -169,16 +170,32 @@ static void open_socket()
   int i;
   int e;
   int r;
+  char* lhost;
+  char* lpstring;
+  int lport;
   unsigned int p; /* port */
   uid_t euid;
   gid_t egid;
 
 
-  p = (unsigned int) htons((unsigned short) LINK_PORT);
+  lhost = getenv("MINIVEND_HOST");
+  if(lhost == NULL) {
+  	lhost = LINK_HOST;
+  }
+
+  lpstring = getenv("MINIVEND_PORT");
+  if(lpstring != 0) {
+  	lport = atoi(lpstring);
+  }
+  else {
+  	lport = LINK_PORT;
+  }
+
+  p = (unsigned int) htons((unsigned short) lport);
 
   ServAddr.sin_port = p;
 
-  hp = get_the_host(LINK_HOST, &ip_address);
+  hp = get_the_host(lhost, &ip_address);
 
  	if(hp == NULL) {
 	    if (ip_address.s_addr == INADDR_NONE) {

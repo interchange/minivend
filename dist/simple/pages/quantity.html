@@ -1,9 +1,5 @@
-<HTML>
-[tag flag build][/tag]
 [loop arg="[data session arg]"]
-<HEAD><TITLE>[loop-description]</TITLE></HEAD>
-<CENTER>
-<BODY MV="body 1">
+[set page_title][loop-description][/set]
 __LOGOBAR__
 __MENUBAR__
 __LEFTSIDE__
@@ -11,7 +7,7 @@ __LEFTSIDE__
 [if-loop-field category][L]Category[/L]: [loop-field category][/if-loop-field]
 <P>
 [if-loop-field image]
-<IMG SRC="[loop-field image]">
+<IMG SRC="items/[loop-field image]">
 <P>
 [order [loop-code]][L]ORDER NOW[/L][/order]
 <P>
@@ -79,12 +75,8 @@ __LEFTSIDE__
 
 </CENTER>
 
-[/loop]
-
 __RIGHTSIDE__
 __MENUBOTTOM__
 __COPYRIGHT__
-
+[/loop]
 <!-- current page: @@MV_PAGE@@ -->
-</BODY>
-</HTML>
