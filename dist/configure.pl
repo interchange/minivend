@@ -361,7 +361,7 @@ properly. (If you know enough about UNIX and Perl to defeat this check,
 then you might know enough to get it running with 5.003. But personally
 I wouldn't try.)
 
-Please upgrade your Perl before installing MiniVend 3.12.
+Please upgrade your Perl before installing MiniVend 3.14-2.
 
 EOF
 

@@ -1,6 +1,6 @@
-# MiniVend V3.12
+# MiniVend V3.14-2
 # 
-# Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
+# Copyright 1996-1999 by Michael J. Heins <mikeh@minivend.com>
 #
 # Based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox
@@ -30,10 +30,8 @@ interested in problems, suggestions, or comments, but does not have time
 to offer free individual support in most cases. See the MiniVend website at
 http://www.minivend.com/minivend/ for more information.
 
-   IMPORTANT NOTE:  MiniVend 3.12 requires Perl 5.004 or higher.
-   (It will probably work with 5.003 on some UNIX systems and *may*
-   work with Perl 5.002 -- IF you comment out any lines which 
-   contain "use locale;". Neither are supported.)
+   IMPORTANT NOTE:  MiniVend 3.14-2 requires Perl 5.004 or higher. It will
+                    run on no earlier version, period. 5.005 is recommended.
 
 The information you need is in the following files:
 
@@ -43,6 +41,8 @@ The information you need is in the following files:
     Copying    Your MiniVend license -- please read.
 
     INSTALL    Installation instructions
+
+    UPGRADE    What to watch out for if updating from an earlier version
 
     README.OS  OS-specific information, if any
 
@@ -64,6 +64,7 @@ Major files/directories in the distribution:
                 modules. Includes:
 
                 minivend.cfg.dist   Distribution minivend.cfg
+                flycat/             The flycat demo application.
                 simple/             The simple demo application.
                 bin/                Executables including scripts
                 src/                C and Perl code for CGI links
@@ -178,24 +179,17 @@ should be able to access the demo catalogs.
 MiniVend has been well-tested on Solaris 2, SunOS, Linux, HP-UX,
 BSDI, FreeBSD, and OSF/Alpha. It also reportedly runs on SCO,
 AIX, and other Unix ports.  It should work on any UNIX or Win32
-OS with Perl 5.004 or higher. It may run with Perl 5.003 or
-Perl 5.002, but the author disavows all responsibility for
-the results.
+OS with Perl 5.004 or higher.
 
-IMPORTANT NOTE FOR WINDOWS: MiniVend will NOT run with the
-ActiveState port, otherwise known as 5.003 build 1XX. It
-REQUIRES, repeat REQUIRES, the standard version Perl 5.004. See
-http://www.perl.com/ for information on how to obtain it.
+IMPORTANT NOTE FOR WINDOWS: MiniVend will NOT run with the early
+ActiveState ports, otherwise known as 5.003 build 1XX. It REQUIRES, repeat
+REQUIRES, the standard version Perl 5.004 or 5.005 ActiveState "merge"
+ports. See http://www.perl.com/ for information on how to obtain it.
 
-Windows does not support fork(), so the server runs in the
-foreground. You need the DB_File module for best results,
-and that is not included in the standard distribution. You can
-get it at http://www.perl.com/CPAN-local (or any CPAN archive)
-in the ports/win32/Standard/x86/ directory.
-
-BSDI and FreeBSD are known to have problems with Perl socket
-code, which MiniVend relies heavily upon. You will probably
-need to run in INET/TLINK mode instead of UNIX/VLINK mode.
+Windows does not support fork(), so the server runs in the foreground. You
+need the DB_File module for best results, and that is not included in the
+standard distribution. You can get it at http://www.perl.com/CPAN-local
+(or any CPAN archive) in the ports/win32/Standard/x86/ directory.
 
 -------------------------------------------------------------
 
@@ -204,7 +198,7 @@ need to run in INET/TLINK mode instead of UNIX/VLINK mode.
 WINDOWS INSTALLATION
 --------------------
 
-    Obtain the self-extracting executable minivend-3.12.exe
+    Obtain the self-extracting executable minivend-3.14-2.exe
     and double-click on it. You MUST already have Perl 5.004
     INSTALLED and in your PATH.
 
@@ -215,8 +209,8 @@ UNIX INSTALLATION
 ------------------
 Here is the short version:
 
-    gzip -dc minivend-3.12.tar.gz | tar xvf -
-    cd minivend-3.12
+    gzip -dc minivend-3.14-2.tar.gz | tar xvf -
+    cd minivend-3.14-2
     ./configure
 
 More information is in the file INSTALL.
@@ -230,10 +224,11 @@ More information is in the file INSTALL.
 
                      D O C U M E N T A T I O N
 
-The documentation is in 2 files in the doc/ subdirectory of
+The documentation is in 3 files in the doc/ subdirectory of
 the main MiniVend directory:
 
        toc.html       Table of contents
+       frtoc.html     Frames table of contents
        minivend.html  Main documentation file
 
 These files will be copied to the same HTML directory as
@@ -241,6 +236,9 @@ the simple demo gateway files -- they would normally
 be referenced as:
 
            http:/www.yourserver.com/simple/toc.html
+
+There is an extended documentation package available
+at www.minivend.com.
 
 -------------------------------------------------------------
 
@@ -317,8 +315,8 @@ Solaris:
        when running on Solaris.
 
 Windows:
-       This is a new port, and just a few things don't work the
-       same as UNIX. See the README-win.txt file for more information.
+       Just a few things don't work the same as UNIX. See the
+       README-win.txt file for more information.
 
 ---------------------------------------------------------------------
 

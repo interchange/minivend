@@ -25,7 +25,7 @@ may fool any workarounds you have made), and these:
 
     * One gotcha has to do with the [page scan/se=whatever] tag
       in NewTags mode. You should change it to the proper
-	  [page scan se=whatever].
+      [page scan se=whatever].
 
     * DescriptionTrim is gone -- no biggie. 8-) If you did by
       some very strange chance use this, you will have to set a

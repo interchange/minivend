@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# MiniVend version 3.12
+# MiniVend version 3.14-2
 #
 # $Id: minivend,v 1.38 1999/02/12 12:24:23 mike Exp $
 #
@@ -151,7 +151,7 @@ sub debug {
 }
 
 BEGIN {
-	$VERSION = '3.14';
+	$VERSION = '3.14-2';
 }
 use strict;
 use Fcntl;
@@ -2202,6 +2202,57 @@ sub map_cgi {
 
 ## DISPATCH
 
+sub retire_id {
+	return if ! $Vend::Cfg->{RetireDBM};
+	my $id = shift;
+	tie_retired_dbm(1)
+		or do {
+			::logError( errmsg('retire_id',
+								"Tried to retire session ID %s and failed.",
+								$id)
+						);
+			return undef;
+		};
+	$Vend::RetireDBM{$id} = 1;
+	return;
+}
+
+sub tie_retired_dbm {
+	my $rw = shift;
+	untie(%Vend::RetireDBM) if $rw;
+	
+	my $flags;
+	if($Global::GDBM) {
+        $flags = $rw ? &GDBM_WRITER : &GDBM_READER;
+        $flags = &GDBM_NEWDB if ! -f "$Vend::Cfg->{RetireDBM}.gdbm";
+        tie(%Vend::RetireDBM,
+            'GDBM_File',
+            "$Vend::Cfg->{RetireDBM}.gdbm",
+            $flags,
+            $Vend::Cfg->{FileCreationMask},
+        )
+        or undef $Vend::Cfg->{RetireDBM};
+	}
+	elsif ($Global::DB_File) {
+        $flags = ($rw || ! -f "$Vend::Cfg->{RetireDBM}.db")
+					? &O_RDWR | &O_CREAT : &O_RDONLY;
+		tie(%Vend::RetireDBM,
+			'DB_File',
+			"$Vend::Cfg->{RetireDBM}.db",
+			$flags,
+			$Vend::Cfg->{FileCreationMask},
+			)
+		or undef $Vend::Cfg->{RetireDBM};
+	}
+	else {
+		dbmopen(%Vend::RetireDBM, $Vend::Cfg->{RetireDBM}, $Vend::Cfg->{FileCreationMask})
+			or undef $Vend::Cfg->{RetireDBM};
+	}
+	::logError("Failed to create RetireDBM $Vend::Cfg->{RetireDBM}")
+		if $rw && ! $Vend::Cfg->{RetireDBM};
+	return $Vend::Cfg->{RetireDBM} || undef;
+}
+
 # Parse the invoking URL and dispatch to the handling subroutine.
 
 sub dispatch {
@@ -2418,17 +2469,19 @@ EOF
 # END DEBUG
 
     if ($sessionid) {
+	    tie_retired_dbm if $Vend::Cfg->{RetireDBM};
 		$Vend::SessionID = $sessionid;
     	$Vend::SessionName = session_name();
 		get_session();
 		my $now = time;
 		if ($Vend::Session->{'expire'}) {
-			init_session() if
+			retire_id($sessionid), new_session() if
 				$now > $Vend::Session->{'expire'};
 				
 		}
 		elsif ($now - $Vend::Session->{'time'} > $Vend::Cfg->{'SessionExpire'}) {
-	    	init_session();
+	    	retire_id($sessionid);
+			new_session();
 		}
 		elsif($Vend::Cfg->{RobotLimit}) {
 			if ($now - $Vend::Session->{'time'} > 30) {
@@ -2454,7 +2507,7 @@ EOF
 				}
 			}
 		}
-
+	    untie(%Vend::RetireDBM) if $Vend::Cfg->{RetireDBM};
     }
 	else {
 		new_session();

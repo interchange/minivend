@@ -1,4 +1,4 @@
-# MiniVend V3.12
+# MiniVend V3.14-2
 # 
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
 #
@@ -27,15 +27,14 @@
 
     System Requirements:
 
-        * Windows 95 or Windows NT. Tested on Windows 95
-          and NT 4.0 workstation.
+        * Windows 95, 98 or Windows NT. Tested on Windows 95 OSR2.
 
-        * Perl 5.004 for Win32 -- accept no substitutes. THIS
+        * Perl 5.004 for Win32 or higher -- accept no substitutes. THIS
           PROGRAM WILL RUN ON NO EARLIER VERSION OF PERL. PERIOD.  It
-          will not run on the ActiveState port build 3xx series;
-          it does appear to run very well with the "Merge" version. The
-          version you need is also variously known as the "CORE",
-          "Standard", or "Gurusamy Sarathy" version.
+          will not run on the ActiveState port build 3xx series; it
+          does appear to run very well with the "Merge" of the build
+          500 series. The version you probably want is also variously
+          known as the "CORE", "Standard", or "Gurusamy Sarathy" version.
 
         * Web server. Almost any that has CGI capability
           should work. Tested on Microsoft Personal Web Server,
@@ -83,8 +82,21 @@
           at this writing. Install it according to the 
           instructions in the README.NOW file.
 
-          MiniVend will run without OK without DB_File, but
-          the user database will not be persistent.
+          If you have the ActiveState Perl 5.005, it should
+          work OK once you use the PPM (find it in your 
+          /perl/5.005XX/bin/ppm.pl) and get the following
+          modules:
+            
+                DB_File
+                MIME-Base64
+                libwww
+
+          The last two are to allow the new internal HTTP
+          server to work and provide a semi-GUI installation.
+
+          MiniVend might run without OK without DB_File, but
+          the user database will not be persistent and there
+          will be other anomalies.
 
        3. Obtain and install BLAT if you wish to 
           send emailed orders.
@@ -104,16 +116,16 @@
   
     Installation:
 
-    1. Download the minivend-3.12.exe distribution file
+    1. Download the minivend-3.14-2.exe distribution file
     and run it in the normal Windows fashion.
     
     ( If you don't want to execute the self-extracting ZIP file,
-      then you can obtain the standard minivend-3.12.tar.gz file and
+      then you can obtain the standard minivend-3.14-2.tar.gz file and
       install that instead. )
       
       You will have to obtain the CYGWIN.DLL file if you want to
       use TLINK.EXE as your link CGI. The standard distribution .EXE
-      file has it included -- the minivend-3.12-nodll.exe file
+      file has it included -- the minivend-3.14-2-nodll.exe file
       eliminates it.
 
     2. Select a directory to install MiniVend in -- it defaults
@@ -154,24 +166,23 @@
       * No fork() on Windows means that only one server
         can run at a time. This means multiple requests
         will be queued. In any case, lack of file locking
-        would mean big problems for multiple servers.
+        would mean big problems for multiple servers. Perl's
+        threading is too experimental to do the work required
+        to make MV thread-safe.
 
-      * The support scripts are mostly untested, and
-        some probably will not work. In particular, the
-        expire script must not be run while the server
+      * Since the server runs in the foreground, if you change
+        global variables in your embedded Perl you must be careful
+        to reset them. In particular, the FRAMES version of the 
+        3.14-2 demo will not work correctly.
+
+      * Some of the support scripts will not work, and some
+        might not behave as in the documentation. In particular,
+        the expire script must not be run while the server
         is running, as no file locking is available.
 
-      * You will need to close the DOS window to stop
-        the server, at least on Win95. 
-
-        If you obtain the excellent Cygnus GNU toolset
-        for Windows 95/NT, you can run bash.exe, enabling
-        you to start the server with:
-
-           perl /minivend/mvend/bin/minivend -serve &
-
-        You can then use the kill.exe program to kill the
-        server.
+      * You will need to hit Ctrl-C twice to stop the server
+        with some ports of Perl. If you can't stop the server,
+        close the DOS box.
 
       * Memory leaks in the Safe.pm module may mean that
         you will need to restart the server due to running

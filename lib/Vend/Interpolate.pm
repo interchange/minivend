@@ -947,7 +947,7 @@ sub conditional {
 		$op = database_field($d,$k,$f);
 # DEBUG
 #Vend::Util::logDebug
-#("tag_if db=$d fld=$f key=$k data=$data\n")
+#("tag_if db=$d fld=$f key=$k\n")
 #	if ::debug(0x1);
 # END DEBUG
 		$op = 'q{' . $op . '}' unless defined $noop;
@@ -959,7 +959,7 @@ sub conditional {
 		$op = product_field($f,$k);
 # DEBUG
 #Vend::Util::logDebug
-#("tag_if field fld=$f key=$k data=$data\n")
+#("tag_if field fld=$f key=$k\n")
 #	if ::debug(0x1);
 # END DEBUG
 		$op = 'q{' . $op . '}' unless defined $noop;
@@ -2158,7 +2158,7 @@ EOF
 sub tag_page {
     my($page, $arg, $secure, $opt) = @_;
 
-	return '<A HREF=' . form_link(@_) . '">' if defined $opt and $opt->{form};
+	return '<A HREF="' . form_link(@_) . '">' if defined $opt and $opt->{form};
 
 	if ($page eq 'scan') {
 		$page = escape_scan($arg);

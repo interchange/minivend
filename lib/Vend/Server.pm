@@ -689,9 +689,9 @@ sub server_both {
 
     setup_signals();
 
-	my $port;
+	my ($host, $port);
 	if($Global::Inet_Mode) {
-		my $host = $Global::TcpHost || '127.0.0.1';
+		$host = $Global::TcpHost || '127.0.0.1';
 		my @hosts;
 		$Global::TcpHost =~ s/\./\\./g;
 		$Global::TcpHost =~ s/\*/\\S+/g;

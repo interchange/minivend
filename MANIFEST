@@ -13,6 +13,7 @@ configure.htm
 dist/README
 dist/README-win.txt
 dist/README.OS
+dist/UPGRADE
 dist/WHATSNEW
 dist/admin/catalog.cfg
 dist/admin/etc/profiles

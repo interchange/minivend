@@ -1,6 +1,36 @@
 
                   W H A T ' S   N E W 
 
+MiniVend 3.14-2 is a simple bug-fix release close on the heels
+of the defective 3.14-1 (session id stuff not really fixed).
+
+    * Bug in session naming REALLY fixed, one which could cause users
+      information to be displayed to others.
+
+	  Keeps a DBM file of retired session ids.
+
+      If you use WideOpen, you should change your catalog.cfg
+      file to read:
+
+            SessionExpire 15 minutes
+
+MiniVend 3.14-1 is a simple bug-fix release.
+
+    * Bug in session naming fixed, one which could cause users
+      information to be displayed to others.
+
+      If you use WideOpen, you should change your catalog.cfg
+      file to read:
+
+            SessionExpire 15 minutes
+
+    * Debug mode somewhat fixed (thanks to Stefan Hornburg)
+
+    * [page form=...] fixed.
+
+    * Now correctly reads Apache httpd.conf parameters with
+      surrounding quotes.
+
 MiniVend 3.14 is a bug fix release with a couple of new features:
 
     * You can now specify a database in minivend.cfg. It becomes
@@ -39,16 +69,16 @@ MiniVend 3.14 is a bug fix release with a couple of new features:
 
         Database   products  WRITE_ALWAYS  1
 
-	  The default behavior of SQL datbases is equivalent to
-	  WRITE_ALWAYS, while the default for GDBM_File, DB_File,
-	  and Memory databases is equivalent to:
+      The default behavior of SQL datbases is equivalent to
+      WRITE_ALWAYS, while the default for GDBM_File, DB_File,
+      and Memory databases is equivalent to:
 
         Database   products  WRITE_CONTROL 1
         Database   products  WRITE_TAGGED  1
 
-	  As a side effect, I also removed the server error if a write
-	  fails on a DBM database. It simply doesn't write and logs
-	  the problem.
+      As a side effect, I also removed the server error if a write
+      fails on a DBM database. It simply doesn't write and logs
+      the problem.
 
     * Added a DbSearch.pm module which adds a new search type called
       "db". This searches a SQL database with MiniVend search types,
@@ -69,23 +99,23 @@ MiniVend 3.14 is a bug fix release with a couple of new features:
       are the same. It will not work well if they are different, so it will
       be rare when you want to search multiple tables.
 
-	Bug fixes:
+    Bug fixes:
 
-	* Set default for NewReport to "yes", which prevents the occasional
-	  problem with returning a bogus error report if mv_order_report is
-	  not set.
-	
-	* Fixed some weirdness in parsing certain search parameters, notably
-	  mv_sql_query and index search specifications.
+    * Set default for NewReport to "yes", which prevents the occasional
+      problem with returning a bogus error report if mv_order_report is
+      not set.
+    
+    * Fixed some weirdness in parsing certain search parameters, notably
+      mv_sql_query and index search specifications.
 
-	* Changed sort variables to globals so that sorting should be
-	  reliable. I hope.
+    * Changed sort variables to globals so that sorting should be
+      reliable. I hope.
 
-	* Fixed quantity problem for [price code].
+    * Fixed quantity problem for [price code].
 
-	* Made mv_order_subject work for order routing.
+    * Made mv_order_subject work for order routing.
 
-	* Order tracking now can be done in order routing.
+    * Order tracking now can be done in order routing.
 
 MiniVend 3.12 is a major release with multiple new features,
 particularly in the area of user access control.

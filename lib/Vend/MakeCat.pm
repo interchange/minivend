@@ -696,6 +696,7 @@ sub conf_parse_http {
 				$servers->{$servname}->{$directive} = {}
 					unless defined $servers->{$servname}->{$directive};
 				($key,$val) = split /\s+/, $param, 2;
+				$val =~ s/^"// and $val =~ s/"$//;
 				if (defined $Http_process{$directive}) {
 					$key = &{$Http_process{$directive}}('key', $key);
 					$val = &{$Http_process{$directive}}('value', $val);

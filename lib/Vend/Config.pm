@@ -315,6 +315,7 @@ sub catalog_directives {
     ['StaticFly',		 'yesno',     	     'No'],
     ['StaticLogged',	 'yesno',     	     'No'],
     ['StaticDir',		 undef,     	     ''], 
+    ['RetireDBM',		 undef,     	     'retire_id'], 
 	['UserDB',			 'locale',	     	 ''], 
 	['UserDatabase',	 undef,		     	 ''],  #undocumented
     ['AdminDatabase',	 'boolean',     	 ''], 

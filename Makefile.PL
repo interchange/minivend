@@ -26,7 +26,7 @@ my @mods_to_get;
 my $Lock_troubles;
 my $Windows;
 
-$VERSION = '3.12';
+$VERSION = '3.14-2';
 
 # See if we have the CPAN module
 my $Cpan = 0;
