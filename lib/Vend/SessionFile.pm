@@ -102,7 +102,7 @@ sub NEXTKEY {
 }
 
 sub EXISTS {
-#::logDebug("check existance $_[1]");
+#::logDebug("check existence $_[1]");
 	return Vend::Util::exists_filename($_[1], 2, 1, $SessionDir);
 }
 
