@@ -820,6 +820,20 @@ sub tag_data {
 			return '';
 		}
 	}
+	elsif($opt->{increment}) {
+#::logDebug("increment_field: key=$key field=$field value=$opt->{value}");
+		return increment_field($Vend::Database{$selector},$key,$field,$opt->{value} || 1);
+	}
+	elsif ($opt->{serial}) {
+		$field =~ s/\.(.*)//;
+		my $hk = $1;
+		return ed(
+					dotted_hash(
+						database_field($selector,$key,$field,$opt->{foreign}),
+						$hk,
+					)
+				);
+	}
 	elsif (defined $opt->{value}) {
 #::logDebug("alter table: table=$selector alter=$opt->{alter} field=$field value=$opt->{value}");
 		my $db = $Vend::Database{$selector};
@@ -863,20 +877,6 @@ sub tag_data {
 			return $orig if $opt->{serial};
 			return $result
 		}
-	}
-	elsif($opt->{increment}) {
-#::logDebug("increment_field: key=$key field=$field value=$opt->{value}");
-		return increment_field($Vend::Database{$selector},$key,$field,$opt->{value} || 1);
-	}
-	elsif ($opt->{serial}) {
-		$field =~ s/\.(.*)//;
-		my $hk = $1;
-		return ed(
-					dotted_hash(
-						database_field($selector,$key,$field,$opt->{foreign}),
-						$hk,
-					)
-				);
 	}
 	elsif ($opt->{hash}) {
 		my $db = ::database_exists_ref($selector);
