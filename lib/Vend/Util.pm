@@ -1045,11 +1045,14 @@ sub readin {
 			undef $contents;
 		}
 	}
-	foreach $try (
-					$Vend::Cfg->{PageDir},
-					@{$Vend::Cfg->{TemplateDir}},
-					@{$Global::TemplateDir}          )
-	{
+
+	my @dirs = ($Vend::Cfg->{PreviewDir},
+				$Vend::Cfg->{PageDir},
+				@{$Vend::Cfg->{TemplateDir}},
+				@{$Global::TemplateDir});
+
+	foreach $try (@dirs) {
+		next unless $try;
 		$dir = $try . "/" . $pathdir;
 		if (-f "$dir/.access") {
 			if (-s _) {
