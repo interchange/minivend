@@ -695,7 +695,7 @@ sub onfly {
 	my @parms;
 	my @fields;
 	$joiner = quotemeta $joiner;
-	@parms = split /$joiner/, $item_text;
+	@parms = split /$joiner|\0/, $item_text;
 	my ($k, $v);
 	my $item = {};
 	if(defined $split_fields) {
