@@ -56,7 +56,7 @@ sub display_special_page {
 
 	undef $Vend::write_redirect;
 
-	$name =~ m/[\[<]+/g
+	$name =~ m/[\[<]/
 		and do {
 			::logGlobal(
 					"Security violation -- scripting character in page name '%s'.",
@@ -65,7 +65,7 @@ sub display_special_page {
 			$name = 'violation';
 		};
 
-	$subject = $subject || 'unspecified error';
+	$subject ||= 'unspecified error';
 
 	my $noname = $name;
 	$noname =~ s:^\.\./::;
@@ -88,7 +88,9 @@ sub display_page {
 	my($name, $opt) = @_;
 	my($page);
 
-	$name =~ m/[\[<]+/g
+	$name ||= $CGI::values{mv_nextpage};
+
+	$name =~ m/[\[<]/
 		and do {
 			::logGlobal(
 					"Security violation -- scripting character in page name '%s'.",
@@ -97,8 +99,6 @@ sub display_page {
 			$name = 'violation';
 			return display_special_page($name);
 		};
-
-	$name = $CGI::values{mv_nextpage} unless $name;
 
 	if($Vend::Cfg->{ExtraSecure} and
 		$Vend::Cfg->{AlwaysSecure}->{$name}
