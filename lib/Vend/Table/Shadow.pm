@@ -78,8 +78,20 @@ sub close_table {
 
 sub columns {
 	my ($s) = shift;
-	$s = $s->import_db() if ! defined $s->[$OBJ];
+	$s = $s->import_db() unless defined $s->[$OBJ];
 	return $s->[$OBJ]->columns();
+}
+
+sub field {
+	my ($s, $key, $column) = @_;
+	my ($map, $locale);
+	
+	$s = $s->import_db() unless defined $s->[$OBJ];
+	$locale = $::Scratch->{mv_locale} || 'default';
+	if (exists $s->[$CONFIG]->{MAP}->{$column}->{$locale}) {
+		$column = $s->[$CONFIG]->{MAP}->{$column}->{$locale};
+	}
+	$s->[$OBJ]->field($key, $column);
 }
 
 sub ref {
