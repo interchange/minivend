@@ -1300,8 +1300,8 @@ EOF
 	$Vend::Calc_initialized = 0;
 	$CGI::values{mv_session_id} = $Vend::Session->{id} = $Vend::SessionID;
 	if(my $vspace = $CGI::values{mv_values_space}) {
-		$Vend::Session->{values_repository} ||= {};
 		$::Values = $Vend::Session->{values_repository}{$vspace} ||= {};
+		$Vend::ValuesSpace = $vspace;
 	}
 
 	if($Vend::Cfg->{CookieLogin} and ! $Vend::Session->{logged_in}) {
