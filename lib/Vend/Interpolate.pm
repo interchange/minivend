@@ -5322,7 +5322,7 @@ sub read_shipping {
 			}
 			my (@zone) = grep /\S/, split /[\r\n]+/, $ref->{zone_data};
 			if($zone[0] !~ /\t/) {
-				my $len = $ref->{str_len} || 3;
+				my $len = $ref->{str_length} || 3;
 				@zone = grep /\S/, @zone;
 				@zone = grep /^[^"]/, @zone;
 				$zone[0] =~ s/[^\w,]//g;
