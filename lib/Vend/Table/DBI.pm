@@ -491,16 +491,12 @@ sub set_field {
 	$key   = $s->quote($key, $s->[$KEY]);
 	$value = $s->quote($value, $column);
 	my $query;
-	if($s->record_exists($rawkey)) {
-		$query = <<EOF;
+	if(! $s->record_exists($rawkey)) {
+		$s->set_row($rawkey, $rawkey);
+	}
+	$query = <<EOF;
 update $s->[$TABLE] SET $column = $value where $s->[$KEY] = $key
 EOF
-	}
-	else {
-		$query = <<EOF;
-insert into $s->[$TABLE] ($s->[$KEY], $column) VALUES ($key, $value)
-EOF
-	}
 	$s->[$DBI]->do($query)
 		or die "$DBI::errstr\n";
 	return $rawval;

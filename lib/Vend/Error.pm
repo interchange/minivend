@@ -43,7 +43,7 @@ my $wantref = 1;
 
 sub get_locale_message {
 	my ($code, $message, @arg) = @_;
-	if (defined $Vend::Cfg->{Locale}{$code}) {
+	if ($Vend::Cfg->{Locale} and defined $Vend::Cfg->{Locale}{$code}) {
 		$message = $Vend::Cfg->{Locale}{$code};
 	}
 	elsif ($Global::Locale and defined $Global::Locale->{$code}) {
@@ -60,7 +60,7 @@ sub get_locale_message {
 			$message = $tmp if $tmp;
 		}
 	}
-	return sprintf($message, @arg) if ! defined $Vend::Cfg->{Locale}{$code}
+	return sprintf($message, @arg);
 }
 
 ## INTERFACE ERROR
