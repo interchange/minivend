@@ -2481,6 +2481,11 @@ sub log {
 	if($file =~ s/^\s*>\s*//) {
 		$opt->{create} = 1;
 	}
+	if($Global::NoAbsolute and (file_name_is_absolute($file) or $file =~ m#\.\./.*\.\.#)) {
+		::logError("Can't use file '%s' with NoAbsolute set", $file);
+		::logGlobal({ level => 'auth'}, "Can't use file '%s' with NoAbsolute set", $file);
+		return '';
+	}
 	$file = Vend::Util::escape_chars($file);
 
 	$file = ">$file" if $opt->{create};
@@ -5881,6 +5886,13 @@ sub timed_build {
 	elsif ($opt->{period}) {
 		$secs = Vend::Config::time_to_seconds($opt->{period});
 	}
+
+    if($Global::NoAbsolute and (file_name_is_absolute($file) or $file =~ m#\.\./.*\.\.#)) {
+	::logError("Can't use file '%s' with NoAbsolute set", $file);
+	::logGlobal({ level => 'auth'}, "Can't use file '%s' with NoAbsolute set", $file);
+	return '';
+    }
+    $file = Vend::Util::escape_chars($file);
 
     if( ! -f $file or $secs && (stat(_))[9] < (time() - $secs) ) {
         my $out = Vend::Interpolate::interpolate_html(shift);
