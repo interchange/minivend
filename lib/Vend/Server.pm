@@ -767,7 +767,9 @@ sub http_soap {
 
 	(undef, $Remote_addr) =
 				sockaddr_in(getpeername($fh));
-	$$env{REMOTE_HOST} = gethostbyaddr($Remote_addr, AF_INET);
+	if ($Global::HostnameLookups) {
+		$$env{REMOTE_HOST} = gethostbyaddr($Remote_addr, AF_INET);
+	}
 	$Remote_addr = inet_ntoa($Remote_addr);
 
 	$$env{REMOTE_ADDR} = $Remote_addr;
