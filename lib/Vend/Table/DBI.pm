@@ -1427,7 +1427,7 @@ sub row {
     $sth->execute($key)
 		or $s->log_error("%s execute error for %s: %s", 'row', $q, $DBI::errstr)
 		and return undef;
-	return @{$sth->fetchrow_arrayref()};
+	return @{ $sth->fetchrow_arrayref() || [] };
 }
 
 sub row_hash {
