@@ -4037,6 +4037,7 @@ sub tag_attr_list {
 	$body =~ s!\{($Codere)\s+($Some)\}! $hash->{$1} ? $2 : ''!eg;
 	$body =~ s!\{($Codere)\?\}($Some){/\1\?\}! $hash->{$1} ? $2 : ''!eg;
 	$body =~ s!\{($Codere)\:\}($Some){/\1\:\}! $hash->{$1} ? '' : $2!eg;
+	$body =~ s!\{(\w+)\:+(\w+)\:+(.*?)\}! tag_data($1, $2, $3) !eg;
 	return $body;
 }
 
