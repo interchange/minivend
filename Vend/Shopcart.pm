@@ -1,6 +1,6 @@
 # Shopcart.pm: utility functions for the shopping cart
 #
-# $Id: Shopcart.pm,v 1.2 1996/02/01 23:08:51 amw Exp $
+# $Id: Shopcart.pm,v 1.3 1996/02/26 22:01:39 amw Exp $
 #
 package Vend::Shopcart;
 
@@ -24,12 +24,14 @@ require Exporter;
 @ISA = qw(Exporter);
 @EXPORT_OK = qw(Shoplist cent_round currency create_table_placeholders
                 order_number option_list option_list_selected
-                get_field get_required_field add_url_ph shoplist_index_of
+                add_url_ph shoplist_index_of
                 save_field_values);
 
 use strict;
-use Vend::Directive qw(Data_directory);
+use Vend::Application;
+# use Vend::Directive qw(Data_directory);
 use Vend::Dispatch;
+use Vend::Form;
 use Vend::lock;
 use Vend::Page;
 use Vend::Session;
@@ -159,7 +161,7 @@ Returns an url to add the product $product_code to the shopping list.
 
 sub add_url_ph {
     my ($product_code) = @_;
-    return vend_url('add', {product => $product_code});
+    return page_url('/add', {product => $product_code});
 }
 
 =head2 C<shopcart_index_of($product_code)>
@@ -213,24 +215,6 @@ sub option_list_selected {
 }
 
 
-=head2 C<get_field($input, $field_name)>
-
-Returns the value of the $field_name from the form $input.  Returns
-undef if the field was not passed in from the form.
-
-=cut
-
-sub get_field {
-    my ($input, $field_name) = @_;
-
-    my $value_list = $input->{$field_name};
-    return undef unless defined $value_list;
-    report_error("More than one value passed for form variable '$field_name'")
-        if (@$value_list > 1);
-    return $value_list->[0];
-}
-
-
 sub save_field_values {
     my ($input, @field_names) = @_;
     my ($field_name, $v);
@@ -241,21 +225,5 @@ sub save_field_values {
     }
 }
 
-
-=head2 C<get_required_field($input, $field_name)>
-
-Returns the value of the $field_name from the form $input.  Raises
-an error if the field was not passed in from the form.
-
-=cut
-
-
-sub get_required_field {
-    my ($input, $field_name) = @_;
-    my $value = get_field($input, $field_name);
-    interaction_error("Missing form field '$field_name'")
-        unless defined $value;
-    return $value;
-}
 
 1;

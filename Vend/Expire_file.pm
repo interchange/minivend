@@ -1,8 +1,8 @@
-# Page: stub for either Page_compiled or Page_simple
+# Expire_file: creates the "expire" program to expire old sessions
 #
-# $Id
+# $Id: Expire_file.pm,v 1.1 1996/02/26 21:30:56 amw Exp $
 #
-package Vend::Page;
+package Vend::Expire_file;
 
 # Copyright 1996 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -20,22 +20,29 @@ package Vend::Page;
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-require Exporter;
-@ISA = qw(Exporter);
-@EXPORT = qw(define_placeholder page_code page_exists read_page);
-
 use strict;
+use Vend::Application;
 
-sub configure {
-    my ($class, $config) = @_;
-    my $implementation = $config->{'Implementation'};
+sub setup {
+    my $c = app_config();
+    my ($Bin_directory, $Config_file, $Perl_program, $Vend_lib) =
+        @$c{qw(Bin_directory Config_file Perl_program Vend_lib)};
 
-    my $impl_module = $implementation;
-    $impl_module =~ s,::,/,g;
+    my $fn = "$Bin_directory/expire";
 
-    require "$impl_module.pm";
-    # $implementation->import();
-    really_configure($config);
+    print "Creating $fn\n";
+    open(OUT, ">$fn") or die "Can't create '$fn': $!\n";
+
+    print OUT <<"END";
+#!$Perl_program -w
+use lib '$Vend_lib';
+use Vend::Setup;
+require '$Config_file';
+Vend::Session::expire_sessions();
+exit 0;
+END
+
+    chmod 0755, $fn or die "Can't chmod '$fn': $!\n";
 }
 
 1;

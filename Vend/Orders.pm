@@ -1,6 +1,6 @@
-# Orders.pm:  process a completed order
+# Orders.pm:  depreciated, process a completed order
 #
-# $Id: Orders.pm,v 1.14 1996/01/30 23:29:08 amw Exp $
+# $Id: Orders.pm,v 1.15 1996/02/26 21:34:24 amw Exp $
 #
 package Vend::Orders;
 
@@ -28,7 +28,7 @@ use strict;
 use Vend::Directive qw(App App_directory Data_directory Mail_order_to);
 use Vend::Dispatch;
 use Vend::lock;
-use Vend::Log;
+# use Vend::Log;
 use Vend::Sendmail;
 use Vend::Session;
 

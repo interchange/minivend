@@ -1,6 +1,6 @@
 # Dispatch.pm: dispatch URL to page or handler
 #
-# $Id: Dispatch.pm,v 1.10 1996/01/30 23:22:41 amw Exp $
+# $Id: Dispatch.pm,v 1.11 1996/02/26 21:28:31 amw Exp $
 #
 package Vend::Dispatch;
 
@@ -22,18 +22,26 @@ package Vend::Dispatch;
 
 require Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(http dispatch specify_action vend_url interaction_error
-             page_name display_page display_special_page
-             report_error);
+@EXPORT = qw(dispatch display_page display_special_page Dump_request http
+             interaction_error page_name page_url register_action report
+             report_error set_last_page specify_action vend_url);
 
 use strict;
-use Vend::Directive qw(Dump_request Default_page Page_URL
-                       Display_errors);
 require Vend::Http;
-use Vend::Log;
 use Vend::Page;
 use Vend::Session;
 use Vend::Uneval;
+
+my $Config;
+
+sub Display_errors { $Config->{'Display_errors'} }
+sub Dump_request   { $Config->{'Dump_request'} }
+sub Page_URL       { $Config->{'Page_URL'} }
+
+sub configure {
+    my ($class, $config) = @_;
+    $Config = $config;
+}
 
 =head1 NAME
 
@@ -41,36 +49,53 @@ Vend::Dispatch - dispatches HTTP request
 
 =head1 DESCRIPTION
 
-The dispatch() function accepts a URL and dispatches to an action
-function or displays the indicated catalog page.  
+Vend::Dispatch accepts a URL and determines what to do to make a
+response.  If the first component of the URL path is the name of a
+declared "action", the corresponding Perl subroutine is called to
+handle the request.  Otherwise the the named catalog page is
+displayed.
+
+Errors and warnings are trapped during the processing of the request.
+Either will generate a report in the error log file, including a
+traceback of which functions were called before the error occurred.
+Errors will cause a "technical difficulties" page to be displayed if
+the Display_errors configuration directive is false.  The error
+message will be returned to the browser if Display_errors is true.
+
+Dispatch makes a number of functions available to inquire about the
+request, and to generate a response.
+
+=head1 FUNCTIONS
+
+=head2 C<die($message)>
+
+Calling Perl's die() function will terminate processing of the current
+request and return to Vend::Dispatch.  The $message is saved in the
+error log file, along with information about the request, the session,
+and a traceback of called functions.  If a response has not yet been
+made to the browser, then Vend::Dispatch will either display a technical
+difficulties page (if Display_errors is false), or the error
+information (if Display_errors is true).
+
+=head2 C<warn($message)>
+
+Calling Perl's warn() function will save the $message in the error log
+file, along with information about the request, the session, and a
+traceback of called functions.
 
 =cut
 
-my $H;
-sub http { $H; }
+my $Http_obj;
 
-sub cgi_host {
-    my ($host);
+my $Reports;
 
-    $host = $H->Client_Hostname;
-    $host = $H->Client_IP_Address unless (defined $host && $host ne '');
-    $host = '' unless defined $host;
-    $host;
-}
+=head2 C<report($message)>
 
-sub cgi_user {
-    my ($user);
+Writes $message to the error log file, along with information about
+the request and the session.  Similar to calling Perl's warn()
+function, but does not generate a traceback of function calls.
 
-    $user = $H->Authenticated_User;
-    $user = $H->Client_Ident unless (defined $user && $user ne '');
-    $user = '' unless defined $user;
-    $user;
-}
-
-
-##
-
-my ($Reports);
+=cut
 
 sub report {
     my ($message) = @_;
@@ -121,7 +146,7 @@ sub dispatch {
     my ($query_string, $sessionid, @path, $action);
     my $abort = 0;
 
-    $H = $http;
+    $Http_obj = $http;
 
     $Vend::Message = '';
 
@@ -147,7 +172,8 @@ sub dispatch {
 
     my $initial_session = Session;
 
-    my ($error_traceback, @warnings, @warning_traceback, $eval_error);
+    my ($error_traceback, @warnings, @warning_traceback, $eval_error,
+        $abort_message);
 
     my $trace_error = sub {
         my ($msg) = @_;
@@ -173,9 +199,12 @@ sub dispatch {
         $@ = $saved_eval_error;
     }
 
-    undef $eval_error if $eval_error =~ m/^ABORT:/;
+    if ($eval_error =~ m/^ABORT: ([\000-\377]*)/m) {
+        $abort_message = $1;
+        undef $eval_error;
+    }
 
-    my $problem = $Reports || $eval_error || @warnings;
+    my $problem = $Reports || $eval_error || @warnings || $abort_message;
 
     my $report = '';
     if ($problem or Dump_request) {
@@ -193,6 +222,8 @@ sub dispatch {
         $report .= $eval_error if $eval_error;
         print $eval_error if $debug and $eval_error;
 
+        $report .= $abort_message if $abort_message;
+        print $abort_message if $debug and $abort_message;
     }
 
     if (Dump_request and not $eval_error) {
@@ -206,9 +237,9 @@ sub dispatch {
         $report .= join("\n", @warning_traceback) if @warnings;
     }
 
-    log_error $report . "\n" if $report;
+    print main::LOG $report . "\n" if $report;
 
-    if ($eval_error) {
+    if ($eval_error or $abort_message) {
         close_session(0);
         if (not http()->response_made) {
             if (Display_errors) {
@@ -224,8 +255,44 @@ sub dispatch {
         close_session(1);
     }
 
-    undef $H;
+    undef $Http_obj;
     $abort;
+}
+
+
+=head2 C<http()>
+
+Returns the Vend::Http object for the request.  It can be queried for
+HTTP fields passed by the browser, and for a passed entity if any.
+
+=cut
+
+sub http { $Http_obj; }
+
+sub cgi_host {
+    my ($host);
+
+    $host = http()->Client_Hostname;
+    $host = http()->Client_IP_Address unless (defined $host && $host ne '');
+    $host = '' unless defined $host;
+    $host;
+}
+
+sub cgi_user {
+    my ($user);
+
+    $user = http()->Authenticated_User;
+    $user = http()->Client_Ident unless (defined $user && $user ne '');
+    $user = '' unless defined $user;
+    $user;
+}
+
+
+my $Last_page;
+
+sub set_last_page {
+    my ($lp) = @_;
+    $Last_page = $lp;
 }
 
 
@@ -234,64 +301,39 @@ my %Action_table = ();
 sub act {
     my ($path, $args) = @_;
 
-    $path =~ s!^/!!;
+    $path =~ s,^/?,/,;
 
-    if ($path eq '') {
-        display_page(Default_page);
+    my ($act, $rest) = ($path =~ m!^ / ([^/]*) /? (.*) $!x);
+    my $action = $Action_table{$act};
+    if (defined $action) {
+        $Last_page = $args->{'lp'};
+        $Last_page = '/' unless defined $Last_page;
+        &$action($act, $rest, $args);
     }
-
     else {
-        my ($act, $rest) = ($path =~ m!^ ([^\/]*) /? (.*) $!x);
-        my $action = $Action_table{$act};
-        if (defined $action) {
-            &$action($act, $rest, $args);
-        }
-        else {
-            display_page($path);
-        }
+        $Last_page = $path;
+        display_page($path);
     }
 }
 
-# # depreciated
-# sub do_page {
-#     my ($name) = @_;
-# 
-#     display_page($name)
-#         and Session->{page} = $name;
-# }
 
-#     # If the cgi-bin program was invoked with no extra path info,
-#     # just display the catalog page.
-#     if (!@path) {
-#         display_page(Default_page);
-#     } else {
-#         $action = shift @path;
-#         run_action($action, $args, [@path])
-#             or display_page(join('/', $action, @path));
-#     }
+=head2 C<register_action($action_name, $code_ref)>
 
+Registers $action_name so that when a URL is requested that has that
+name as the first component, the $code_ref will be called to handle
+the request.
 
-## ACTIONS
+=cut
 
-sub specify_action {
+sub register_action {
     my ($action_name, $action_sub) = @_;
 
     $Action_table{$action_name} = $action_sub;
 }
 
-# sub run_action {
-#     my $action = shift;
-#     my $argument = shift;
-#     my @path = @_;
-# 
-#     my $sub = $Action_table{$action};
-#     if (defined $sub) {
-# 	&$sub($action, $argument, @path);
-# 	return 1;
-#     } else {
-# 	return 0;
-#     }
-# }
+
+sub specify_action { register_action(@_) }
+
 
 
 my $Current_page;
@@ -300,28 +342,70 @@ sub page_name {
     $Current_page;
 }
 
-## vend_url()
 
-# Returns a URL which will run the ordering system again.  Each URL
-# contains the session ID as well as a unique integer to avoid caching
-# of pages by the browser.
+=head2 vend_url($path, $args)
+
+Returns a URL refering to $path in the catalog, along with the session
+ID.  Additional arguments to include in the URL may be passed in a
+hash ref through $args.
+
+=cut
 
 sub vend_url {
     my ($path, $args) = @_;
 
+    $path =~ s,^/,,;
+    $path =~ s,/$,,;
+
     my %a = (defined $args ? %$args : ());
-    $a{se} = session_id();
-    $a{pg} = ++Session->{pageCount};
+    $a{'se'} = session_id();
+    $a{'pg'} = ++Session->{pageCount};
+    $a{'lp'} = $Last_page if defined $Last_page and not defined $a{'lp'};
     my $a = join('&', map($_ . "=" . $a{$_}, keys %a));
 
     Page_URL() . "/" . $path . "?" . $a;
 }
 
 
-## INTERACTION ERROR
+=head2 C<page_url($path, [$args])>
 
-# An incorrect response was returned from the browser, either because of a
-# browser bug or bad html pages.
+Returns the URL which references the specified catalog page.  Names
+that start with a "/" are absolute names, rooted in the
+C<Page_directory> as defined in the configuration.  Names that don't
+start with a "/" are relative to the current page being displayed.
+
+Using a relative page name serves the same purpose as using a relative
+URL in HTML.  The difference is that the location of the page is
+determined by Vend instead of by the browser.  page_url() always
+returns a fully qualified URL.
+
+=cut
+
+sub page_url {
+    my ($page, $args) = @_;
+    my ($path, $base);
+
+    if (($path) = ($page =~ m!^/(.*)!)) {
+        return vend_url($path, $args);
+    }
+    
+    ($base) = (page_name() =~ m!^(.*)/!);
+    if (defined $base) {
+        return vend_url($base . "/" . $page, $args);
+    } else {
+        return vend_url($page, $args);
+    }
+}
+
+
+=head2 interaction_error($message)
+
+Call interaction_error() if you did not receive the response you
+expected from the browser, such as missing form fields.  The
+"interact" special page is displayed.  interaction_error() calls
+die(), so it does not return.
+
+=cut
 
 sub interaction_error {
     my ($msg) = @_;
@@ -335,10 +419,9 @@ sub interaction_error {
 sub _display_page {
     my ($name) = @_;
 
-    my $code = page_code($name);
-    die "Missing page: $name\n" unless defined $code;
+    $name =~ s,^/?,/,;
     $Current_page = $name;
-    http()->respond("text/html", &$code());
+    http()->respond("text/html", read_page($name));
 }
 
 sub display_special_page {
@@ -348,14 +431,19 @@ sub display_special_page {
     _display_page($name);
 }
 
-# Displays the catalog page NAME.  If the file is not found, displays
-# the special page 'missing'.
+
+=head2 display_page($name)
+
+Displays the catalog page $name.  If the file is not found, displays
+the special page 'missing'.
+
+=cut
 
 sub display_page {
     my ($name) = @_;
     my ($text);
 
-    if (defined page_code($name)) {
+    if (page_exists($name)) {
         _display_page($name);
         return 1;
     }

@@ -1,6 +1,6 @@
 # Sendmail.pm:  sends an email message
 #
-# $Id: Sendmail.pm,v 1.6 1995/10/31 14:10:50 amw Exp $
+# $Id: Sendmail.pm,v 1.7 1996/02/26 21:42:10 amw Exp $
 #
 package Vend::Sendmail;
 
@@ -25,8 +25,13 @@ require Exporter;
 @EXPORT = qw(send_mail);
 
 use strict;
-use Vend::Directive qw(Sendmail_program);
 
+my $Config;
+sub Sendmail_program { $Config->{'Sendmail_program'} }
+
+sub configure {
+    $Config = $_[1];
+}
 
 # Send a mail message to the email address TO, with subject SUBJECT, and
 # message BODY.

@@ -1,33 +1,8 @@
-placeholder [price $product]
-
-    [currency [product-price $product]]
-
-
-placeholder [description $product]
-
-    [product-description $product]
-
-
 placeholder [page $pg] text [/page]
 
     <a href="[page-url $pg]">[text]</a>
 
 
-
 placeholder [order $product] text [/order]
 
-    <a href="[order-url $product]">[text]</a>
-
-
-
-placeholder [the-shopping-list-link]
-
-    \[<a href="[page-url "list"]">Shopping List</a>\]
-
-
-placeholder [ordered-item $product]
-
-    <br><input type="text" name="[quantity-name $product]"
-              value="[item-quantity $product]" size=4>
-        \$[price $product] <b>$product</b>
-        <i>[description $product]</i>
+    <a href="[add-url $product]">[text]</a>

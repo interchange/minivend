@@ -1,8 +1,8 @@
-# Page: stub for either Page_compiled or Page_simple
+# Setup.pm:  sets up application and configures modules
 #
-# $Id
+# $Id: Setup.pm,v 1.1 1996/02/26 22:00:32 amw Exp $
 #
-package Vend::Page;
+package Vend::Setup;
 
 # Copyright 1996 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -22,20 +22,38 @@ package Vend::Page;
 
 require Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(define_placeholder page_code page_exists read_page);
+@EXPORT = qw(initialize_modules module setup_modules);
 
 use strict;
 
-sub configure {
-    my ($class, $config) = @_;
-    my $implementation = $config->{'Implementation'};
+my @Modules;
 
-    my $impl_module = $implementation;
-    $impl_module =~ s,::,/,g;
+sub module {
+    my ($module_name, $config_hash) = @_;
 
-    require "$impl_module.pm";
-    # $implementation->import();
-    really_configure($config);
+    push @Modules, $module_name;
+
+    my $file = $module_name;
+    $file =~ s,::,/,g;
+    $file .= '.pm';
+    require $file;
+
+    $module_name->configure($config_hash)
+        if defined &{$module_name.'::configure'};
+}
+
+sub initialize_modules {
+    my $module;
+    foreach $module (@Modules) {
+        $module->initialize() if defined &{$module.'::initialize'};
+    }
+}
+
+sub setup_modules {
+    my $module;
+    foreach $module (@Modules) {
+        $module->setup() if defined &{$module.'::setup'};
+    }
 }
 
 1;

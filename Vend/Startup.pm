@@ -1,6 +1,6 @@
 # Startup.pm:  startup Vend program and process command line arguments
 #
-# $Id: Startup.pm,v 1.25 1996/02/01 23:09:53 amw Exp $
+# $Id: Startup.pm,v 1.27 1996/02/26 22:29:18 amw Exp $
 #
 package Vend::Startup;
 
@@ -20,6 +20,8 @@ package Vend::Startup;
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+BEGIN { require Vend::Session_file; }
+
 use Fcntl;
 use FileHandle;
 use Getopt::Long;
@@ -27,18 +29,18 @@ use POSIX;
 use strict;
 use Vend::Directive
       qw(App App_directory App_program Data_directory Modules Phd_directory
-         Perl_program Display_errors Read_permission Database
+         Perl_program Read_permission Database
          Session_expire Write_permission);
 use Vend::Dispatch;
 require Vend::Http;
 use Vend::lock;
-use Vend::Log;
+# use Vend::Log;
 use Vend::Page;
 use Vend::Server;
 use Vend::Session;
 use Vend::Uneval;
 
-my $Vend_version = "0.3.5";
+my $Vend_version = "0.3.6";
 
 my $Running_as_cgi_bin;
 my $Mode;
@@ -311,11 +313,16 @@ sub become_daemon {
 }
 
 sub initialize_session {
-    initialize_Session(Database,
-                       Data_directory,
-                       Session_expire,
-                       $File_creation_mask);
+    my $c = {%$main::Config};
+    $c->{'Session_directory'} = Data_directory . "/sessions";
+    initialize Vend::Session_file $c;
 }
+
+
+#    initialize_Session(Database,
+#                       Data_directory,
+#                       Session_expire,
+#                       $File_creation_mask);
 
 sub run_server {
     my ($debug) = @_;
@@ -335,8 +342,7 @@ sub run_server {
     my $next = server(Data_directory . "/socket", $debug);
 
     if (not $debug and $next eq 'reload') {
-        log_error(localtime().
-                  "\nServer restarting on signal HUP\n\n");
+        print main::LOG localtime(), "\nServer restarting on signal HUP\n\n";
         system(Perl_program() . " " . App_program . " -server &");
     }
     exit 0;
@@ -356,13 +362,13 @@ sub run_daemon_server {
 
     print "Vend ", App(), " server started (process id $$)\n";
 
-    open(STDOUT, ">&Vend::Log::ERROR");
+    open(STDOUT, ">&main::LOG");
     $| = 1;
-    open(STDERR, ">&Vend::Log::ERROR");
+    open(STDERR, ">&main::LOG");
     select(STDERR); $| = 1; select(STDOUT);
     close(STDIN);
 
-    log_error(localtime()."\nServer running on pid $$\n\n");
+    print main::LOG localtime(), "\nServer running on pid $$\n\n";
 
     # fcntl(PID, F_SETFD, 1)
     #    or die "Can't fcntl close-on-exec flag for '$Pid_file': $!\n";

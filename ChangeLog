@@ -1,3 +1,56 @@
+Mon Feb 26 22:29:18 1996  Andrew Wilcox  <awilcox@world.std.com>
+
+    * setup: Version 0.3.6.
+
+    * setup: Much simplified.
+
+    * Vend/Catalog.pm, Vend/Form.pm, Vend/Dispatch.pm: Doc update.
+
+    * Vend/Session_file.pm: Vend::Escape_filename renamed to Vend::Escape.
+
+    * Vend/Escape.pm:
+    Rename escape_string(), unescape_string() to escape_filename(),
+      unescape_filename().
+
+    * Vend/Util.pm (random_string): new function.
+
+    * Vend/Table/GDBM.pm:
+    Pack and unpack strings, so that tabs can be stored in fields.
+    Get 'File_permission_mode', 'Read_only', and 'Fast_write' from config
+      hash.
+    Store the column names in the GDBM file.
+
+    * Vend/Startup.pm:
+    Use main::LOG instead of log_error() and Vend::Log::ERROR.
+
+    * Vend/Shopcart.pm (add_url_ph): use page_url() instead of vend_url().
+    (get_field, get_required_field): moved to Form.pm.
+
+    * Vend/Server.pm (server): print to main::LOG filehandle instead of calling
+      log_error().
+
+    * Vend/Sendmail.pm (Sendmail_program, configure): new subs.
+
+    * Vend/Http.pm: Old Vend::form package code removed.
+
+    * Vend/Form.pm:
+    Import Dump_request() from Dispatch.
+    Rename specify_form() to register_form().
+    (expect_form): interaction_error() now dies instead of returning.
+    (get_field, get_required_field, get_field_values): new subs.
+
+    * Vend/Dispatch.pm:
+    Rename specify_action() to register_action().
+    (configure): new subroutine.
+    (dispatch): Catch die("ABORT: ").
+    (act): some support for last page.
+    (page_url): code moved here from Builtin.pm.
+    (display_page): use new page_exists().
+
+    * Vend/Builtin.pm (External_URL, configure): new subroutines.
+    (page_url_ph): code moved to Dispatch::page_url().
+    (default_page_url): removed.
+
 Thu Feb  1 23:09:53 1996  Andrew Wilcox  <awilcox@maine.com>
 
     * Vend/Startup.pm, setup: Version 0.3.5.

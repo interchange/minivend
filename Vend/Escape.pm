@@ -1,10 +1,10 @@
 # Escape.pm:  escapes dangerous characters in file names
 #
-# $Id: Escape.pm,v 1.3 1995/10/30 19:53:55 amw Exp $
+# $Id: Escape.pm,v 1.4 1996/02/26 22:13:37 amw Exp $
 #
 package Vend::Escape;
 
-# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+# Copyright 1995, 1996 by Andrew M. Wilcox <awilcox@world.std.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@ package Vend::Escape;
 
 require Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(escape_string unescape_string);
+@EXPORT = qw(escape_filename unescape_filename);
 
 my $Ok_in_filename = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' .
     'abcdefghijklmnopqrstuvwxyz' .
@@ -30,7 +30,7 @@ my $Ok_in_filename = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' .
     ':-_.$';
 my @Translate;
 
-sub setup {
+{
     my ($i, $a, $t);
 
     foreach $i (0..255) {
@@ -44,23 +44,21 @@ sub setup {
     }
 }
 
-setup();
-
 # Replace any characters that might not be safe in a filename (especially
 # shell metacharacters) with the %HH notation.
 
-sub escape_string {
+sub escape_filename {
     my ($in) = @_;
     my ($c, $r);
 
     $in =~ s/([^\Q$Ok_in_filename\E])/$Translate[ord($1)]/geo;
     $in =~ m/(.*)/;
-    $1;
+    return $1;
 }
 
 # Replace the escape notation %HH with the actual characters.
 
-sub unescape_string {
+sub unescape_filename {
     my($in) = @_;
 
     $in =~ s/%(..)/chr(hex($1))/ge;

@@ -1,9 +1,10 @@
-# $Id: Util.pm,v 1.6 1996/01/30 23:30:56 amw Exp $
+# $Id: Util.pm,v 1.7 1996/02/26 22:06:51 amw Exp $
 
 package Vend::Util;
 require Exporter;
 @ISA = qw(Exporter);
 @EXPORT = qw(combine blank wrap fill_table file_modification_time);
+@EXPORT_OK = qw(random_string);
 
 use strict;
 
@@ -12,6 +13,26 @@ use strict;
 #     ! eval { join('',@_), kill 0; 1; };
 # }
  
+## random_string
+
+# leaving out 0, O and 1, l
+my $random_chars = "ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+
+# Return a string of random characters.
+
+sub random_string {
+    my ($len) = @_;
+    $len = 8 unless $len;
+    my ($r, $i);
+
+    $r = '';
+    for ($i = 0;  $i < $len;  ++$i) {
+	$r .= substr($random_chars, int(rand(length($random_chars))), 1);
+    }
+    $r;
+}
+
+
 sub combine {
     my $r;
 

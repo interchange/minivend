@@ -1,3 +1,42 @@
 directive 'Mail_order_to';
 directive 'Shopping_list_page', 'list';
 directive 'Order_subsequent', 'list';
+
+package Catalog;
+
+use strict;
+require Vend::Table::GDBM;
+use Vend::Table::Import;
+use Vend::Util;
+
+my $New_product_gdbm;
+
+sub setup {
+    my ($config) = @_;
+
+    my $app = $config->value("App_directory");
+    my $data = $config->value("Data_directory");
+
+    $New_product_gdbm = "$data/new.product.gdbm";
+    my $product_txt = "$app/product.txt";
+    my $product_gdbm = "$data/product.gdbm";
+
+    if (! -e $product_gdbm
+        or file_modification_time($product_txt) >
+            file_modification_time($product_gdbm)) {
+
+        print "Importing product table\n";
+        import_ascii_delimited($product_txt, "\t", \&create_product_gdbm);
+        rename($New_product_gdbm, $product_gdbm)
+            or die "Couldn't move '$New_product_gdbm' to '$product_gdbm': $!\n";
+    }
+}
+    
+sub create_product_gdbm {
+    my (@columns) = @_;
+    return Vend::Table::GDBM->create_table({Fast_write => 1},
+                                           $New_product_gdbm,
+                                           [@columns]);
+}
+
+1;

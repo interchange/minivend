@@ -1,6 +1,6 @@
 # Table/GDBM.pm: access a table stored in a GDBM file
 #
-# $Id: GDBM.pm,v 1.5 1995/12/20 18:24:52 amw Exp $
+# $Id: GDBM.pm,v 1.6 1996/02/26 22:06:01 amw Exp $
 #
 package Vend::Table::GDBM;
 
@@ -24,65 +24,27 @@ use Carp;
 use strict;
 use GDBM_File;
 
-sub create_table {
-    my ($class, $filename, $columns, $file_mode, $fast) = @_;
-    $file_mode = 0666 unless defined $file_mode;
-    $fast = 0 unless defined $fast;
-
-    my $column_file = "$filename.columns";
-    my @columns = @$columns;
-    open(COLUMNS, ">$column_file")
-        or croak "Couldn't create '$column_file': $!";
-    print COLUMNS join("\t", @columns), "\n";
-    close(COLUMNS);
-
-    my $column_index = {};
+my @Hex_string;
+{
     my $i;
-    for ($i = 0;  $i < @columns;  ++$i) {
-        $column_index->{$columns[$i]} = $i;
+    foreach $i (0..255) {
+        $Hex_string[$i] = sprintf("%02X", $i);
     }
-
-    my $gdbm_file = "$filename.gdbm";
-    my $tie = {};
-    my $flags = GDBM_NEWDB;
-    $flags |= GDBM_FAST if $fast;
-    my $dbm = tie(%$tie, 'GDBM_File', $gdbm_file, $flags, $file_mode)
-        or croak "Could not open '$gdbm_file': $!";
-
-    my $self = [$filename, [@columns], $column_index, $tie, $dbm];
-    bless $self, $class;
 }
 
+sub stuff {
+    my ($val) = @_;
 
-sub open_table {
-    my ($class, $filename, $fast) = @_;
-    $fast = 0 unless defined $fast;
-
-    my $column_file = "$filename.columns";
-    open(COLUMNS, $column_file) or croak "Couldn't open '$column_file': $!";
-    my $columns = <COLUMNS>
-        or croak "Couldn't read columns from '$column_file': $!";
-    chomp $columns;
-    close(COLUMNS);
-    my @columns = split(/\t/, $columns);
-    croak "No columns listed in '$filename.columns'" unless @columns;
-
-    my $column_index = {};
-    my $i;
-    for ($i = 0;  $i < @columns;  ++$i) {
-        $column_index->{$columns[$i]} = $i;
-    }
-
-    my $gdbm_file = "$filename.gdbm";
-    my $tie = {};
-    my $flags = GDBM_WRITER;
-    $flags |= GDBM_FAST if $fast;
-    my $dbm = tie(%$tie, 'GDBM_File', $gdbm_file, $flags, 0600)
-        or croak "Could not open '$gdbm_file': $!";
-
-    my $self = [$filename, [@columns], $column_index, $tie, $dbm];
-    bless $self, $class;
+    $val =~ s,([\t\%]),$Hex_string[ord($1)],eg;
+    return $val;
 }
+
+sub unstuff {
+    my ($val) = @_;
+    $val =~ s,%(..),chr(hex($1)),eg;
+    return $val;
+}
+
 
 # 0: filename
 # 1: column names
@@ -90,30 +52,96 @@ sub open_table {
 # 3: tie hash
 # 4: dbm object
 
+my ($FILENAME, $COLUMN_NAMES, $COLUMN_INDEX, $TIE_HASH, $DBM) = (0 .. 4);
+
+sub create_table {
+    my ($class, $config, $filename, $columns, ) = @_;
+    my ($File_permission_mode, $Fast_write)
+        = @$config{'File_permission_mode', 'Fast_write'};
+    $File_permission_mode = 0666 unless defined $File_permission_mode;
+    croak "columns argument $columns is not an array ref\n"
+        unless ref($columns) eq 'ARRAY';
+
+    # my $column_file = "$filename.columns";
+    # my @columns = @$columns;
+    # open(COLUMNS, ">$column_file")
+    #    or croak "Couldn't create '$column_file': $!";
+    # print COLUMNS join("\t", @columns), "\n";
+    # close(COLUMNS);
+
+    my $column_index = {};
+    my $i;
+    for ($i = 0;  $i < @$columns;  ++$i) {
+        $column_index->{$columns->[$i]} = $i;
+    }
+
+    my $tie = {};
+    my $flags = GDBM_NEWDB;
+    $flags |= GDBM_FAST if $Fast_write;
+    my $dbm = tie(%$tie, 'GDBM_File', $filename, $flags, $File_permission_mode)
+        or croak "Could not create '$filename': $!";
+
+    $tie->{'c'} = join("\t", @$columns);
+
+    my $self = [$filename, $columns, $column_index, $tie, $dbm];
+    bless $self, $class;
+}
+
+
+sub open_table {
+    my ($class, $config, $filename) = @_;
+    my ($Fast_write, $Read_only) = @$config{'Fast_write', 'Read_only'};
+
+    my $tie = {};
+
+    my $flags;
+    if ($Read_only) {
+        $flags = GDBM_READER;
+    }
+    else {
+        my $flags = GDBM_WRITER;
+        $flags |= GDBM_FAST if $Fast_write;
+    }
+
+    my $dbm = tie(%$tie, 'GDBM_File', $filename, $flags, 0600)
+        or croak "Could not open '$filename': $!";
+
+    my $columns = [split(/\t/, $tie->{'c'})];
+
+    my $column_index = {};
+    my $i;
+    for ($i = 0;  $i < @$columns;  ++$i) {
+        $column_index->{$columns->[$i]} = $i;
+    }
+
+    my $self = [$filename, $columns, $column_index, $tie, $dbm];
+    bless $self, $class;
+}
+
 sub close_table {
     my ($s) = @_;
 
-    untie %{$s->[3]} or die "Could not close '$s->[0]': $!\n";
+    untie %{$s->[$TIE_HASH]} or die "Could not close '$s->[$FILENAME]': $!\n";
 }
 
 
 sub columns {
     my ($s) = @_;
-    @{$s->[1]};
+    return @{$s->[$COLUMN_NAMES]};
 }
 
 sub column_index {
     my ($s, $column) = @_;
-    my $i = $s->[2]{$column};
+    my $i = $s->[$COLUMN_INDEX]{$column};
     croak "There is no column named '$column'" unless defined $i;
-    $i;
+    return $i;
 }
 
 sub row {
     my ($s, $key) = @_;
-    my $line = $s->[3]{$key};
+    my $line = $s->[$TIE_HASH]{"k$key"};
     croak "There is no row with index '$key'" unless defined $line;
-    return split(/\t/, $line, 9999);
+    return map(unstuff($_), split(/\t/, $line, 9999));
 }
 
 sub field_accessor {
@@ -138,8 +166,8 @@ sub field_settor {
 
 sub set_row {
     my ($s, $key, @fields) = @_;
-    my $line = join("\t", @fields);
-    $s->[3]{$key} = $line;
+    my $line = join("\t", map(stuff($_), @fields));
+    $s->[$TIE_HASH]{"k$key"} = $line;
 }
 
 sub field {
@@ -156,29 +184,30 @@ sub set_field {
 
 sub each_record {
     my ($s) = @_;
-    my @a = each %{$s->[3]};
-    if (@a) {
-        return ($a[0], split(/\t/, $a[1], 9999));
-    }
-    else {
-        return ();
+    my ($key, $value);
+
+    for (;;) {
+        ($key, $value) = each %{$s->[3]};
+        if (defined $key) {
+            if ($key =~ s/^k//) {
+                return ($key, map(unstuff($_), split(/\t/, $value, 9999)));
+            }
+        }
+        else {
+            return ();
+        }
     }
 }
 
 sub record_exists {
     my ($s, $key) = @_;
-    $s->[4]->exists($key);
+    $s->[$DBM]->exists("k$key");
 }
 
 sub delete_record {
     my ($s, $key) = @_;
 
-    delete $s->[3]{$key};
-}
-
-sub clear_table {
-    my ($s) = @_;
-    %{$s->[3]} = ();
+    delete $s->[$TIE_HASH]{"k$key"};
 }
 
 1;

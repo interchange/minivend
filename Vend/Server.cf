@@ -1,6 +1,6 @@
 # Server.cf:  configuration for Server.pm
 #
-# $Id: Server.cf,v 1.5 1995/11/10 15:22:22 amw Exp $
+# $Id: Server.cf,v 1.6 1996/02/26 21:42:47 amw Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -23,7 +23,7 @@ directive('Link_file', sub { $C->value('Data_directory') . "/socket" });
 
 package Vend::Server;
 
-sub config {
+sub setup {
     my ($C) = @_;
     my $data = $C->value('Data_directory');
     my $bin = $C->value('Bin_directory');

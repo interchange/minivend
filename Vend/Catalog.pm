@@ -1,6 +1,6 @@
 # Catalog.pm: on-line ordering abstract class
 #
-# $Id: Catalog.pm,v 1.18 1995/12/15 20:06:14 amw Exp $
+# $Id: Catalog.pm,v 1.19 1996/02/26 21:18:45 amw Exp $
 #
 package Vend::Catalog;
 
@@ -20,6 +20,14 @@ package Vend::Catalog;
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+=head1 NAME
+
+Vend::Catalog - depreciated Catalog class
+
+This class is depreciated in favor of Vend::Shopcart, but is retained
+for compatibility with existing storefronts.
+
+=cut
 use strict;
 use Vend::Directive qw(Default_page Shopping_list_page Order_subsequent);
 use Vend::Dispatch;

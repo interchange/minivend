@@ -1,6 +1,6 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.14 1996/01/30 23:23:59 amw Exp $
+# $Id: Server.pm,v 1.15 1996/02/26 21:44:08 amw Exp $
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -54,9 +54,8 @@ require Exporter;
 
 use Socket;
 use strict;
-use Vend::Directive qw(Display_errors Perl_program App Data_directory
-                       App_program);
-use Vend::Log;
+use Vend::Directive qw(Perl_program App Data_directory App_program);
+# use Vend::Log;
 
 sub _read {
     my ($in) = @_;
@@ -216,29 +215,11 @@ sub server {
     restore_signals();
 
     if ($Signal_Terminate) {
-        log_error(localtime()."\nServer terminating on signal TERM\n\n");
+        print main::LOG localtime(), "\nServer terminating on signal TERM\n\n";
         return 'terminate';
     }
     return 'reload' if $Signal_Reload || $abort;
     return '';
 }
-
-
-# sub debug {
-#     my ($x, $y);
-#     for (;;) {
-#         print "> ";
-#         $x = <STDIN>;
-#         return if $x eq "\n";
-#         $y = eval $x;
-#         if ($@) {
-#             print $@, "\n";
-#         }
-#         else {
-#             print "$y\n";
-#         }
-#     }
-# }
-
 
 1;

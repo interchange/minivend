@@ -1,10 +1,10 @@
 # Builtin.pm: defines placeholders available to all Vend applications
 #
-# $Id: Builtin.pm,v 1.10 1996/01/30 23:10:08 amw Exp $
+# $Id: Builtin.pm,v 1.11 1996/02/26 21:18:17 amw Exp $
 #
 package Vend::Builtin;
 
-# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+# Copyright 1995,1996 by Andrew M. Wilcox <awilcox@world.std.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,8 +20,17 @@ package Vend::Builtin;
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+my $Config;
+
+sub External_URL { $Config->{'External_URL'} }
+
+sub configure {
+    my ($class, $config) = @_;
+    $Config = $config;
+}
+
 use strict;
-use Vend::Directive qw(Default_page External_URL);
+# use Vend::Directive qw(Default_page External_URL);
 use Vend::Dispatch;
 use Vend::Session;
 use Vend::Page;
@@ -45,6 +54,7 @@ define_placeholder '[message]', sub {
     $Vend::Message;
 };
 
+
 =head2 C<[page-url "name"]>
 
 Returns the URL which references the specified catalog page.
@@ -60,32 +70,24 @@ placeholder always returns a fully qualified URL.
 
 =cut
 
-define_placeholder '[page-url $pg]', sub {
+sub page_url_ph {
     my ($pg) = @_;
-    my ($path, $base);
+    return page_url($pg);
+}
 
-    if (($path) = ($pg =~ m!^/(.*)!)) {
-        return vend_url($path);
-    }
-    
-    ($base) = (page_name() =~ m!^(.*)/!);
-    if (defined $base) {
-        return vend_url($base . "/" . $pg);
-    } else {
-        return vend_url($pg);
-    }
-};
+define_placeholder '[page-url $pg]', \&page_url_ph;
 
-=head2 C<[default-page-url]>
 
-Returns a URL refering to the default page of the catalog.  The name
-of the default page is specified by the Default_page directive.
-
-=cut
-
-define_placeholder '[default-page-url]', sub {
-    vend_url(Default_page);
-};
+# =head2 C<[default-page-url]>
+# 
+# Returns a URL refering to the default page of the catalog.  The name
+# of the default page is specified by the Default_page directive.
+# 
+# =cut
+# 
+# define_placeholder '[default-page-url]', sub {
+#     vend_url(Default_page);
+# };
 
 =head2 C<[external-url $img]>
 

@@ -1,6 +1,6 @@
 # Form.pm:  html form handling
 #
-# $Id: Form.pm,v 1.7 1995/10/30 19:55:44 amw Exp $
+# $Id: Form.pm,v 1.8 1996/02/26 21:33:16 amw Exp $
 #
 package Vend::Form;
 
@@ -20,19 +20,25 @@ package Vend::Form;
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+=head1 NAME
+
+Vend::Form - html form handling
+
+=cut
+
 require Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(specify_form form_fields);
+@EXPORT = qw(form_fields get_field get_required_field get_field_values
+             register_form specify_form);
 
 use Carp;
 use strict;
-use Vend::Directive qw(Dump_request);
+# use Vend::Directive qw(Dump_request);
 use Vend::Dispatch;
-use Vend::Log;
 
 
 sub unhexify {
-    my($s) = @_;
+    my ($s) = @_;
 
     $s =~ s/%(..)/chr(hex($1))/ge;
     $s;
@@ -90,28 +96,37 @@ sub read_form_input {
 sub expect_form {
     if (http()->Method ne 'POST') {
         interaction_error("Request method for form submission is not POST\n");
-        return 0;
     }
-
     if (http()->Content_Type ne 'application/x-www-form-urlencoded') {
         interaction_error("Content type for form submission is not\n" .
                           "application/x-www-form-urlencoded\n");
-        return 0;
     }
-
-    return 1;
 }
 
 
 
 my %Form_callback;
 
-sub specify_form {
+=head2 C<register_form($form_name, $code_ref)>
+
+Registers $form_name as an action to handle a form submittal.  When
+the form is submitted, the $code_ref is called with four arguments:
+$form_name, $path (any remaining components in the URL after the
+action name), $args (a hash ref of additional arguments passed in the
+URL), and $input (the form field values).  The $input is a hash ref,
+with the form field names as keys.  The value for each name is an
+array ref of all the values returned for that input field.
+
+=cut
+
+sub register_form {
     my ($name, $callback) = @_;
 
     $Form_callback{$name} = $callback;
     specify_action $name, \&form_handler;
 }
+
+sub specify_form { register_form(@_) }
 
 
 sub form_handler {
@@ -143,7 +158,61 @@ sub fieldval {
 }
 
 
-##
+=head2 C<get_field($input, $field_name)>
+
+Call get_field() for form fields which return only one value.  (Pretty
+much everything except select tags).  Returns the value of the
+$field_name from the form $input.  Returns undef if the field was not
+passed in from the form.
+
+=cut
+
+sub get_field {
+    my ($input, $field_name) = @_;
+
+    my $value_list = $input->{$field_name};
+    return undef unless defined $value_list;
+    report("More than one value passed for form variable '$field_name'")
+        if (@$value_list > 1);
+    return $value_list->[0];
+}
+
+
+=head2 C<get_required_field($input, $field_name)>
+
+Returns the value of the $field_name from the form $input, for fields
+which return only one value.  Raises an error if the field was not
+passed in from the form.
+
+=cut
+
+sub get_required_field {
+    my ($input, $field_name) = @_;
+    my $value = get_field($input, $field_name);
+    interaction_error("Missing form field '$field_name'")
+        unless defined $value;
+    return $value;
+}
+
+
+=head2 C<get_field_values($input, $field_name)>
+
+Returns an array of the values of the $field_name, for form fields
+which return multiple values like the select tag.  Returns the empty
+array () if the field was not passed in from the form, or if it did
+not return any values.
+
+=cut
+
+sub get_field_values {
+    my ($input, $field_name) = @_;
+    my $value_list = $input->{$field_name};
+    return () unless defined $value_list;
+    return @$value_list;
+}
+
+
+# Depreciated.
 
 # value \$zip_code 'zip-code'
 # dotted \%hash 'q'
@@ -185,8 +254,6 @@ sub form_fields {
             }
         }
         elsif ($t eq 'dotted' and ($var, $field_name) = @p) {
-            # log_error "dotted = " . uneval($dotted) . "\n";
-            # log_error "field_name = $field_name\n";
             %$var = %{ $dotted->{$field_name} }
                 if defined $dotted->{$field_name};
         }
@@ -213,5 +280,6 @@ sub form_fields {
         else { croak "Unrecognized spec type '$t'"; }
     }
 }
+
 
 1;

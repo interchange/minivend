@@ -1,26 +1,24 @@
 <html><head>
-<title>Order Form</title>
+<title>Shopping Cart</title>
 </head>
 
 <body>
-<h1>Order Form</h1>
+<h1>Shopping Cart</h1>
 
-<form action="[page-url "flist"]" method=post>
+<form action="[page-url "hlist"]" method=post>
 
 [message]
-
-<h2>Shopping List</h2>
 
 You may change a quantity below by entering a new value.  Use '0'
 (zero) to cancel an item.
 
 <p>[ordered-items]
 
+Click here if you live in Maine -->
+[in-state-checkbox]
+
 <p>Press <input type="submit" name="refresh" value="Refresh"> after
 changing a quantity to see the new total.
-
-<p>Shipping: \$[shipping]
-<br>Total: \$[total-cost]
 
 <h2>Shipping Address</h2>
 

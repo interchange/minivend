@@ -1,6 +1,6 @@
 # Http.pm:  interface to cgi protocol
 #
-# $Id: Http.pm,v 1.7 1995/10/30 19:57:28 amw Exp $
+# $Id: Http.pm,v 1.8 1996/02/26 21:33:56 amw Exp $
 #
 package Vend::Http;
 
@@ -188,68 +188,6 @@ sub respond {
     print STDOUT "Content-type: $content_type\r\n\r\n";
     print STDOUT $body;
     $s->{'response_made'} = 1;
-}
-
-
-######################################################################
-package Vend::form;
-
-use strict;
-use Vend::Uneval;
-
-sub unhexify {
-    my($s) = @_;
-
-    $s =~ s/%(..)/chr(hex($1))/ge;
-    $s;
-}
-
-sub parse_form_input {
-    my ($input) = @_;
-    my ($pair, $key, $value, $aref);
-
-    # From Tim Bunce's Base.pm read_entity_body():
-    # Convert posted query string back into canonical form.
-    # We have to deal with browsers which use CRLF, CR or LF.
-    $input =~ s/\r?[\n\r]/&/mg;
-
-    # Log::log_error("Post input is $input\n");
-    my $values = {};
-    foreach $pair (split(/&/, $input)) {
-	($key, $value) = ($pair =~ m/([^=]+)=(.*)/)
-	    or die "Syntax error in post input:\n$pair\n";
-	$key = unhexify($key);
-	$value =~ s/\+/ /g;
-	$value = unhexify($value);
-        # from Tim Bunce's Request.pm
-        $aref = $values->{$key} || ($values->{$key} = []);
-	push @$aref, $value;
-    }
-    # Log::log_error("form values are ".uneval($values)."\n");
-    $values;
-}
-
-sub read_form_input {
-    my ($s) = @_;
-
-    if ($s->Method eq 'GET') {
-        my $query = $s->Query;
-        if (defined $query and $query ne '') {
-            return $query;
-        }
-        else {
-            die "No form input available\n";
-        }
-    }
-    elsif ($s->Method eq 'POST') {
-        if ($s->has_Entity) {
-            return $s->read_entity_body();
-        }
-        else {
-            die "No entity data for form input included with POST request\n";
-        }
-    }
-    return undef;
 }
 
 1;
