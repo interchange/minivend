@@ -1859,7 +1859,7 @@ sub parse_locale {
 				and $eval = 1;
 		$eval and ! $safe and $safe = new Safe;
 		if(! defined $store->{$name} and $item eq 'Locale') {
-			if(POSIX::setlocale(POSIX::LC_ALL, $settings) ) {
+			if(POSIX::setlocale(POSIX::LC_ALL, $name) ) {
 				$store->{$name} = POSIX::localeconv();
 			}
 		}
