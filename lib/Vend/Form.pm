@@ -29,6 +29,7 @@ use Vend::Interpolate;
 use Vend::Util;
 use Vend::Tags;
 use strict;
+use POSIX qw{strftime};
 
 use vars qw/@ISA @EXPORT @EXPORT_OK $VERSION %Template/;
 
