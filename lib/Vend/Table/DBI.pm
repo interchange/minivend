@@ -1959,6 +1959,9 @@ sub query {
 		if(! $sth or ! defined $rc) {
 			# query failed, probably because no table
 
+			## Save the original message
+			my $origmsg = $@;
+
 			# Allow failed query by design, maybe to use multiple key inserts
 			return undef if $opt->{no_requery};
 
@@ -1968,10 +1971,13 @@ sub query {
 			eval {
 				$trytab = Vend::Scan::sql_statement($query, { table_only => 1 } );
 				$newdb = Vend::Data::database_exists_ref($trytab);
+				if($newdb->config('name') eq $s->config('name')) {
+					die $origmsg;
+				}
 			};
 			if($@) {
 				my $msg = ::errmsg(
-						qq{Query rerouted from table %s failed: %s\nQuery was: %s},
+						qq{Query on table %s failed: %s\nQuery was: %s},
 						$trytab,
 						$@,
 						$query,
