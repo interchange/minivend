@@ -2,7 +2,7 @@
 #
 # $Id$
 #
-# Copyright (C) 2003 Interchange Development Group
+# Copyright (C) 2002-2003 Interchange Development Group
 # Copyright (C) 1999-2002 Red Hat, Inc.
 #
 # This program is free software; you can redistribute it and/or modify

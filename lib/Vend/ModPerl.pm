@@ -2,7 +2,8 @@
 #
 # $Id$
 #
-# Copyright (C) 2002 Red Hat, Inc. and Jon Jensen <jon@icdevgroup.org>
+# Copyright (C) 2002-2003 Interchange Development Group
+# Copyright (C) 2002 Red Hat, Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

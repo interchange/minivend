@@ -3,9 +3,8 @@
  *
  * $Id$
  *
+ * Copyright (C) 1996-2002 Red Hat, Inc.
  * Copyright (C) 1995 by Andrew M. Wilcox <amw@wilcoxsolutions.com>
- *
- * Copyright (C) 1996-2002 Red Hat, Inc. <interchange@redhat.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

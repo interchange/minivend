@@ -5,7 +5,8 @@
 #
 # $Id$
 #
-# Copyright (C) 1996-2002 Red Hat, Inc. <interchange@redhat.com>
+# Copyright (C) 2002-2003 Interchange Development Group
+# Copyright (C) 1996-2002 Red Hat, Inc.
 #
 # This program was originally based on Vend 0.2 and 0.3
 # Copyright 1995-96 by Andrew M. Wilcox <amw@wilcoxsolutions.com>
@@ -255,6 +256,6 @@ Skeleton POD to avoid make errors.
 
 =head1 SEE ALSO
 
-interchange(1), http://interchange.redhat.com/
+interchange(1), http://www.icdevgroup.org/
 
 =cut

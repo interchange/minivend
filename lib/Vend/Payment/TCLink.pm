@@ -6,7 +6,7 @@
 #
 # by Dan Helfman <dan@trustcommerce.com> with code reused and inspired by
 #       Mark Stosberg <mark@summersault.com>
-#	Mike Heins <mheins@redhat.com>
+#	Mike Heins
 #	webmaster@nameastar.net
 #	Jeff Nappi <brage@cyberhighway.net>
 #	Paul Delys <paul@gi.alaska.edu>
@@ -209,8 +209,7 @@ packages to Vend::Payment and places things there.
 =head1 AUTHORS
 
 Dan Helfman <dan@trustcommerce.com>, based on code by Mark Stosberg
-<mark@summersault.com>, which was based on original code by Mike Heins
-<mheins@redhat.com>.
+<mark@summersault.com>, which was based on original code by Mike Heins.
 
 =head1 CREDITS
 

@@ -74,7 +74,7 @@ systems.  Perhaps we should use the File::Lock module?
 =head1 COPYRIGHT
 
 Copyright (c) 1995-1998 Gisle Aas. All rights reserved.
-Modifications made by and Red Hat, Inc (c) 2002. 
+Modifications made by and copyright (C) 2002 Red Hat, Inc.
 
 This library is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

@@ -2,7 +2,8 @@
 #
 # $Id$
 #
-# Copyright (C) 1997-2002 Red Hat, Inc. <interchange@redhat.com>
+# Copyright (C) 2002-2003 Interchange Development Group
+# Copyright (C) 1997-2002 Red Hat, Inc.
 #
 # Based on HTML::Parser
 # Copyright 1996 Gisle Aas. All rights reserved.
@@ -47,6 +48,7 @@ expanded.
 
 =head1 COPYRIGHT
 
+Copyright 2002-2003 Interchange Development Group
 Copyright 1997-2002 Red Hat, Inc.  
 Original HTML::Parser module copyright 1996 Gisle Aas.
 
@@ -55,7 +57,7 @@ modify it under the same terms as Perl itself.
 
 =head1 AUTHORS
 
-Vend::Parser - Mike Heins <mheins@redhat.com>  
+Vend::Parser - Mike Heins <mike@perusion.com>
 HTML::Parser - Gisle Aas <aas@sn.no>
 
 =cut

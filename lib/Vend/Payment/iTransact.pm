@@ -2,11 +2,9 @@
 #
 # $Id$
 #
-# Copyright (C) 1999-2002 Red Hat, Inc. <interchange@redhat.com>
+# Copyright (C) 1999-2002 Red Hat, Inc.
 #
-# Written by Cameron Prince <cprince@redhat.com> and
-# Mark Johnson <markj@redhat.com>,
-# based on code by Mike Heins <mheins@redhat.com>
+# Written by Cameron Prince and Mark Johnson, based on code by Mike Heins.
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -163,8 +161,8 @@ That should show what happened.
 
 =item *
 
-If all else fails, Red Hat and other consultants are available to help
-with integration for a fee.
+If all else fails, consultants are available to help with integration for a fee.
+See http://www.icdevgroup.org/
 
 =back
 
@@ -175,8 +173,7 @@ to Vend::Payment and places things there.
 
 =head1 AUTHORS
 
-Mark Johnson <markj@redhat.com> and Cameron Prince <cprince@redhat.com>, based
-on original code by Mike Heins <mheins@redhat.com>.
+Mark Johnson and Cameron Prince, based on original code by Mike Heins.
 
 =cut
 

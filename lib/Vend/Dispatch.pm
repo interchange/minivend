@@ -2,7 +2,7 @@
 #
 # $Id$
 #
-# Copyright (C) 2002 ICDEVGROUP <interchange@icdevgroup.org>
+# Copyright (C) 2002-2003 Interchange Development Group
 # Copyright (C) 2002 Mike Heins <mike@perusion.net>
 #
 # This program was originally based on Vend 0.2 and 0.3
