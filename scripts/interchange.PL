@@ -495,7 +495,10 @@ sub set_db {
 	return ($base, $thing) unless $thing =~ /^(\w+):+(.*)/;
 	my $t = $1;
 	my $c = $2;
-	$Vend::WriteDatabase = 1 if $::Scratch->{mv_data_enable} =~ / $t[: ]/;
+
+	# Security handled before this in update_data
+	$Vend::WriteDatabase{$t} = 1;
+
 	my $db = ::database_exists_ref($t);
 	return undef unless $db;
 	return ($db->ref(), $c);
