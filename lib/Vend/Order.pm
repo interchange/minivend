@@ -798,14 +798,7 @@ sub mail_order {
 # LEGACY
 	if ($::Values->{mv_order_report}) {
 		unless( allowed_file($::Values->{mv_order_report}) ) {
-			my $msg = $Vend::File::errstr
-					|| errmsg(
-							"%s: Can't use file '%s' with NoAbsolute set",
-							'mail_order',
-							 $::Values->{mv_order_report},
-						);
-			::logError($msg);
-			::logGlobal({ level => 'auth'}, $msg);
+			log_file_violation ($::Values->{mv_order_report}, 'mail_order');
 			return undef;
 		}
 		$body = readin($::Values->{mv_order_report})
@@ -825,13 +818,7 @@ trying one more time. Fix this.},
 				$::Values->{mv_order_report},
 			);
 		unless( allowed_file($Vend::Cfg->{OrderReport}) ) {
-			my $msg = errmsg(
-							"%s: Can't use file '%s' with NoAbsolute set",
-							'mail_order',
-							$Vend::Cfg->{OrderReport},
-						);
-			::logError($msg);
-			::logGlobal({ level => 'auth'}, $msg);
+			log_file_violation($Vend::Cfg->{OrderReport}, 'mail_order');
 			return undef;
 		}
 		$body = readin($Vend::Cfg->{OrderReport});
