@@ -1797,11 +1797,13 @@ show_times("begin table editor call item_id=$key") if $Global::ShowTimes;
 	my $ntext;
 	my $btext;
 	my $ctext;
+
 	if($pass_return_to) {
 		delete $::Scratch->{$opt->{next_text}};
 	}
 	elsif (! $opt->{wizard} and ! $opt->{nosave}) {
-		$::Scratch->{$opt->{next_text}} = $Tag->return_to('click', 1);
+		$ntext = $Tag->return_to('click', 1);
+		$ctext = $ntext . "\nmv_todo=back";
 	}
 	else {
 		if($opt->{action_click}) {
@@ -1851,7 +1853,7 @@ EOF
 
 	$opt->{next_text} = HTML::Entities::encode($opt->{next_text}, $ESCAPE_CHARS::std);
 	$opt->{back_text} = HTML::Entities::encode($opt->{back_text}, $ESCAPE_CHARS::std);
-	$opt->{cancel_text} = HTML::Entities::encode($opt->{cancel_text});
+	$opt->{cancel_text} = HTML::Entities::encode($opt->{cancel_text}, $ESCAPE_CHARS::std);
 
 	$::Scratch->{$opt->{next_text}}   = $ntext if $ntext;
 	$::Scratch->{$opt->{cancel_text}} = $ctext if $ctext;
