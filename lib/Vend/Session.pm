@@ -248,6 +248,10 @@ sub write_session {
     my $save = $Vend::Session->{'user'};
     undef $Vend::Session->{'user'};
     #undef $Vend::Session->{'arg'};
+	for(@Vend::TmpScratch) {
+::logDebug ("delete TmpScratch=$_");
+		delete $::Scratch->{$_};
+	}
 	$Vend::Session->{username} = $Vend::username;
 	$Vend::Session->{admin} = $Vend::admin;
     $s = ! $File_sessions ? uneval_fast($Vend::Session) : $Vend::Session;
