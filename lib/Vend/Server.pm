@@ -37,7 +37,7 @@ use Socket;
 use Symbol;
 use strict;
 
-my $ppidsub = \&getppid;
+my $ppidsub = sub { return getppid };
 
 sub new {
     my ($class, $fh, $env, $entity) = @_;
@@ -1611,7 +1611,7 @@ my $pretty_vector = unpack('b*', $rin);
 					}
 
 					undef $::Instance;
-					select(undef,undef,undef,0.050) until $ppidsub->() == 1;
+					select(undef,undef,undef,0.050) until &$ppidsub == 1;
 					&$Sig_dec and unlink_pid();
 					exit(0);
 				}
@@ -2168,7 +2168,7 @@ my $pretty_vector = unpack('b*', $rin);
 					clean_up_after_fork();
 
 					undef $::Instance;
-					select(undef,undef,undef,0.050) until $ppidsub->() == 1;
+					select(undef,undef,undef,0.050) until &$ppidsub == 1;
 					if ($Global::IPCsocket) {
 						&$Sig_dec and unlink_pid();
 					}
@@ -2307,7 +2307,7 @@ sub run_jobs {
 			clean_up_after_fork();
 
 			undef $::Instance;
-			select(undef,undef,undef,0.050) until $ppidsub->() == 1;
+			select(undef,undef,undef,0.050) until &$ppidsub == 1;
 			if ($Global::PIDcheck) {
 				unlink_pid() and &$Sig_dec;
 			}
@@ -2339,7 +2339,7 @@ sub grab_pid {
         no strict 'subs';
         truncate($fh, 0) or die "Couldn't truncate pid file: $!\n";
     }
-    print $fh ($Global::mod_perl ? $ppidsub->() : $$), "\n";
+    print $fh ($Global::mod_perl ? &$ppidsub : $$), "\n";
     return 0;
 }
 
@@ -2481,7 +2481,9 @@ sub run_server {
             }
             else {
                 # child 2
-                sleep 1 until $ppidsub->() == 1;
+#::logDebug("getting ready to sleep ...");
+                sleep 1 until &$ppidsub == 1;
+#::logDebug("slept ...");
 
                 my $running = grab_pid($pidh);
                 if ($running) {
