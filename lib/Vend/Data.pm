@@ -748,8 +748,13 @@ sub dummy_database {
 			next;
 		}
 		my $class = $db_config{$data->{Class}}->{Class};
+		eval {
 		$Vend::Database{$name} =
 				new $class ($data);
+		};
+		if($@) {
+			logGlobal("Error creating dummy database for $name: $@");
+		}
 	}
 	update_productbase();
 }
