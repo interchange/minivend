@@ -22,10 +22,10 @@
 package Vend::Table::Shadow;
 $VERSION = substr(q$Revision$, 10);
 
-# TODO
+# CREDITS
 #
-# Config.pm:
-# - check MAP to avoid mapping the key
+# Thanks to Andreas Jacob <wabi@gmx.net> for initial funding
+# and continuous bug reports.
 
 use strict;
 
@@ -125,6 +125,12 @@ sub numeric {
 	$s = $s->import_db() unless defined $s->[$OBJ];
 	my ($orig_db, $orig_col) = $s->_map_field($column);
 	return $orig_db->numeric($orig_col);
+}
+
+sub inc_field {
+	my ($s, $key, $column, $value) = @_;
+	$s = $s->import_db() unless defined $s->[$OBJ];
+	return $s->[$OBJ]->inc_field($key, $column, $value);
 }
 
 sub column_index {
