@@ -1254,7 +1254,6 @@ sub tree_link {
 		unless($row->{form} =~ /[\r\n]/) {
 			$row->{form} = join "\n", split $Global::UrlSplittor, $row->{form};
 		}
-		$row->{form} ||= ' ';
 		$row->{href} = Vend::Tags->area( { href => $row->{page}, form => $row->{form} });
 	}
 	$row->{name} =~ s/ /&nbsp;/g;
