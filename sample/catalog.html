@@ -1,23 +1,45 @@
 <HTML>
-<HEAD> <TITLE>The Art Store</TITLE></HEAD>
+<HEAD>
+[frames-on]
+<TITLE>The Art Store Home Page</TITLE>
+<FRAMESET cols="320,*">
+	<FRAMESET rows="160,*,100">
+		<FRAME SRC="[area ban_start]" SCROLLING=NO MARGINWIDTH=1
+		MARGINHEIGHT=1 name=TEMP1>
+		</FRAME>
+		<FRAME SRC="[area feature]" NAME=TEMP2>
+		</FRAME>
+		<FRAME SRC="/sample/address.html" NAME=TEMP3 MARGINWIDTH=1 MARGINHEIGHT=1>
+		</FRAME>
+	</FRAMESET>
+	<FRAMESET ROWS="*,150">
+		<FRAME SRC="[area fr_home]" NAME=TEMP4>
+		</FRAME>
+		<FRAME SRC="/sample/special1.html" NAME=TEMP5>
+		</FRAME>
+	</FRAMESET>
+</FRAMESET>
+<NOFRAMES>
+
+</HEAD>
 [body 1]
+ 
+
+<IMG SRC="/sample/images/artstore.gif" ALIGN="CENTER">
 <H1>Welcome to The Art Store</H1>
-
 <P>
-We have reproductions of some the great art of all ages.  [pagetarget fr_sel search]
-Browse[/pagetarget] the category you like -- or try
-[pagetarget fr_search search]searching[/pagetarget]
+We have reproductions of some the great are of all ages.  Browse
+[page nf_sel]
+the category[/page] you like -- or try
+[page nf_search]searching[/page]
 for your favorite artist.
-
-<P>
-[random]
 <P>
 <TABLE>
 <TR>
 <TD ALIGN=ABSBOTTOM>
-[pagetarget fr_search search]
-<IMG SRC="/sample/images/web_srch.gif" ALT="[WEB SEARCH]" BORDER=0><BR>
-Search for your<BR>favorite![/pagetarget]
+[page nf_search]
+<IMG SRC="/sample/images/web_srch.gif" ALT="[search]" BORDER=0><BR>
+Search for your<BR>favorite![/page]
 <TD>
 <P>
 To use the search feature, just press the link to your left.  That will
@@ -26,18 +48,12 @@ museum.
 <TR>
 <TR>
 <TD ALIGN=ABSBOTTOM>
-[pagetarget fr_sel search]
+[page nf_sel]
 <IMG SRC="/sample/images/art.gif" ALT="[PAINTING]" BORDER=0><BR>
-Select by<BR>category![/pagetarget]
+Select by<BR>category![/page]
 <TD>
 <P>
 To select by category, click on the button to the left.
-<P>
-
-[pagetarget control main]
-<I>Click to customize your display</I>
-[/pagetarget]
-
 </TABLE>
 Either way, just press the order button for an item you like!
 Our electronic order form will automatically add it
@@ -45,6 +61,7 @@ to your list. Fill out the attached order form
 to place your order. That's all there is to it!
 <P>
 [help header][help catalog][help footer]
-[buttonbar 1]
+<P>
+[buttonbar 4]
 </BODY>
 </HTML>

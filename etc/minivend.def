@@ -1,10 +1,14 @@
 BackendOrder	BLANK_DEFAULT
 ButtonBars		BLANK_DEFAULT
 CustomShipping	BLANK_DEFAULT
+CreditCards		No
 DefaultShipping	default
 DescriptionTrim	BLANK_DEFAULT
 DisplayErrors	Yes
+EncryptProgram  BLANK_DEFAULT
 FinishOrder		Finish Incomplete Order
+FrameOrderPage  BLANK_DEFAULT
+FrameSearchPage BLANK_DEFAULT
 Glimpse			glimpse
 Help			BLANK_DEFAULT
 ItemLinkDir		BLANK_DEFAULT
@@ -15,7 +19,7 @@ Mv_BgColor		BLANK_DEFAULT
 Mv_LinkColor	BLANK_DEFAULT
 Mv_TextColor	BLANK_DEFAULT
 Mv_VlinkColor	BLANK_DEFAULT
-OrderFrame		order
+OrderFrame		_top
 OrderReport		report
 PageDir			pages
 PriceCommas		yes
@@ -25,8 +29,11 @@ ReadPermission	user
 ReportIgnore	BLANK_DEFAULT
 RequiredFields	BLANK_DEFAULT
 SalesTax		BLANK_DEFAULT
-SearchFrame		main
+ScratchDir		etc
+SearchFrame		_self
 SearchOverMsg	BLANK_DEFAULT
+SecureURL		BLANK_DEFAULT
+SecureOrderMsg  Use Order Security
 SendMailProgram	/usr/lib/sendmail
 SessionDatabase	session
 SessionExpire	1 day

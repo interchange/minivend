@@ -17,6 +17,15 @@ cat <<EOF
 
 EOF
 
+for i in $*
+do
+	case $i in
+		-D) DEBUG=-D ;;
+		-i) INSTALL=-I ;;
+		*)
+	esac
+done
+
 if test `echo -n test | wc -c` -eq 4
 then F='-n'
 E=
@@ -82,4 +91,4 @@ do
 		fi
 	done
 done
-$PERL ./configure.pl $PERL
+$PERL ./configure.pl $DEBUG $INSTALL $PERL

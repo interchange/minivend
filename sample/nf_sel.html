@@ -1,0 +1,46 @@
+<HTML>
+<HEAD>
+<TITLE>Select by Category</TITLE>
+[framebase main]
+</HEAD>
+[body 1]
+<H3>
+<IMG SRC="/sample/images/web_srch.gif" ALT="SEARCH">
+Select by Category
+</H3>
+
+<P>
+<FORM ACTION="[process-search]" METHOD=POST>
+
+<B>Category</B><BR>
+<SELECT NAME="mv_searchspec">
+	<OPTION VALUE="Renaissance$"> Renaissance
+	<OPTION VALUE="Impressionists$"> Impressionists
+	<OPTION VALUE="Surrealists$"> Surrealists
+	<OPTION VALUE="Americana$"> Americana
+	<OPTION VALUE="Contemporary$"> Contemporary
+</SELECT>
+<INPUT TYPE=HIDDEN NAME="mv_case" VALUE="yes">
+<INPUT TYPE=HIDDEN NAME="mv_perl" VALUE="yes">
+<INPUT TYPE=HIDDEN NAME="mv_orsearch" VALUE="yes">
+<P>
+<INPUT TYPE="submit" NAME="mv_todo" VALUE="Search">
+<INPUT TYPE="hidden" NAME="mv_doit" VALUE="search"><BR>
+<P>
+[finish-order]
+[pagetarget help main]
+	<STRONG>Help</STRONG>[/page]
+	Matches per page:
+	<SELECT NAME="mv_matchlimit">
+			<OPTION>10
+			<OPTION SELECTED>25
+			<OPTION>50
+			<OPTION>100
+	</SELECT><BR>
+</FORM>
+Just select the category you want to browse, then press the
+<B>Search</B> button.  The search engine
+will select up to 400 items from our great catalog!
+<P>
+[help header][help nf_sel][help footer]
+</body> </html>

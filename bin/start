@@ -1,12 +1,15 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 # start - starts Vend in server mode
-$VendRoot = '/usr/local/lib/minivend';
 $VEND = '/usr/local/lib/minivend/minivend.pl';
-$PERL = '/usr/local/bin/perl';
-$ConfDir = '/usr/local/lib/minivend/etc';
+$PERL = '/usr/bin/perl';
 $PerlFlags = '-w';
 ## END CONFIGURABLE VARIABLES
 
 system $PERL, $PerlFlags, $VEND, '-serve';
+if(($? >> 8) == 2) {
+	$| = 1;
+	print "Re-start after import, please wait...";
+	system $PERL, $PerlFlags, $VEND, '-serve';
+}
 
 sleep 2;

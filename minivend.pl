@@ -1,6 +1,8 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 #
-# MiniVend version 1.0
+# MiniVend version 1.02
+#
+# $Id: minivend.pl,v 1.1 1996/04/04 08:28:04 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -10,6 +12,17 @@
 #
 # Enhancements made by and
 # Copyright 1996 by Michael J. Heins <mikeh@iac.net>
+#
+# $Log: minivend.pl,v $
+# Revision 1.1  1996/04/04 08:28:04  mike
+# Initial revision
+#
+# Revision 1.2  1996/03/08 07:12:14  mike
+# Fixed bug in mv_perl=on search, could crash system
+#
+# Revision 1.1  1996/03/07 22:54:15  mike
+# Initial revision 
+#
 #
 # See the file 'Changes' for information.
 #
@@ -29,13 +42,17 @@
 
 BEGIN {
 $Config::VendRoot = '/usr/local/lib/minivend';
-$Config::ConfDir = "$Config::VendRoot/etc";
+$Config::ConfDir = '/usr/local/lib/minivend/etc';
 }
 $Config::PERL = '/usr/bin/perl';
 $Config::VEND = '/usr/local/lib/minivend/minivend.pl';
 $Config::ConfigFile = 'minivend.cfg';
 $Config::ErrorFile = 'error.log';
-use GDBM_File; $Config::GDBM = 1;
+
+# Uncomment the next line if you have the Des module and the
+# proper library support
+
+#use Des;
 
 ### END CONFIGURABLE VARIABLES
 
@@ -43,8 +60,46 @@ use strict;
 use Fcntl;
 
 use lib $Config::VendRoot;
+
+
 use Vend::Server;
 use Vend::lock;
+use Vend::Imagemap;
+use Vend::Glimpse;
+use Vend::TextSearch;
+
+#select a DBM
+
+BEGIN {
+	eval {require GDBM_File} ||
+	eval {require DB_File} ||
+	eval {require NDBM_File};
+	$Config::GDBM = $Config::DB_File = $Config::NDBM = 0;
+	if(defined $GDBM_File::VERSION) {
+		$Config::DB_Version = "GDBM V$GDBM_File::VERSION";
+		require Vend::Table::GDBM;
+		import GDBM_File;
+		$Config::GDBM = 1;
+	}
+	elsif(defined $DB_File::VERSION) {
+		$Config::DB_Version = "Berkeley DB V$DB_File::VERSION";
+		require Vend::Table::DB_File;
+		import DB_File;
+		$Config::DB_File = 1;
+	}
+	elsif(defined $NDBM_File::VERSION) {
+		$Config::DB_Version = "NDBM V$NDBM_File::VERSION";
+		require Vend::Table::InMemory;
+		import NDBM_File;
+		$Config::NDBM = 1;
+	}
+	else {
+		die "No DBM defined! MiniVend can't run.\n";
+	}
+}
+
+use Vend::Table::Import 'import_ascii_delimited';
+use Vend::Util;
 
 my $H;
 sub http {
@@ -57,7 +112,7 @@ $Config::ErrorFile = "$Config::VendRoot/$Config::ErrorFile"
     if ($Config::ErrorFile !~ m.^/.);
 
 
-## CURRANCY
+## CURRENCY
 
 # Put commas in numbers
 sub commify {
@@ -66,9 +121,9 @@ sub commify {
    return $_;
 }
 
-# Return AMOUNT formatted as currancy.
+# Return AMOUNT formatted as currency.
 
-sub currancy {
+sub currency {
     my($amount) = @_;
 
 	if(is_yes($Config::PriceCommas)) {
@@ -87,6 +142,37 @@ sub shipping {
 		custom_shipping();
 	}
 	else { $Config::Shipping; }
+}
+
+sub VerifyCreditCard {
+    my $cardnumber = shift;
+	my ($lengthofnumber,$numbertocheck,$checkdigit,$counter);
+	my ($s,$t);
+
+	$cardnumber =~ s/[^d]//g;
+
+	$lengthofnumber = length($cardnumber) - 1 ;
+
+	my $numbertocheck = substr($cardnumber,0,$lengthofnumber);
+
+	for ($counter = 0 ; $counter < $lengthofnumber ; $counter++) {
+		$t = (substr($numbertocheck,($lengthofnumber - $counter - 1),1) * (1 +
+		(($counter + 1) % 2)));
+		$s = $s + (($t < 10) ? $t : ($t - 9));
+	}
+
+	$checkdigit = ((10 - $s % 10) % 10);
+
+	# Is the check digit correct?
+
+	if (substr($cardnumber,$lengthofnumber,1) eq $checkdigit) {
+		return 1;
+	}
+	else {
+		return 0;
+	}
+
+
 }
 
 sub custom_shipping {
@@ -115,7 +201,7 @@ sub custom_shipping {
 
     $total = 0;
     foreach $i (0 .. $#$Vend::Items) {
-		$total += $Vend::Items->[$i]->{$field};
+		$total = $total + $Vend::Items->[$i]->{$field};
     }
 
 	# We will return from this loop if a match is found
@@ -124,12 +210,14 @@ sub custom_shipping {
 		if(	$total >= $Vend::Shipping_min{$code} and
 			$total <= $Vend::Shipping_max{$code} ) {
 			# unless field begins with 'x', straight cost is returned
-			unless ($Vend::Shipping_cost{$code} =~ s/^x\s*//i) {
+			unless ($Vend::Shipping_cost{$code} =~ /^x\s*/i) {
 				return $Vend::Shipping_cost{$code};
 			}
 			# - otherwise the quantity is multiplied by the cost
 			else {
-				return $Vend::Shipping_cost{$code} * $total;
+				my $multiplier = $Vend::Shipping_cost{$code};
+				$multiplier =~ s/^x\s*//i;
+				return $multiplier * $total;
 			}
 		}
 	}
@@ -174,10 +262,84 @@ sub salestax {
 	$r;
 }
 
-sub blank {
-    my($v) = @_;
+# Now defined in Vend::Util
+#sub blank {
+#	my($v) = @_;
+#	!defined($v) || $v eq '';
+#}
 
-    !defined($v) || $v eq '';
+sub read_password {
+	my($password,$string,$check);
+	my $i = 0;
+
+	if ($Config::Tracking) {
+		open_tracking();
+		$check = defined $Vend::Tracking{'encrypted_pass'}
+				? $Vend::Tracking{'encrypted_pass'}
+				: 0;
+	}
+	else {
+		$check = 0;
+	}
+
+	if($Config::CreditCards) {
+		while($i < 3) {
+			if (-t) {
+				system 'stty', '-echo';
+				print "Enter the password: ";
+				chop($password = <>);
+				unless($check) {
+					print "\nVerify: ";
+					chop($string = <>);
+				}
+				system 'stty', 'echo';
+				print "\n";
+			}
+			else {
+				$i = 999;
+				chomp($password = <>);
+			}
+			$i++;
+			if($check) {
+				if( crypt($password,$check) eq $check) {
+					$Config::Password = $password;
+					$check =~ s/^(........).*/$1/;
+					$Config::Pw_Ivec = $check;
+					return;
+				}
+				else {
+					print "\n\nWrong password!\n\n" if -t;
+					next;
+				}
+			}
+			elsif($string eq $password) {
+				$Config::Password = $password;
+				if($Config::Tracking) {
+					open_tracking();
+					$check = crypt($password,random_string());
+					$Vend::Tracking{'encrypted_pass'} = $check;
+					$check =~ s/^(........).*/$1/;
+					$Config::Pw_Ivec = $check;
+					close_tracking();
+				}
+				else {
+					$Config::Pw_Ivec = 'mINIvEND';
+				}
+				return;
+			}
+			else {
+				undef $password;
+				undef $Config::Password;
+				print "\n\nThey don't match!\n\n" if -t;
+				next;
+			}
+		}
+	}
+
+	# If we made it here, we failed to get a password
+	$Config::Password = '';
+	$Config::EncryptProgram = '';
+	$Config::CreditCards = 0;
 }
 
 
@@ -263,8 +425,8 @@ sub parse_url {
 
     config_warn(
       "The $var directive (now set to '$value') should probably\n" .
-      "start with 'http:'")
-	unless $value =~ m/^http:/i;
+      "start with 'http:' or 'https:'")
+	unless $value =~ m/^https?:/i;
     $value =~ s./$..;
     $value;
 }
@@ -298,6 +460,31 @@ sub time_to_seconds {
     $n;
 }
 
+sub parse_executable {
+    my($var, $value) = @_;
+    my($x);
+	my $root = $value;
+	$root =~ s/\s.*//;
+
+	if( ! defined $value or $value eq '') {
+		$x = '';
+	}
+	elsif ($root =~ m#^/# and -x $root) {
+		$x = $value;
+	}
+	else {
+		my @path = split /:/, $ENV{PATH};
+		for (@path) {
+			next unless -x "$_/$root";
+			$x = $value;
+		}
+	}
+
+    config_error("Can't find executable ('$value') for the $var directive\n")
+		unless defined $x;
+    $x;
+}
+
 sub parse_time {
     my($var, $value) = @_;
     my($n);
@@ -308,7 +495,6 @@ sub parse_time {
     $n;
 }
 
-#ifdef OPTIONAL
 sub parse_buttonbar {
 	my ($var, $value) = @_;
 	return '' unless (defined $value && $value); 
@@ -333,7 +519,7 @@ sub parse_help {
 				$Config::Help{$key} .= $help;
 			}
 			else {
-				$Config::Help{$key} .= $help;
+				$Config::Help{$key} = $help;
 			}
 				
 		}
@@ -358,7 +544,6 @@ sub parse_color {
 	@{Config::Color->{$var}}[0..15] = split /\s+/, $value, 16;
 	return $value;
 }
-#endif
 		
 
 # Returns 1 for Yes and 0 for No.
@@ -407,7 +592,9 @@ sub config {
 	['PageDir',          'relative_dir',     'pages'],
 	['ProductDir',       'relative_dir',     'products'],
 	['VendURL',          'url',              undef],
+	['SecureURL',        'url',              undef],
 	['OrderReport',      'relative_dir',     'report'],
+	['ScratchDir',       'relative_dir',     'etc'],
     ['DisplayErrors',    'yesno',            'Yes'],
 	['SessionDatabase',  'relative_dir',     'session'],
 	['WritePermission',  'permission',       'user'],
@@ -415,10 +602,12 @@ sub config {
 	['SessionExpire',    'time',             '1 day'],
 	['MailOrderTo',      undef,              undef],
 	['SendMailProgram',  undef,              '/usr/lib/sendmail'],
-    ['Glimpse',          undef,              'glimpse'],
+    ['Glimpse',          'executable',       ''],
     ['RequiredFields',   undef,              ''],
-    ['ReportIgnore',     undef, 			 ''],
+    ['ReportIgnore',     undef, 			 'credit_card_no,credit_card_exp'],
     ['UseCode',		 	 undef,     	     'yes'],
+    ['CreditCards',		 'yesno',     	     'No'],
+    ['EncryptProgram',	 undef,     	     ''],
     ['Tracking',		 undef,     	     ''],
     ['BackendOrder',	 undef,     	     ''],
     ['SalesTax',		 undef,     	     ''],
@@ -428,13 +617,15 @@ sub config {
     ['PriceCommas',		 undef,     	     'yes'],
     ['ItemLinkDir',	 	 undef,     	     ''],
     ['SearchOverMsg',	 undef,           	 ''],
+	['SecureOrderMsg',   undef,              'Use Order Security'],
     ['SearchFrame',	 	 undef,     	     'main'],
-    ['OrderFrame',	     undef,              'order'],
+    ['OrderFrame',	     undef,              '_top'],
+    ['FrameOrderPage',	 undef,     	     ''],
+    ['FrameSearchPage',	 undef,     	     ''],
     ['DescriptionTrim',  undef,              ''],
     ['ItemLinkValue',    undef,              'More Details'],
 	['FinishOrder',      undef,              'Finish Incomplete Order'],
 	['Shipping',         undef,               0],
-#ifdef OPTIONAL
 	['Help',            'help',              ''],
 	['Random',          'random',            ''],
 	['Mv_Background',   'color',             ''],
@@ -443,7 +634,6 @@ sub config {
 	['Mv_LinkColor',    'color',             ''],
 	['Mv_VlinkColor',   'color',             ''],
 	['ButtonBars',       'buttonbar',         ''],
-#endif
     ];
 
     foreach $d (@$directives) {
@@ -547,6 +737,66 @@ sub unescape_chars {
     $in;
 }
 
+# Encrypts a credit card number with DES or the like
+# Prefers internal Des module, if was included
+sub encrypt_cc {
+	my($enclair) = @_;
+	my($password) = $Config::Password || return undef;
+	my($encrypted, $status, $cmd);
+	my $firstline = 0;
+
+	$cmd = $Config::EncryptProgram;
+
+	# This is the internal function, will return the value
+	# if it was found. Takes the IVEC from the first
+	# 8 characters of the encrypted password
+	if (defined @Des::EXPORT) {
+		my $key = string_to_key($Config::Password);
+		my $sched = set_key($key);
+		$encrypted = pcbc_encrypt($enclair,undef,$sched,$Config::Pw_Ivec);
+		open(CAT, ">test.out");
+		print CAT $encrypted;
+		close CAT;
+		return $encrypted;
+	}
+
+	#Substitute the password
+	unless ($cmd =~ s/%p/$Config::Password/) {
+		$firstline = 1;
+	}
+
+	my $tempfile = $Vend::SessionID . '.cry';
+
+	#Substitute the filename, else concatenate
+	unless ($cmd =~ s/%f/$tempfile/) {
+		$cmd .= " $tempfile";
+	}
+
+	# Send the CC to a tempfile
+	open(CARD, ">$tempfile") ||
+		die "Couldn't write $tempfile: $!\n";
+
+	# Put the cardnumber there, and maybe password first
+	print CARD "$Config::Password\n" if $firstline;
+	print CARD $enclair;
+	#close CARD;
+
+	# Encrypt the string, but key on arg line will be exposed
+	# to ps(1) for systems that allow it
+	open(CRYPT, "$cmd |") || die "Couldn't fork: $!\n";
+	chomp($encrypted = <CRYPT>);
+	close CRYPT;
+	$status = $?;
+
+	if($status) {
+		logError("Encryption didn't work, status $status: $!\n"
+					. "Command: $cmd\n");
+		return undef;
+	}
+
+	$encrypted;
+}
+
 
 ## RANDOM_STRING
 
@@ -617,16 +867,14 @@ sub readin {
 
     $fn = "$Config::PageDir/" . escape_chars($file) . ".html";
     if (open(Vend::IN, $fn)) {
-	undef $/;
-	$contents = <Vend::IN>;
-	close(Vend::IN);
+		undef $/;
+		$contents = <Vend::IN>;
+		close(Vend::IN);
     } else {
-	$contents = undef;
+		$contents = undef;
     }
     $contents;
 }
-
-#ifdef OPTIONAL
 
 # Calls readin to get files, then returns an array of values
 # with the file contents in each entry. Returns a single newline
@@ -644,123 +892,38 @@ sub get_files {
 	
 	@out;
 }
-#endif
-
-## LOCK FLAGS
-
-#$LOCK::shared = 1;
-#$LOCK::exclusive = 2;
-#$LOCK::nonblocking = 4;
-#$LOCK::unlock = 8;
-
-
-## SESSIONS implemented using files
-
-sub open_session_file {
-    my($fn);
-
-    $fn = "sessions/" . session_name();
-    open(Vend::SF, "+>>$fn") || die "Could not open '$fn':\n$!\n";
-    lockfile(\*Vend::SF, 1, 1)
-	|| die "Could not lock session file '$fn':\n$!\n";
-}
-
-sub new_session_file {    
-    for (;;) {
-	$Vend::SessionID = random_string();
-	open_session()
-		unless defined $Vend::ServerMode;
-    $Vend::SessionName = session_name();
-	last if (-s Vend::SF == 0);
-	close_session();
-    }
-    init_session();
-}
-
-sub close_session_file {
-    unlockfile(\*Vend::SF)
-	|| die "Could not unlock session file: $!";
-    close(Vend::SF);
-}
-
-sub write_session_file {
-    no strict 'subs';		# perl BUG: truncate does not accept filehandle
-    seek(Vend::SF, 0, 0) || die "Couldn't seek: $!";
-    truncate(Vend::SF, 0) || die "Couldn't truncate: $!";
-    $Vend::Session->{'time'} = time;
-    print Vend::SF uneval($Vend::Session);
-}
-
-sub read_session_file {
-    my($s);
-
-    if (-s Vend::SF == 0) {
-	init_session();
-    } else {
-	seek(Vend::SF, 0, 0) || die "Couldn't seek: $!";
-	read(Vend::SF, $s, -s Vend::SF);
-	$Vend::Session = eval($s);
-	die "Could not eval '$s' from session file: $@" if $@;
-	$Vend::Items = $Vend::Session->{'items'};
-	$Vend::SearchItems = $Vend::Session->{'searchitems'};
-    }
-}
-
-
-sub expire_sessions_file {
-    my($time, $fn);
-
-    $time = time;
-
-    while(<sessions/*>) {
-	print "<$_> ";
-	m#(sessions/[%$ESCAPE_CHARS::ok_in_filename]+)#o
-	    or die "strange characters in filename '$_'\n";
-	$fn = $1;
-	print "<$fn>\n";
-	open(Vend::SF, "+>>$fn") || die "Could not open $fn: $!\n";
-	lockfile(\*Vend::SF, 1, 1)
-	    or die "Could not lock session file: $!\n";
-	read_session_file();
-	if ($time - $Vend::Session->{'time'} > $Config::SessionExpire) {
-	    unlink $fn or die "Could not delete $fn: $!\n";
-	}
-	close_session_file();
-    }
-}
-
-
-sub dump_sessions_file {
-    my($fn, $s);
-
-    while(<sessions/*>) {
-	m#(sessions/[%$ESCAPE_CHARS::ok_in_filename]+)#o
-	    or die "strange characters in filename '$_'\n";
-	$fn = $1;
-	open(Vend::SF, "+>>$fn") || die "Could not open $fn: $!\n";
-	lockfile(\*Vend::SF, 1, 1)
-	    or die "Could not lock session file: $!\n";
-	seek(Vend::SF, 0, 0) || die "Couldn't seek: $!";
-	read(Vend::SF, $s, -s Vend::SF);
-	print "$fn $s\n\n";
-	close_session_file();
-    }
-}
 
 
 ## SESSIONS implemented using DBM
 
-sub open_session_dbm {
+sub get_session {
+	open_session();
+	read_session();
+	close_session();
+}
+
+sub put_session {
+	open_session();
+	write_session();
+	close_session();
+}
+
+sub open_session {
 
     open(Vend::SessionLock, "+>>$Config::ConfDir/session.lock")
 	or die "Could not open 'session.lock': $!\n";
     lockfile(\*Vend::SessionLock, 1, 1)
 	or die "Could not lock 'session.lock': $!\n";
     
-    # pick one
+    # Selects based on initial config
 	if($Config::GDBM) {
     	tie(%Vend::SessionDBM, 'GDBM_File', $Config::SessionDatabase . ".gdbm",
 		&GDBM_WRCREAT, $Config::FileCreationMask)
+		or die "Could not tie to $Config::SessionDatabase: $!\n";
+	}
+	elsif($Config::DB_File) {
+    	tie(%Vend::SessionDBM, 'DB_File', $Config::SessionDatabase . ".db",
+		&O_RDWR|&O_CREAT, $Config::FileCreationMask)
 		or die "Could not tie to $Config::SessionDatabase: $!\n";
 	}
 	elsif($Config::NDBM) {
@@ -774,50 +937,39 @@ sub open_session_dbm {
 
 }
 
-sub new_session_dbm {
+sub new_session {
     my($name);
 
-    open_session_dbm()
-		unless defined $Vend::ServerMode;
+    open_session();
     $Vend::SessionName = session_name();
     for (;;) {
-	$Vend::SessionID = random_string();
-	$name = session_name();
-	last unless defined $Vend::SessionDBM{$name};
+		$Vend::SessionID = random_string();
+		$name = session_name();
+		last unless defined $Vend::SessionDBM{$name};
     }
     $Vend::SessionName = $name;
     init_session();
+	write_session();
+	close_session();
 }
 
-sub close_session_dbm {
+sub close_tracking {
+
+	if ($Config::Tracking && defined %Vend::Tracking) {
+	   	untie %Vend::Tracking
+			or die "Could not untie $Config::ProductDir/tracking: $!\n";
+	   	unlockfile(\*Vend::TrackingLock)
+			or die "Could not unlock 'tracking.lock': $!\n";
+	   	close(Vend::TrackingLock)
+			or die "Could not close 'tracking.lock': $!\n";
+	}
+}
+
+sub close_session {
     #pick one
 
     untie %Vend::SessionDBM
 	or die "Could not close $Config::SessionDatabase: $!\n";
-
-	# Don't untie or unlock products or tracking
-	# if expiring or dumping sessions
-	unless(	$Vend::mode eq 'dump-sessions' ||
-			$Vend::mode eq 'expire') {
-    	untie %Vend::Product_description
-			or die "Could not untie $Config::ProductDir/pr_desc: $!\n";
-    	untie %Vend::Product_price
-			or die "Could not untie $Config::ProductDir/pr_pric: $!\n";
-    	unlockfile(\*Vend::ProductLock)
-			or die "Could not unlock 'product.lock': $!\n";
-    	close(Vend::ProductLock)
-			or die "Could not close 'product.lock': $!\n";
-
-		if ($Config::Tracking) {
-	    	untie %Vend::Tracking
-				or die "Could not untie $Config::ProductDir/tracking: $!\n";
-	    	unlockfile(\*Vend::TrackingLock)
-				or die "Could not unlock 'tracking.lock': $!\n";
-	    	close(Vend::TrackingLock)
-				or die "Could not close 'tracking.lock': $!\n";
-		}
-	}
-
 	
 	unlockfile(\*Vend::SessionLock)
 		or die "Could not unlock 'session.lock': $!\n";
@@ -825,53 +977,66 @@ sub close_session_dbm {
 		or die "Could not close 'session.lock': $!\n";
 }
 
-sub write_session_dbm {
+sub write_session {
     my($s);
     $Vend::Session->{'time'} = time;
     $s = uneval($Vend::Session);
     $Vend::SessionDBM{$Vend::SessionName} = $s;
     die "Data was not stored in DBM file\n"
-	if $Vend::SessionDBM{$Vend::SessionName} ne $s;
+		if $Vend::SessionDBM{$Vend::SessionName} ne $s;
 }
 
-sub read_session_dbm {
+sub unlock_session {
+}
+
+sub read_session {
     my($s);
 
     $s = $Vend::SessionDBM{$Vend::SessionName};
     $Vend::Session = eval($s);
     die "Could not eval '$s' from session dbm: $@\n" if $@;
     $Vend::Items = $Vend::Session->{'items'};
-    $Vend::SearchItems = $Vend::Session->{'searchitems'};
 }
 
-sub expire_sessions_dbm {
+sub expire_sessions {
     my($time, $session_name, $s, $session, @delete);
 
     $time = time;
-
-    open_session_dbm();
+    open_session();
     while(($session_name, $s) = each %Vend::SessionDBM) {
-	$session = eval($s);
-	die "Could not eval '$s' from session dbm: $@\n" if $@;
-	if ( (! defined $session) ||
-	     $time - $session->{'time'} > $Config::SessionExpire) {
-	    push @delete, $session_name;
-	}
+		next if $session_name =~ /^lock/;
+		$session = eval($s);
+		die "Could not eval '$s' from session dbm: $@\n" if $@;
+		if ( (! defined $session) ||
+			 $time - $session->{'time'} > $Config::SessionExpire) {
+			push @delete, $session_name;
+			push @delete, "lock$session_name"
+				if $Vend::SessionDBM{"lock$session_name"};
+		}
     }
     foreach $session_name (@delete) {
-	delete $Vend::SessionDBM{$session_name};
+		delete $Vend::SessionDBM{$session_name};
+		my $file = $session_name;
+		$file =~ s/:.*//;
+		opendir(Vend::DELDIR, $Config::ScratchDir) ||
+			die "Could not open configuration directory $Config::ScratchDir: $!\n";
+		my @files = grep /^$file/, readdir(Vend::DELDIR);
+		for(@files) {
+			unlink "$Config::ScratchDir/$_";
+		}
+		closedir(Vend::DELDIR);
     }
-    close_session_dbm();
+    close_session();
 }
 
-sub dump_sessions_dbm {
+sub dump_sessions {
     my($session_name, $s);
 
-    open_session_dbm();
+    open_session();
     while(($session_name, $s) = each %Vend::SessionDBM) {
 	print "$session_name $s\n\n";
     }
-    close_session_dbm();
+    close_session();
 }
 
 
@@ -890,49 +1055,20 @@ sub session_name {
 sub init_session {
     $Vend::Session = {
 	'version' => 1,
+	'frames' => 0,
+	'secure' => 0,
+	'browser' => $CGI::useragent,
 	'items' => [],
-	'searchitems' => [],
     };
     $Vend::Items = $Vend::Session->{'items'};
-    $Vend::SearchItems = $Vend::Session->{'searchitems'};
 	$Vend::Session->{'values'}->{'mv_shipmode'} = $Config::DefaultShipping;
 }
-
-sub write_and_close_session {
-    write_session();
-    close_session();
-}
-
-# pick one
-
-#sub open_session { open_session_file(); }
-#sub new_session { new_session_file(); }
-#sub close_session { close_session_file(); }
-#sub write_session { write_session_file(); }
-#sub read_session { read_session_file(); }
-#sub expire_sessions { expire_sessions_file(); }
-#sub dump_sessions { dump_sessions_file(); }
-#sub read_products { read_products_file(); }
-
-sub read_shipping { read_shipping_file(); }
-sub read_salestax { read_salestax_file(); }
-#sub read_salestax { read_salestax_dbm(); }
-
-sub open_session { open_session_dbm(); }
-sub new_session { new_session_dbm(); }
-sub close_session { close_session_dbm(); }
-sub write_session { write_session_dbm(); }
-sub read_session { read_session_dbm(); }
-sub expire_sessions { expire_sessions_dbm(); }
-sub dump_sessions { dump_sessions_dbm(); }
-sub read_products { read_products_dbm(); }
-
 
 ## PRODUCTS
 
 # Read in the shipping file.
 
-sub read_shipping_file {
+sub read_shipping {
     my($code, $desc, $min, $criterion, $max, $cost);
 
     open(Vend::SHIPPING,"$Config::ProductDir/shipping.asc")
@@ -955,7 +1091,7 @@ sub read_shipping_file {
 
 # Read in the sales tax file.
 
-sub read_salestax_file {
+sub read_salestax {
     my($code, $percent);
 
     open(Vend::SALESTAX,"$Config::ProductDir/salestax.asc")
@@ -970,22 +1106,6 @@ sub read_salestax_file {
     }
     close Vend::SALESTAX;
 	1;
-}
-
-# Read in the products file.
-
-sub read_products_file {
-    my($code, $desc, $price, @products);
-
-    open(Vend::PRODUCTS,"$Config::ProductDir/products.asc")
-	|| die "Could not open products: $!";
-    while(<Vend::PRODUCTS>) {
-	chomp;
-	($code,$desc,$price) = split(/\t/);
-	$Vend::Product_description{$code} = $desc;
-	$Vend::Product_price{$code} = $price;
-    }
-    close Vend::PRODUCTS;
 }
 
 sub open_tracking {
@@ -1004,12 +1124,17 @@ sub open_tracking {
     		or die "Could not tie to $Config::ProductDir/tracking.gdbm: $!\n";
 
 	}
+	elsif ($Config::DB_File) {
+		tie(%Vend::Tracking, 'DB_File',
+				"$Config::ProductDir/tracking.db",
+				&O_RDWR|&O_CREAT, $Config::FileCreationMask)
+			or die "Could not tie to $Config::ProductDir/tracking: $!\n";
+	}
 	elsif ($Config::NDBM) {
 		tie(%Vend::Tracking, 'NDBM_File',
 				"$Config::ProductDir/tracking",
 				&O_RDWR|&O_CREAT, $Config::FileCreationMask)
 			or die "Could not tie to $Config::ProductDir/tracking: $!\n";
-
 	}
 	else {
 		die "No DBM configuration defined!\n";
@@ -1017,43 +1142,113 @@ sub open_tracking {
 
 }
 
-sub read_products_dbm {
-	
-	my($code, $desc, $price);
+my $New_product_dbm; 
+my ($Products, $Product_desc, $Product_price);
 
-    open(Vend::ProductLock, "+>>$Config::ConfDir/product.lock")
-    	or die "Could not open 'product.lock': $!\n";
-    lockfile(\*Vend::ProductLock, 0, 1)
-    	or die "Could not lock 'product.lock': $!\n";
+sub product_code_exists {
+    my ($product_code) = @_;
+    return $Products->record_exists($product_code);
+}
+
+sub product_price {
+    my ($product_code) = @_;
+    return "NA" unless product_code_exists($product_code);
+    return &$Product_price($product_code);
+}
+
+sub product_description {
+    my ($product_code) = @_;
+    return "NA" unless product_code_exists($product_code);
+    return &$Product_desc($product_code);
+}
+
+sub product_field {
+    my ($product_code, $field_name) = @_;
+    return "NA" unless product_code_exists($product_code);
+    return $Products->field($product_code, $field_name);
+}
+
+
+sub create_product_mem {
+    my (@columns) = @_;
+    return Vend::Table::InMemory->create_table( {}, $New_product_dbm,
+                                           [@columns]);
+}
+
+sub create_product_dbfile {
+    my (@columns) = @_;
+    return Vend::Table::DB_File->create_table( {}, $New_product_dbm,
+                                           [@columns]);
+}
+
+sub create_product_gdbm {
+    my (@columns) = @_;
+    return Vend::Table::GDBM->create_table({Fast_write => 1},
+                                           $New_product_dbm,
+                                           [@columns]);
+}
+
+sub import_products {
+    my ($config) = @_;
+
+    my $data = $Config::ProductDir;
+
+    my $product_txt = "$data/products.asc";
+	my $product_dbm;
+	my $create_sub;
+	my $restart_necessary = 0;
+	my $restart = 0;
 
     if($Config::GDBM) {
- 		tie(%Vend::Product_description, 'GDBM_File',
-			"$Config::ProductDir/pr_desc.gdbm", &GDBM_READER, 0644)
-    	or die "Could not tie to $Config::ProductDir/pr_desc.gdbm: $!\n";
-
-    	tie(%Vend::Product_price,		'GDBM_File',
-			"$Config::ProductDir/pr_pric.gdbm", &GDBM_READER, 0644)
-    	or die "Could not tie to $Config::ProductDir/pr_pric.gdbm: $!\n";
+		$New_product_dbm = "$data/new.product.gdbm";
+    	$product_dbm = "$data/product.gdbm";
+    	$create_sub = \&create_product_gdbm;
 	}
-	elsif ($Config::NDBM) {
-		tie(%Vend::Product_description, 'NDBM_File',
-			"$Config::ProductDir/pr_desc", &O_RDONLY, 0644)
-		or die "Could not tie to $Config::ProductDir/pr_desc: $!\n";
-
-		tie(%Vend::Product_price,		'NDBM_File',
-			"$Config::ProductDir/pr_pric", &O_RDONLY, 0644)
-		or die "Could not tie to $Config::ProductDir/pr_pric: $!\n";
+    elsif($Config::DB_File) {
+		$New_product_dbm = "$data/new.product.db";
+    	$product_dbm = "$data/product.db";
+    	$create_sub = \&create_product_dbfile;
+		$restart_necessary = 1;
 	}
-	else {
-		die "No DBM configuration defined!\n";
+    else {
+    	$create_sub = \&create_product_mem;
 	}
 
-	if($Config::Tracking) {
-		open_tracking();
-	}
+    if (! defined $product_dbm
+		or ! -e $product_dbm
+        or file_modification_time($product_txt) >
+            file_modification_time($product_dbm)) {
 
+        print "Importing product table\n";
+        $Products = import_ascii_delimited($product_txt, "\t", $create_sub);
+		$restart = 1 if $restart_necessary;
+		if(defined $product_dbm) {
+        	rename($New_product_dbm, $product_dbm)
+            	or die "Couldn't move '$New_product_dbm' to '$product_dbm': $!\n";
+		}
+    }
+
+
+    if($Config::GDBM) {
+    	$Products = Vend::Table::GDBM->open_table({Read_only => 1},
+                                              "$data/product.gdbm");
+	}
+    elsif($Config::DB_File) {
+		if($restart) {
+			warn "Need to restart after Berkeley DB import...\n";
+			exit 2;
+		}
+    	$Products = Vend::Table::DB_File->open_table({Read_only => 1},
+                                              "$data/product.db");
+	}
+    $Product_desc = $Products->field_accessor("description");
+    $Product_price = $Products->field_accessor("price");
+}   
+
+sub close_products {
+    	$Products->close_table()
+			or die "Could not untie products database.\n";
 }
-
 
 ## PAGE GENERATION
 
@@ -1093,14 +1288,30 @@ sub vendUrl
     $r;
 }    
 
+sub secure_vendUrl
+{
+    my($path, $arguments) = @_;
+    my($r);
+
+	return undef unless $Config::SecureURL;
+
+    $r = $Config::SecureURL . '/' . $path . '?' . $Vend::SessionID .
+	';' . $arguments . ';' . ++$Vend::Session->{'pageCount'};
+    $r;
+}    
+
 # Returns 'CHECKED' when a value is present on the form
 # Must match exactly, but NOT case-sensitive
 # Defaults to 'on' for checkboxes
+# Silently returns null string if illegal regex
 
 sub tag_checked {
 	my $field = shift;
 	my $value = shift || 'on';
 	my $r;
+
+	#eval {/^$value$/} ;
+	#return '' if $@;
 
 	if($Vend::Session->{'values'}->{"\L$field"} =~ /^$value$/i) {
 		$r = 'CHECKED';
@@ -1111,13 +1322,15 @@ sub tag_checked {
 
 # Returns 'SELECTED' when a value is present on the form
 # Must match exactly, but NOT case-sensitive
+# Silently returns null string if illegal regex
 
 sub tag_selected {
 	my $field = shift;
 	my $value = shift || '';
 	my $r;
 
-	return('') unless $value;
+	#eval {/^$value$/} ;
+	#return '' if ( $@ or ! $value);
 
 	if($Vend::Session->{'values'}->{$field} =~ /^$value$/i) {
 		$r = 'SELECTED';
@@ -1129,36 +1342,49 @@ sub tag_selected {
 
 # Returns either a href to finish the ordering process (if at least
 # one item has been ordered), or an empty string.
+# If a secure order has been started (with a forms submission)
+# then it will be given the secure URL
 
 sub tag_finish_order {
     my($finish_order);
 
     if (@$Vend::Items > 0) {
-	$finish_order = '<a href="' . vendUrl("finish");
-	$finish_order .= '" TARGET="' . $Config::OrderFrame
-		if $Vend::Session->{'frames'};
-	$finish_order .= '">' . $Config::FinishOrder . "</a><p>";
+		if ($Vend::Session->{'secure'}) {
+			$finish_order = '<a href="' . secure_vendUrl("finish");
+		}
+		else {
+			$finish_order = '<a href="' . vendUrl("finish");
+		}
+		$finish_order .= '" TARGET="' . $Config::OrderFrame
+			if $Vend::Session->{'frames'};
+		$finish_order .= '">' . $Config::FinishOrder . "</a><p>";
     }
 	else {
-	$finish_order = '';
+		$finish_order = '';
     }
     $finish_order;
 }
 
 
 # Returns an href to place an order for the product PRODUCT_CODE.
+# If a secure order has been started (with a call to at least
+# one secure_vendUrl), then it will be given the secure URL
 
 sub tag_order {
     my($product_code) = @_;
 	my($r);
 
-    $r  = '<a href="' . vendUrl('order', $product_code);
+	if ($Vend::Session->{'secure'}) {
+    	$r  = '<a href="' . secure_vendUrl('order', $product_code);
+	}
+	else {
+    	$r  = '<a href="' . vendUrl('order', $product_code);
+	}
 	$r .= '" TARGET="' . $Config::OrderFrame
 		if $Vend::Session->{'frames'};
 	$r .= '">';
 }
 
-#ifdef OPTIONAL
 # Returns a body tag with a user-entered, a set color scheme, or the default
 sub tag_body {
     my($scheme) = @_;
@@ -1189,7 +1415,6 @@ sub tag_body {
 	}
 	$r .= '>';
 }
-#endif
 
 # Returns the text of a user entered field named VAR.
 sub tag_value {
@@ -1212,11 +1437,17 @@ sub tag_page {
 }
 
 # Returns an href which will call up the specified PAGE with TARGET reference.
+# If target ends with '__secure', will call the SecureURL
 
 sub tag_pagetarget {
     my($page,$target) = @_;
     my($r);
-    $r  = '<a href="' . vendUrl($page);
+	unless ($target =~ s/__secure$//i) {
+    	$r  = '<a href="' . vendUrl($page);
+	}
+	else {
+    	$r  = '<a href="' . secure_vendUrl($page);
+	}
     $r .= '" TARGET="' . $target
         if $Vend::Session->{'frames'};
     $r .= '">';
@@ -1264,7 +1495,6 @@ sub tag_frame_base {
 	}
 }
 
-#ifdef OPTIONAL
 # Returns a random message or image
 sub tag_random {
 	my $random = int rand(scalar(@Config::Random));
@@ -1304,7 +1534,6 @@ sub tag_buttonbar {
 		return '';
 	}
 }
-#endif
 
 # Returns an href to call up the last page visited.
 
@@ -1328,7 +1557,7 @@ sub tag_nitems {
 
 sub tag_shipping {
 	my $mode = @_;
-    currancy(shipping($mode));
+    currency(shipping($mode));
 }
 
 # Returns the total cost of items ordered.
@@ -1342,7 +1571,7 @@ sub tag_total_cost {
 
     $total += shipping();
 
-    currancy($total);
+    currency($total);
 
 }
 
@@ -1354,13 +1583,29 @@ sub subtotal {
     $subtotal = 0;
     foreach $i (0 .. $#$Vend::Items) {
 	$subtotal += $Vend::Items->[$i]->{'quantity'} *
-	    $Vend::Product_price{$Vend::Items->[$i]->{'code'}};
+	    product_price($Vend::Items->[$i]->{'code'});
     }
 
 	$subtotal;
 }
 
 # Returns the href to process the completed order form or do the search.
+
+sub tag_process_target {
+	my($frame,$security) = @_;
+	my $frametag = '';
+
+	if($Vend::Session->{'frames'}) {
+    	$frametag = '" TARGET="'. $frame;
+	}
+
+	if ("\L$security" eq 'secure') {
+    	secure_vendUrl('process') . $frametag;
+	}
+	else {
+    	vendUrl('process') . $frametag;
+	}
+}
 
 sub tag_process_search {
 	if($Vend::Session->{'frames'}) {
@@ -1372,12 +1617,36 @@ sub tag_process_search {
 }
 
 sub tag_process_order {
+	my $frametag = '';
+
 	if($Vend::Session->{'frames'}) {
-    	vendUrl('process') . '" TARGET="_self' ;
+    	$frametag = '" TARGET="_self' ;
+	}
+
+	if ($Vend::Session->{'secure'}) {
+    	secure_vendUrl('process') . $frametag;
 	}
 	else {
-    	vendUrl('process');
+    	vendUrl('process') . $frametag;
 	}
+}
+
+sub tag_secure_order {
+	my $r = '';
+	my $message = $Config::SecureOrderMsg;
+	my $target = '';
+
+	$target = '" TARGET="' . $Config::OrderFrame
+		if $Vend::Session->{'frames'};
+
+	unless($Vend::Session->{'secure'}) {
+		$r = 	'<A HREF="' .
+				secure_vendUrl('account') . $target .
+				'">' . $message . '</A>';
+	}
+
+	$r;
+
 }
 
 # Evaluates the [...] tags.
@@ -1386,12 +1655,13 @@ sub interpolate_html {
     my($html) = @_;
     my($codere) = '[\w-_#/.]+';
 
-    $html =~ s:\[finish-order\]:tag_finish_order():ige;
+    $html =~ s:\[finish[-_]order\]:tag_finish_order():ige;
 
-    $html =~ s:\[frames-on\]:tag_frames_on():ige;
-    $html =~ s:\[frames-off\]:tag_frames_off():ige;
+    $html =~ s:\[frames[-_]on\]:tag_frames_on():ige;
+    $html =~ s:\[frames[-_]off\]:tag_frames_off():ige;
+
+    $html =~ s:\[secure[-_]order\]:tag_secure_order():ige;
     $html =~ s:\[framebase\s+($codere)\]:tag_frame_base($1):ige;
-#ifdef OPTIONAL
     $html =~ s:\[body\s+($codere)\]:tag_body($1):igoe;
     $html =~ s:\[help\s+($codere)\]:tag_help($1):igoe;
     $html =~ s:\[buttonbar\s+($codere)\]:tag_buttonbar($1):igoe;
@@ -1406,30 +1676,32 @@ sub interpolate_html {
 
 	$html =~ s:\[checked\s+($codere)(\s+)?($codere)?\]:tag_checked($1,$3):igeo;
 	$html =~ s:\[selected\s+($codere)\s+($codere)\]:tag_selected($1,$2):igeo;
-#endif
 
     $html =~ s:\[page\s+($codere)\]:tag_page($1):igeo;
     $html =~ s:\[/page\]:</a>:ig;
 
-    $html =~ s:\[last-page\]:tag_last_page():ige;
-    $html =~ s:\[/last-page\]:</a>:ig;
+    $html =~ s:\[last[-_]page\]:tag_last_page():ige;
+    $html =~ s:\[/last[-_]page\]:</a>:ig;
 
     $html =~ s:\[order\s+($codere)\]:tag_order($1):igeo;
     $html =~ s:\[/order\]:</a>:ig;
 
+    $html =~ s:\[field\s+($codere)\s+($codere)\]:product_field($2,$1):igeo;
     $html =~ s:\[value\s+($codere)\]:tag_value($1):igeo;
 
     $html =~ s:\[nitems\]:tag_nitems():ige;
-    $html =~ s#\[subtotal\]#currancy(subtotal())#ige;
-    $html =~ s#\[shipping\]#currancy(shipping())#ige;
-    $html =~ s#\[salestax\]#currancy(salestax())#ige;
-    $html =~ s#\[total-cost\]#tag_total_cost()#ige;
-    $html =~ s#\[price\s+($codere)\]#currancy($Vend::Product_price{$1})#igoe;
+    $html =~ s#\[subtotal\]#currency(subtotal())#ige;
+    $html =~ s#\[shipping\]#currency(shipping())#ige;
+    $html =~ s#\[salestax\]#currency(salestax())#ige;
+    $html =~ s#\[total[-_]cost\]#tag_total_cost()#ige;
+    $html =~ s#\[price\s+($codere)\]#currency(product_price($1))#igoe;
     $html =~ s#\[description\s+($codere)\]#
-               $Vend::Product_description{$1}#igoe;
+               product_description($1)#igoe;
 
-    $html =~ s#\[process-order\]#tag_process_order()#ige;
-    $html =~ s#\[process-search\]#tag_process_search()#ige;
+    $html =~ s#\[process[-_]order\]#tag_process_order()#ige;
+    $html =~ s#\[process[-_]search\]#tag_process_search()#ige;
+    $html =~ s#\[process[-_]target\s+($codere)(\s+)?($codere)?\]#
+				tag_process_target($1,$3)#igoe;
     $html;
 }
 
@@ -1447,61 +1719,124 @@ sub trim_desc {
 ## ORDER PAGE
 
 sub tag_search_list {
-    my($text) = @_;
+    my($text,$obj,$q) = @_;
     my($r, $i, $item, $code, $link);
-	my($linkvalue, $price, $desc, $run, $count);
+	my($linkvalue, $run, $count);
+    my($codere) = '[\w-_#/.]+';
+
+	# get the number to start the increment from
+	$count = $q->global('first_match');
 
     $r = "";
+	$linkvalue = $Config::ItemLinkValue;
 
-    foreach $item (@$Vend::SearchItems) {
+    foreach $item (@$obj) {
+		($code, $link) = split(/\s+/,$item, 2);
+		$link = $code if is_yes($Config::UseCode);
 
-		if($item =~ /\s/) {
-			($code, $link) = split(/\s+/,$item, 2);
-			$price = currancy($Vend::Product_price{$code});
-			$desc = $Vend::Product_description{$code};
-			$link = $code if is_yes($Config::UseCode);
-		}
-		else {
-			$link = $item;
-			$price = 'N/A';
-			$code = 'N/A';
-			$desc = 'N/A';
-		}
+		# Uncomment next line to ignore non-database items
+		# next unless product_code_exists($code);
 
-	  $linkvalue = $Config::ItemLinkValue;
-	  $run = $text;
-	  $run =~ s:\[item-increment\]:$count:ig;
-	  $run =~ s:\[item-code\]:$code:ig;
-	  $run =~ s:\[item-description\]:trim_desc($desc):ieg;
-	  $run =~ s#\[item-link\]#"[page $Config::ItemLinkDir$link]"
+		$count++;
+
+	    $run = $text;
+	    $run =~ s#\[if[-_]field\s+($codere)\]([\s\S]*?)\[/if\]#
+				  product_field($code,$1) ? $2 : ''#ige;
+	    $run =~ s:\[item[-_]increment\]:$count:ig;
+	    $run =~ s:\[item[-_]code\]:$code:ig;
+	    $run =~ s:\[item[-_]field\s+($codere)\]:product_field($code,$1):ige;
+	    $run =~ s:\[item[-_]description\]:trim_desc(product_description($code)):ige;
+	    $run =~ s#\[item[-_]link\]#"[page $Config::ItemLinkDir$link]"
 	  			. $linkvalue . '[/page]'#ige;
-	  $run =~ s:\[item-price\]:$price:ig;
+	    $run =~ s:\[item[-_]price\]:currency(product_price($code)):ige;
 
 	  $r .= $run;
     }
     $r;
 }
 
+sub tag_more_list {
+	my($r,$q) = @_;
+	my ($list, $inc, $next, $last);
+
+	my $first = $q->global('first_match') + 1;
+	my $mod   = $q->global('search_mod');
+	my $chunk = $q->global('match_limit');
+	my $total = $q->global('matches');
+
+	if($chunk >= $total) {
+		return '';
+	}
+
+	my $next = $q->global('next_pointer');
+	my $last = $next + $chunk - 1;
+	my $adder = ($total % $chunk) ? 1 : 0;
+	my $pages = int($total / $chunk) + $adder;
+	my $current = int($next / $chunk) || $pages;
+
+	if($next) {
+		$list = '<A HREF="' .
+			vendUrl('search', "$next:$last:$mod") .
+			'" TARGET="_self">Next</A> ';
+	}
+	
+	foreach $inc (1..$pages) {
+		$next = ($inc-1) * $chunk;
+		$last = ($last+1) < $total ? ($next + $chunk - 1) : ($total - 1);
+		if($inc == $current) {
+			$list .= qq|<STRONG>$inc</STRONG> |;
+		}
+		else {
+			$list .= '<A HREF="';
+			$list .= vendUrl('search',"$next:$last:$mod");
+			$list .= '" TARGET="_self">';
+			$list .= qq|$inc</A> |;
+		}
+	}
+
+	unless( $first < $chunk ) {
+		$next = $first - $chunk - 1;
+		$last = $first - 2;
+		$list .= '<A HREF="' .
+			vendUrl('search', "$next:$last:$mod") .
+			'" TARGET="_self">Previous</A> ';
+	}
+	$last = $first + $chunk - 1;
+	$last = $last > $total ? $total : $last;
+	my $m = $first . '-' . $last; 
+	$r =~ s/\[more\]/$list/ige;
+	$r =~ s/\[matches\]/$m/ige;
+
+	$r;
+
+}
+
 sub tag_item_list {
     my($text) = @_;
-    my($r, $i, $item, $code, $quantity, $price, $desc, $run);
+    my($r, $i, $item, $link, $code, $quantity, $linkvalue, $run);
+    my($codere) = '[\w-_#/.]+';
 
     $r = "";
+	$linkvalue = $Config::ItemLinkValue;
     foreach $i (0 .. $#$Vend::Items) {
 		$item = $Vend::Items->[$i];
 		$code = $item->{'code'};
 		$quantity = $item->{'quantity'};
-		$price = currancy($Vend::Product_price{$code});
-		$desc = $Vend::Product_description{$code};
 
-		$run = $text;
-		$run =~ s:\[item-code\]:$code:ig;
-		$run =~ s:\[item-description\]:trim_desc($desc):ige;
-		$run =~ s:\[item-quantity\]:$quantity:ig;
-		$run =~ s:\[quantity-name\]:quantity$i:ig;
-		$run =~ s:\[item-price\]:$price:ig;
+	    $run = $text;
+		$run =~ s#\[if[-_]field\s+($codere)\]([\s\S]*?)\[/if\]#
+				  product_field($code,$1) ? $2 : ''#ige;
+	    $run =~ s:\[item[-_]increment\]:$i + 1:ige;
+		$run =~ s:\[item[-_]quantity\]:$quantity:ig;
+		$run =~ s:\[quantity[-_]name\]:quantity$i:ig;
+	    $run =~ s:\[item[-_]code\]:$code:ig;
+	    $run =~ s:\[item[-_]field\s+($codere)\]:product_field($code,$1):ige;
+	    $run =~ s:\[item[-_]description\]:trim_desc(product_description($code)):ige;
+	    $run =~ s#\[item[-_]link\]#"[page $Config::ItemLinkDir$code]"
+	  			  . $linkvalue . '[/page]'#ige;
+	    $run =~ s:\[item[-_]price\]:currency(product_price($code)):ige;
 
-		$r .= $run;
+	    $r .= $run;
     }
     $r;
 }
@@ -1510,22 +1845,62 @@ sub tag_item_list {
 
 sub search_page
 {
+	my($q,$o) = @_;
     my($page);
 
-    $page = readin("search");
+	if($Config::FrameSearchPage && $Vend::Session->{'frames'}) {
+    	$page = readin($Config::FrameSearchPage);
+	}
+    else {
+    	$page = readin("search");
+	}
+
     die "Missing special page: search\n" unless defined $page;
-    $page =~ s:\[search-list\]([\000-\377]*?)\[/search-list\]:
-              tag_search_list($1):ige;
+	# passing the list reference here
+    $page =~ s:\[search[-_]list\]([\000-\377]*?)\[/search[-_]list\]:
+              tag_search_list($1,$o,$q):ige;
+    $page =~ s:\[more[-_]list\]([\000-\377]*?)\[/more[-_]list\]:
+              tag_more_list($1,$q):ige;
     response('html',interpolate_html($page));
+}
+
+
+# Tries to display the on-the-fly page if page is missing
+sub fly_page
+{
+	my($code) = @_;
+	$code =~ s:.*/::;
+    my($page);
+    my($codere) = '[\w-_#/.]+';
+
+	if(is_yes($Config::UseCode) && product_code_exists($code)) {
+    	$page = readin('flypage');
+	}
+
+    return undef unless defined $page;
+	$page =~ s#\[if[-_]field\s+($codere)\]([\s\S]*?)\[/if\]#
+				  product_field($code,$1) ? $2 : ''#ige;
+    $page =~ s!\[item[-_]code\]!$code!ig;
+    $page =~ s!\[item[-_]description\]!product_description($code)!ige;
+    $page =~ s!\[item[-_]price\]!product_price($code)!ige;
+	$page =~ s:\[item[-_]field\s+($codere)\]:product_field($code,$1):ige;
+
+    interpolate_html($page);
 }
 
 sub order_page
 {
     my($page);
 
-    $page = readin("order");
+	if($Config::FrameOrderPage && $Vend::Session->{'frames'}) {
+    	$page = readin($Config::FrameOrderPage);
+	}
+    else {
+    	$page = readin("order");
+	}
+
     die "Missing special page: order\n" unless defined $page;
-    $page =~ s:\[item-list\]([\000-\377]*?)\[/item-list\]:
+    $page =~ s:\[item[-_]list\]([\000-\377]*?)\[/item[-_]list\]:
               tag_item_list($1):ige;
     response('html',interpolate_html($page));
 }
@@ -1578,10 +1953,13 @@ sub track_order {
 	# We don't do anything unless tracking is enabled
 	return undef unless $Config::Tracking;
 
+	open_tracking();
+
 	my $order_report = shift;
 	my $i;
 	my $order_no = $Vend::Tracking{'mv_next_order'};
 	my (@backend) = split /\s*,\s*/, $Config::BackendOrder;
+	
 
 	# See if we have an order number already
 	unless (defined $order_no) {
@@ -1605,19 +1983,28 @@ sub track_order {
 							"\0" . $Vend::Items->[$i]->{'quantity'};
 		}
 		$Vend::Tracking{"Backend$order_no"} = $order_info;
+		if($Config::CreditCards) {
+			$Vend::Tracking{"Cc$order_no"} = 
+				$Vend::Session->{'values'}->{'credit_card_no'};
+			$Vend::Tracking{"Exp$order_no"} = 
+				$Vend::Session->{'values'}->{'credit_card_exp'};
+		}
 	}
 
 	my $this_order = $order_no;
 	$order_no++;
 	$Vend::Tracking{'mv_next_order'} = $order_no;
+	close_tracking();
 	$this_order;
 }
 
 # Logs page hits in tracking file
 sub track_page {
     return unless $Config::Tracking;
+	open_tracking();
 	my $page = shift;
 	$Vend::Tracking{$page} = $Vend::Tracking{$page} + 1;
+	close_tracking();
 }
 
 
@@ -1645,22 +2032,33 @@ sub display_special_page {
 }
 
 # Displays the catalog page NAME.  If the file is not found, displays
-# the special page 'missing'.
+# the special page 'missing'. If it any of the special pages 'order',
+# 'fr_order', or 'account', it will return the special page 'violation'
+# instead
 
 sub display_page {
     my($name) = @_;
     my($page);
 
+	if($name =~ /^(order\b|fr_order\b|account\b)/
+		and !$CGI::secure) {
+		$name = 'violation';
+	}
     $page = readin($name);
+	# Try for on-the-fly if not there
+	if(! defined $page) {
+		$page = fly_page($name);
+	}
+
     if (defined $page) {
-    response('html',interpolate_html($page));
-	return 1;
+    	response('html',interpolate_html($page));
+		return 1;
     } else {
-	$page = readin('missing');
-	die "Special page not found: 'missing'\n" unless defined $page;
-	$page =~ s#\[subject\]#$name#ig;
-    response('html',interpolate_html($page));
-	return 0;
+		$page = readin('missing');
+		die "Special page not found: 'missing'\n" unless defined $page;
+		$page =~ s#\[subject\]#$name#ig;
+    	response('html',interpolate_html($page));
+		return 0;
     }
 }
 
@@ -1671,9 +2069,7 @@ sub do_page {
 
 	track_page($name);
     display_page($name) and $Vend::Session->{'page'} = $name;
-    write_session();
-    close_session()
-		unless defined $Vend::ServerMode;
+    put_session();
 }
 
 
@@ -1686,11 +2082,10 @@ sub do_order
     my($code) = @_;
     my($i, $found);
 
-    if (!$Vend::Product_description{$code}) {
-	logError("Attempt to order missing product code: $code\n");
-	display_special_page('noproduct', $code);
-	close_session();
-	return;
+    if (!product_code_exists($code)) {
+		logError("Attempt to order missing product code: $code\n");
+		display_special_page('noproduct', $code);
+		return;
     }
 
     # Check that the item has not been already ordered.
@@ -1703,13 +2098,11 @@ sub do_order
 
     # An if not, start of with a single quantity.
     if ($found == -1) {
-	push @$Vend::Items, {'code' => $code, 'quantity' => 1};
+		push @$Vend::Items, {'code' => $code, 'quantity' => 1};
     }
 
     order_page();		# display the order page
-    write_session();
-    close_session()
-		unless defined $Vend::ServerMode;
+    put_session();
 }
 
 
@@ -1721,41 +2114,85 @@ sub untaint {
 
 ## DO SEARCH
 
-#pick one
-#sub do_search { do_search_glimpse(@_) }
-sub do_search { do_search_index(@_) }
-
 # Search for an item with glimpse 
 
-sub do_search_glimpse
-{
-    my($code) = @_;
-    my($i, $found);
-	my(%seen);
+sub do_search {
+	my($more_matches) = @_;
+    my($matchlimit) = $CGI::values{'mv_matchlimit'} || 50;
+    my($spelling_errors) = defined $CGI::values{'mv_spelling_errors'}
+				?  $CGI::values{'mv_spelling_errors'} 
+				: '0';
+    my($orsearch) = is_yes($CGI::values{'mv_orsearch'});
+    my($type) =  defined $CGI::values{'mv_searchtype'}
+				?  $CGI::values{'mv_searchtype'} 
+				: '';
+    my($case) = is_yes($CGI::values{'mv_case'});
+	my(@out);
+	my $q;
+	my $matches;
 
-	@$Vend::SearchItems = ();
+	unless (defined $Vend::Session->{'values'}->{'mv_search_over_msg'}) {
+		$Vend::Session->{'values'}->{'mv_search_over_msg'} =
+			$Config::SearchOverMsg;
+	}
 
-    if (!$Config::Glimpse) {
-	logError("Attempt to search with glimpse, no glimpse present: $code\n");
-	display_special_page('failed', $code);
-	return;
-    }
+	if($Config::Glimpse) { $type = 'glimpse' unless $type }
+	else 				 { $type = 'text' }
 
-	$code = untaint($code);
 
-    unless (@$Vend::SearchItems =
-		`$Config::Glimpse -l -H $Config::PageDir -F '*\.htm*' '$code'`
-		) {
-	display_special_page('notfound', $code);
-	return;
-    }
+	my %options = (
+			session_id => $Vend::SessionID,
+			search_mod => ++$Vend::Session->{pageCount},
+			match_limit => $matchlimit,
+			);
+	$options{'spelling_errors'} = $spelling_errors
+			if $spelling_errors;
+	
+	if(defined %Vend::Cache) {
+		$options{'save_hash'} = \%Vend::Cache;
+	}
+	else {
+		$options{'save_dir'} = $Config::ScratchDir;
+	}
 
-	@$Vend::SearchItems = grep(s/\.html?$//i, @$Vend::SearchItems);
-	@$Vend::SearchItems = grep(s#^$Config::PageDir/##i, @$Vend::SearchItems);
-	@$Vend::SearchItems = grep(!$seen{$_}++, @$Vend::SearchItems);
+	if ($type =~ /glimpse/)		{ $q = new Vend::Glimpse %options }
+	else				 		{ $q = new Vend::TextSearch %options }
 
-    search_page();		# display the search page
+	unless($more_matches) {
+		$q->rowpush(
+			undef,
+			$CGI::values{'mv_searchspec'},
+			$case,
+			$orsearch );
+		@out = $q->search();
+	}
+	else {
+		my ($next,$last,$mod) = split(/:/,$more_matches);
+		@out = $q->more_matches($next,$last,$mod);
+	}
+
+	$matches = $q->global('matches');
+
+	if ( $matches > 0 )
+	{
+	 $Vend::Session->{'values'}->{'mv_search_match_count'} = $matches;
+	}
+	elsif ($matches == 0) {
+		display_special_page 'nomatch', $CGI::values{'mv_searchspec'};
+		return;
+	}
+	else {
+		# Got an error handled by search module
+		return;
+	}
+
+	undef $Vend::Session->{'values'}->{'mv_search_over_msg'}
+    			 unless $q->global('overflow');
+
+	search_page($q,\@out);
+
 }
+
 
 sub is_yes {
 	return( defined($_[$[]) && ($_[$[] =~ /^[yYtT1]/));
@@ -1765,147 +2202,7 @@ sub is_no {
 	return( !defined($_[$[]) || ($_[$[] =~ /^[nNfF0]/));
 }
 
-sub create_search_and {
-
-	my ($case) = shift(@_) ? '' : 'i';
-    die("create_search_and: create_search_and case_sens patterns") unless @_;
-	my $pat;
-
-    my $code = <<EOCODE;
-sub {
-EOCODE
-
-    $code .= <<EOCODE if @_ > 5;
-    study;
-EOCODE
-
-    for $pat (@_) {
-	$code .= <<EOCODE;
-    return 0 unless /$pat/$case;
-EOCODE
-    } 
-
-    $code .= "}\n";
-
-    my $func = eval $code;
-    die "bad pattern: $@" if $@;
-
-    return $func;
-} 
-
-sub create_search_or {
-
-	my ($case) = shift(@_) ? '' : 'i';
-    die("create_search_or: create_search_or case_sens patterns") unless @_;
-	my $pat;
-
-    my $code = <<EOCODE;
-sub {
-EOCODE
-
-    $code .= <<EOCODE if @_ > 5;
-    study;
-EOCODE
-
-    for $pat (@_) {
-	$code .= <<EOCODE;
-    return 1 if /$pat/$case;
-EOCODE
-    } 
-
-    $code .= "}\n";
-
-    my $func = eval $code;
-    die "bad pattern: $@" if $@;
-
-    return $func;
-} 
-
-	
-# Search for an item in just the index
-
-sub do_search_index
-{
-    my($string) = $CGI::values{'mv_searchspec'};
-    my($matchlimit) = $CGI::values{'mv_matchlimit'} || 50;
-    my($orsearch) = $CGI::values{'mv_orsearch'} || 'no';
-    my($perl) = $CGI::values{'mv_perl'} || 'no';
-    my($case) = $CGI::values{'mv_case'} || 'no';
-	my(@pats);
-	my($code,$f,$link,$junk);
-	my($count);
-    #my($i, $found);
-
-	undef $Vend::Session->{'values'}->{'mv_search_match_count'};
-	undef $Vend::Session->{'values'}->{'mv_search_over_msg'}
-				if $Config::SearchOverMsg;
-
-	if(!$string) {
-		search_page();
-		return;
-	}
-
-	unless( is_yes($perl) ) {
-		$string =~ s/\*/.*?/g;
-		@pats = split(/\s+/,$string);
-	}
-	else {
-		$pats[0] = $string;
-	}
-
-	for(;;) {
-		my $tried;
-		unless (is_yes($orsearch)) {
-			eval {$f = create_search_and(is_yes($case),@pats)};
-		}
-		else {
-			eval {$f = create_search_or(is_yes($case),@pats)};
-		}
-		last unless $@;
-		if($@ and $tried) {
-			logError("Bad search string $string: $@\n");
-			display_special_page('notfound', 'bad search string');
-			return;
-		}
-		@pats = grep(quotemeta $_, @pats);
-		$tried = 1;
-	}
-
-    if (!open(Vend::SEARCH,"$Config::ProductDir/products.asc")) {
-		logError("Can't find search index products.asc: $!\n");
-		display_special_page('notfound', 'Search Index');
-    	close Vend::SEARCH;
-		return;
-    }
-
-	@$Vend::SearchItems = ();
-	undef $Vend::Session->{'values'}->{'mv_search_over_msg'}
-				if $Config::SearchOverMsg;
-
-	while(<Vend::SEARCH>) {
-		next unless &$f();
-		if ($count++ >= $matchlimit) {
-			$Vend::Session->{'values'}->{'mv_search_over_msg'}
-				= $Config::SearchOverMsg
-				if $Config::SearchOverMsg;
-			$count--;
-			last;
-		}
-		chop;
-		($code,undef,undef,$link) = split(/\t+/,$_);
-		$link =~ s/\.html?$//;
-		if ($link =~ s:/\s*$:/:) {
-			$link .= "\L$code";
-		}
-		push(@$Vend::SearchItems,"$code $link");
-	}
-	$Vend::Session->{'values'}->{'mv_search_match_count'} =
-			$count ? $count : '0';
-    close Vend::SEARCH;
-	
-    search_page();		# display the search page
-}
-
+# Returns undef if interaction error
 sub update_quantity {
 	my($i, $quantity);
 
@@ -1914,10 +2211,14 @@ sub update_quantity {
     	if (defined($quantity) && $quantity =~ m/^\d+$/) {
         	$Vend::Items->[$i]->{'quantity'} = $quantity;
     	}
+		elsif (defined $quantity) {
+			my $item = $Vend::Items->[$i]->{'code'};
+        	interaction_error("'$quantity' for item $item is not numeric\n");
+        	return undef;
+    	}
 		else {
         	interaction_error("Variable '$quantity' not passed from form\n");
-        	close_session();
-        	return;
+        	return undef;
     	}
     }
 	# If the user has put in "0" for any quantity, delete that item
@@ -1932,6 +2233,7 @@ sub update_quantity {
         last DELETE;
     }
 
+	1;
 
 }
 
@@ -1942,87 +2244,139 @@ sub update_quantity {
 
 sub do_finish {
     order_page();
-    write_session();
-    close_session()
-		unless defined $Vend::ServerMode;
+    put_session();
 }
 
+# Update the user-entered fields.
+sub update_user {
+	my($key,$value);
+    # Update the user-entered fields.
+    while (($key, $value) = each %CGI::values) {
+        next if ($key =~ m/^quantity\d+/);
+        next if ($key =~ /^mv_(todo|nextpage|doit)/);
+        #next if ($key eq 'mv_nextpage');
+        #next if ($key eq 'mv_doit');
+        $Vend::Session->{'values'}->{$key} = $value;
+		next unless $key =~ /credit_card/i;
+		if(	defined $Config::Password &&
+			$Config::CreditCards			)
+		{
+			$value = encrypt_cc($value);
+			! defined $value &&
+				logError("Encryption didn't work, session $Vend::SessionID");
+        	$Vend::Session->{'values'}->{$key} = $value;
+			undef $CGI::values{$key};
+		}
+		else {
+			# No writing of real credit card numbers without 
+			# encryption
+        	$Vend::Session->{'values'}->{$key} = 'xxxxxxxxxxxxxxxxxxxxxx';
+		}
+			
+    }
+}
 
 ## DO PROCESS
 
 # Process the completed order or search page.
 
 sub do_process {
-    my($i, $doit, $quantity, $todo, $page, $key, $value);
+    my($i, $doit, $nextpage, $quantity, $todo, $page, $key, $value);
 
     expect_form() || return;
 
     $doit = $CGI::values{'mv_doit'};
-    $todo = $CGI::values{'mv_todo'} || $doit;
+    $todo = $CGI::values{'mv_todo'};
+    $nextpage = $CGI::values{'mv_nextpage'} || $Vend::Session->{'page'};
 
-    # Update the user-entered fields.
-    while (($key, $value) = each %CGI::values) {
-		next if ($key =~ m/^quantity\d+/);
-		next if ($key eq 'mv_todo');
-		next if ($key eq 'mv_doit');
-		$Vend::Session->{'values'}->{$key} = $value;
+	# Maybe we have an imagemap input, if not, use $doit
+    if (!defined $todo) {
+		if (defined $CGI::values{'mv_todo.x'}) {
+				my $x = $CGI::values{'mv_todo.x'};
+				my $y = $CGI::values{'mv_todo.y'};
+				my $map = $CGI::values{'mv_todo.map'};
+				$todo = action_map($x,$y,$map);
+				# logError("map action: $todo  ($x,$y)");  #DEBUG
+		}
+		else {
+			$todo = $doit if defined $doit;
+		}
+	}
+
+	#Check again, see if we have a todo
+    if (!defined $todo) {
+			interaction_error("No action passed from form\n");
+			return;
     }
 
-    if (!defined $todo) {
-		interaction_error("Variable 'mv_todo' not passed from form\n");
-		close_session();
-		return;
-    } elsif ($doit =~ /\bcontrol\b/i) {
-		do_page($Vend::Session->{'page'});
-	} elsif ($todo =~ /submit/i) {
-		update_quantity();
+	if ($doit =~ /\baccount\b/i) {
+		if ($CGI::secure) {
+			$Vend::Session->{'secure'} = 1;
+			update_user();
+			do_page($nextpage);
+		}
+		else {
+			do_page('violation');
+		}
+    }
+	elsif ($doit =~ /\bcontrol\b/i) {
+		update_user();
+		do_page($nextpage);
+	}
+	elsif ($todo =~ /submit/i) {
+		update_user();
+		update_quantity() || return; #Return on error
 		my($ok);
 		my($missing);
 		my($values) = $Vend::Session->{'values'};
 		($ok, $missing) = check_required($values);
 		if (!$ok) {
-			$missing =~ s/(\w+)/lcfirst($1)/ge;
+			$missing =~ s/(\w+)/ucfirst($1)/ge;
 	    	display_special_page("needfield", $missing);
-    		write_session();
-    		close_session()
-				unless defined $Vend::ServerMode;
+    		put_session();
 			return;
 		}
 
 		# This function (followed down) now does the backend ordering
 		$ok = mail_order();
 
+		# Remove the items
 		@$Vend::Items = ();
+
 		if ($ok) {
 	    	display_special_page("confirmation");
 		} else {
 	    	display_special_page("failed");
 		}
-    } elsif ($todo =~ /return/i) {
-		display_page($Vend::Session->{'page'});
+    }
+	elsif ($todo =~ /return/i) {
+		update_user();
+		display_page($nextpage);
     }
 	elsif ($todo =~ /finish|refresh|recalc/i) {
-		update_quantity();
+		update_user();
+		update_quantity() || return; #Return on error
 		order_page();
     }
 	elsif ($todo =~ /search/i or $doit =~ /search/i) {
+		update_user();
 		do_search();
     } elsif ($todo =~ /cancel/i) {
-		$page = $Vend::Session->{'page'};
+		$Vend::Session->{'values'}->{'credit_card_no'} = 'xxxxxxxxxxxxxxxxxxxxxx';
+		$Vend::Session->{'values'}->{'credit_card_exp'} = 'xxxxxxxx';
+		my $frames = $Vend::Session->{'frames'};
+		put_session();
+		get_session();
 		init_session();
-		display_page($page);
+		$Vend::Session->{'frames'} = $frames;
+		display_page('canceled');
     }
 	else {
 		interaction_error(
           "Form variable 'mv_todo or mv_doit' value '$todo' not recognized\n");
-    	close_session()
-			unless defined $Vend::ServerMode;
 		return;
     }
-
-    write_session();
-    close_session()
-		unless defined $Vend::ServerMode;
+    put_session();
 }
 
 
@@ -2107,24 +2461,24 @@ END
 	$item = $Vend::Items->[$i];
 	$code = $item->{'code'};
 	$quantity = $item->{'quantity'};
-	$price = $Vend::Product_price{$code};
-	$desc  = $Vend::Product_description{$code};
+	$price = product_price($code);
+	$desc  = product_description($code);
 	$desc =~ s/<.*?>/ /g;
 	$body .= sprintf( "%3s  %-12s  %-38s  %8s  %9s\n",
 			 $quantity,
 			 $code,
 			 substr($desc,0,38),
-			 currancy($price),
-			 currancy($quantity * $price) );
+			 currency($price),
+			 currency($quantity * $price) );
     }
 	$body .= sprintf "%3s  %-12s  %-38s  %8s  %9s\n",
-			'','','SUBTOTAL','', currancy(subtotal());
+			'','','SUBTOTAL','', currency(subtotal());
 	$body .= sprintf "%3s  %-12s  %-38s  %8s  %9s\n",
-			'','','SALES TAX','', currancy(salestax());
+			'','','SALES TAX','', currency(salestax());
 	$body .= sprintf "%3s  %-12s  %-38s  %8s  %9s\n",
 			'','','SHIPPING',
 			$Vend::Session->{'values'}->{'mv_shipmode'},
-			currancy(shipping());
+			currency(shipping());
 	$body .= sprintf "%3s  %-12s  %-38s  %8s  %9s\n",
 			'','','','TOTAL', tag_total_cost();
     $body;
@@ -2196,7 +2550,7 @@ sub mail_order {
 
 sub map_cgi {
 
-    my($cgi, $major, $minor, $host, $user, $length);
+    my($cgi, $major, $minor, $host, $user, $secure, $length);
 
     $CGI::request_method = ::http()->Method;
     die "REQUEST_METHOD is not defined" unless defined $CGI::request_method;
@@ -2209,11 +2563,15 @@ sub map_cgi {
     $host = '' unless defined $host;
     $CGI::host = $host;
 
+    $CGI::secure = 1
+		if http()->Https_on;
+
     $user = http()->Authenticated_User;
     $user = http()->Client_Ident
 		unless (defined $user && $user ne '');
     $user = '' unless defined $user;
     $CGI::user = $user;
+    $CGI::useragent = http()->User_Agent;
 
     $CGI::content_length = http()->Content_Length;
     $CGI::content_type = http()->Content_Type;
@@ -2242,10 +2600,8 @@ sub dispatch {
 
     if (defined $sessionid && $sessionid ne '') {
 	$Vend::SessionID = $sessionid;
-	open_session()
-		unless defined $Vend::ServerMode;
     $Vend::SessionName = session_name();
-	read_session();
+	get_session();
 	if (time - $Vend::Session->{'time'} > $Config::SessionExpire) {
 	    init_session();
 	}
@@ -2255,10 +2611,14 @@ sub dispatch {
 
     $path = $CGI::path_info;
 
+	# If this is left at 0, then we will try the on-the-fly page
+	$Vend::RegularPage = 0;
+
     # If the cgi-bin program was invoked with no extra path info,
     # just display the catalog page.
     if (!defined $path || $path eq '' || $path eq '/') {
 		do_catalog();
+		unlock_session();
 		return;
     }
 
@@ -2268,11 +2628,14 @@ sub dispatch {
     #print Vend::DEBUG "action is $action\n";
     if    ($action eq 'order')    { do_order($argument);  }
     elsif ($action eq 'finish')   { do_finish();          }
-    elsif ($action eq 'search')   { do_search(); }
+    elsif ($action eq 'search')   { do_search($argument); }
     elsif ($action eq 'process')  { do_process();         }
     else {
-	do_page(join('/', $action, @path));
+		# try the on-the-fly page if it fails
+		$Vend::RegularPage = 1;
+		do_page(join('/', $action, @path));
     }
+	unlock_session();
 	0;
 }
 
@@ -2281,6 +2644,8 @@ sub dispatch {
 sub dontwarn {
     $Config::SearchFrame +
 	$Config::VendURL +
+	$Config::SecureURL +
+	$Config::SecureOrderMsg +
     $Config::PageDir +
     $Config::MailOrderTo +
     $Config::FinishOrder +
@@ -2288,6 +2653,8 @@ sub dontwarn {
     $Config::ReportIgnore +
     $Config::OrderReport +
     $Config::UseCode +
+    $Config::ScratchDir +
+    $Config::CreditCards +
     $Config::DefaultShipping +
     $Config::PriceCommas +
     $Config::DebugMode +
@@ -2332,8 +2699,8 @@ sub unhexify {
     my($s) = @_;
 
 	# Following gets around Perl 5.001m bug
-    $s =~ s/%24/\$/ig;
-    $s =~ s/%5c/\\/ig;
+    #$s =~ s/%24/\$/ig;
+    #$s =~ s/%5c/\\/ig;
 
     $s =~ s/%(..)/chr(hex($1))/ge;
     $s;
@@ -2350,8 +2717,14 @@ sub parse_post {
 		$key = unhexify($key);
 		$value =~ s/\+/ /g;
 		$value = unhexify($value);
-		$CGI::values{$key} = $value;
-	}
+		# Handle multiple keys
+		unless (defined $CGI::values{$key}) {
+	 		$CGI::values{$key} = $value;
+		}
+		else {
+			$CGI::values{$key} .= "\0" . $value;
+		}
+	 }
 }
 
 
@@ -2368,7 +2741,7 @@ sub cgi_environment {
 		die "Need a cgi-bin interface version of at least 1.0\n";
 	}
 
-	#$CGI::gateway_interface = $ENV{'GATEWAY_INTERFACE'};
+	$CGI::useragent = $ENV{'HTTP_USER_AGENT'};
 	$CGI::request_method = $ENV{'REQUEST_METHOD'};
 	die "REQUEST_METHOD is not defined" unless defined $CGI::request_method;
 
@@ -2424,12 +2797,16 @@ sub parse_options {
 		} elsif (m/^-h(elp)?$/i) {
 			usage();
 			exit 0;
+		} elsif (m/^-i(nit)?$/i) {
+			$Vend::mode = 'init';
 		} elsif (m/^-t(est)?$/i) {
 			$Vend::mode = 'test';
 		} elsif (m/^-e(xpire)?$/i) {
 			$Vend::mode = 'expire';
 		} elsif (m/^-n(etstart)?$/i) {
 			$Vend::mode = 'netstart';
+		} elsif (m/^-n(otify)?$/i) {
+			$Vend::mode = 'notify';
 		} elsif (m/^-s(erve)?$/i) {
 			$Vend::mode = 'serve';
 		} elsif (m/^-r(estart)?$/i) {
@@ -2444,8 +2821,8 @@ sub parse_options {
 }
 
 sub version {
-	print "MiniVend version 1.0 Copyright 1995 Andrew M. Wilcox\n";
-	print "                     Copyright 1996 Michael J. Heins\n";
+	print "MiniVend version 1.02 Copyright 1995 Andrew M. Wilcox\n";
+	print "                      Copyright 1996 Michael J. Heins\n";
 }
 
 sub usage {
@@ -2466,6 +2843,22 @@ Command line options:
 	 -netstart        start server from the net
 	 -restart         restart server (re-read config file)
 END
+}
+
+sub scrub_sockets {
+
+	my (@sockets);
+	my $dir = $Config::ConfDir;
+
+	opendir(Vend::SCRUBSOCK,$dir) ||
+		die "Couldn't read $dir: $!\n";
+	@sockets =  grep -S "$dir/$_", readdir(Vend::SCRUBSOCK);
+	closedir(Vend::SCRUBSOCK);
+
+	for(@sockets) {
+		unlink "$dir/$_";
+	}
+
 }
 
 ## FILE PERMISSIONS
@@ -2536,32 +2929,51 @@ sub main {
 	umask $Config::Umask;
 
 	if ($Vend::mode eq 'cgi') {
-		read_products();
+		import_products();
+		undef $Vend::ServerMode;
 		dispatch();
+		close_products();
 	} elsif ($Vend::mode eq 'serve' or $Vend::mode eq 'netstart') {
 		# This should never return unless killed or an error
 		# We set debug mode to -1 to communicate with the server
 		# that no output is desired
-		$Config::DebugMode = -1 if $Vend::mode eq 'netstart';
-		read_products();
-		open_session();
+		scrub_sockets();
+		import_products();
+		if($Vend::mode eq 'netstart') {
+			$Config::DebugMode = -1;
+		}
+		else {
+			read_password();
+		}
 		$Vend::ServerMode = 1;
 		Vend::Server::run_server($Config::DebugMode);
 		undef $Vend::ServerMode;
-		close_session;
+		close_products();
+	} elsif ($Vend::mode eq 'init') {
+		import_products();
+		close_products();
 	} elsif ($Vend::mode eq 'restart') {
 		# This should never return unless killed or an error
 		undef $Vend::ServerMode;
-		read_products();
-		open_session();
+		import_products();
+		read_password();
 		$Vend::ServerMode = 1;
 		Vend::Server::restart_server();
 		undef $Vend::ServerMode;
-		close_session;
+		close_products();
 	} elsif ($Vend::mode eq 'expire') {
 		expire_sessions();
 	} elsif ($Vend::mode eq 'dump-sessions') {
 		dump_sessions();
+	} elsif ($Vend::mode eq 'notify') {
+	    my $to = $Config::MailOrderTo;
+	    my $subject = "MiniVend not running";
+		my $msg = <<EOM;
+A user tried to access MiniVend with the URL
+"$Config::VendURL" and the server
+was not running.
+EOM
+		send_mail($to, $subject, $msg) or die "Couldn't send mail: $!\n";
 	} elsif ($Vend::mode eq 'test') {
 		;
 	} else {

@@ -1,4 +1,21 @@
-MiniVend 1.1 - Extensive changes 
+MiniVend 1.02 - SSL Security
+* Revamped demo to have fewer frames
+* Added CreditCards, EncryptProgram, FrameOrderPage, SecureOrderMsg,
+  SecureURL directives to configuration
+* Added __secure suffix to target of [pagetarget] element, allows secure
+  transmission of arbitrary pages
+* Added [process-target target secure] element
+* Added [secure-order] element
+* Improved "match exactly" search, removed bug that could crash
+  program (not the system)
+* Added Imagemap behavior for forms, uses the mv_todo.map
+  variable to pass "client-side" maps
+* Added TCP-based link program and Server.pm.tcp to allow
+  TCP-based communication (no auto installation). THIS IS A
+  SECURITY HOLE IF USING SSL AND DES
+@ Fixed bug causing session close if bad quantity entered
+
+MiniVend 1.01 - Extensive changes 
 * Added [salestax], [subtotal] tags
 * Added CustomShipping, DefaultShipping, Backend, SalesTax,
   and Tracking directives

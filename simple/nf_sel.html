@@ -3,7 +3,7 @@
 <TITLE>Select by Category</TITLE>
 [framebase main]
 </HEAD>
-[body 1]
+<BODY>
 <H3>
 <IMG SRC="/sample/images/web_srch.gif" ALT="SEARCH">
 Select by Category
@@ -18,7 +18,7 @@ Select by Category
 	<OPTION VALUE="Impressionists$"> Impressionists
 	<OPTION VALUE="Surrealists$"> Surrealists
 	<OPTION VALUE="Americana$"> Americana
-	<OPTION VALUE="New Wave$"> New Wave
+	<OPTION VALUE="Contemporary$"> Contemporary
 </SELECT>
 <INPUT TYPE=HIDDEN NAME="mv_case" VALUE="yes">
 <INPUT TYPE=HIDDEN NAME="mv_perl" VALUE="yes">
@@ -30,19 +30,16 @@ Select by Category
 [finish-order]
 [pagetarget help main]
 	<STRONG>Help</STRONG>[/page]
-	Limit matches to:
+	Matches per page:
 	<SELECT NAME="mv_matchlimit">
 			<OPTION>10
-			<OPTION>25
+			<OPTION SELECTED>25
 			<OPTION>50
 			<OPTION>100
-			<OPTION>200
-			<OPTION SELECTED>400
 	</SELECT><BR>
 </FORM>
 Just select the category you want to browse, then press the
 <B>Search</B> button.  The search engine
 will select up to 400 items from our great catalog!
 <P>
-[help header][help fr_sel][help footer]
 </body> </html>

@@ -22,7 +22,7 @@
 ############### Configurable Variables ######################
 #
 # Where your HTML source tree is
-$HtmlDir = '/h/htdocs';
+$HtmlDir = '/usr/local/etc/httpd/htdocs';
 
 # Where the vend root directory is
 $VendRoot = '/usr/local/lib/minivend';

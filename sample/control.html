@@ -8,13 +8,15 @@ Control Panel
 <P>
 [help header][help control][help footer]
 <H1>Frame Control</H1>
-[pagetarget nf_greet _top]<STRONG>NO Frames</STRONG>[/pagetarget]
+[pagetarget nf_greet _parent]<STRONG>NO Frames</STRONG>[/pagetarget]
 <IMG SRC="/sample/images/bg.gif" ALT=" . . . ">
 [pagetarget reframe _top]<STRONG>Use Frames</STRONG>[/pagetarget]
 <HR SIZE=4>
 <H1>Help Control</H1>
-<FORM ACTION="[process-search]" METHOD=POST>
+[pagetarget help _self]MiniVend User Help[/page]<BR>
+<FORM ACTION="[process-target _top]" METHOD=POST>
 <INPUT TYPE=HIDDEN NAME=mv_doit VALUE=control>
+<INPUT TYPE=HIDDEN NAME=mv_nextpage VALUE=catalog>
 <INPUT TYPE=SUBMIT NAME=mv_helpon VALUE="Help ON">
 <INPUT TYPE=SUBMIT NAME=mv_helpoff VALUE="Help OFF">
 </FORM>
@@ -26,7 +28,8 @@ menu.
 <P>
 
 <I><FONT SIZE=5>Totally Custom!</FONT></I><FONT SIZE=2> (any valid RGB)</FONT><BR>
-<FORM ACTION="[process-search]" METHOD=POST>
+<FORM ACTION="[process-target _top]" METHOD=POST>
+<INPUT TYPE=HIDDEN NAME=mv_nextpage VALUE=catalog>
 <INPUT TYPE=HIDDEN NAME=mv_doit VALUE=control>
 <INPUT TYPE=HIDDEN NAME=mv_customcolors VALUE=yes>
 <TABLE>
@@ -65,7 +68,7 @@ menu.
 
 <HR SIZE=4>
 
-<FORM ACTION="[process-search]" METHOD=POST>
+<FORM ACTION="[process-target _top]" METHOD=POST>
 <INPUT TYPE=HIDDEN NAME=mv_doit VALUE=control>
 <INPUT TYPE=HIDDEN NAME=mv_customcolors VALUE=yes>
 <TABLE>

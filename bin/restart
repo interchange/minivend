@@ -1,10 +1,7 @@
 #!/usr/bin/perl
-# start - starts Vend in server mode
+# restart - restarts Vend in server mode
 $VendRoot = '/usr/local/lib/minivend';
-$VEND = '/usr/local/lib/minivend/minivend.pl';
-$PERL = '/usr/local/bin/perl';
 $ConfDir = '/usr/local/lib/minivend/etc';
-$PerlFlags = '-wT';
 $PidFile = "$ConfDir/minivend.pid";
 ## END CONFIGURABLE VARIABLES
 

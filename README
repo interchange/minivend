@@ -29,20 +29,29 @@ any kind -- but that doesn't mean I am not interested in problems,
 suggestions, or comments.  Please feel free to send them to me, Mike
 Heins, <mikeh@iac.net>.
 
-                                   MINIVEND
+-------------------------------------------------------------
+
+                        M I N I V E N D
                                        
    MiniVend is a full-featured electronic catalog system (commonly known
-   as a shopping cart) with online ordering capability. It is designed to
-   provide an interface complete with automated entry of orders into your
-   database.
-
+   as a shopping cart) with online ordering capability and support for
+   SSL security. It is designed to provide an interface complete with
+   automated entry of orders into your database.
+   
    MiniVend is freely-redistributable under the GNU General Public
-   License -- you can download it via HTTP.
-
+   License -- you can download it via FTP at any CPAN archive.
+   
      * Users maintain a "shopping cart" for ordered items
      * Catalogs can be of almost unlimited size with excellent
        performance
-     * Search capability
+     * Full support for SSL, with DES encryption of credit card numbers
+       on disk
+     * Pageable searching, with support for Glimpse or standard text
+       search
+     * Full database capability, unlimited and configurable fields
+     * Catalog pages can be built on the fly from the database or
+       pre-made, with automatic selection
+     * Supports GDBM, DB_File, and NDBM databases
      * Full frames support
      * Works well with all browsers
      * Back end order entry capability
@@ -64,24 +73,28 @@ Heins, <mikeh@iac.net>.
    
    Andrew Wilcox wrote Vend, the copylefted shopping cart software.
    MiniVend is based on Vend V0.2, but enhanced considerably, adding
-   support for frames, search capability, remote administration,
-   superfast server mode, client-side imagemaps, user-customizable help
-   and displays, and more. This version of Vend includes an automatic
-   configuration and installation utility, and continues to be free under
-   the GNU copyleft.
+   support for SSL security, frames, powerful search capability, remote
+   administration, superfast server mode, client-side imagemaps,
+   user-customizable help and displays, and more. This version of Vend
+   includes an automatic configuration and installation utility, and
+   continues to be free under the GNU copyleft.
+   
+   Frames, the new windowing technology Netscape has proposed for HTML
+   3.0, significantly enhances the electronic catalog experience, letting
+   the user maintain a context as they navigate through the catalog.
 
+---------------------------------------------------------------
 
-   ----------------------------------------------------------------
-
-                C H A N G E S   F R O M   V E N D
+            C H A N G E S   F R O M   V E N D
 
 MiniVend has been modified in several ways from the original Vend 0.2 --
 see the file Changes for more information.
 
-	1. The product index is now searchable via an ASCII search
-	engine.  The ASCII search operates well at catalog sizes of 
-	4,000 items, so unless your catalog gets larger than that, it
-	should suffice.
+	1. The product index is now searchable via an ASCII or Glimpse
+	search engine.  The ASCII search operates well at catalog sizes of 
+	10,000 items, so unless your catalog gets larger than that, it
+	should suffice. Glimpse works well for larger databases if the
+	indexing is done properly.
 
 	2. The product listings are broken out into two DBM files,
 	containing the product description and price.  This improves
@@ -127,53 +140,75 @@ see the file Changes for more information.
 
 	9. Back end order entry is possible, with the tracking feature.
 
-    -------------------------------------------------------------------
+	10. Secure Sockets Layer servers are fully supported, with
+	ability to intermix hot-links to either the secure or standard
+	HTTP server.
 
-	                            D E M O
+	11. Catalog pages are generated on the fly if not present
+	on disk.
 
-There is a modest demo supplied which demonstrates frames on MiniVend,
-along with the result of automatic page generation.  Using the new
-UseCode directive, it is possible to generate a link to each individual
-item with an automatic page builder.  The Catalog Converter from
-Internet Robotics was used for this demo -- the catalog pages were
-untouched by human hands, other than generating a template.  It is
-possible to build inline images, clickable sounds, and other doo-dads
-into these pages, and then automatically generate Vend references to
-them.
+    12. The database can be of arbitrary size and structure,
+    both rows and columns. It is automatically imported. (Kudos
+    to Andrew for his Table class!)
+
+-------------------------------------------------------------------
+
+                         D E M O
+
+There are two modest demos supplied. The 'sample' demo demonstrates
+frames on MiniVend, along with the result of automatic page generation.
+It is possible to generate a link to each individual item with an
+automatic page builder. The pages in the demo were untouched by human
+hands, other than generating a template.  It is possible to build inline
+images, clickable sounds, and other doo-dads into these pages, and then
+automatically generate Vend references to them.
 
 To install the demo, simply copy the following pages from the sample
-directory into the directory sample/ under your HTML root.
+directory into the directory sample/ under your HTML root. Use these
+commands:
 
-				index.html
-				address.html
-				feature.html
-				special1.html
-				special2.html
-				special3.html
-				images/*.gif
+ cd /usr/minivend                   # wherever your vend directory is
+ mkdir pages                        # make if not already there
+ cp sample/*.html pages
+ md /usr/local/etc/httpd/htdocs/sample
+ md /usr/local/etc/httpd/htdocs/sample/images
+ cp sample/images/* /usr/local/etc/httpd/htdocs/sample/images
+ cp sample/special*.html /usr/local/etc/httpd/htdocs/sample
+ cp sample/index.html  /usr/local/etc/httpd/htdocs/sample
+ cp sample/intro.html  /usr/local/etc/httpd/htdocs/sample
+ cp sample/address.html /usr/local/etc/httpd/htdocs/sample
 
-The images may be broken unless you specify the proper ImageDir path with
-the Vend directive, or use the suggested base URL of /sample/.
+There is a simple demo that demonstrates the basic features 
+of MiniVend.  It is located in the 'simple' directory, and is
+the default if you installed in static mode.  To enable it:
 
-The configure script will give you a chance to install the demo
+ cd /usr/minivend                   # wherever your vend directory is
+ mkdir pages                        # make if not already there
+ cp simple/*.html pages
+ md /usr/local/etc/httpd/htdocs/sample
+ md /usr/local/etc/httpd/htdocs/sample/images
+ cp sample/images/* /usr/local/etc/httpd/htdocs/sample/images
+ cp simple/index.html  /usr/local/etc/httpd/htdocs/sample
+
+The configure script will give you a chance to install either demo
 automatically -- this is with no doubt the easiest way to see the
-full demo.  I suggest you use it.
+demo.  I suggest you use it.
 
-    -------------------------------------------------------------------
+-------------------------------------------------------------------
 
-                          A V A I L A B I L I T Y
+                      A V A I L A B I L I T Y
 
-MiniVend has been well-tested on SunOS, Linux, and FreeBSD. The
-underlying Vend engine has certainly been tested on several more OS
-versions -- and it should work on any UNIX with Perl 5 and GDBM or NDBM
-support.
+MiniVend has been well-tested on Solaris 2, SunOS, Linux, OSF/Alpha, ,
+and FreeBSD. The underlying Vend engine has certainly been tested on
+several more OS versions -- and it should work on any UNIX with Perl 5
+and GDBM, DB_File, or NDBM support.
 
 Please let the author know if you have successfully run MiniVend on
 any additional platforms.
 
-    -------------------------------------------------------------------
+-------------------------------------------------------------------
 
-                          I N S T A L L A T I O N
+                      I N S T A L L A T I O N
 
 Try typing:
 
@@ -281,21 +316,15 @@ The minivend.pl script needs to know the location of its toplevel
 directory.  That is set in the variable $Config::VendRoot -- edit the
 file if you are not using the default /usr/local/lib/minivend.
 
-DBM Type: If you have GDBM, you don't need to change the default setting.  If you
-have NDBM but no GDBM, uncomment the line for NDBM and comment out the
-line for GDBM.  The two lines appear near the top of the file, and
-are reproduced below.
-
-  use GDBM_File; $Config::GDBM = 1; $Config::NDBM = 0;
-  #use NDBM_File; $Config::NDBM = 1; $Config::GDBM = 0;
+You no longer need to mess with the DBM type in MiniVend 1.02, but
+you will be out of luck if you only have SDBM -- its record size
+of 1024 is probably not large enough for sessions.  You can try.
+Just change all instances of NDBM to SDBM and it should work.
 
 The MAT(8) utility has a number of configurable variables
 that need to be set. See the comments in the file for information
 on how to set them.
 
-The makegdbm and makendbm scripts can be called with the -d option to
-set the VendRoot directory, or can be edited to make your VendRoot
-the default.
 
 5. CONFIGURE YOUR HTTP SERVER
 
@@ -319,14 +348,13 @@ Use the command:
 
 	chmod u+s svend
 
-If you want to run the program without SUID permissions on the
-dispatch programs, you
-will need to configure the ReadFilePermission and WriteFilePermission
-directives as 'world'.  That will create world-writable session
-files and error logs.  It is also possible to make the files owned
-by the CGI user.  If using vlink, you will also have to edit the 
-file Vend/Server.pm and change the line that sets the socket file
-permissions to 0666 instead of 0600.
+If you want to run the program without SUID permissions on the dispatch
+programs, you will need to configure the ReadFilePermission and
+WriteFilePermission directives as 'world'.  That will create
+world-writable session files and error logs.  It is also possible to
+make the files owned by the CGI user.  If using vlink, you will also
+have to edit the file Vend/Server.pm and change the line that sets the
+socket file permissions to 0666 instead of 0600.
 
 The MAT utility requires SUID permissions, since the configuration
 files are not (and should not be) world-writable.  If you can't do
@@ -335,8 +363,6 @@ SUID, don't use MAT.
 7. SET UP THE DATABASE
 
 Create the products.asc file according to the Vend documentation.
-Run the makegdbm or makendbm script (depending on your DBM type) to
-create the DBM product databases.
 
 8. CREATE YOUR PAGE TREE
 

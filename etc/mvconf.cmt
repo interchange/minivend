@@ -25,7 +25,7 @@ The value that will be used as the anchor text for the
 MailOrderTo		UNDEFINED
 The address where orders will be mailed. This must be defined.
 
-OrderFrame		order
+OrderFrame		_top
 The frame name where the order page will go, if frames are
 enabled.
 
@@ -37,7 +37,7 @@ The subdirectory of VendRoot where the actual MiniVend pages
 reside.
 
 PriceCommas		yes
-Whether commas will be inserted in prices outputted by
+Whether commas will be inserted in prices displayed by
 MiniVend.
 
 ProductDir		products
@@ -57,7 +57,7 @@ RequiredFields	BLANK_DEFAULT
 Fields that the user MUST fill at least something in before
 their order can be processed. A COMMA-SEPARATED list.
 
-SearchFrame		main
+SearchFrame		_self
 The frame name where search results will go, if frames are
 enabled.
 
@@ -70,7 +70,7 @@ SendMailProgram	/usr/lib/sendmail
 The location of the sendmail binary, needed for mailing orders.
 
 SessionDatabase	session
-The base name of the session database. DONT CHANGE THIS!
+The base name of the session database. DON'T CHANGE THIS!
 
 SessionExpire	1 day
 The time after which user sessions will expire.
@@ -87,9 +87,8 @@ VendURL			UNDEFINED
 The URL that calls the main MiniVend dispatch program. Must
 be defined.  This will be suggested as the name to move the
 compiled dispatch program to. It should look something like:
-
-     http://YOUR_SERVER_NAME/cgi-bin/vlink
- 
+      
+        http://YOUR_SERVER_NAME/cgi-bin/vlink
 
 WritePermission	user
 Controls the permissions of the session database, and
@@ -254,9 +253,55 @@ the order report).
 
 BackendOrder	BLANK_DEFAULT
 Controls the fields that are prepended to the item codes and quantities
-for teh backend ordering capability.  These are the values from the
+for the backend ordering capability.  These are the values from the
 user form in 'order.html'.  You can access any value in that 
 hash. If blank, no backend ordering is in force.
 
 DefaultShipping	default
 Sets the initial shipping mode.
+
+FrameOrderPage	BLANK_DEFAULT
+The special page to use instead of 'order.html' for the order
+page.  This allows you to put the item-list in a separate window/frame
+from the name/address/account information. 
+
+SecureURL		BLANK_DEFAULT
+If you are using an SSL or Secure HTTP server, this is the URL
+which will be used for processing orders securely.  For SSL, it
+is usually the same URL as normal, except that it uses
+'https' instead of 'http'.
+
+SecureOrderMsg	Use Order Security
+The message which will be displayed for the [secure-order] tag. This
+turns on order security, after which all order operations for that
+session will be submitted through the SecureURL instead of VendURL.
+
+EncryptProgram	BLANK_DEFAULT
+The fully-qualified path name of a program which will encrypt 
+a credit card number for storage in the session database.
+
+CreditCards		No
+Enter 'Yes' if you wish to enable MiniVend's encrypted credit card
+handling. This uses Des (or EncryptCommand) to encrypt the form fields
+credit_card_no and credit_card_exp and store them to disk when an order
+is made.
+
+FrameSearchPage	BLANK_DEFAULT
+The special page to use instead of 'search.html' for the search
+page.  This allows you to define separate windows for frame and
+non-frame browsers.
+
+NET_START        -notify
+Determines the behavior of the vlink program if the MiniVend server is
+not running.  Set to -notify (the default) to send mail to the
+MailOrderTo address, to -netstart to automatically start the MiniVend
+server, or to -test to send a message saying "we are probably doing
+development" and take no action.
+NOTE: If you are running with the I<CreditCards> directive enabled, you
+will not be able to enter the password. The CreditCards directive is
+disabled by default if -netstart is used to start up MiniVend.
+
+ScratchDir		etc
+The directory where scratch files will be written, notably cached
+searches.
+

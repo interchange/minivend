@@ -1,6 +1,6 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.14 1996/02/04 02:15:08 mjh Exp $
+# $Id: Server.pm,v 1.1 1996/03/21 04:06:26 mike Exp mike $
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -57,7 +57,7 @@ use Socket;
 use strict;
 use Vend::lock;
 
-my $LINK_FILE = '/usr/local/lib/minivend/etc/socket';
+my $LINK_FILE = '/tmp/minivend/etc/socket';
 
 sub _read {
     my ($in) = @_;
@@ -118,6 +118,18 @@ sub read_cgi_data {
     }
 }
 
+sub get_socketname {
+	my $base = shift;
+	$base =~ s:(.*)/::;
+	my $dir = $1;
+	$base =~ s/[^A-Za-z0-9]//g;
+	$base .= int rand 10;
+	for(;;) {
+		last unless -e "$dir/$base";
+		$base++;
+	}
+	"$dir/$base";
+}
 
 sub connection {
     my ($debug) = @_;
@@ -167,25 +179,26 @@ sub server {
     my $SOCK_STREAM = 1;
     my $SOCK_DGRAM = 2;
 
-    socket(Vend::Server::SOCKET, AF_UNIX, SOCK_STREAM, 0) || die "socket: $!";
-    unlink $socket_filename;
-    bind(Vend::Server::SOCKET, pack("S", AF_UNIX) . $socket_filename . chr(0))
-        or die "Could not bind (open as a socket) '$socket_filename':\n$!\n";
-    chmod 0600, $socket_filename;
-    listen(Vend::Server::SOCKET, 5) or die "listen: $!";
 
     setup_signals();
     $abort = 0;
     for (;;) {
         last if $abort || $Signal_Reload || $Signal_Terminate || $Signal_Debug;
 
+		socket(Vend::Server::SOCKET, AF_UNIX, SOCK_STREAM, 0) || die "socket: $!";
+		unlink $socket_filename;
+		bind(Vend::Server::SOCKET, pack("S", AF_UNIX) . $socket_filename . chr(0))
+			or die "Could not bind (open as a socket) '$socket_filename':\n$!\n";
+		chmod 0600, $socket_filename;
+		listen(Vend::Server::SOCKET, 5) or die "listen: $!";
+
 		if ($Signal_Locking) {
 			my $sleep = 1;
 			if ($Signal_Locking =~ /short/i) {
-            	::logError(localtime()."\nUnlock for $sleep seconds on pid $$\n\n");
+            	::logError("\nUnlock for $sleep seconds on pid $$\n\n");
 			}
 			elsif ($Signal_Locking =~ /long/i) {
-            	::logError(localtime()."\nUnlock for 120 seconds on pid $$\n\n");
+            	::logError("\nUnlock for 120 seconds on pid $$\n\n");
 				$sleep = 120;
 			}
 			$SIG{'USR1'} = $SIG{'USR2'} = 'IGNORE';
@@ -219,8 +232,12 @@ sub server {
         elsif (vec($rout, fileno(Vend::Server::SOCKET), 1)) {
             my $ok = accept(Vend::Server::MESSAGE, Vend::Server::SOCKET);
             die "accept: $!" unless defined $ok;
+			my $new_socket = get_socketname $socket_filename;
+			rename $socket_filename, $new_socket;
             $abort = connection($debug);
+            close Vend::Server::SOCKET;
             close Vend::Server::MESSAGE;
+			unlink $new_socket;
         }
 
         else {
@@ -232,7 +249,7 @@ sub server {
     restore_signals();
 
    	if ($Signal_Terminate) {
-       	::logError(localtime()."\nServer terminating on signal TERM\n\n");
+       	::logError("\nServer terminating on signal TERM\n\n");
        	return 'terminate';
    	}
     return 'reload' if $Signal_Reload || $abort;
@@ -364,7 +381,7 @@ sub run_server {
                 open(STDERR, ">&Vend::DEBUG");
                 select(STDERR); $| = 1; select(STDOUT);
 
-                ::logError(localtime()."\nServer running on pid $$\n\n");
+                ::logError("\nServer running on pid $$\n\n");
                 setsid();
 
                 fcntl(Vend::Server::Pid, F_SETFD, 1)
@@ -372,8 +389,7 @@ sub run_server {
 
                 $next = server($LINK_FILE, $debug);
                 if ($next eq 'reload') {
-                    ::logError(localtime().
-                              "\nServer restarting on signal HUP\n\n");
+                    ::logError("\nServer restarting on signal HUP\n\n");
                     exec($Config::PERL, $Config::VEND, "-restart");
                 }
                 exit 0;
@@ -390,7 +406,7 @@ sub restart_server {
         exit 1;
     }
 
-    ::logError(localtime()."\nServer restarted with pid $$\n\n");
+    ::logError("\nServer restarted with pid $$\n\n");
     server($LINK_FILE);
 }
 

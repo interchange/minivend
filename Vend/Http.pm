@@ -1,6 +1,6 @@
 # Http.pm:  interface to cgi protocol
 #
-# $Id: Http.pm,v 1.8 1996/02/03 14:50:00 mjh Exp $
+# $Id: Http.pm,v 1.1 1996/03/21 04:06:06 mike Exp mike $
 #
 package Vend::Http;
 
@@ -44,6 +44,7 @@ sub MIME_Version              { $_[0]->{'MIME_Version'} }
 sub Method                    { $_[0]->{'Method'} }
 sub Request_URI               { $_[0]->{'Request_URI'} }
 sub HTTP_Version              { $_[0]->{'HTTP_Version'} }
+sub Https_on              	  { $_[0]->{'Https_on'} }
 sub Accept                    { $_[0]->{'Accept'} }
 sub Accept_Charset            { $_[0]->{'Accept_Charset'} }
 sub Accept_Encoding           { $_[0]->{'Accept_Encoding'} }
@@ -120,6 +121,7 @@ my @Map =
      'Path_Info' => 'PATH_INFO',
      'Path_Translated' => 'PATH_TRANSLATED',
      'Query' => 'QUERY_STRING',
+     'Https_on' => 'HTTPS',
      'Authorization_Type' => 'AUTH_TYPE',
      'Authenticated_User' => 'REMOTE_USER',
 # Date

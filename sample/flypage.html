@@ -1,0 +1,23 @@
+<HTML>
+<HEAD><TITLE>Automatic Catalog Page</TITLE></HEAD>
+[body 1]
+[if-field category]Category: [item-field category][/if]
+<P>
+[if-field image]
+<IMG SRC="/sample/images/[item-field image]">
+<P>
+[/if]
+<H2>[item-field title]</H2>
+<H4>[item-field artist]</H4>
+<P>
+[item-field comment]
+<P>
+Catalog No.: [item-code]
+<P>
+Price: [item-price] [order [item-code]]Order Now![/order]
+<P>
+
+[help header][help flypage][help footer]
+
+</BODY>
+</HTML>

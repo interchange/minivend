@@ -3,7 +3,7 @@
 <TITLE>Search The Art Store</TITLE>
 [framebase main]
 </HEAD>
-[body 1]
+<BODY>
 <H3>
 <IMG SRC="/sample/images/web_srch.gif" ALT="SEARCH">
 Search our Catalog
@@ -24,7 +24,7 @@ Search our Catalog
 [pagetarget help main]
 	<STRONG>Help</STRONG>[/page]
 <TD>
-	Limit matches to:
+	Matches per page:
 	<SELECT NAME="mv_matchlimit">
 			<OPTION>1
 			<OPTION>5
@@ -38,8 +38,10 @@ Search our Catalog
 <INPUT TYPE="radio" NAME="mv_orsearch" VALUE="yes">Match any<BR>
 <INPUT TYPE="checkbox" NAME="mv_case" VALUE="yes">Case sensitive<BR>
 <INPUT TYPE="checkbox" NAME="mv_perl" VALUE="yes">Match exactly<BR>
+	Spelling errors allowed
+	<INPUT TYPE="radio" NAME="mv_spelling_errors" VALUE="0" CHECKED> 0
+	<INPUT TYPE="radio" NAME="mv_spelling_errors" VALUE="1"> 1 
+	<INPUT TYPE="radio" NAME="mv_spelling_errors" VALUE="2"> 2
 </TABLE>
 </FORM>
-[help header][help fr_search][help footer]
-</UL></H5>
 </body> </html>

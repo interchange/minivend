@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 #
 # configure.pl - Configure the MiniVend program
 #
@@ -26,14 +26,22 @@
 # Set STDOUT to autoflush
 $| = 1;
 
-my $param = shift || '';
-unless($param =~ /^-i/) {
-	$PERL = $param if $param;
-}
-else {
-	$InstallOnly = 1;
-	$SamplesPresent = shift;
-}
+my $param;
+PARAM: {
+	my $param = shift || '';
+	unless($param =~ /^-[iD]/) {
+		$PERL = $param if $param;
+	}
+	elsif ($param eq '-i') {
+		$InstallOnly = 1;
+		$SamplesPresent = shift;
+	}
+	elsif  ($param eq '-D') {
+		warn "****  Setting DEBUG to on   ****\n";
+		$DEBUG = 1;
+	}
+	last PARAM unless $param;
+} # PARAM
 
 	
 ############### Configurable Variables ######################
@@ -188,68 +196,6 @@ sub adjustvars {
 
 }
 
-sub adjustdbm {
-	my ($file,$type) = @_;
-	my $changed = 0;
-	my $bak = 'mytemp.fil';
-	return undef unless $file && defined $type;
-	$type = uc $type;
-
-	rename $file, $bak;
-	open(ADJUST_IN,$bak)
-		|| die "Couldn't open $bak: $!\n";
-	open(ADJUST_OUT,">$file")
-		|| die "Couldn't create $file: $!\n";
-
-	while(<ADJUST_IN>) {
-		unless (/^\s*use\s+.DBM/) {
-			print ADJUST_OUT $_;
-			last if /^\s*#+\s+end\s+config/i;	# prevent parsing whole file
-			next;
-		}
-		$line = $_;
-		if ($line =~ /^(\s*use\s+)
-					   ([NG]DBM)
-					   (_File\s*;\s*\$\w*:*)
-					   ([NG]DBM)
-					   (\s*=\s*1\s*;.*)
-					   /x ) {
-			my $use = $1;
-			my $dbm = $2;
-			my $middle = $3;
-			my $check = $4;
-			my $rest = $5;
-			print "Found $dbm in $file\n" if $DEBUG;
-			unless ($check eq $dbm) {
-				warn "Badly formed DBM line: $line\n";
-				return undef;
-			}
-			unless ($dbm eq $type) {
-				$changed++;
-				$line = $use . $type . $middle . $type . $rest . "\n";
-			}
-		}
-		print ADJUST_OUT $line;
-		last;
-	}
-
-	if ($changed) {
-		while(<ADJUST_IN>) {print ADJUST_OUT $_}
-		close ADJUST_IN;
-		close ADJUST_OUT;
-		print "Adjusted DBM in $file to $type\n" if $DEBUG;
-		unlink $bak;
-	}
-	else {
-		close ADJUST_IN;
-		close ADJUST_OUT;
-		unlink $file;
-		rename $bak, $file;
-	}
-	1;
-}
-
-
 sub adjusttext {
 	my ($file,$origtext,$newtext) = @_;
 	my $done;
@@ -397,6 +343,7 @@ sub getvendsettings {
         next unless /\S/;   # Ignore blanks
         chomp;
         ($key, $value) = split(/[\t =]+/, $_, 2);
+		next unless $key =~ /\S/;
         $settings{$key} = $value;
     }
     close VENDSET;
@@ -410,6 +357,7 @@ sub writeconfig {
 	open(WRITECONFIG, ">$file")
 		|| die "Couldn't write $file: $!, died";
 	for(sort @keys) {
+		warn "Doing $_: Initial=$Initial{$_} Default=$Default{$_}\n" if $DEBUG;
 		next if $Initial{$_} eq $Default{$_};
 		next unless $Initial{$_};
 		printf WRITECONFIG "%-20s %s\n", $_, $Initial{$_};
@@ -422,7 +370,8 @@ sub writeconfig {
 sub copyfiles {
 	my ($srcdir,$targdir,@types) = @_;
 	my (%types);
-	my ($file, $source, $target);
+	my ($file, $tempfile, $source, $target);
+	my $dirmode = $targdir =~ m#/$# ? 1 : 0;
 
 	unless (scalar(@types)) {
 		@types = grep !$types{$_}++, values %Type;
@@ -434,7 +383,14 @@ sub copyfiles {
 	foreach $file (@Files) {
 		next unless $types{$Type{$file}};
 		$source = "$srcdir/$file";
-		$target = "$targdir/$file";
+		if($dirmode) {
+			$tempfile = $file;
+			$tempfile =~ s:.*/::;
+			$target = $targdir . $tempfile;
+		}
+		else {
+			$target = "$targdir/$file";
+		}
 		if ($Type{$file} =~ /dir$/) {
 			next if -d $target;
 			mkdir $target, $Perms{$file}
@@ -622,7 +578,7 @@ COPYFILES: {
 		$ans = prompt "Want to copy the sample files? ", 'yes';
 		if(is_yes($ans)) {
 			$SamplesPresent = 1;
-			push(@types, 'odir', 'htmlpage', 'vendpage');
+			push(@types, qw(odir simphtml simppage samphtml samppage image));
 		}
 		else {
 			undef $SamplesPresent;
@@ -703,12 +659,6 @@ for(@params) {
 	$Done{$_} = 1;
 }
 
-$Initial{'DBMtype'} =	$Config{'i_gdbm'}
-						? 'gdbm' : (
-							$Config{'i_ndbm'}
-							? 'ndbm'
-							: die "No DBM type I can use.\n");
-
 $Initial{'ConfDir'} = $Initial{'VendRoot'} . '/' . 'etc'
 	unless defined $Initial{'ConfDir'};
 $Initial{'VEND'} = $Initial{'VendRoot'} . '/' . 'minivend.pl'
@@ -727,11 +677,13 @@ $Initial{'LINK_FILE'} = $Initial{'VendRoot'} . '/' . 'etc/socket'
 	unless defined $Initial{'LINK_FILE'};
 $Initial{'VendURL'} = "http://$Initial{'HostName'}/cgi-bin/$vendprog"
 	unless defined $Initial{'VendURL'};
+$Initial{'SecureURL'} = "https://$Initial{'HostName'}/cgi-bin/$vendprog"
+	unless defined $Initial{'SecureURL'};
 $Initial{'MailOrderTo'} = $ENV{'LOGNAME'} . '@' . $Initial{'HostName'}
 	unless defined $Initial{'MailOrderTo'};
 
-@params = qw( DBMtype CGIUSER HtmlDir CgiBin
-				ProtBin VendURL MailOrderTo);
+@params = qw( CGIUSER HtmlDir CgiBin
+				ProtBin VendURL SecureURL MailOrderTo);
 
 for(@params) {
 	$save = $Initial{$_};
@@ -805,8 +757,7 @@ EOP
 
 ADJUST: {
 
-print "\nAdjusting program variables and defines.\n";
-print "This will take just a short while...";
+print "\nAdjusting program variables and defines...";
 
 my(@funcs);
 my(@vars);
@@ -828,7 +779,7 @@ foreach $file (@Files) {
 				|| die "Something was wrong with $file, couldn't adjust defs.\n";
 		}
 	}
-	elsif($Type{$file} eq 'htmlpage') {
+	elsif($Type{$file} =~ /html$/i) {
 		@funcs = split /\s*,\s*/, $Funcs{$file};
 		foreach $func (@funcs) {
 			next unless $func =~ /^text/i;	
@@ -853,12 +804,6 @@ foreach $file (@Files) {
 			}
 			elsif($func eq 'shbang') {
 				shbang($file,$PERL);
-			}
-			elsif($func eq 'dbm') {
-				print "Calling adjustdbm with $file,$Initial{'DBMtype'}\n"
-					if $DEBUG;
-				adjustdbm($file,$Initial{'DBMtype'})
-					|| die "Something was wrong with $file, couldn't adjust dbm.\n";
 			}
 		}
 		chmod $Perms{$file}, $file
@@ -1025,13 +970,10 @@ SAMPLE: {
 
 
 We can install a demonstration MiniVend system in your HTML
-directory if you wish. It will be put in the following
-directory with a symbolic link:
+directory if you wish. It will be copied to the  following
+directory:
 
     $Initial{$param}/sample
-
-This won't work if you cannot do symbolic links, or if you
-don't have 'FollowSymLinks' defined for your server.
 
 Any custom parameters you entered will be saved in
 the file "mv_cfg.bak".
@@ -1039,32 +981,68 @@ the file "mv_cfg.bak".
 EOP
 	$prompt .= "You defined static mode, it will be much slower.\n"
 		if ($Initial{'RunType'} !~ /^server$/);
+	$prompt .= <<EOF;
+	
+There are two demos. One is a simple no-frills demo (simple)
+that uses only the basic MiniVend features.  One is a no-holds barred
+demo (sample) that tries to demonstrate the advanced features of MiniVend,
+including SSL and frames.
 
-	$ans = prompt $prompt . "Install the demo? ", 'yes';
-	if (is_yes($ans)) {
-		print "Making sample DBM...";
-		system "bin/makedbm";
-		print "linking files...";
-		eval {symlink("",""); $@ = ''; };
-		unless ($@) {
-			symlink "$Initial{'VendRoot'}/sample", "$Initial{$param}/sample"
-				|| die "Symlink didn't work: $!\n"; 
-			system "rm -f *.lock";
-			system "rm -f pages/empty";
-			system "rmdir pages";
-			symlink 'sample', 'pages'
-			|| warn "Symlink of 'sample' to 'pages' didn't work: $!\n"; 
+EOF
+
+	$ans = prompt $prompt . "Install a demo? ", 'yes';
+	if(is_no($ans)) {
+		last SAMPLE;
+	}
+	$ans = prompt "Install which demo, sample or simple? ",
+				$Initial{RunType} eq 'static' ? 'simple' : 'sample';
+	if ($ans =~ /simp/i) {
+		print "copying files...";
+		unlink 'pages/empty';
+		copyfiles($Initial{VendRoot}, "$Initial{PageDir}/", 'simppage');
+		if(mkdir "$Initial{HtmlDir}/sample", 0755) {
+			mkdir "$Initial{HtmlDir}/sample/images", 0755
+				or die "mkdir: $!, died";
 		}
 		else {
-			print "Oops, the symlinks didn't work. Please install demo manually.\n";
+			warn "Couldn't make directory $Initial{HtmlDir}/sample\n";
+			warn "aborting demo installation...\a\n";
+			last SAMPLE;
 		}
+		copyfiles($Initial{VendRoot}, "$Initial{HtmlDir}/sample/", 'simphtml');
+		copyfiles($Initial{VendRoot}, "$Initial{HtmlDir}/sample/images/", 'image');
+		cp 'products/products.simple', "$Initial{ProductDir}/products.asc";
 		print "writing config...";
 		my %settings = getvendsettings('etc/minivend.def');
-		initconfig('sample.cfg');
+		initconfig('simple.cfg');
 		rename 'minivend.cfg', 'mv_cfg.bak';
 		writeconfig($Initial{'ConfigFile'}, keys %settings);
 		print "done.\n";
 	}
+	elsif ($ans =~ /samp/i) {
+		print "copying files...";
+		unlink 'pages/empty';
+		copyfiles($Initial{VendRoot}, "$Initial{PageDir}/", 'samppage');
+		if(mkdir "$Initial{HtmlDir}/sample", 0755) {
+			mkdir "$Initial{HtmlDir}/sample/images", 0755
+				or die "mkdir: $!, died";
+		}
+		else {
+			warn "Couldn't make directory $Initial{HtmlDir}/sample\n";
+			warn "aborting demo installation...\a\n";
+			last SAMPLE;
+		}
+		copyfiles($Initial{VendRoot}, "$Initial{HtmlDir}/sample/", 'samphtml');
+		copyfiles($Initial{VendRoot}, "$Initial{HtmlDir}/sample/images/", 'image');
+		cp 'products/products.sample', "$Initial{ProductDir}/products.asc";
+		print "writing config...";
+		my %settings = getvendsettings('etc/minivend.def');
+		initconfig('sample.cfg');
+		rename $Initial{ConfigFile}, 'mv_cfg.bak';
+		writeconfig($Initial{'ConfigFile'}, keys %settings);
+		print "done.\n";
+	}
+
 
 } # end SAMPLE
 
@@ -1156,6 +1134,11 @@ STARTSERVER: {
 		system $Initial{'PERL'}, $Initial{'VEND'}, '-serve';
 		sleep 2;
 	}
+}
+
+INITDB: {
+	last INITDB unless $Initial{'RunType'} =~ /^static$/i;
+	system $Initial{'PERL'}, $Initial{'VEND'}, '-init';
 }
 
 print "\nDone with the MiniVend installation.";

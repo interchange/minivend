@@ -8,9 +8,37 @@ $VendRoot = '/usr/local/lib/minivend';
 }
 $ProductDir = 'products';
 $ConfDir = '/usr/local/lib/minivend/etc';
-use GDBM_File; $GDBM = 1;
+
+# Need this for password decryption
+#use Des;
 
 ### END CONFIGURABLE VARIABLES
+
+#select a DBM
+BEGIN {
+    eval {require GDBM_File} ||
+    eval {require DB_File} || 
+    eval {require NDBM_File};
+    $GDBM = $DB_File = $NDBM = 0;
+    if(defined $GDBM_File::VERSION) {
+        $DB_Version = "GDBM V$GDBM_File::VERSION";
+        import GDBM_File;
+        $GDBM = 1;
+    }
+    elsif(defined $DB_File::VERSION) {
+        $DB_Version = "Berkeley DB V$DB_File::VERSION";
+        import DB_File;
+        $DB_File = 1;
+    }
+    elsif(defined $NDBM_File::VERSION) {
+        $DB_Version = "NDBM V$NDBM_File::VERSION";
+        import NDBM_File;
+        $NDBM = 1;
+    }
+    else {
+        die "No DBM defined! The trackrpt command can't run.\n";
+    }
+}
 
 use lib $::VendRoot;
 use Getopt::Std;
@@ -18,6 +46,9 @@ use Fcntl;
 use Vend::lock;
  
 my $trackfile = "$VendRoot/$ProductDir/tracking";
+
+my $Pw_Encrypted = '';
+my $Pw_Key = '';
 
 
 $::USAGE = <<EOF ;
@@ -38,7 +69,7 @@ $0 - Report on tracking database
 
 EOF
 
-getopts('bopsw')
+getopts('bc:e:opsw')
     or die "Couldn't read program options: $@\n$::USAGE\n";
 
 $trackfile  = $ARGV[0] || $trackfile;
@@ -65,22 +96,32 @@ lockfile(\*TrackingLock, 1, 0)
         or die "Could not lock '$lockfile': $!\n";
 
 #Open the database files
-if(defined $GDBM && $GDBM && !$Writeable) {
+if(defined $GDBM && !$Writeable) {
         tie(%Tracking, 'GDBM_File', $trackfile . ".gdbm",
         &GDBM_READER, 0644)
         or die "Could not tie to $trackfile: $!\n";
 }
-elsif(defined $NDBM && $NDBM && !$Writeable) {
+elsif(defined $DB_File && !$Writeable) {
+        tie(%Tracking, 'DB_File', $trackfile,
+        &O_RDONLY, 0644)
+        or die "Could not tie to $trackfile: $!\n";
+}
+elsif(defined $NDBM && !$Writeable) {
         tie(%Tracking, 'NDBM_File', $trackfile,
         &O_RDONLY, 0644)
         or die "Could not tie to $trackfile: $!\n";
 }
-elsif(defined $GDBM && $GDBM && $Writeable) {
+elsif(defined $GDBM && $Writeable) {
         tie(%Tracking, 'GDBM_File', $trackfile . ".gdbm",
         &GDBM_WRITER, 0644)
         or die "Could not tie to $trackfile: $!\n";
 }
-elsif(defined $NDBM && $NDBM && $Writeable) {
+elsif(defined $DB_File && $Writeable) {
+        tie(%Tracking, 'DB_File', $trackfile,
+        &O_RDWR, 0644)
+        or die "Could not tie to $trackfile: $!\n";
+}
+elsif(defined $NDBM && $Writeable) {
         tie(%Tracking, 'NDBM_File', $trackfile,
         &O_RDWR, 0644)
         or die "Could not tie to $trackfile: $!\n";
@@ -105,12 +146,25 @@ foreach $code (keys %Tracking) {
         $Order{$code} = $Tracking{$code};
         next;
     }
+    elsif ($code =~ /^encrypt/i) {
+        printf "%-40s %s\n", $code, $Tracking{$code};
+        $Pw_Encrypted = $Tracking{$code};
+        next;
+    }
     elsif ($code =~ /^backend/i) {
         $Backend{$code} = $Tracking{$code};
         next;
     }
+    elsif ($code =~ /^ccorder/i) {
+        $Card{$code} = $Tracking{$code};
+        next;
+    }
+    elsif ($code =~ /^exporder/i) {
+        $Expire{$code} = $Tracking{$code};
+        next;
+    }
     elsif ($code =~ /^mv_next_order/i) { next }
-		
+        
     next unless $Stats;
     printf "%-40s %6d\n", $code, $Tracking{$code};
 }
@@ -130,12 +184,23 @@ for (sort keys %Order) {
 }
 
 my $backenddata;
+my $cc;
+my $exp;
 
 for (sort keys %Backend) {
     last unless $Backend;  # Don't do this if no -b option
     $code = $_;
     printf "--------------  %25s  ----------------\n", $code;
     $backdata = $Backend{$code};
+	$code =~ s/^Backend/Cc/i;
+	if(defined $Card{$code}) {
+		$backdata .= "\0" . decrypt_cc($Card{$code});
+	}
+
+	$code =~ s/^Cc/Exp/;
+	if(defined $Expire{$code}) {
+		$backdata .= "\0" . decrypt_cc($Expire{$code});
+	}
     $backdata =~ s/\0/\n/g;
     print $backdata;
     printf "\n--------------  %25s  ----------------\n\n", '   END BACKEND ORDER   ';
@@ -151,12 +216,16 @@ for (sort keys %Backend) {
 #    print "Enter this order? [yes] " if $Pause;
 #    $ans = <STDIN> if $Pause;
 #    unless ($ans =~ /^\s*n/i) {
-#		my $status;
+#       my $status;
 #        open (ENTORD, "| $VendRoot/bin/entord")
 #            || die "Couldn't run entord: $!\n";
 #        print ENTORD $backdata;
 #        close ENTORD;
 #        unless ( $status = $? ) {
+#            delete $Tracking{$code};  # Have to have -w option
+#			 $code =~ s/^Backend/Cc/i;
+#            delete $Tracking{$code};  # Have to have -w option
+#			 $code =~ s/^Cc/Exp/;
 #            delete $Tracking{$code};  # Have to have -w option
 #            print "Press ENTER to continue..." if $Pause;
 #            $ans = <STDIN> if $Pause;
@@ -173,4 +242,41 @@ untie(%Tracking);
 
 unlockfile(\*TrackingLock)
         or die "Could not unlock '$lockfile': $!\n";
-close(TrackingLock)
+close(TrackingLock);
+
+sub decrypt_cc {
+    
+    my $encrypted = shift;
+    my ($try, $key, $pw, $sched, $enclair, $salt);
+
+	#Take care of null padding
+
+	if($num = length($encrypted) % 8) {
+		$encrypted .= "\0" x (8 - $num);
+	}
+    
+    $try = 0;
+    GETPW: {
+        $try++;
+        if($Pw_Encrypted && $Pw_Key) {
+            last GETPW;
+        }
+        else {
+            print "Password: "; 
+            system ("stty -echo");
+            chomp($pw = <STDIN>);
+            print "\n";
+            system ("stty echo");
+        }
+        $Pw_Key = string_to_key($pw);
+        last GETPW if (crypt($pw,$Pw_Encrypted) eq $Pw_Encrypted);
+        die "Too many tries.\n" if $try > 2;
+        $Pw_Key = '';
+    }
+
+    $sched = set_key($Pw_Key);
+    $vec = substr($Pw_Encrypted,0,8);
+    $enclair = pcbc_decrypt($encrypted,undef,$sched,$vec);
+	$enclair =~ s/\0+$//;
+    $enclair;
+}

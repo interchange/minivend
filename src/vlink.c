@@ -56,13 +56,22 @@ extern char** environ;
  *
  * VEND
  * Location of minivend on your system
+ * 
+ * NET_START
+ * Set to "-notify" (the default) to send mail to the
+ * admin address that the server is not running
+ * Set to "-netstart" to automatically start the
+ * server if it is not running
+ * A value of "-test" will send an innocuous message 
+ * that we are "doing development"
  *
  */
 
-#define LINK_FILE "/tmp/minivend/etc/socket"
-#define LINK_TIMEOUT 10
-#define PERL     "/usr/local/bin/perl"
-#define VEND     "/tmp/minivend/minivend.pl"
+#define LINK_FILE "/usr/local/lib/minivend/etc/socket"
+#define LINK_TIMEOUT 20
+#define PERL     "/usr/bin/perl"
+#define VEND     "/usr/local/lib/minivend/minivend.pl"
+#define NET_START   "-netstart"
 
 
 /* CGI output to the server is on stdout, fd 1.
@@ -73,15 +82,43 @@ extern char** environ;
  */
 #define DEBUG(x)
 
+#ifdef sun
+#ifndef SVR4
+#define ERRMSG perror
+#endif
+#else
+#define ERRMSG strerror
+#endif
+
+
 
 /* Return this message to the browser when the server is not running.
  */
 void server_not_running()
 {
+  char opt;
+
+  opt = 0;
+
   printf("Content-type: text/html\r\n\r\n");
   printf("<H3>We're sorry, the MiniVend server was not running...\r\n");
-  printf("We started it for you -- click Reload to begin!</H3>\r\n");
+
+  if (!strncmp("-not", NET_START, 4)) opt = 1;
+  if (!strncmp("-net", NET_START, 4)) opt = 2;
+
+  switch (opt) {
+      case 1: 
+	  	printf("We notified the administrator.</H3>\r\n");
+		break;
+      case 2: 
+      	printf("We started it for you. Click reload to begin.</H3>\r\n");
+		break;
+	  default:
+      	printf("We are probably doing development!</H3>\r\n");
+		exit(1);
+  }
   fflush(stdout);
+  return;
 }
 
 /* Return this message to the browser when a system error occurs.
@@ -94,7 +131,7 @@ static void die(e, msg)
   printf("Content-type: text/plain\r\n\r\n");
   printf("We are sorry, but the cgi-bin server is unavailable due to a\r\n");
   printf("system error.\r\n\r\n");
-  printf("%s: %s (%d)\r\n", msg, strerror(e), e);
+  printf("%s: %s (%d)\r\n", msg, ERRMSG(e), e);
   exit(1);
 }
 
@@ -185,17 +222,26 @@ static void open_socket()
     sleep(1);
   }
   if (s < 0) {
+
+	/* If NET_START not "-notify" or "-netstart", this will exit */
     server_not_running();
+
 
   /* Prevend Vend from thinking it is being called as CGI */
 
-  unsetenv("GATEWAY_INTERFACE");
+#ifdef sun
+#ifndef SVR4
+  putenv("GATEWAY_INTERFACE=");
+#endif
+#else
+  setenv("GATEWAY_INTERFACE", "", 1);
+#endif
 
   euid = geteuid();
   r = setreuid( euid, euid );
   if (r == -1) {
     printf("Content-type: text/plain\n\n");
-    printf("Could not set uid: %s\n", strerror(errno));
+    printf("Could not set uid: %s\n", ERRMSG(errno));
     exit(1);
   }
 
@@ -203,12 +249,12 @@ static void open_socket()
   r = setregid( egid, egid );
   if (r == -1) {
     printf("Content-type: text/plain\n\n");
-    printf("Could not set gid: %s\n", strerror(errno));
+    printf("Could not set gid: %s\n", ERRMSG(errno));
     exit(1);
   }
 	fclose(stdout);
-	execl(PERL, PERL, VEND, "-netstart", 0); 
-	fprintf(stderr, "Could not exec %s: %s", PERL, strerror(errno));
+	execl(PERL, PERL, VEND, NET_START, 0); 
+	fprintf(stderr, "Could not exec %s: %s", PERL, ERRMSG(errno));
     exit(1);
   }
 }
