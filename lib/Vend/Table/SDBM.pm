@@ -24,7 +24,6 @@
 # MA  02111-1307  USA.
 
 package Vend::Table::SDBM;
-$VERSION = substr(q$Revision$, 10);
 use strict;
 use Fcntl;
 use SDBM_File;
