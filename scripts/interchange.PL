@@ -1962,7 +1962,10 @@ RESOLVEID: {
 								? ($Vend::Session->{shost})
 								: ($Vend::Session->{ohost});
 
-			if(! $compare_host) {
+			if($Vend::Cfg->{WideOpen}) {
+				# do nothing, no host checking
+			}
+			elsif(! $compare_host) {
 				new_session($seed) unless $CGI::secure;
 				init_session();
 				$Vend::Session->{shost} = $CGI::remote_addr;
