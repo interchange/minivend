@@ -68,8 +68,8 @@ sub init {
 
 	# autovivify references of nested data structures we use below, since they
 	# don't yet exist at daemon startup time before configuration is done
-	$Vend::Cfg->{ProductFiles}[0];
-	$::Variable->{MV_DEFAULT_SEARCH_TABLE};
+	$Vend::Cfg->{ProductFiles}[0] or 1;
+	$::Variable->{MV_DEFAULT_SEARCH_TABLE} or 1;
 
 	@{$s}{keys %Default} = (values %Default);
 	$s->{mv_all_chars}	        = [1];
