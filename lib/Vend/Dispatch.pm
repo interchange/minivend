@@ -758,8 +758,8 @@ sub run_in_catalog {
 		logGlobal("Empty job=%s", $job);
 	}
 	my $out = join "", @out;
-	$out =~ s/^\s+//;
-	$out =~ s/\s+$/\n/;
+	my $filter = $jobscfg->{filter} || 'strip';
+	$out = Vend::Interpolate::filter_value($filter, $out);
 	$out .= full_dump() if $jobscfg->{add_session};
 
 	logError("Finished jobs group=%s", $job || 'INTERNAL');
