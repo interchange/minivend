@@ -431,6 +431,7 @@ sub init_session {
 		'scratch'	=> { %{$Vend::Cfg->{ScratchDefault}} },
 		'values'	=> { %{$Vend::Cfg->{ValuesDefault}} },
 		'carts'		=> {main => []},
+		'levies'	=> {main => []},
     };
 	$Vend::Session->{shost} = $CGI::remote_addr
 		if $CGI::secure;
