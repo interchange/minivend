@@ -83,7 +83,7 @@ sub display_special_page {
 # 
 
 sub display_page {
-	my($name) = @_;
+	my($name, $opt) = @_;
 	my($page);
 
 	$name =~ m/[\[<]+/g
@@ -111,11 +111,11 @@ sub display_page {
 	}
 # END TRACK	
 		
-	my $opt;
+	my $inth_opt;
 	# Try for on-the-fly if not there
 	if(! defined $page) {
 		$page = Vend::Interpolate::fly_page($name)
-			and $opt->{onfly} = 1;
+			and $inth_opt->{onfly} = 1;
 	}
 
 	# Try one last time for page with index
@@ -127,7 +127,11 @@ sub display_page {
 
 	if (defined $page) {
 		$Vend::PageInit = 0;
-		interpolate_html($page, 1, $opt);
+		if ($opt->{return}) {
+			return ::interpolate_html($page, 1, $inth_opt);
+		} else {
+			::interpolate_html($page, 1, $inth_opt);
+		}
 		::response();
 		return 1;
 	}
