@@ -129,6 +129,8 @@ sub tag_soap {
 	if($opt->{trace_transport}) {
 		if (exists $Vend::Cfg->{Sub}->{$opt->{trace_transport}}) {
 			SOAP::Trace->import('transport' => $Vend::Cfg->{Sub}->{$opt->{trace_transport}});
+		} else {
+			::logError (qq{no such subroutine "$opt->{trace_transport}" for SOAP transport tracing});
 		}
 	}
 
@@ -161,6 +163,7 @@ sub tag_soap {
 	}
 #::logDebug("after method call, uri=$uri proxy=$proxy call=$method result=$result");
 
+	$::Scratch->{$opt->{result}} = $result if $opt->{result};
 	return '' if $opt->{init};
 	return $result;
 }
