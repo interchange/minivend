@@ -85,14 +85,6 @@ my %hasEndTag = (
 			);
 
 
-my %InvalidateCache = (
-
-			qw(
-                if          1
-                unless      1
-			   )
-			);
-
 my %Implicit = (
 
 			unless =>		{ qw(
@@ -300,7 +292,6 @@ sub new {
     my $class = shift;
 	my $opt = shift;
     my $self = new Vend::Parser;
-	$self->{INVALID} = 0;
 
 	add_tags($Vend::Cfg->{UserTag})
 		unless $Vend::Tags_added++;
@@ -397,7 +388,6 @@ use vars '%myRefs';
 	 noRearrange     => \%noRearrange,
 	 Implicit        => \%Implicit,
 	 Interpolate     => \%Interpolate,
-	 InvalidateCache => \%InvalidateCache,
 	 Order           => \%Order,
 	 PosNumber       => \%PosNumber,
 	 PosRoutine      => \%PosRoutine,
@@ -649,10 +639,6 @@ sub start {
 		}
 	}
 
-	if(defined $InvalidateCache{$tag} and !$attr->{cache}) {
-		$self->{INVALID} = 1;
-	}
-
 	my $trib;
 	foreach $trib (@$attrseq) {
 		# Attribute aliases
@@ -668,7 +654,6 @@ sub start {
 		my $p = new Vend::Parse;
 		$p->parse($attr->{$trib});
 		$attr->{$trib} = ${$p->{OUT}};
-		$self->{INVALID} += $p->{INVALID};
 	}
 
 	$attr->{enable_html} = 1 if $Vend::Cfg->{Promiscuous};
