@@ -1722,7 +1722,7 @@ eval {
 	}
 	return $rc
 		if $opt->{row_count};
-	return Vend::Interpolate::tag_sql_list($text, $ref, \%nh, $opt)
+	return Vend::Interpolate::tag_sql_list($text, $ref, \%nh, $opt, \@na)
 		if $opt->{list};
 	return Vend::Interpolate::html_table($opt, $ref, \@na)
 		if $opt->{html};

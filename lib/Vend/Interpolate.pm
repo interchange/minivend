@@ -4645,7 +4645,7 @@ sub labeled_list {
 		my $fh = $obj->{mv_field_hash}    || undef;
 		my $fn = $obj->{mv_field_names}   || undef;
 		$ary = tag_sort_ary($opt->{sort}, $ary) if $opt->{sort};
-		if($fa) {
+		if ($fa and $fn) {
 			my $idx = 0;
 			$fh = {};
 			for(@$fa) {
@@ -4659,6 +4659,8 @@ sub labeled_list {
 				$fh->{$_} = $idx++;
 			}
 		}
+		logError("Missing mv_field_hash and/or mv_field_names in Vend::Interpolate::labeled_list")
+			unless ref $fh eq 'HASH';
 		$r = iterate_array_list($i, $end, $count, $text, $ary, $opt_select, $fh);
 	}
 	$MVSAFE::Unsafe = $save_unsafe;
@@ -5506,7 +5508,7 @@ sub html_table {
 
 # SQL
 sub tag_sql_list {
-    my($text,$ary,$nh,$opt) = @_;
+    my($text,$ary,$nh,$opt,$na) = @_;
 	$opt = {} unless defined $opt;
 	$opt->{prefix}      = 'sql' if ! defined $opt->{prefix};
 	$opt->{list_prefix} = 'sql[-_]list' if ! defined $opt->{prefix};
@@ -5514,6 +5516,7 @@ sub tag_sql_list {
 	my $object = {
 					mv_results => $ary,
 					mv_field_hash => $nh,
+					mv_return_fields => $na,
 					matches => scalar @$ary,
 				};
 
