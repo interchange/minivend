@@ -2446,10 +2446,13 @@ sub log {
 				or last;
 		}
 	}
-	elsif($opt->{type} =~ /^error/) {
-		if($opt->{file}) {
+	elsif($opt->{type} =~ /^(?:error|debug)/) {
+		if ($opt->{file}) {
 			$data = format_log_msg($data) unless $data =~ s/^\\//;;
 			$status = Vend::Util::writefile($file, $data, $opt);
+		}
+		elsif ($opt->{type} =~ /^debug/) {
+			$status = Vend::Util::logDebug($data);
 		}
 		else {
 			$status = Vend::Util::logError($data);
