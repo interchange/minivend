@@ -1640,7 +1640,7 @@ sub errmsg {
 			$fmt = $location->{$fmt};
 		}
 	}
-	scalar(@strings) ? sprintf $fmt, @strings : $fmt;
+	return scalar(@strings) ? sprintf $fmt, @strings : $fmt;
 }
 
 *l = \&errmsg;
