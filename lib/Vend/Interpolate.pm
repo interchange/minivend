@@ -4411,6 +4411,15 @@ sub iterate_array_list {
 	my $r = '';
 	$opt ||= {};
 
+	my $lim;
+	if($lim = $Vend::Cfg->{Limit}{list_text_size} and length($text) > $lim) {
+		my $len = length($text);
+		my $caller = join "|", caller();
+		my $msg = "Large list text encountered,  length=$len, caller=$caller";
+		logError($msg);
+		return undef if $Vend::Cfg->{Limit}{list_text_overflow} eq 'abort';
+	}
+
 	# Optimize for no-match, on-match, etc
 	if(! $opt->{iterator} and $text !~ /\[(?:if-)?$Prefix-/) {
 		for(; $i <= $end; $i++) {
