@@ -1,6 +1,6 @@
 # Vend/TextSearch.pm:  Search indexes with Perl
 #
-# $Id: TextSearch.pm,v 1.25 1999/07/16 11:05:56 mike Exp $
+# $Id: TextSearch.pm,v 1.26 1999/08/13 18:26:59 mike Exp $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::TextSearch
 #
@@ -25,7 +25,7 @@ require Vend::Search;
 
 @ISA = qw(Vend::Search);
 
-$VERSION = substr(q$Revision: 1.25 $, 10);
+$VERSION = substr(q$Revision: 1.26 $, 10);
 
 use Search::Dict;
 use strict;
@@ -69,9 +69,9 @@ sub search {
     my $g = $s->{global};
 
 # DEBUG
-Vend::Util::logDebug
-("Text search using Vend::TextSearch\n")
-	if ::debug(0x10);
+#Vend::Util::logDebug
+#("Text search using Vend::TextSearch\n")
+#	if ::debug(0x10);
 # END DEBUG
 
 	my($delim);
@@ -151,12 +151,12 @@ Vend::Util::logDebug
 	return undef if $g->{matches} == -1;
 
 # DEBUG
-Vend::Util::logDebug
-($s->dump_options() )
-	if ::debug(0x10);
-Vend::Util::logError
-($s->dump_options() . "specs: " . join('|', @pats) )
-    if $CGI::values{mv_search_debug};
+#Vend::Util::logDebug
+#($s->dump_options() )
+#	if ::debug(0x10);
+#Vend::Util::logError
+#($s->dump_options() . "specs: " . join('|', @pats) )
+#    if $CGI::values{mv_search_debug};
 # END DEBUG
 
 	if ($g->{coordinate}) {
@@ -211,12 +211,12 @@ Vend::Util::logError
 	$g->{overflow} = 0;
 
 # DEBUG
-Vend::Util::logDebug
-('fields/specs: ' .  scalar @{$s->{fields}} . "/" .  scalar @{$s->{specs}} . "\n")
-	if ::debug(0x10);
-Vend::Util::logError
-('fields/specs: ' .  scalar @{$s->{fields}} . "/" .  scalar @{$s->{specs}} . "\n")
-    if $CGI::values{mv_search_debug};
+#Vend::Util::logDebug
+#('fields/specs: ' .  scalar @{$s->{fields}} . "/" .  scalar @{$s->{specs}} . "\n")
+#	if ::debug(0x10);
+#Vend::Util::logError
+#('fields/specs: ' .  scalar @{$s->{fields}} . "/" .  scalar @{$s->{specs}} . "\n")
+#    if $CGI::values{mv_search_debug};
 # END DEBUG
 
 	if($g->{dict_end}) {
@@ -257,9 +257,9 @@ Vend::Util::logError
 		@searchfiles = join ' ', 'cat', @searchfiles, '|', $sort_string;
 	}
 # DEBUG
-Vend::Util::logDebug
-("sort_string:  $sort_string\n")
-	if ::debug(0x10) ;
+#Vend::Util::logDebug
+#("sort_string:  $sort_string\n")
+#	if ::debug(0x10) ;
 # END DEBUG
 
 	local($/) = $g->{record_delim};
@@ -285,12 +285,12 @@ Vend::Util::logDebug
 
 		if($g->{dict_look}) {
 # DEBUG
-Vend::Util::logDebug
-("Dict search:  look='$g->{dict_look}'\n")
-	if ::debug(0x10);
-Vend::Util::logDebug
-("Dict search:   end='$g->{dict_end}'\n")
-	if ::debug(0x10);
+#Vend::Util::logDebug
+#("Dict search:  look='$g->{dict_look}'\n")
+#	if ::debug(0x10);
+#Vend::Util::logDebug
+#("Dict search:   end='$g->{dict_end}'\n")
+#	if ::debug(0x10);
 # END DEBUG
 			look \*Vend::TextSearch::SEARCH,
 				$g->{dict_look}, $g->{dict_order}, $g->{dict_fold};
@@ -298,16 +298,16 @@ Vend::Util::logDebug
 
 		if($g->{dict_end} && defined $limit_sub) {
 # DEBUG
-Vend::Util::logDebug
-("Dict search: with limit\n")
-	if ::debug(0x10);
+#Vend::Util::logDebug
+#("Dict search: with limit\n")
+#	if ::debug(0x10);
 # END DEBUG
 			while(<Vend::TextSearch::SEARCH>) {
 				last if &$dict_limit($_);
 # DEBUG
-Vend::Util::logDebug
-("Dict search: found='$_'\n")
-	if ::debug(0x10);
+#Vend::Util::logDebug
+#("Dict search: found='$_'\n")
+#	if ::debug(0x10);
 # END DEBUG
 				next unless ! defined $f or &$f();
 				next unless &$limit_sub($_);
@@ -318,16 +318,16 @@ Vend::Util::logDebug
 		}
 		elsif($g->{dict_end}) {
 # DEBUG
-Vend::Util::logDebug
-("Dict search: NO limit\n")
-	if ::debug(0x10);
+#Vend::Util::logDebug
+#("Dict search: NO limit\n")
+#	if ::debug(0x10);
 # END DEBUG
 			while(<Vend::TextSearch::SEARCH>) {
 				last if &$dict_limit($_);
 # DEBUG
-Vend::Util::logDebug
-("Dict search: found='$_'\n")
-	if ::debug(0x10);
+#Vend::Util::logDebug
+#("Dict search: found='$_'\n")
+#	if ::debug(0x10);
 # END DEBUG
 				next unless &$f();
 				(push @out, $searchfile and last)
@@ -397,15 +397,15 @@ Vend::Util::logDebug
     }
 
 # DEBUG
-Vend::Util::logDebug
-("$g->{matches} matches\n")
-	if ::debug(0x10);
-Vend::Util::logError
-("$g->{matches} matches")
-	if $CGI::values{mv_search_debug};
-Vend::Util::logDebug
-("0 .. " . (scalar(@out) - 1) . "\n" )
-	if ::debug(0x10);
+#Vend::Util::logDebug
+#("$g->{matches} matches\n")
+#	if ::debug(0x10);
+#Vend::Util::logError
+#("$g->{matches} matches")
+#	if $CGI::values{mv_search_debug};
+#Vend::Util::logDebug
+#("0 .. " . (scalar(@out) - 1) . "\n" )
+#	if ::debug(0x10);
 # END DEBUG
 
 	return \@out unless $g->{return_reference};

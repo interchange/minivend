@@ -1,8 +1,8 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 #
 # update - MiniVend database updater
 #
-# $Id: update,v 1.4 1998/03/21 12:18:26 mike Exp $
+# $Id: update,v 1.5 1999/08/13 01:37:08 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -47,6 +47,7 @@ sub dontwarn { $FindBin::RealBin; }
 
 $Global::ConfigFile = 'minivend.cfg';
 $Global::ErrorFile = "$Global::VendRoot/error.log";
+$Global::SendMailLocation = 'none';
 
 use lib "$Global::VendRoot/lib";
 

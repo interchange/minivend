@@ -1,6 +1,6 @@
 # Parse.pm - Parse MiniVend tags
 # 
-# $Id: Parse.pm,v 1.54 1999/08/09 02:31:17 mike Exp $
+# $Id: Parse.pm,v 1.55 1999/08/13 18:25:55 mike Exp $
 #
 # Copyright 1997-1999 by Michael J. Heins <mikeh@iac.net>
 #
@@ -20,12 +20,12 @@
 
 package Vend::Parse;
 
-# $Id: Parse.pm,v 1.54 1999/08/09 02:31:17 mike Exp $
+# $Id: Parse.pm,v 1.55 1999/08/13 18:25:55 mike Exp $
 
 require Vend::Parser;
 
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.54 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.55 $ =~ /(\d+)\.(\d+)/);
 
 use Safe;
 use Vend::Util;
@@ -40,7 +40,7 @@ require Exporter;
 
 @ISA = qw(Exporter Vend::Parser);
 
-$VERSION = substr(q$Revision: 1.54 $, 10);
+$VERSION = substr(q$Revision: 1.55 $, 10);
 @EXPORT = ();
 @EXPORT_OK = qw(find_matching_end);
 
@@ -53,6 +53,7 @@ my(@SavedSearch, @SavedCode, @SavedDB, @SavedWith, @SavedItem);
 
 my %PosNumber =	( qw!
                     
+				and              1
                 accessories      2
                 area             2
                 areatarget       3
@@ -86,7 +87,9 @@ my %PosNumber =	( qw!
                 loop             1
                 mvasp            1
                 nitems           1
+                onfly            2
                 order            4
+				or				 1
                 page             2
                 pagetarget       3
                 perl             1
@@ -147,7 +150,7 @@ my %Order =	(
 				'if'			=> [qw( type term op compare )],
 				'or'			=> [qw( type term op compare )],
 				'and'			=> [qw( type term op compare )],
-				index  			=> [qw( table )],
+				'index'			=> [qw( table )],
 				import 			=> [qw( table type )],
 				input_filter 	=> [qw( name )],
 				include			=> [qw( file )],
@@ -158,11 +161,14 @@ my %Order =	(
 				loop			=> [qw( with arg search option)],
 				loop_change		=> [qw( with arg )],
 				nitems			=> [qw( name  )],
+				onfly			=> [qw( code quantity )],
 				order			=> [qw( code href base quantity )],
 				page			=> [qw( href arg secure)],
 				pagetarget		=> [qw( href target arg secure)],
 				perl			=> [qw( arg )],
+# MVASP
 				mvasp			=> [qw( tables )],
+# END MVASP
 				post			=> [],
 				price			=> [qw( code quantity base noformat)],
 				process_order	=> [qw( target secure )],
@@ -182,13 +188,16 @@ my %Order =	(
 				set				=> [qw( name  )],
 				'shipping'		=> [qw( name cart noformat )],
 				shipping_desc	=> [qw( name  )],
+# SQL
 				sql				=> [qw( type query list false base)],
+# END SQL
 				strip			=> [],
 				'subtotal'		=> [qw( name noformat )],
 				tag				=> [qw( op base file type )],
 				timed_build		=> [qw( file )],
 				total_cost		=> [qw( name noformat )],
 				userdb          => [qw( function ) ],
+				update          => [qw( function ) ],
 				value			=> [qw( name escaped set hide)],
 				value_extended  => [qw( name )],
 
@@ -211,6 +220,7 @@ my %InvalidateCache = (
 				if          1
 				last_page	1
 				lookup		1
+				mvasp		1
 				nitems		1
 				perl		1
 				'salestax'	1
@@ -224,6 +234,7 @@ my %InvalidateCache = (
 				subtotal	1
 				total_cost	1
 				userdb		1
+				update	    1
 				value		1
 				value_extended 1
 
@@ -288,7 +299,9 @@ my %PosRoutine = (
 				'and'			=> sub { return &Vend::Interpolate::tag_if(@_, 1) },
 				'if'			=> \&Vend::Interpolate::tag_if,
 				'tag'			=> \&Vend::Interpolate::do_tag,
+# SQL
 				'sql'			=> \&Vend::Data::sql_query,
+# END SQL
 			);
 
 my %Routine = (
@@ -332,7 +345,7 @@ my %Routine = (
 				frames_off		=> \&Vend::Interpolate::tag_frames_off,
 				frames_on		=> \&Vend::Interpolate::tag_frames_on,
 				help			=> \&Vend::Interpolate::tag_help,
-				index 			=> \&Vend::Data::index_database,
+				'index'			=> \&Vend::Data::index_database,
 				import 			=> \&Vend::Data::import_text,
 				include			=> sub {
 									&Vend::Interpolate::interpolate_html(
@@ -356,11 +369,14 @@ my %Routine = (
 										(@_, $option);
 									},
 				nitems			=> \&Vend::Util::tag_nitems,
+				onfly			=> \&Vend::Order::onfly,
 				order			=> \&Vend::Interpolate::tag_order,
 				page			=> \&Vend::Interpolate::tag_page,
 				pagetarget		=> \&Vend::Interpolate::tag_pagetarget,
 				perl			=> \&Vend::Interpolate::tag_perl,
+# MVASP
 				mvasp			=> \&Vend::Interpolate::mvasp,
+# END MVASP
 				post			=> sub { return $_[0] },
 				price        	=> \&Vend::Interpolate::tag_price,
 				process_order	=> \&Vend::Interpolate::tag_process_order,
@@ -381,7 +397,9 @@ my %Routine = (
 				set				=> \&Vend::Interpolate::set_scratch,
 				'shipping'		=> \&Vend::Interpolate::tag_shipping,
 				shipping_desc	=> \&Vend::Interpolate::tag_shipping_desc,
+# SQL
 				sql				=> \&Vend::Data::sql_query,
+# END SQL
 				'subtotal'		=> \&Vend::Interpolate::tag_subtotal,
 				strip			=> sub {
 										local($_) = shift;
@@ -393,6 +411,7 @@ my %Routine = (
 				timed_build		=> \&Vend::Interpolate::timed_build,
 				total_cost		=> \&Vend::Interpolate::tag_total_cost,
 				userdb			=> \&Vend::UserDB::userdb,
+				update			=> \&Vend::Interpolate::update,
 				value			=> \&Vend::Interpolate::tag_value,
 				value_extended	=> \&Vend::Interpolate::tag_value_extended,
 
@@ -407,7 +426,7 @@ my %attrAlias = (
 	 						'key' => 'code',
 	 						'row' => 'code',
 						},
-	 index          	=> { 
+	 'index'          	=> { 
 	 						'database' => 'table',
 	 						'base' => 'table',
 						},
@@ -490,9 +509,11 @@ my %addAttr = (
 				qw(
 					ecml            1
 					userdb          1
+					update          1
 					import          1
 					input_filter    1
 					index           1
+					onfly			1
 					page            1
 					price           1
 					area            1
@@ -641,7 +662,6 @@ sub new
     my $class = shift;
     my $self = new Vend::Parser;
 	$self->{INVALID} = 0;
-	$self->{INTERPOLATE} = shift || 0;
 
 	add_tags($Vend::Cfg->{UserTag})
 		unless $Tags_added;
@@ -846,9 +866,6 @@ sub html_start {
 		$self->{INVALID} = 1;
 	}
 
-	$attr->{interpolate} = $self->{INTERPOLATE}
-		unless defined $attr->{interpolate};
-
 	my $trib;
 	foreach $trib (@$attrseq) {
 		# Attribute aliases
@@ -891,11 +908,16 @@ sub html_start {
 	# HTML old-style tag
 		$attr->{interpolate} = 0 if $hasEndTag{$tag} and $canNest{$tag};
 		$attr->{interpolate} = 1 if defined $Interpolate{$tag};
-		@args = $attr->{OLD};
-		if(defined $PosNumber{$tag} and $PosNumber{$tag} > 1) {
-			@args = split /\s+/, $attr->{OLD}, $PosNumber{$tag};
-			push(@args, undef) while @args < $PosNumber{$tag};
+		if(defined $PosNumber{$tag}) {
+			if($PosNumber{$tag} > 1) {
+				@args = split /\s+/, $attr->{OLD}, $PosNumber{$tag};
+				push(@args, undef) while @args < $PosNumber{$tag};
+			}
+			elsif ($PosNumber{$tag}) {
+				@args = $attr->{OLD};
+			}
 		}
+		@{$attr}{ @{ $Order{$tag} } } = @args;
 		$routine =  $PosRoutine{$tag} || $Routine{$tag};
 	}
 	else {
@@ -904,8 +926,8 @@ sub html_start {
 		$attr->{interpolate} = 1
 			if defined $Interpolate{$tag} and ! defined $attr->{interpolate};
 		@args = @{$attr}{ @{ $Order{$tag} } };
-		push(@args, $attr) if $addAttr{$tag};
 	}
+	$args[scalar @{$Order{$tag}}] = $attr if $addAttr{$tag};
 
 	if($tag =~ /^[gb]o/) {
 		if($tag eq 'goto') {
@@ -1132,9 +1154,6 @@ sub start {
 		$self->{INVALID} = 1;
 	}
 
-	$attr->{interpolate} = $self->{INTERPOLATE}
-		unless $Interpolate{$tag} or defined $attr->{interpolate};
-
 	my $trib;
 	foreach $trib (@$attrseq) {
 		# Attribute aliases
@@ -1153,8 +1172,8 @@ sub start {
 		$self->{INVALID} += $p->{INVALID};
 	}
 
-	$attr->{'reparse'} = 1 unless	defined $NoReparse{$tag}
-								||	defined $attr->{'reparse'};
+	$attr->{'reparse'} = 1
+		unless (defined $NoReparse{$tag} || defined $attr->{'reparse'});
 	$attr->{'true'} = 1;
 	$attr->{'false'} = 0;
 	$attr->{'undef'} = undef;
@@ -1166,20 +1185,25 @@ sub start {
 			$origtext =~ s/\]$//;
 			$attr->{interpolate} = 0 if $hasEndTag{$tag} and $canNest{$tag};
 			$attr->{interpolate} = 1 if defined $Interpolate{$tag};
-			@args = ($origtext);
-			if(defined $PosNumber{$tag} and $PosNumber{$tag} > 1) {
-				@args = split /\s+/, $origtext, $PosNumber{$tag};
-				push(@args, undef) while @args < $PosNumber{$tag};
+			if(defined $PosNumber{$tag}) {
+				if($PosNumber{$tag} > 1) {
+					@args = split /\s+/, $origtext, $PosNumber{$tag};
+					push(@args, undef) while @args < $PosNumber{$tag};
+				}
+				elsif ($PosNumber{$tag}) {
+					@args = $origtext;
+				}
 			}
+			@{$attr}{ @{ $Order{$tag} } } = @args;
 			$routine =  $PosRoutine{$tag} || $Routine{$tag};
 	}
 	else {
 		$routine = $Routine{$tag};
 		$attr->{interpolate} = 1
-			if  defined $Interpolate{$tag} and ! defined $attr->{interpolate};
+			if  defined $Interpolate{$tag} && ! defined $attr->{interpolate};
 		@args = @{$attr}{ @{ $Order{$tag} } };
-		push(@args, $attr) if $addAttr{$tag};
 	}
+	$args[scalar @{$Order{$tag}}] = $attr if $addAttr{$tag};
 
 #::logGlobal("Interpolate value now='$attr->{interpolate}'") if$Monitor{$tag};
 
@@ -1383,9 +1407,9 @@ sub _find_tag {
 sub implicit {
 	my($self, $tag, $attr) = @_;
 # DEBUG
-Vend::Util::logDebug
-("check tag='$tag' attr='$attr'...")
-	if ::debug(0x2);
+#Vend::Util::logDebug
+#("check tag='$tag' attr='$attr'...")
+#	if ::debug(0x2);
 # END DEBUG
 	return ('interpolate', 1, 1) if $attr eq 'int';
 	return ($attr, undef) unless defined $Implicit{$tag} and $Implicit{$tag}{$attr};

@@ -2,7 +2,7 @@
 #
 # MakeCat.pm - routines for catalog configurator
 #
-# $Id: MakeCat.pm,v 1.16 1999/02/15 08:51:05 mike Exp $
+# $Id: MakeCat.pm,v 1.18 1999/08/13 18:35:48 mike Exp mike $
 #
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
 #
@@ -54,7 +54,7 @@ sethistory
 use strict;
 
 use vars qw($Force $Error $History $VERSION);
-$VERSION = substr(q$Revision: 1.16 $, 10);
+$VERSION = substr(q$Revision: 1.18 $, 10);
 
 $Force = 0;
 $History = 0;
@@ -696,6 +696,7 @@ sub conf_parse_http {
 				$servers->{$servname}->{$directive} = {}
 					unless defined $servers->{$servname}->{$directive};
 				($key,$val) = split /\s+/, $param, 2;
+				$val =~ s/^"// and $val =~ s/"$//;
 				if (defined $Http_process{$directive}) {
 					$key = &{$Http_process{$directive}}('key', $key);
 					$val = &{$Http_process{$directive}}('value', $val);

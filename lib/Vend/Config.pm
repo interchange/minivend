@@ -1,7 +1,7 @@
 # Config.pm - Configure Minivend
 #
-# $Id: Config.pm,v 1.65 1999/08/10 09:20:04 mike Exp $
-# 
+# $Id: Config.pm,v 1.66 1999/08/13 18:24:22 mike Exp $
+#
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
 #
@@ -40,7 +40,7 @@ use Fcntl;
 use Vend::Parse;
 use Vend::Util;
 
-$VERSION = substr(q$Revision: 1.65 $, 10);
+$VERSION = substr(q$Revision: 1.66 $, 10);
 
 for( qw(search refresh cancel return secure unsecure submit control checkout) ) {
 	$Global::LegalAction{$_} = 1;
@@ -142,6 +142,7 @@ sub global_directives {
 	['ConfigDir',		  undef,	         'etc/lib'],
 	['ConfigDatabase',	 'config_db',	     ''],
     ['DumpStructure',	 'yesno',     	     'No'],
+    ['FormRemap',		 'structure',     	 ''],
     ['PageCheck',		 'yesno',     	     'No'],
     ['DisplayErrors',    'yesno',            $Global::DEBUG & 8192 ? 'Yes' : 'No'],
     ['DisplayComments',  'yesno',            'No'],
@@ -244,8 +245,10 @@ sub catalog_directives {
 	['MailOrderTo',      undef,              undef],
 	['SendMailProgram',  'executable',		$Global::SendMailProgram],
 	['PGP',              undef,       		 ''],
+# GLIMPSE
     ['Glimpse',          'executable',       ''],
-    ['Locale',           'locale',           ''],
+# END GLIMPSE
+ 	['Locale',           'locale',           ''],
     ['Route',            'locale',           ''],
 	['LocaleDatabase',    undef,             ''],
 	['DbDatabase',        undef,             ''],
@@ -335,6 +338,7 @@ sub catalog_directives {
     ['OrderProfile',	 'profile',     	 ''],
     ['SearchProfile',	 'profile',     	 ''],
     ['PriceCommas',		 'yesno',     	     'Yes'],
+    ['OnFly',		 	 undef,     	     ''],
     ['ItemLinkDir',	 	 undef,     	     ''],
     ['FramesDefault', 	 'yesno',     	     'No'],
     ['FrameLinkDir', 	 undef,     	     'framefly'],
@@ -450,8 +454,6 @@ sub substitute_variable {
 # END DEBUG
 	return $val;
 }
-
-## CONFIG
 
 # Parse the configuration file for directives.  Each directive sets
 # the corresponding variable in the Vend::Cfg:: package.  E.g.
@@ -1182,16 +1184,9 @@ sub parse_locale {
             unless defined $c->{frac_digits};
 		$store->{$name} = $c;
     }
-    # else Try to read the ones we have defined
-    elsif($settings eq 'pt' and $item eq 'Locale') {
-		$name = 'pt';
-        $c->{decimal_point} = ',';
-        $c->{mon_thousands_sep} = '.';
-        $c->{frac_digits} = 2;
-        $c->{Name} = 'Portugal';
-    }
     elsif ($settings =~ s/^\s*(\w+)\s+//) {
 		$name = $1;
+
 		undef $eval;
 		$settings =~ /^\s*{/
 			and $settings =~ /}\s*$/
@@ -1243,6 +1238,35 @@ sub parse_locale {
 	$store->{$name} = $c unless $store->{$name};
 
     return $c;
+}
+
+#
+# Sets a structure like Locale but with the depth and access via key
+# No evaled structure setting, only key-value with shell quoting
+# 
+sub parse_structure {
+	my ($item, $settings) = @_;
+	return {} unless $settings;
+	my $key;
+	my @rest;
+	($key, @rest) = Text::ParseWords::shellwords($settings);
+	my ($c, $e);
+	if(defined $C) {
+		$c = $C->{$item};
+		$e = $c->{$key} || { };
+	}
+	else {
+		no strict 'refs';
+		$c = ${"Global::$item"};
+		$e = $c->{$key} || {};
+	}
+
+	while(scalar @rest) {
+		my $k = shift @rest;
+		$e->{$k} = shift @rest;
+	}
+	$c->{$key} = $e;
+	return $c;
 }
 
 

@@ -64,7 +64,7 @@ else {
 	print "ok 1\n";
 }
 
-sleep 1;
+sleep 3;
 open(PID, "$ENV{MINIVEND_ROOT}/etc/minivend.pid") or die "read PID file: $!\n";
 $pid = <PID>;
 

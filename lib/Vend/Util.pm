@@ -1,6 +1,6 @@
 # Util.pm - Minivend utility functions
 #
-# $Id: Util.pm,v 1.53 1999/08/10 09:21:24 mike Exp $
+# $Id: Util.pm,v 1.54 1999/08/13 18:27:10 mike Exp $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
@@ -69,7 +69,7 @@ use Config;
 use Fcntl;
 use subs qw(logError logGlobal);
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.53 $, 10);
+$VERSION = substr(q$Revision: 1.54 $, 10);
 
 BEGIN {
 	eval {
@@ -1090,7 +1090,7 @@ sub check_security {
 				return 1 if $access =~ m{(^|\s)$item(\s|$)};
 			}
 		}
-		if($Vend::Cfg->{UserDB}{log_failed}) {
+		if($Vend::Cfg->{UserDB} and $Vend::Cfg->{UserDB}{log_failed}) {
 			my $besthost = $CGI::remote_host || $CGI::remote_addr;
 			::logError(qq{auth error host=$besthost ip=$CGI::remote_addr script=$CGI::script_name page=$CGI::path_info});
 		}

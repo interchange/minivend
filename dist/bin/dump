@@ -2,7 +2,7 @@
 #
 # MiniVend session dumper
 #
-# $Id: dump,v 1.14 1999/06/07 08:08:56 mike Exp $
+# $Id: dump,v 1.15 1999/08/13 01:35:57 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -191,7 +191,7 @@ if(defined $catalog) {
 	}
 	close GLOBAL;
 
-	$Global::SendMailLocation = '/usr/lib/sendmail';
+	$Global::SendMailLocation = 'none';
 	global_config();
 
 	chdir $dir or die "Couldn't change directory to $dir: $!\n";

@@ -2,7 +2,7 @@
 #
 # MiniVend session expiration
 #
-# $Id: expire,v 1.16 1999/06/07 08:09:03 mike Exp $
+# $Id: expire,v 1.17 1999/08/13 01:36:08 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -62,6 +62,7 @@ use Fcntl;
 my $DEBUG = 0;
 
 $Vend::SessionName = 'utility';
+$Global::SendMailLocation = 'none';
 
 #select a DBM
 

@@ -1,6 +1,6 @@
 # Data.pm - Minivend databases
 #
-# $Id: Data.pm,v 1.58 1999/07/16 11:02:15 mike Exp $
+# $Id: Data.pm,v 1.59 1999/08/13 18:24:39 mike Exp $
 # 
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -64,9 +64,11 @@ use Vend::Table::Import qw(import_ascii_delimited import_quoted);
 File::Basename::fileparse_set_fstype($);
 
 BEGIN {
+# SQL
 	if($Global::DBI) {
 		require Vend::Table::DBI;
 	}
+# END SQL
 	if($Global::GDBM) {
 		require Vend::Table::GDBM;
 	}
@@ -367,6 +369,7 @@ TAGBUILD: {
 	}
 }
 
+# SQL
 sub sql_query {
 	my($type, $internal_query, $query, $msql, $table, $list) = @_;
 	my ($db);
@@ -420,6 +423,7 @@ sub sql_query {
 	logError( errmsg('Data.pm:1', "Bad SQL query selector: '%s' for %s" , $type, $table) );
 	return '';
 }
+# END SQL
 
 sub column_index {
     my ($field_name) = @_;
@@ -723,6 +727,7 @@ sub find_delimiter {
 }
 
 my %db_config = (
+# SQL
 		'DBI' => {
 				qw/
 					Extension			 sql
@@ -730,6 +735,7 @@ my %db_config = (
 					Class                Vend::Table::DBI
 				/
 				},
+# END SQL
 		'MEMORY' => {
 				qw/
 					Cacheable			 1
@@ -1422,6 +1428,7 @@ my $code = <<'EOF';
 	my ($price, $base, $adjusted);
 	$item = { 'code' => $item, 'quantity' => ($quantity || 1) } unless ref $item;
 	$base = product_code_exists_ref($item->{code}, $item->{mv_ib})
+		or $Vend::Cfg->{OnFly}
 		or return undef;
 	$price = database_field($base, $item->{code}, $Vend::Cfg->{PriceField});
 EOF

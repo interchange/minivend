@@ -1,0 +1,85 @@
+[new]
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<html>
+[mvasp]
+<head>
+	<title>MiniVend ASP</title>
+</head>
+<body bgcolor="#FFFFFF">
+<basefont size="+1" color="#ff61e7" face="arial,helvetica">
+<center><h1>MiniVend ASP Syntax Example</h1>
+<a href="http://www.minivend.com/simple/minivend.html#ASP_like_Perl">What's new</a><br>
+
+<% 
+
+	sub testit {
+		my $something = shift;
+		return "Testing: $something<BR>\n";
+	}
+    $Document->write("Hello, you are in <B>&lt;%ASP LAND%&gt;</B> <P>");
+    my $fmt = "%H:%M:%S %D (some time format for y2K, huh...)";
+    my $time = $Tag->tag( $fmt, { op => 'time' } );
+    $Document->write ( "The current time is $time<BR>");
+%>
+<HR>
+<%
+	$Document->write ( "<P>Your session ID is <B>$Session->{id}</B><P>");
+    if($Session->{arg}) {
+        HTML "<P>The argument given is <B>$Session->{arg}</B><P>";
+        HTML "<P>Return to " . $Tag->page('mvasp') . "no argument</A>.<P>";
+    }
+    else {
+        HTML "No argument sent, ", $Tag->page('mvasp', 'An arg'), "try one</A>.<BR>";
+    }
+%>
+<P>
+	You can loop. Create a select box:
+	<FORM ACTION="process" METHOD=POST>
+			<INPUT TYPE=hidden NAME=mv_todo VALUE="return">
+			<INPUT TYPE=hidden NAME=mv_nextpage VALUE="@@MV_PAGE@@">
+			Current submit: <SELECT NAME="foo" onChange="this.form.submit()">
+					<% for (qw/1 2 3 4 5/) { %>
+						<OPTION<%=
+									$_ eq $CGI->{foo} ? " SELECTED>" : '>',
+									$_
+								%>
+					<% } %>
+			</SELECT>
+			Saved submit: <SELECT NAME="bar" onChange="this.form.submit()">
+					<% for (qw/1 2 3 4 5/) { %>
+						<OPTION<%=
+									$_ eq $Values->{bar} ? " SELECTED>" : '>',
+									$_
+								%>
+					<% } %>
+			</SELECT>
+			<INPUT TYPE=submit>
+	</FORM>
+
+</P>
+<% =
+                        "######################################<BR>",
+                        "You can do explict &lt;%= writes like this one<BR>",
+                        "######################################<BR>",
+                        "You can use UserTags, too...ORDERS_TO => ",
+                        $Tag->var('ORDERS_TO'),
+                        "<P>\n",
+						"And you can call subroutines with testit('testing'):<BR><BR>",
+						testit('testing'),
+                        "<P>\n",
+%>
+
+        Compare to ORDERS_TO => __ORDERS_TO__<P>
+
+        You can see the source
+        <A HREF="<%
+                    $Document->write( $Tag->area('view_page', 'mvasp.html') );
+                  %>"> here.</A>
+</center>
+<hr>
+</small>
+</BODY>
+</HTML>
+[/mvasp]
+
+

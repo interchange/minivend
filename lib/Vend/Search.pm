@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 #
-# $Id: Search.pm,v 1.33 1999/07/16 11:05:29 mike Exp $
+# $Id: Search.pm,v 1.34 1999/08/13 18:26:45 mike Exp $
 #
 # Vend::Search -- Base class for search engines
 #
@@ -27,7 +27,7 @@
 #
 package Vend::Search;
 
-$VERSION = substr(q$Revision: 1.33 $, 10);
+$VERSION = substr(q$Revision: 1.34 $, 10);
 $DEBUG = 0;
 
 my $Joiner;
@@ -192,9 +192,9 @@ EOF
 	}
 
 # DEBUG
-Vend::Util::logDebug
-($s->dump_options() . "\nspecs=" . join("|", @specs) . "|\n")
-	if ::debug(0x10);
+#Vend::Util::logDebug
+#($s->dump_options() . "\nspecs=" . join("|", @specs) . "|\n")
+#	if ::debug(0x10);
 # END DEBUG
 
 	if ( ! $g->{exact_match} and ! $g->{coordinate}) {
@@ -212,9 +212,9 @@ Vend::Util::logDebug
 	@specs = $s->escape(@specs);
 
 # DEBUG
-Vend::Util::logDebug
-("spec='" . (join "','", @specs) . "'\n")
-	if ::debug(0x10 );
+#Vend::Util::logDebug
+#("spec='" . (join "','", @specs) . "'\n")
+#	if ::debug(0x10 );
 # END DEBUG
 
 	if(! scalar @specs or ! $g->{coordinate}) {
@@ -250,9 +250,9 @@ EOF
 	@{$s->{'specs'}} = @pats;
 
 # DEBUG
-Vend::Util::logDebug
-("pats: '" . join("', '", @pats) . "'\n")
-	if ::debug(0x10);
+#Vend::Util::logDebug
+#("pats: '" . join("', '", @pats) . "'\n")
+#	if ::debug(0x10);
 # END DEBUG
 
   } # last SPEC_CHECK
@@ -612,9 +612,9 @@ EOF
 		}
 #::logError("coordinate search func is: $f");
 # DEBUG
-Vend::Util::logDebug
-("coordinate search\ncode is: $code\nfunc is:\n$f")
-	if ::debug(0x10);
+#Vend::Util::logDebug
+#("coordinate search\ncode is: $code\nfunc is:\n$f")
+#	if ::debug(0x10);
 # END DEBUG
 		$f = eval $f if $f;
 		die($@) if $@;
@@ -692,15 +692,15 @@ sub range_check {
 	my $g = $s->{'global'};
 	my @fields = (split /\Q$index_delim/, $line)[@{$g->{range_look}}];
 # DEBUG
-Vend::Util::logDebug
-("range_look: '" . join("','", @fields) . "'\n")
-	if ::debug(0x10);
-Vend::Util::logDebug
-("range_min:  '" . join("','", @{$g->{range_min}}) . "'\n")
-	if ::debug(0x10);
-Vend::Util::logDebug
-("range_max:  '" . join("','", @{$g->{range_max}}) . "'\n")
-	if ::debug(0x10);
+#Vend::Util::logDebug
+#("range_look: '" . join("','", @fields) . "'\n")
+#	if ::debug(0x10);
+#Vend::Util::logDebug
+#("range_min:  '" . join("','", @{$g->{range_min}}) . "'\n")
+#	if ::debug(0x10);
+#Vend::Util::logDebug
+#("range_max:  '" . join("','", @{$g->{range_max}}) . "'\n")
+#	if ::debug(0x10);
 # END DEBUG
 	my $i = 0;
 	for(@fields) {
@@ -759,9 +759,9 @@ EOCODE
 
     $code .= "}\n";
 # DEBUG
-Vend::Util::logDebug
-("create search: $code")
-	if ::debug(0x10);
+#Vend::Util::logDebug
+#("create search: $code")
+#	if ::debug(0x10);
 # END DEBUG
 
     my $func = eval $code;
@@ -804,9 +804,9 @@ EOCODE
     $code .= "}\n";
 
 # DEBUG
-Vend::Util::logDebug
-("create search: $code")
-	if ::debug(0x10);
+#Vend::Util::logDebug
+#("create search: $code")
+#	if ::debug(0x10);
 # END DEBUG
 
     my $func = eval $code;

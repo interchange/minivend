@@ -164,6 +164,7 @@ This document describes MiniVend 3.15, based originally on Andrew Wilcox's
 
 		<LI><A HREF="#How_to_set_up_an_order_link">How to set up an order link</A>
 		<LI><A HREF="#How_to_set_up_an_order_button">How to set up an order button</A>
+		<LI><A HREF="#How_to_set_up_an_on_the_fly_item">How to set up an on-the-fly item</A>
 		<LI><A HREF="#Order_Groups">Order Groups</A>
 		<LI><A HREF="#Basket_display">Basket display</A>
 		<LI><A HREF="#Multiple_Shopping_Carts">Multiple Shopping Carts</A>
@@ -5671,7 +5672,7 @@ MiniVend 3.15 supports an ASP-like syntax using the <CODE>mvasp</CODE> tag.
                 This is HTML.&lt;BR&gt;
 </PRE>
 <P>
-<PRE>        &lt;% $Document-&gt;write(&quot;This is code&lt;BR&gt;&quot;) %&gt;
+<PRE>        &lt;% HTML &quot;This is code&lt;BR&gt;&quot;; %&gt;
                 More HTML.&lt;BR&gt;
         &lt;% $Document-&gt;write(&quot;Code again.&lt;BR&gt;&quot;) %&gt;
         [/mvasp]
@@ -5688,6 +5689,10 @@ If no closing <CODE>[/mvasp]</CODE> tag is present, the remainder of the page wi
 <FONT SIZE=-1>[LC][/LC]</FONT> areas will still be inserted, but any MiniVend tags will not be.
 
 <P>
+There is a shorthand &lt;% = <CODE>$foo</CODE> %&gt;, which is exactly equivalent to &lt;% $Document-&gt;write($foo); %&gt; or &lt;% 
+<FONT SIZE=-1>HTML</FONT> $foo; %&gt;
+
+<P>
 <PRE>        [mvasp]
         &lt;HTML&gt;&lt;BODY&gt; 
                 This is HTML.&lt;BR&gt;
@@ -5697,7 +5702,7 @@ If no closing <CODE>[/mvasp]</CODE> tag is present, the remainder of the page wi
 <PRE>                &amp;#95_VARIABLE__ value is equal to: __VARIABLE__
 </PRE>
 <P>
-<PRE>        &lt;% $Document-&gt;write(&quot;This is code&lt;BR&gt;&quot;) %&gt;
+<PRE>        &lt;% = &quot;This is code&lt;BR&gt;&quot; %&gt;
 </PRE>
 <P>
 The 
@@ -5727,7 +5732,9 @@ use
 This is an object that has several routines associated with it.
 
 <P>
-<PRE> $Document-&gt;write($foo);        # Append $foo to the write buffer array
+<PRE> HTML $foo;                     # Append $foo to the write buffer array
+ $Document-&gt;write($foo);        # object call to append $foo to the write
+                                # buffer array
  $Document-&gt;insert($foo);       # Insert $foo to front of write buffer array
  $Document-&gt;header($foo, $opt); # Append $foo to page header
  $Document-&gt;send();             # Send write buffer array to output, done
@@ -5879,6 +5886,22 @@ simple things you can use something like:
 <P>
 Changes are not persistent except when running in the foreground (Debug
 mode or on Windows).
+
+<P><DT><STRONG><A NAME="item_HTML">HTML</A></STRONG><DD>
+
+Writes a string (or list of strings) to the write buffer array. The call
+
+<P>
+<PRE>        HTML $foo, $bar;
+</PRE>
+<P>
+is exactly equivalent to
+
+<P>
+<PRE>        $Document-&gt;write($foo, $bar);
+</PRE>
+<P>
+Honors the $Document-&gt;hot() setting.
 
 <P><DT><STRONG><A NAME="item__Items">$Items</A></STRONG><DD>
 
@@ -8974,6 +8997,115 @@ results page, you can get a canned select box from the
 
 <P>
 <HR>
+<H2><A NAME="How_to_set_up_an_on_the_fly_item">How to set up an on-the-fly item</A></H2>
+<P>
+If you enable the catalog directive <EM>OnFly</EM>, setting it to the name of a tag (possibly a UserTag) that can handle its
+calls, then MiniVend will add items to the basket that are not in the
+product database.
+
+<P>
+The <CODE>OnFly</CODE> directive accepts a tag name:
+
+<P>
+<PRE>        OnFly  onfly
+</PRE>
+<P>
+MiniVend supplies the <CODE>onfly</CODE> tag which will work with the descriptions below. If your item code is not
+to be named <CODE>mv_order_item</CODE> then you must perform a rename in the <CODE>Autoload</CODE> routine.
+
+<P>
+
+<FONT SIZE=-1>A</FONT> basic link can be generated like:
+
+<P>
+<PRE>        [area form=&quot;
+                        mv_todo=refresh
+                        mv_order_item=000101
+                        mv_order_fly=description=An on-the-fly item|price=100.01
+        &quot;]
+</PRE>
+<P>
+The form parameter value <CODE>mv_order_fly</CODE> can contain any number of fields which will set corresponding parameters in
+the item attributes. The fields are separated by the pipe (<CODE>|</CODE>) character and contain value-parmeter pairs separated by an = sign. (These are URL-encoded by the [area ...] tag, of course.) You can set a size, color, or any other parameter. If you want to see what the actual 
+<FONT SIZE=-1>URL</FONT> will look like, put the above example in a page and study it.
+
+<P>
+The special attribute <CODE>mv_price</CODE> can be used in conjunction with the
+<CODE>CommonAdjust</CODE> atom <CODE>$</CODE> to set the price for checkout and display.
+
+<P>
+The <CODE>[item-list]</CODE> sub-tag <CODE>[item-description]</CODE>, when used with an item-list, will use the item attribute <A HREF="#item_description">description</A> to display in the basket.
+
+<P>
+If you wish to set up a UserTag to process on-the-fly items, it should
+accept a call of
+
+<P>
+<PRE>        usertag(mv_item_code, mv_item_quantity, mv_order_fly)
+</PRE>
+<P>
+The <CODE>mv_item_code</CODE> and <CODE>mv_order_fly</CODE> parameters are required to trigger MiniVend's <CODE>add_item</CODE> routine (along with mv_todo=refresh to set the action).
+
+<P>
+The item will always act as if <CODE>SeparateItems</CODE> or <CODE>mv_separate_items</CODE> is set.
+
+<P>
+Multiple items can be ordered at once by stacking the variables. If there
+is only one <CODE>mv_order_item</CODE> instance, however, you can stack the <CODE>mv_order_fly</CODE>
+variable so that all are concatenated together as with the <CODE>|</CODE> symbol. So the above example could be done as:
+
+<P>
+<PRE>        [area form=&quot;
+                        mv_todo=refresh
+                        mv_order_item=000101
+                        mv_order_fly=description=An on-the-fly item
+                        mv_order_fly=price=100.00
+        &quot;]
+</PRE>
+<P>
+Multiple items would need multiple instances of <CODE>mv_order_item</CODE> with a corresponding <CODE>mv_order_fly</CODE> for each <CODE>mv_order_item</CODE>. You can order both <CODE>000101</CODE> and <CODE>000101</CODE> as follows:
+
+<P>
+<PRE>        [area form=&quot;
+                mv_todo=refresh
+ 
+                mv_order_item=000101
+                mv_order_fly=description=An on-the-fly item|price=100.00
+ 
+                mv_order_item=000102
+                mv_order_fly=description=Another on-the-fly item|price=200.00
+        &quot;]
+</PRE>
+<P>
+The following two forms correspond to the above two examples, in order,
+with the slight refinement of adding a quantity:
+
+<P>
+<PRE>  &lt;FORM ACTION=&quot;[area process]&quot; METHOD=POST&gt;
+        &lt;INPUT TYPE=hidden NAME=mv_todo VALUE=&quot;refresh&quot;&gt;
+        &lt;INPUT TYPE=hidden NAME=mv_order_item VALUE=&quot;000101&quot;&gt;
+        Qty: &lt;INPUT SIZE=2 NAME=mv_order_quantity VALUE=&quot;1&quot;&gt;
+        &lt;INPUT TYPE=hidden NAME=mv_order_fly
+                                VALUE=&quot;description=An on-the-fly item|price=100.00&quot;&gt;
+        &lt;INPUT TYPE=submit VALUE=&quot;Order button&quot;&gt;
+    &lt;/FORM&gt;
+</PRE>
+<P>
+<PRE>   &lt;FORM ACTION=&quot;[area process]&quot; METHOD=POST&gt;
+        &lt;INPUT TYPE=hidden NAME=mv_todo VALUE=&quot;refresh&quot;&gt;
+        &lt;INPUT TYPE=hidden NAME=mv_order_item VALUE=&quot;000101&quot;&gt;
+        Qty: &lt;INPUT SIZE=2 NAME=mv_order_quantity VALUE=&quot;1&quot;&gt;&lt;BR&gt;
+        &lt;INPUT TYPE=hidden NAME=mv_order_fly
+                        VALUE=&quot;description=An on-the-fly item|price=100.00&quot;&gt;
+        &lt;INPUT TYPE=hidden NAME=mv_order_item VALUE=&quot;000102&quot;&gt;
+        Qty: &lt;INPUT SIZE=2 NAME=mv_order_quantity VALUE=&quot;1&quot;&gt;&lt;BR&gt;
+        &lt;INPUT TYPE=hidden NAME=mv_order_fly
+                        VALUE=&quot;description=Another on-the-fly item|price=200.00&quot;&gt;
+        &lt;INPUT TYPE=submit VALUE=&quot;Order two different with a button&quot;&gt;
+    &lt;/FORM&gt;
+</PRE>
+<P>
+<HR>
 <H2><A NAME="Order_Groups">Order Groups</A></H2>
 <P>
 MiniVend 3.06 allows you to group items together, making a master item and
@@ -11501,6 +11633,19 @@ That makes every call to <CODE>[userdb function=login]</CODE> be equivalent to <
 <P>
 If you wish to override that default for one call only, you can use <CODE>[userdb function=login scratch=&quot;passes&quot;]</CODE>.
 
+<P>
+If you wish to log failed access authorizations, set the <CODE>UserDB</CODE>
+profile parameter <CODE>log_failed</CODE> true:
+
+<P>
+<PRE>        UserDB  default  log_failed 1
+</PRE>
+<P>
+To disable logging of failed access authorizations (the default), set the <CODE>UserDB</CODE> profile parameter <CODE>log_failed</CODE> to 0:
+
+<P>
+<PRE>        UserDB  default  log_failed 0
+</PRE>
 <P>
 The <EM>UserDB</EM> directive uses the same key-value pair settings as the <EM>Locale</EM> and <EM>Route</EM> directives, and you may have more than one set of defaults. You can set
 them in a hash structure:

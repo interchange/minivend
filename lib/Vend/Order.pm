@@ -2,7 +2,7 @@
 #
 # MiniVend version 1.04
 #
-# $Id: Order.pm,v 1.39 1999/07/16 11:04:13 mike Exp $
+# $Id: Order.pm,v 1.40 1999/08/13 18:25:45 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -33,7 +33,7 @@
 package Vend::Order;
 require Exporter;
 
-$VERSION = substr(q$Revision: 1.39 $, 10);
+$VERSION = substr(q$Revision: 1.40 $, 10);
 $DEBUG = 0;
 
 @ISA = qw(Exporter);
@@ -417,6 +417,77 @@ sub report_field {
 		$r = "<no input box>";
     }
     $r;
+}
+
+#sub create_onfly {
+#	my $opt = shift;
+#	if($opt->{create}) {
+#		delete $opt->{create};
+#		my $href = $opt->{href} || '';
+#		my $secure = $opt->{secure} || '';
+#		if(defined $split_fields) {
+#			return join $joiner, @{$opt}{ split /[\s,]+/, $split_fields };
+#		}
+#		else {
+#			my @out;
+#			my @fly;
+#			for(keys %{$opt}) {
+#				$opt->{$_} =~ s/[\0\n]/\r/g unless $v;
+#				push @fly, "$_=$opt->{$_}";
+#			}
+#			push @out, "mv_order_fly=" . join $joiner, @fly;
+#			push @out, "mv_order_item=$opt->{code}"
+#				if ! $opt->{mv_order_item} and $opt->{code};
+#			push @out, "mv_order_quantity=$opt->{quantity}"
+#				if ! $opt->{mv_order_quantity} and $opt->{quantity};
+#			push @out, "mv_todo=refresh"
+#				if ! $opt->{mv_todo};
+#		}
+#		my $form = join "\n", @out;
+#		return Vend::Interpolate::form_link( $href, '', $secure, { form => $form } );
+#	}
+#
+#}
+
+sub onfly {
+	my ($code, $qty, $opt) = @_;
+	my $item_text;
+	if (ref $opt) {
+		$item_text = $opt->{text} || '';
+	}
+	else {
+		$item_text = $opt;
+		$opt = {};
+	}
+
+#	return create_onfly() if $opt->{create};
+
+	my $joiner		= $Vend::Cfg->{Variable}{MV_ONFLY_JOINER} || '|';
+	my $split_fields= $Vend::Cfg->{Variable}{MV_ONFLY_FIELDS} || undef;
+
+	$item_text =~ s/\s+$//;
+	$item_text =~ s/^\s+//;
+	my @parms;
+	my @fields;
+	$joiner = quotemeta $joiner;
+	@parms = split /$joiner/, $item_text;
+	my ($k, $v);
+	my $item = {};
+	if(defined $split_fields) {
+		@fields = split /[,\s]+/, $split_fields;
+		@{$item}{@fields} = @parms;
+	}
+	else {
+		for(@parms) {
+			($k, $v)  = split /=/, $_;
+			$item->{$k} = $v;
+		}
+	}
+	$item->{mv_price} = $item->{price}
+		if ! $item->{mv_price};
+	$item->{code}	  = $code	if ! $item->{code};
+	$item->{quantity} = $qty	if ! $item->{quantity};
+	return $item;
 }
 
 sub order_report {

@@ -1,6 +1,6 @@
 # Vend/DbSearch.pm:  Search indexes with Perl
 #
-# $Id: DbSearch.pm,v 1.1 1999/07/16 10:57:34 mike Exp $
+# $Id: DbSearch.pm,v 1.2 1999/08/13 18:24:47 mike Exp $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::TextSearch
 #
@@ -25,7 +25,7 @@ require Vend::Search;
 
 @ISA = qw(Vend::Search);
 
-$VERSION = substr(q$Revision: 1.1 $, 10);
+$VERSION = substr(q$Revision: 1.2 $, 10);
 
 use Search::Dict;
 use strict;
@@ -118,9 +118,9 @@ sub spec_check {
 	}
 
 # DEBUG
-Vend::Util::logError
-($s->dump_options() . "\nspecs=" . join("|", @specs) . "|\n")
-	if $g->{mv_search_debug};
+#Vend::Util::logError
+#($s->dump_options() . "\nspecs=" . join("|", @specs) . "|\n")
+#	if $g->{mv_search_debug};
 # END DEBUG
 
 	if ( ! $g->{exact_match} and ! $g->{coordinate}) {
@@ -138,9 +138,9 @@ Vend::Util::logError
 	@specs = $s->escape(@specs);
 
 # DEBUG
-Vend::Util::logDebug
-("spec='" . (join "','", @specs) . "'\n")
-	if ::debug(0x10 );
+#Vend::Util::logDebug
+#("spec='" . (join "','", @specs) . "'\n")
+#	if ::debug(0x10 );
 # END DEBUG
 
 	# untaint
@@ -151,9 +151,9 @@ Vend::Util::logDebug
 	@{$s->{'specs'}} = @pats;
 
 # DEBUG
-Vend::Util::logDebug
-("pats: '" . join("', '", @pats) . "'\n")
-	if ::debug(0x10);
+#Vend::Util::logDebug
+#("pats: '" . join("', '", @pats) . "'\n")
+#	if ::debug(0x10);
 # END DEBUG
 
   } # last SPEC_CHECK

@@ -55,7 +55,7 @@ if($no) {
 		else {
 			while(<>) {
 				(print, last) if /^# END $string$/o;
-				s/^([^#])/#$1/;
+				s/^/#/;
 				print;
 			}
 		}
@@ -71,7 +71,7 @@ else {
 		if($1) {
 			while(<>) {
 				(print, last) if /^# END NO$string$/o;
-				s/^([^#])/#$1/;
+				s/^/#/;
 				print;
 			}
 		}

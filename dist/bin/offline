@@ -2,7 +2,7 @@
 #
 # offline - MiniVend database builder and indexer
 #
-# $Id: offline,v 1.9 1999/06/07 08:09:25 mike Exp $
+# $Id: offline,v 1.10 1999/08/13 01:37:02 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -46,6 +46,7 @@ BEGIN {
 
 $Global::ConfigFile = 'minivend.cfg';
 $Global::ErrorFile = "$Global::VendRoot/error.log";
+$Global::SendMailLocation = 'none';
 
 use lib "$Global::VendRoot/lib";
 

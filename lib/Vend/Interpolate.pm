@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # Interpolate.pm - Interpret MiniVend tags
 # 
-# $Id: Interpolate.pm,v 1.90 1999/08/10 10:23:41 mike Exp mike $
+# $Id: Interpolate.pm,v 1.91 1999/08/13 18:25:04 mike Exp $
 #
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
 #
@@ -24,7 +24,7 @@ package Vend::Interpolate;
 require Exporter;
 @ISA = qw(Exporter);
 
-$VERSION = substr(q$Revision: 1.90 $, 10);
+$VERSION = substr(q$Revision: 1.91 $, 10);
 
 @EXPORT = qw (
 
@@ -39,10 +39,13 @@ subtotal
 tag_if
 tag_perl
 tag_total_cost
-tag_sql_list
 tag_value
 
 );
+
+# SQL
+push @EXPORT, 'tag_sql_list';
+# END SQL
 
 @EXPORT_OK = qw( sort_cart );
 
@@ -56,9 +59,7 @@ use Vend::ValidCC;
 # STATICPAGE
 use Vend::PageBuild;
 # END STATICPAGE
-# NEWTAGS
 use Vend::Parse;
-# END NEWTAGS
 use POSIX qw(ceil);
 
 use vars qw($New $Safe_tag);
@@ -248,10 +249,10 @@ TAGBUILD: {
 		sort
 		/sort
 		subtotal
-		tag
-		/tag
 		then
 		/then
+		tag
+		/tag
 		total-cost
 		uniq
 		value
@@ -339,10 +340,18 @@ sub cache_html {
 
 	$CacheInvalid = 0;
 
+# NOOLDTAGS
+#	$New = 1;
+#
+#	$html =~ s/\[(old|new)\]//ig;
+# END NOOLDTAGS
+
+# OLDTAGS
 	local ($New) = $New || $Vend::Cfg->{NewTags};
 
 	if($New) { $New = 0 if $html =~ s/\[(old|new)\]//i and lc $1 eq 'old' }
 	else 	 { $New = 1 if $html =~ s/\[(old|new)\]//i and lc $1 eq 'new' }
+# END OLDTAGS
 
 # DEBUG
 #Vend::Util::logDebug
@@ -362,8 +371,10 @@ sub cache_html {
 	#$html =~ s#<!--\s*\[mv\]\s*##;
 	#$html =~ s#\[/mv\]\s*-->##;
 
+# OLDTAGS
     # Returns, could be recursive
     if($New and ! $Safe_tag) {
+# END OLDTAGS
 		my $complete;
 		my $full = '';
         my $parse = new Vend::Parse;
@@ -387,8 +398,11 @@ sub cache_html {
 		}
         return (\$parse->{OUT}, $complete || undef) if defined $wantref;
         return ($parse->{OUT});
+# OLDTAGS
     }
+# END OLDTAGS
 
+# OLDTAGS
     $html =~ s#$T{'compat'}\]($Some)$T{'/compat'}\]#$1#og;
     $html =~ s#$T{'post'}(\d*)]($Some)$T{'/post'}\1\]#
                             $name = $1 || $it++;
@@ -405,6 +419,7 @@ sub cache_html {
     }
 
 	return cache_scan_html($html, $wantref);
+# END OLDTAGS
 
 }
 
@@ -451,10 +466,18 @@ sub interpolate_html {
 	$html =~ s/<!--+\[/[/g
 		and $html =~ s/\]--+>/]/g;
 
+# NOOLDTAGS
+#	$New = 1;
+#
+#	$html =~ s/\[(old|new)\]//ig;
+# END NOOLDTAGS
+
+# OLDTAGS
 	local ($New) = $New || $Vend::Cfg->{NewTags};
 
-    if($New) { $New = 0 if $html =~ s/\[(old|new)\]//i and lc $1 eq 'old' }
-	else     { $New = 1 if $html =~ s/\[(old|new)\]//i and lc $1 eq 'new' }
+	if($New) { $New = 0 if $html =~ s/\[(old|new)\]//i and lc $1 eq 'old' }
+	else 	 { $New = 1 if $html =~ s/\[(old|new)\]//i and lc $1 eq 'new' }
+# END OLDTAGS
 
 # DEBUG
 #Vend::Util::logDebug
@@ -470,7 +493,9 @@ sub interpolate_html {
 		and $html =~ s/^/$Vend::Cfg->{Variable}{MV_AUTOLOAD}/;
 
     # Returns, could be recursive
+# OLDTAGS
 	if($New and ! $Safe_tag) {
+# END OLDTAGS
 		my $parse = new Vend::Parse;
 		$parse->parse($html);
 		while($parse->{_buf}) {
@@ -479,8 +504,11 @@ sub interpolate_html {
 		substitute_image(\$parse->{OUT});
 		return \$parse->{OUT} if defined $wantref;
 		return $parse->{OUT};
+# OLDTAGS
 	}
+# END OLDTAGS
 
+# OLDTAGS
     $html =~ s#$T{'post'}(\d*)]($Some)$T{'/post'}\1\]# 
                             $name = $1 || $it++;
                             push(@post,$name);
@@ -496,9 +524,11 @@ sub interpolate_html {
     }
 
 	return scan_html($html);
+# END OLDTAGS
 
 }
 
+# OLDTAGS
 sub cache_scan_html {
     my($html,$wantref) = @_;
 
@@ -775,6 +805,7 @@ sub scan_html {
 	return $html;
 
 }
+# END OLDTAGS
 
 # Returns the text of a configurable database field or a 
 # variable
@@ -1453,7 +1484,14 @@ EOF
 
 sub tag_price {
 	my($code,$quantity,$base,$noformat,$ref) = @_;
-	$quantity = $ref->{quantity} = 1 if ! $ref->{quantity};
+	$ref = { code => $code, quantity => $quantity, base => $base }
+		if ! defined $ref->{code};
+	$quantity = $ref->{quantity} = 1 if ! defined $ref->{quantity};
+	return currency(
+					 discount_price($ref,Vend::Data::item_price($ref,$quantity),
+					 					$quantity),
+					 $noformat
+					) if $ref->{discount};
 	return currency(
 					 Vend::Data::item_price($ref,$quantity),
 					 $noformat,
@@ -1569,11 +1607,15 @@ sub tag_accessories {
 
 }
 
+# OLDTAGS
 sub safe_tag {
 	local($Safe_tag);
 	$Safe_tag = 1;
 	return do_tag ('', @_);
 }
+# END OLDTAGS
+
+# MVASP
 
 sub mvasp {
 	my ($tables, $text) = @_;
@@ -1593,18 +1635,25 @@ sub mvasp {
 $1
 _MV_ASP_EOF$^T
 chop(\$html);
-		\$Document->write( \$html );
+		HTML( \$html );
 EOF
 		$text =~ s/(.*?)%>//s
 			or last;;
-		push @code, $1, ";\n";
-		last if ! $text;
+		my $bit = $1;
+		if ($bit =~ s/^\s*=\s*//) {
+			$bit =~ s/;\s*$//;
+			push @code, "; HTML( $bit );"
+		}
+		else {
+			push @code, $bit, ";\n";
+		}
 	}
 	my $asp = join "", @code;
 #::logError("ASP CALL:\n$asp\n");
 	return tag_perl ('new', $asp);
 }
 
+# END MVASP
 
 sub tag_perl {
 	my($args,$body,@args) = @_;
@@ -1625,10 +1674,12 @@ sub tag_perl {
 		elsif($_ eq 'scratch') {
 			$Vend::Interpolate::Safe{'scratch'} = $::Scratch;
 		}
+# MVASP
 		elsif($_ eq 'new') {
 			$new = 1;
 			use vars qw/
 					$CGI
+					$CGI_array
 					$Carts
 					$Config
 					$Document
@@ -1639,32 +1690,38 @@ sub tag_perl {
 					$Values
 					/;
 			$CGI     = \%CGI::values;
+			$CGI_array     = \%CGI::values_array;
 			$Carts   = $Vend::Session->{carts};
 			$Config  = $Vend::Cfg;
 			$Document = new Vend::Tags::Document;
 			$Scratch = $::Scratch;
 			$Session = $Vend::Session;
 			*Log = \&Vend::Util::logError;
+			*HTML = \&Vend::Tags::Document::HTML;
 			$Tag = new Vend::Tags;
 			$Values  = $::Values;
 			$safe->share(qw/
-					$CGI
-					$Document
-					$Carts
-					$Config
-					$Items
-					$Scratch
-					$Session
-					$Tag
-					$Values
-					&tag_data
-					&Log
-					&interpolate_html
+							$CGI_array
+							$CGI
+							$Document
+							$Carts
+							$Config
+							$Items
+							$Scratch
+							$Session
+							$Tag
+							$Values
+							&tag_data
+							&Log
+							&HTML
+							&interpolate_html
 					/);
 		}
+# END MVASP
 		elsif($_ eq 'sub') {
 			$sub = 1;
 		}
+# SQL
 		elsif($_ eq 'sql') {
 			@Vend::Interpolate::mv_sql_param = @Vend::Table::DBI::mv_sql_param;
 			$Vend::Interpolate::mv_sql_array = $Vend::Table::DBI::mv_sql_array || [];
@@ -1673,6 +1730,7 @@ sub tag_perl {
 				= $Vend::Table::DBI::mv_sql_hash_order || [];
 			push(@other, '@mv_sql_param', '$mv_sql_hash', '$mv_sql_array');
 		}
+# END SQL
 		elsif($_ eq 'cgi') {
 			$Vend::Interpolate::Safe{'cgi'} = {%CGI::values};
 		}
@@ -1717,9 +1775,12 @@ sub tag_perl {
 	}
 	else {
 		$safe->share(qw/
-				%Safe	&safe_tag	&Vend::Parse::parse
+				%Safe	&Vend::Parse::parse
 				&do_tag	&tag_data	&interpolate_html
 				/);
+# OLDTAGS
+		$safe->share('&safe_tag');
+# END OLDTAGS
 		$safe->share(@other);
 
 		unless (defined $file or defined $sub) {
@@ -1809,6 +1870,7 @@ sub do_tag {
 			return $string . ']' unless $text;
 			return $string . '/se=' . $se . "]$text";
 		}
+# SQL
 		elsif($arg =~ m!^\s*sql
 					(/?$Codere)?
 					(?:\s+)?
@@ -1822,6 +1884,7 @@ sub do_tag {
 			$text =~ s/(\W)/'%' . sprintf("%02x", ord($1))/ge;
 			return tag_area(($string . '/sq=' . $text), $arg);
 		}
+# END SQL
 		elsif($arg =~ /^\s*import$Mand(?:\s+)?(.*)/i ) {
 			my $type = $2 || '';
 			my $db = database_exists_ref($1) 
@@ -3076,7 +3139,7 @@ sub tag_search_list {
 		my $options = '';
 		if ($text =~ s!$T{'sort'}\]($Some)$T{'/sort'}\]!!o) {
 			$options = $1;
-			$options = scan_html($options);
+			$options = interpolate_html($options);
 		}
 		else {
 			$options = find_sort(\$text);
@@ -3634,6 +3697,7 @@ sub tag_loop_data_row {
 	return $_;
 }
 
+# SQL
 sub tag_sql_data_row {
 	my $key = shift;
 	my $text = shift;
@@ -3667,6 +3731,7 @@ sub tag_sql_data_row {
 	}
 	return $_;
 }
+# END SQL
 
 sub tag_item_list {
 	my($cart,$text) = @_;
@@ -3723,7 +3788,9 @@ sub tag_item_list {
 								)!geo;
 		$run =~ s:$T{'item-code'}\]:$code:go;
 		$run =~ s:$T{'item-field'}$Mandf\]:item_field($item, $1):geo;
-		$run =~ s:$T{'item-description'}\]:item_description($item):geo;
+		$run =~ s:$T{'item-description'}\]:
+							item_description($item) || $item->{description}
+							:geo;
 		$run =~ s#$T{'item-link'}\]#"[page $linkdir$code]"
 				  . $linkvalue . '[/page]'#geo;
 		$run =~ s!$T{'item-price'}(?:\s+)?(\d+)?$Optx$T!
@@ -3760,6 +3827,7 @@ sub tag_item_list {
 	$r;
 }
 
+# SQL
 sub tag_sql_list {
     my($text,$obj) = @_;
     my($r, $i, $item, $code, $db, $link);
@@ -3816,6 +3884,7 @@ sub tag_sql_list {
     }
     $r;
 }
+# END SQL
 
 sub loop_with {
 	my ($code,$run,$count,$with) = @_;
@@ -4135,6 +4204,8 @@ sub fly_page {
 	return undef unless $base || defined $selector;
 
 	$base = $Vend::Cfg->{ProductFiles}[0] unless $base;
+
+	$Vend::Flypart = $code;
 
 	if(defined $selector) {
 		$page = $selector if index($selector, '[') > -1;
@@ -5038,13 +5109,13 @@ sub timed_build {
 		last CHECKDIR if $file;
 		my $dir = $Vend::Cfg->{StaticDir};
 		$dir = ! -d $dir || ! -w _ ? 'timed' : do { $static = 1; $dir };
-		$file = $saved_file || $Global::Variable->{MV_PAGE};
+		$file = $saved_file || $Vend::Flypart || $Global::Variable->{MV_PAGE};
 		if($saved_file) {
 			$file = $saved_file;
 			$file =~ s/(\W)/sprintf("%02x", ord($1))/eg;
 		}
 		else {
-		 	$saved_file = $file = $Global::Variable->{MV_PAGE};
+		 	$saved_file = $file = ($Vend::Flypart || $Global::Variable->{MV_PAGE});
 		}
 		$file .= $Vend::Cfg->{StaticSuffix};
 		$dir .= "/$1" 
@@ -5066,8 +5137,8 @@ sub timed_build {
     if( ! -f $file or $secs && (stat(_))[9] < (time() - $secs) ) {
         my $out = Vend::Interpolate::interpolate_html(shift);
         Vend::Util::writefile(">$file", $out);
-		if ($Vend::Cfg->{StaticDBM}) {
-			 
+# STATICPAGE
+		if ($Vend::Cfg->{StaticDBM} and ::tie_static_dbm(1) ) {
 			chmod($Vend::Cfg->{FileCreationMask} | 0444, $file);
 			if ($opt->{scan}) {
 				$file =~ s:.*/::;
@@ -5077,10 +5148,38 @@ sub timed_build {
 				$Vend::StaticDBM{$saved_file} = '';
 			}
 		}
+# END STATICPAGE
         return $out;
     }
     else {        return Vend::Util::readfile($file);    }
 }
+
+sub update {
+	my ($func, $opt) = @_;
+	if($func eq 'quantity') {
+		::update_quantity();
+	}
+	elsif($func eq 'cart') {
+		my $cart;
+		if($opt->{name}) {
+			$cart = $Vend::Session->{carts}{$opt->{name}};
+		}
+		else {
+			$cart = $Vend::Items;
+		}
+		return if ! ref $cart;
+		Vend::Cart::toss_cart($cart);
+	}
+	elsif ($func eq 'values') {
+		::update_user();
+	}
+	elsif ($func eq 'data') {
+		::update_data();
+	}
+	return;
+}
+
+# MVASP
 
 package Vend::Tags;
 
@@ -5158,16 +5257,22 @@ sub replace {
 	return;
 }
 
-sub write {
-	shift;
+sub HTML (@) {
 	push @Vend::Tags::Out, @_;
 	return if ! $Hot;
 	Vend::Tags::Document::send( undef, join("", splice(@Vend::Tags::Out, 0)) );
 }
 
+sub write {
+	shift;
+	HTML(@_);
+}
+
 1;
 
 package Vend::Interpolate;
+
+# END MVASP
 
 1;
 __END__

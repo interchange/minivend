@@ -157,6 +157,10 @@ MiniVend 3.15 incorporates some new features -- I couldn't resist. 8-)
         - added [email to=addr from=addr subject=subj] message [/email]
           UserTag which is better then the form_mail GlobalSub. It will
           allow $Tag->email() to be used, among other things.
+		- Static build should work out of the box if you
+		  have DBM and define:
+		   
+		      StaticDBM static
 
 MiniVend 3.14 is a bug fix release with a couple of new features:
 

@@ -1,6 +1,6 @@
 package Vend::Parser;
 
-# $Id: Parser.pm,v 1.18 1999/08/05 03:49:42 mike Exp $
+# $Id: Parser.pm,v 1.19 1999/08/13 18:26:16 mike Exp $
 
 =head1 NAME
 
@@ -106,7 +106,7 @@ use strict;
 
 use HTML::Entities ();
 use vars qw($VERSION);
-$VERSION = sprintf("%d.%02d", q$Revision: 1.18 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.19 $ =~ /(\d+)\.(\d+)/);
 
 
 sub new
@@ -181,7 +181,7 @@ sub parse
 				$$buf = "";
 			}
 		# Find the most common tags
-		} elsif ($$buf =~ s|^(\[([-a-zA-Z_]+)[^"'=\]>]*\])||) {
+		} elsif ($$buf =~ s|^(\[([-a-z0-9A-Z_]+)[^"'=\]>]*\])||) {
 #::logDebug("tag='$tag' eat='$eat'\n");
 				undef $self->{HTML};
 				$self->start($2, {}, [], $1);

@@ -1,6 +1,6 @@
 # Vend/Scan.pm:  Prepare searches for MiniVend
 #
-# $Id: Scan.pm,v 1.53 1999/08/10 09:21:18 mike Exp $
+# $Id: Scan.pm,v 1.54 1999/08/13 18:26:37 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
@@ -29,13 +29,14 @@ require Exporter;
 			perform_search
 			);
 
-$VERSION = substr(q$Revision: 1.53 $, 10);
+$VERSION = substr(q$Revision: 1.54 $, 10);
 
 use strict;
 use Vend::Util;
 use Vend::Interpolate;
 use Vend::Data qw(product_code_exists_ref column_index);
 
+# SQL
 my @Sql = ( qw(
 					mv_searchspec
 					mv_search_file
@@ -65,6 +66,7 @@ my @Sql = ( qw(
 					mv_value
 
 ));
+# END SQL
 
 my @Order = ( qw(
 					mv_dict_look
@@ -437,6 +439,7 @@ sub do_more {
    	return search_page($q,$out);
 }
 
+# SQL
 sub sql_search {
 	my($c,$options,$second, $delay) = @_;
 	my ($out, $table, @fields);
@@ -738,6 +741,7 @@ FORMULATE: {
 	return($q,\@out) if $delay;
 	search_page($q, \@out);
 }
+# END SQL
 
 sub finish_up {
 	my($c,$q,$out) = @_;
@@ -837,9 +841,11 @@ sub perform_search {
 	if (defined $more_matches and $more_matches) {
 		return do_more($c, \%options, $more_matches, $delay );
 	}
+# SQL
 	elsif (defined $c->{mv_searchtype} and $c->{mv_searchtype} eq 'sql') {
 		return sql_search($c, \%options, undef, $delay);
 	}
+# END SQL
 
 	# A text or glimpse search from here
 
@@ -872,10 +878,12 @@ sub perform_search {
 		delete $options{$p} unless defined $options{$p};
 	}
 
+# SQL
 	if ( $options{search_type} and
 		 $options{search_type} eq 'sql') {
 		return sql_search($c, \%options, 'second_pass', $delay);
 	}
+# END SQL
 
 	unless(defined $options{'search_file'}) {
 		if ($Vend::Cfg->{'Delimiter'} eq 'CSV') {
@@ -894,9 +902,11 @@ sub perform_search {
 										'field_names', 'return_fields' ];
 	}
 
+# GLIMPSE
  	if (defined $options{search_type} && $options{search_type} eq 'glimpse') {
 		undef $options{'search_type'} if ! $Vend::Cfg->{'Glimpse'};
 	}
+# END GLIMPSE
 
   SEARCH: {
 
@@ -911,9 +921,11 @@ sub perform_search {
 		if (! defined $options{search_type} or $options{search_type} eq 'text') {
 			$q = new Vend::TextSearch %options;
 		}
+# GLIMPSE
 		elsif ( $options{search_type} eq 'glimpse'){
 			$q = new Vend::Glimpse %options;
 		}
+# END GLIMPSE
 		elsif ( $options{search_type} eq 'db'){
 			$q = new Vend::DbSearch %options;
 		}
@@ -974,13 +986,17 @@ BEGIN {
 
 sub sql_statement {
 	my($text, $ref, $table) = @_;
+# SQL
 	return $text if $text =~ m{([&/\s]|^)st=sql([&/\s]|$)};
+# END SQL
 #::logError("sql_statement input=$text");
 	my @ss;
 
 	if ($table) {
 		push(@ss, "fi=$table")
+# GLIMPSE
 			unless "\L$table" eq 'glimpse';
+# END GLIMPSE
 	}
 
 	die "SQL is not enabled for MiniVend. Get the SQL::Statement module.\n"
@@ -1017,9 +1033,11 @@ sub sql_statement {
 			push @ss,
 				"fi=" . $Vend::Cfg->{Database}{$t}{'file'};
 		}
+# GLIMPSE
 		elsif ("\L$t" eq 'glimpse') {
 			push @ss, "st=glimpse";
 		}
+# END GLIMPSE
 		else {
 			push @ss, "fi=$t";
 		}
