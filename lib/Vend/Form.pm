@@ -1107,7 +1107,21 @@ if($opt->{debug}) {
 							} @$data;
 			}
 		}
-		unshift @$data, @$ary if $ary;
+
+		unless($opt->{lookup_merge}) {
+			unshift @$data, @$ary if $ary;
+		}
+		elsif($ary) {
+			my %existing;
+			for(@$ary) {
+				$existing{$_->[0]}++;
+			}
+			for(@$data) {
+				next if $existing{$_->[0]};
+				push @$ary, $_;
+			}
+			$data = $ary;
+		}
 	}
 
 ## Some legacy stuff, has to do with default behavior when called from
