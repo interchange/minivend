@@ -1,6 +1,6 @@
 # Http.pm:  interface to cgi protocol
 #
-# $Id: Http.pm,v 1.9 1997/11/03 11:31:17 mike Exp mike $
+# $Id: Http.pm,v 1.9 1997/11/03 11:31:17 mike Exp $
 #
 package Vend::Http;
 

@@ -1,6 +1,6 @@
 # Interpolate.pm - Interpret MiniVend tags
 # 
-# $Id: Interpolate.pm,v 1.26 1997/11/03 11:10:04 mike Exp $
+# $Id: Interpolate.pm,v 1.30 1997/11/08 16:43:57 mike Exp mike $
 #
 # Copyright 1996 by Michael J. Heins <mikeh@iac.net>
 #
@@ -32,7 +32,7 @@ require Exporter;
 @ISA = qw(Exporter);
 # END NOAUTO
 
-$VERSION = substr(q$Revision: 1.26 $, 10);
+$VERSION = substr(q$Revision: 1.30 $, 10);
 
 @EXPORT = qw (
 
@@ -67,6 +67,8 @@ use Vend::PageBuild;
 use Vend::Parse;
 # END NEWTAGS
 use POSIX qw(ceil strftime);
+
+use vars qw($New);
 
 # AUTOLOAD
 #use vars qw(
@@ -163,6 +165,7 @@ TAGBUILD: {
 		/if-msql-data
 		if-msql-field
 		/if-msql-field
+		include
 		item-accessories
 		item-code
 		item-data
@@ -331,19 +334,12 @@ sub cache_html {
 
 	$CacheInvalid = 0;
 
-	my ($new);
+	local ($New) = $New || $Vend::Cfg->{NewTags};
 
-	if($Vend::Cfg->{NewTags}) {
-		$new = 1;
-		$new = 0 if $html =~ s/\[(old|new)\]//i
-				and lc $1 eq 'old';
-	}
-	else {
-		$new = 1 if $html =~ s/\[(old|new)\]//i
-				and lc $1 eq 'new';
-	}
+	if($New) { $New = 0 if $html =~ s/\[(old|new)\]//i and lc $1 eq 'old' }
+	else 	 { $New = 1 if $html =~ s/\[(old|new)\]//i and lc $1 eq 'new' }
 
-print("New tags=$new\n") if $Global::DEBUG;
+print("New tags=$New\n") if $Global::DEBUG;
 
 	# Substitute defines from configuration file
 	$html =~ s#\@\@([A-Za-z0-9]\w+[A-Za-z0-9])\@\@#$Global::Variable->{$1}#ge;
@@ -355,7 +351,7 @@ print("New tags=$new\n") if $Global::DEBUG;
 	#$html =~ s#\[/mv\]\s*-->##;
 
     # Returns, could be recursive
-    if($new) {
+    if($New) {
         my $parse = new Vend::Parse;
         $parse->parse($html) || logError "Couldn't parse page:\n$html";
         $html = $parse->{OUT};
@@ -403,26 +399,19 @@ sub interpolate_html {
 	$html =~ s/<!--+\[/[/g
 		and $html =~ s/\]--+>/]/g;
 
-	my $new;
+	local ($New) = $New || $Vend::Cfg->{NewTags};
 
-	if($Vend::Cfg->{NewTags}) {
-		$new = 1;
-		$new = 0 if $html =~ s/\[(old|new)\]//i
-				and lc $1 eq 'old';
-	}
-	else {
-		$new = 1 if $html =~ s/\[(old|new)\]//i
-				and lc $1 eq 'new';
-	}
+	if($New) { $New = 0 if $html =~ s/\[old\]//i }
+	else 	 { $New = 1 if $html =~ s/\[new\]//i }
 
-print("New tags=$new\n") if $Global::DEBUG;
+print("New tags=$New\n") if $Global::DEBUG;
 
 	# Substitute defines from configuration file
 	$html =~ s#\@\@([A-Za-z0-9]\w+[A-Za-z0-9])\@\@#$Global::Variable->{$1}#ge;
 	$html =~ s#__([A-Za-z0-9]\w+[A-Za-z0-9])__#$Vend::Cfg->{Variable}->{$1}#ge;
 
     # Returns, could be recursive
-	if($new) {
+	if($New) {
 		my $parse;
 		if(! defined $INC{'Vend/Parse.pm'}) {
 			#called from safe_tag, no can do with Safe. Must use old.
@@ -509,7 +498,7 @@ sub cache_scan_html {
 	$html =~ s#$T{'set'}\s+([^\]]+)\]([\000-\377]*?)$T{'/set'}\]#
 				  set_scratch($1,$2)#geo and $CacheInvalid = 1;
     $html =~ s:$T{'data'}\s+([^\]]+)\]:
-					tag_data(split /\s+/, $1, 4):geo;
+					tag_data(quoted_string($1)):geo;
 	$html =~ s#
 				\[m?sql \s+ ($Codere) ([^\]]*) \]
 				([\000-\377]*?)
@@ -655,7 +644,7 @@ sub scan_html {
 	$html =~ s#$T{'set'}\s+([^\]]+)\]([\000-\377]*?)$T{'/set'}\]#
 				  set_scratch($1,$2)#geo;
     $html =~ s:$T{'data'}\s+([^\]]+)\]:
-					tag_data(split /\s+/, $1, 4):geo;
+					tag_data(quoted_string($1)):geo;
 	$html =~ s#\[ m?sql \s+ ($Codere) ([^\]]*) \]
 				([\000-\377]*?)
 				\[/(m)?sql(?:\s+)?($Codere)?\]#
@@ -749,7 +738,7 @@ sub tag_data {
 #print("Data args: @_\n") if $Global::DEBUG;
 
 	if(defined $Vend::Database{$selector}) {
-#print("Database with: key=$key field=$field db=$selector\n") if $Global::DEBUG;
+print("Database with: key=$key field=$field db=$selector val=$value inc=$inc\n") if $Global::DEBUG;
 		my $db = $Vend::Database{$selector};
 		unless(defined $value) {
 			$CacheInvalid = 1
@@ -758,10 +747,10 @@ sub tag_data {
 			return $data;
 		}
 		$CacheInvalid = 1;
-		if(defined $inc or $value =~ /^(-?\d+\.?\d*)\s+./) {
-			return increment_field($db,$key,$field,$1);
+		if(defined $inc) {
+			return increment_field($db,$key,$field,$value || 1);
 		}
-		$value =~ s/^(["'])(.*)\1$/$2/;
+		#$value =~ s/^(["'])(.*)\1$/$2/;
 		return set_field($db,$key,$field,$value);
 	}
 	elsif($selector eq 'arg') {
@@ -816,6 +805,7 @@ sub tag_data {
 	}
 }
 
+		
 sub conditional {
 	my($base,$term,$operator,$comp) = @_;
 
@@ -824,17 +814,32 @@ sub conditional {
 	local($) = 0;
 	undef $@;
 
+print("cond: base=$base term=$term op=$operator comp=$comp\n") if $Global::DEBUG;
+	my %stringop = ( qw! eq 1 ne 1 gt 1 lt 1! );
+
+	if(defined $stringop{$operator}) {
+		$comp =~ /^(["']).*\1$/ or
+		$comp =~ /^qq?([{(]).*[})]$/ or
+		$comp =~ /^qq?(\S).*\1$/ or
+		(index ($comp, '}') == -1 and $comp = 'q{' . $comp . '}')
+			or
+		(index ($comp, '!') == -1 and $comp = 'q{' . $comp . '}')
+	}
+
+print("cond: base=$base term=$term op=$operator comp=$comp\n") if $Global::DEBUG;
+
+
 	if($base eq 'session') {
 		$CacheInvalid = 1;
 		$op =	qq%"$Vend::Session->{$term}"%;
 		$op .=	qq%	$operator $comp%
-				if $comp;
+				if defined $comp;
 	}
 	elsif($base eq 'scratch') {
 		$CacheInvalid = 1;
 		$op =	qq%"$Vend::Session->{'scratch'}->{$term}"%;
 		$op .=	qq%	$operator $comp%
-				if $comp;
+				if defined $comp;
 	}
 	elsif($base eq 'explicit') {
 		$status = tag_perl($term,$comp);
@@ -844,27 +849,29 @@ sub conditional {
         $term = 'main' unless $term;
         $op =   scalar @{$Vend::Session->{'carts'}->{$term}};
         $op .=  qq% $operator $comp%
-                if $comp;
+                if defined $comp;
     }
 	elsif($base =~ /^value/) {
 		$CacheInvalid = 1;
 		$op =	qq%"$Vend::Session->{'values'}->{$term}"%;
 		$op .=	qq%	$operator $comp%
-				if $comp;
+				if defined $comp;
 	}
 	elsif($base eq 'data') {
 		my($d,$f,$k) = split /::/, $term;
 		$CacheInvalid = 1
 			if defined $Vend::Cfg->{DynamicData}->{$d};
-		$op = '"' . database_field($d,$f,$k) . '"';
+		my $data = database_field($d,$k,$f);
+print("tag_if db=$d fld=$f key=$k data=$data\n") if $Global::DEBUG;
+		$op = 'q{' . $data . '}';
 		$op .=	qq%	$operator $comp%
-				if $comp;
+				if defined $comp;
 	}
 	elsif($base eq 'discount') {
 		$CacheInvalid = 1;
 		$op =	qq%"$Vend::Session->{'discount'}->{$term}"%;
 		$op .=	qq%	$operator $comp%
-				if $comp;
+				if defined $comp;
 	}
 	elsif($base eq 'file') {
 		#$op =~ s/[^rwxezfdTsB]//g;
@@ -881,12 +888,12 @@ sub conditional {
     elsif($base eq 'config') {
 		$op = qq%"$Vend::Cfg->{$term}"%;
 		$op .=	qq%	$operator $comp%
-				if $comp;
+				if defined $comp;
     }
 	elsif($base =~ /^pric/) {
 		$op = qq%"$Vend::Cfg->{'Pricing'}->{$term}"%;
 		$op .=	qq%	$operator $comp%
-				if $comp;
+				if defined $comp;
 	}
 	elsif($base =~ /^accessor/) {
         if ($comp) {
@@ -905,18 +912,19 @@ sub conditional {
 		$term = uc $term;
 		$op = qq%"$Vend::Cfg->{SalesTaxTable}->{$term}"%;
 		$op .=	qq%	$operator $comp%
-				if $comp;
+				if defined $comp;
 	}
 	elsif($base =~ /^ship/) {
 		$op = qq%"$Vend::Cfg->{'Shipping_desc'}->{$term}"%;
 		$op .=	qq%	$operator $comp%
-				if $comp;
+				if defined $comp;
 	}
 	else {
 		$@ = "No such comparison available";
 	}
 
 	RUNSAFE: {
+		$ready_safe->untrap(@{$Global::SafeUntrap});
 		$status = $ready_safe->reval($op)
 			unless ($@ or $status);
 		if ($@) {
@@ -928,29 +936,36 @@ sub conditional {
 	return $status;
 }
 
-sub tag_if {
-	my($cond,$body) = @_;
-print("Called tag_if: $cond\n$body\n") if $Global::DEBUG;
-	my($base, $term, $op, $operator, $comp, $else);
-	my $safe = new Safe;
-	my ($then, $elsif);
-	
-	$body =~ s#$T{'then'}\]([\000-\377]*?)$T{'/then'}\]##o
+sub split_if {
+	my ($body) = @_;
+
+	my ($then, $else, $elsif);
+	$else = $elsif = '';
+
+	$body =~ s#^\s*$T{'then'}\]([\000-\377]*?)$T{'/then'}\]##o
 		and $then = $1;
 
-	$body =~ s#$T{'elsif'}\s+([\000-\377]*)$T{'/elsif'}\]##o
+	$body =~ s#$T{'else'}\]([\000-\377]*)$T{'/else'}\]\s*$##o
+		and $else = $1;
+
+	$body =~ s#$T{'elsif'}\s+([\000-\377]*)$T{'/elsif'}\]\s*$#$2#o
 		and $elsif = $1;
 
-	if ($body =~ s#$T{'else'}\]([\000-\377]*)$T{'/else'}\]##o) {
-		$else = $1;
-	}
-	else { $else = '' }
+	$body = $then if defined $then;
 
+	return($body, $elsif, $else);
+}
 
-	unless ($cond =~ /^explicit\s+/i) {
+sub tag_if {
+	my ($cond,$body) = @_;
+print("Called tag_if: $cond\n$body\n") if $Global::DEBUG;
+	my ($base, $term, $op, $operator, $comp);
+	my ($else, $elsif, $else_present);
+
+	unless ($cond =~ /^explicit\b/i) {
 		($base, $term, $operator, $comp) = split /\s+/, $cond, 4;
 	}
-	elsif ($body =~ s#$T{'condition'}\]([\000-\377]*?)$T{'/condition'}\]##o) {
+	elsif ($body =~ s#^\s*$T{'condition'}\]([\000-\377]*?)$T{'/condition'}\]##o) {
 		$comp = $1;
 		$term = $cond;
 		$operator = '';
@@ -965,13 +980,16 @@ print("Called tag_if: $cond\n$body\n") if $Global::DEBUG;
 		$term = '';
 	}
 
-	$body = $then if defined $then;
+	$else_present = 1 if
+		$body =~ /\[[EeTt][hHLl][SsEe]/;
+
+	($body, $elsif, $else) = split_if($body)
+		if $else_present;
 
 	unless(defined $operator) {
-		$operator = '';
-		$comp = '';
+		undef $operator;
+		undef $comp;
 	}
-
 
 	my $status = conditional ($base, $term, $operator, $comp);
 
@@ -980,12 +998,12 @@ print("Result of if: $status\n") if $Global::DEBUG;
 	if($status) {
 		return interpolate_html($body);
 	}
-	elsif (defined $elsif) {
+	elsif ($elsif) {
 		$else = '[else]' . $else . '[/else]' if $else;
 		$elsif =~ s#(.*?)$T{'/elsif'}\](.*)#$1${2}[/elsif]#s;
 		return interpolate_html('[if ' . $elsif . $else . '[/if]');
 	}
-	else {
+	elsif ($else) {
 		return interpolate_html($else);
 	}
 
@@ -1106,7 +1124,7 @@ sub tag_perl {
 		elsif($_ eq 'config') {
 			$Vend::Interpolate::Safe{'config'} = $Vend::Cfg;
 		}
-		elsif($_ eq 'cart') {
+		elsif(/^carts?$/) {
 			$Vend::Interpolate::Safe{'carts'} = $Vend::Session->{carts};
 		}
 		elsif($_ eq 'items') {
@@ -1493,7 +1511,7 @@ sub tag_value {
 		# Eliminate any MiniVend tags
 		$value =~ s/\[/&#91;/g;
 		$value =~ s/\]/&#93;/g;
-		$value =~ s/['"]/\\$1/ if $esc;
+		$value =~ s/(['"])/\\$1/g if $esc;
 		return $value;
     }
 	else {
@@ -1576,7 +1594,7 @@ sub tag_areatarget {
     	$r = vendUrl($area,'',$Vend::Cfg->{StaticPath});
 	}
     else {
-        $r = vendUrl($area);
+        $r = vendUrl($area, $arg || undef);
     }
 
 	$r .= '" TARGET="' . $target
@@ -1788,54 +1806,43 @@ sub tag_calc {
 sub tag_self_contained_if {
 	my($base, $term, $operator, $comp, $body) = @_;
 
-	my $else  = '';
-	my $elsif = '';
+	my ($else,$elsif,$else_present);
 	
 	local($) = 0;
 print("Calling self_if with base=$base term=$term op=$operator comp=$comp\n") if $Global::DEBUG;
 	if ($body =~ s#^\s*$T{'condition'}\]([\000-\377]*?)$T{'/condition'}\]##o) {
 		$comp = $1;
 	}
-	if (	$body =~ s#
-					^\s*
-					$T{'then'}\]
-						([\000-\377]*)
-					$T{'/then'}\]\s*
-					(?:$T{'elsif'}\s+
-						([\000-\377]*)
-					$T{'/elsif'}\])? \s*
-					(?:$T{'else'}\]
-						([\000-\377]*)
-					$T{'/else'}\]\s*)?$##xo
-			)
-	{
-		$body = $1;
-		$elsif = $2 || '';
-		$else = $3 || '';
-	}
-print("self_if body=" . substr($body, 0, 20) . "... else=" .  substr($else, 0, 20) . "...\n") if $Global::DEBUG;
+
+	$else_present = 1 if
+		$body =~ /\[[EeTt][hHLl][SsEe]/;
+
+	($body, $elsif, $else) = split_if($body)
+		if $else_present;
+
+#print("self_if body=" . substr($body, 0, 20) . "... else=" .  substr($else, 0, 20) . "...\n") if $Global::DEBUG;
 
 	unless(defined $operator || defined $comp) {
-		$operator = '';
 		$comp = '';
+		undef $operator;
+		undef $comp;
 	}
 
-print("self_if condition='$comp'\n") if $Global::DEBUG;
-
 	my $status = conditional ($base, $term, $operator, $comp);
-
-print("Result of self_if: $status\n") if $Global::DEBUG;
 
 	if($status) {
 		return interpolate_html($body);
 	}
-	elsif (defined $elsif) {
+	elsif ($elsif) {
 		$else = '[else]' . $else . '[/else]' if $else;
 		$elsif =~ s#(.*?)$T{'elsif'}\](.*)#$1${2}[/elsif]#s;
 		return interpolate_html('[if ' . $elsif . $else . '[/if]');
 	}
-	else {
+	elsif ($else) {
 		return interpolate_html($else);
+	}
+	else {
+		return '';
 	}
 	
 
@@ -2753,20 +2760,21 @@ sub fly_page
     $page;
 }
 
-sub order_page
-{
+sub order_page {
     my($which) = @_;
-    my($page);
+	defined $which or $which = '';
+    my $page;
 
 
 	if( ! $which and $Vend::Cfg->{'FrameOrderPage'} and
 	   $Vend::Session->{'frames'}) {
-    	$page = readin($Vend::Cfg->{'FrameOrderPage'});
+    	$which = $Vend::Cfg->{'FrameOrderPage'};
 	}
     else {
-		$which = $Vend::Cfg->{'Special'}->{'order'} unless defined $which;
-    	$page = readin($which);
+		$which = $Vend::Cfg->{'Special'}->{'order'} unless $which;
 	}
+
+	$page = readin($which);
 
  	unless (defined $page) {
 		logError("Missing special page: $which");
@@ -2921,8 +2929,9 @@ sub custom_shipping {
 	foreach $code (sort keys %{$Vend::Cfg->{'Shipping_cost'}}) {
 		next unless $code =~ /^$mode\d*$/i;
 		if($qual) {
-			next unless $Vend::Cfg->{Shipping_criterion}->{$code} 
-							=~ m{\b$qual\b};
+			next unless
+				$Vend::Cfg->{Shipping_criterion}->{$code} =~ m{\b$qual\b} or
+				$Vend::Cfg->{Shipping_criterion}->{$code} =~ /^\s*$/;
 		}
 		if(	$total <= $Vend::Cfg->{'Shipping_max'}->{$code} and
 			$total >= $Vend::Cfg->{'Shipping_min'}->{$code} ) {
@@ -3316,7 +3325,7 @@ sub tag_selected {
 
 sub tag_checked {
 	my ($field,$value,$multiple) = @_;
-	$value = $value || '';
+	$value = $value || 'on';
 	my $ref = $Vend::Session->{'values'}->{$field};
 	$ref = lc $ref;
 	my $r;

@@ -1,6 +1,6 @@
 # Session.pm - Minivend Sessions
 #
-# $Id: Session.pm,v 1.15 1997/11/03 11:31:39 mike Exp mike $
+# $Id: Session.pm,v 1.15 1997/11/03 11:31:39 mike Exp $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>

@@ -1,7 +1,7 @@
 #
 # Offline.pm - Offline database build module for MiniVend
 #
-# $Id: Offline.pm,v 1.4 1997/11/03 11:31:32 mike Exp mike $
+# $Id: Offline.pm,v 1.4 1997/11/03 11:31:32 mike Exp $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>

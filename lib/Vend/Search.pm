@@ -27,7 +27,7 @@
 #
 package Vend::Search;
 
-$VERSION = substr(q$Revision: 1.10 $, 10);
+$VERSION = substr(q$Revision: 1.11 $, 10);
 $DEBUG = 0;
 
 =head1 NAME
@@ -849,7 +849,7 @@ sub get_return {
 		$return_sub = sub {
 			chomp($_[0]);
 			return join $g->{return_delim},
-						(split /$g->{index_delim}/, $_[0])[@{$g->{return_fields}}];
+						(split /\Q$g->{index_delim}/, $_[0])[@{$g->{return_fields}}];
 		};
 	}
 	elsif( $g->{return_fields} ) {
@@ -883,7 +883,7 @@ EOF
 	{
 		 $code .= <<'EOF';
 sub {
-	my @fields = (split /$g->{index_delim}/, $_[0])[@{$s->{'fields'}}];
+	my @fields = (split /\Q$g->{index_delim}/, $_[0])[@{$s->{'fields'}}];
 EOF
 		my @specs = @{$s->{'specs'}};
 		my @cases = ref $g->{case_sensitive}
@@ -929,7 +929,7 @@ sub {
 EOF
 		 $code .= $range_code;
 		 $code .= <<'EOF';
-	my @fields = (split /$g->{index_delim}/, $_[0])[@{$s->{'fields'}}];
+	my @fields = (split /\Q$g->{index_delim}/, $_[0])[@{$s->{'fields'}}];
 	my $field = join $g->{index_delim}, @fields;
 	$_ = $field;
 	return($_ = $line) if &$f();
@@ -971,7 +971,7 @@ sub saved_params {
 sub range_check {
 	my($s,$index_delim,$line) = @_;
 	my $g = $s->{'global'};
-	my @fields = (split /$index_delim/, $line)[@{$g->{range_look}}];
+	my @fields = (split /\Q$index_delim/, $line)[@{$g->{range_look}}];
 #	$s->debug("range_look: '" . join("','", @fields) . "'\n");
 #	$s->debug("range_min:  '" . join("','", @{$g->{range_min}}) . "'\n");
 #	$s->debug("range_max:  '" . join("','", @{$g->{range_max}}) . "'\n");

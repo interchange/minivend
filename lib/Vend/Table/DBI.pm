@@ -1,6 +1,6 @@
 # Table/DBI.pm: access a table stored in an DBI/DBD Database
 #
-# $Id: DBI.pm,v 1.9 1997/11/01 12:19:39 mike Exp mike $
+# $Id: DBI.pm,v 1.9 1997/11/01 12:19:39 mike Exp $
 #
 # Copyright 1997 by Michael J. Heins <mikeh@minivend.com>
 #

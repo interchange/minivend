@@ -1,6 +1,6 @@
 # Vend/Scan.pm:  Prepare searches for MiniVend
 #
-# $Id: Scan.pm,v 1.17 1997/11/03 11:11:01 mike Exp $
+# $Id: Scan.pm,v 1.18 1997/11/08 17:34:49 mike Exp mike $
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ require Exporter;
 			perform_search
 			);
 
-$VERSION = substr(q$Revision: 1.17 $, 10);
+$VERSION = substr(q$Revision: 1.18 $, 10);
 
 use strict;
 use Vend::Util;
@@ -578,13 +578,8 @@ sub finish_up {
 		return 0;
 	}
 
-	if($Vend::Cfg->{'Delimiter'} ne "\t") {
-		if($Vend::Cfg->{'Delimiter'} eq 'CSV') {
-			for(@$out) { s/^"//; s/[",|].*$//; }
-		}
-		else {
-			for(@$out) { s/$q->{global}->{return_delim}/\t/g; }
-		}
+	if($Vend::Cfg->{'Delimiter'} eq 'CSV') {
+		for(@$out) { s/^"//; s/[",|].*$//; }
 	}
 
 	undef $v->{'mv_search_over_msg'}
@@ -646,7 +641,7 @@ sub perform_search {
 			$options{'index_delim'} = ',';
 		}
 		elsif ($Vend::Cfg->{'Delimiter'} ne "\t") {
-			$options{'index_delim'} = quotemeta $Vend::Cfg->{'Delimiter'};
+			$options{'index_delim'} = $Vend::Cfg->{'Delimiter'};
 			$options{'return_delim'} = "\t"
 				unless defined $options{return_delim};
 		}
@@ -699,6 +694,7 @@ sub perform_search {
 	}
 
 	finish_up($c,$q,$out) or return 0;
+
 	search_page($q,$out);
 
 }

@@ -14,7 +14,7 @@ MiniVend -- multi-catalog shopping cart and mall
 <A NAME="minivend_version_0">
 Version</A>
 </H2>
-This document describes MiniVend 3.03, based on Andrew Wilcox's
+This document describes MiniVend 3.04, based on Andrew Wilcox's
 original Vend, Version 0.2, with portions from Vend 0.3.
 <p><p><hr>
 <H1> 
@@ -489,14 +489,14 @@ the CPAN module.
 <p>If you can't use the above, obtain, decompress and untar the distribution:
 <p>
 <XMP>
-    gzip -d minivend-3.03.tar.gz
-    tar xvf minivend-3.03.tar
+    gzip -d minivend-3.04.tar.gz
+    tar xvf minivend-3.04.tar
 
 </XMP>
 <p>If you have GNU tar, you can combine these steps:
 <p>
 <XMP>
-    tar xvzf minivend-3.03.tar.gz
+    tar xvzf minivend-3.04.tar.gz
 
 </XMP>
 <p>Before installing, check the site where you obtained MiniVend for any
@@ -504,7 +504,7 @@ patches that might have been issued since the release.
 <p>Change to the created directory, something like:
 <p>
 <XMP>
-    cd minivend-3.03
+    cd minivend-3.04
 
 </XMP>
 <p>Run the configure script with:
@@ -1489,6 +1489,20 @@ has disabled
 <p>
 <DT><STRONG>
 
+<A NAME="minivend_include_0">
+[include file]</A>
+
+</STRONG>
+<DD>
+(new syntax [include file=``name''])
+<p><STRONG>NOTE:</STRONG> New to MiniVend 3.04.
+<p>Same as 
+<A HREF="minivend.html#minivend_file_1">[file name]</A>
+ except interpolates for all MiniVend tags
+and variables.
+<p>
+<DT><STRONG>
+
 <A NAME="minivend_field_0">
 [field name code]</A>
 
@@ -1794,7 +1808,87 @@ capability with caution.
 <DD>
 (new syntax [if type=``type'' term=``field'' op=``op'' compare=``compare''])
 <p>Allows conditional building of HTML based on the setting of various MiniVend
-session and database values. Accessible areas are:
+session and database values. The general form is:
+<p>
+<XMP>
+    [if type term op compare]
+    [then]
+                                If true, this is printed on the document.
+                                The [then] [/then] is optional in most
+                                cases.
+    [/then]
+    [elsif type term op compare]
+                                Optional, tested when if fails
+    [/elsif] 
+    [else]
+                                Optional, printed when all above fail
+    [/else]
+    [/if]
+
+</XMP>
+<p>The <CODE>[if]</CODE> tag can also have some variants:
+<p>
+<XMP>
+    [if explicit][condition] CODE [/condition]
+                Displayed if valid Perl CODE returns a true value.
+    [/if]
+
+</XMP>
+<p>You can do some Perl-style regular expressions:
+<p>
+<XMP>
+    [if value name =~ /^mike/]
+                                This is the if with Mike.
+    [elsif value name =~ /^sally/]
+                                This is an elsif with Sally.
+    [/elsif]
+    [elsif value name =~ /^pat/]
+                                This is an elsif with Pat.
+    [/elsif]
+    [else]
+                                This is the else, no name I know.
+    [/else]
+    [/if]
+
+</XMP>
+<p>While the new tag syntax works for C<[if ...], it is more convenient
+to use the old in most cases.  It will work fine with both parsers.
+The only exception is if you are planning on doing a test on the 
+results of another tag sequence:
+    
+    [if value name =~ /[value b_name]/]
+        Shipping name matches billing name.
+    [/if]
+<p>Oops!  This will not work with the new parser. You must do instead
+<p>
+<XMP>
+    [compat]
+    [if value name =~ /[value b_name]/]
+        Shipping name matches billing name.
+    [/if]
+    [/compat]
+
+</XMP>
+<p>or
+<p>
+<XMP>
+    [if type=value term=name op="=~" compare="/[value b_name]/"]
+        Shipping name matches billing name.
+    [/if]
+
+</XMP>
+<p>The latter has the advantage of working with any tag:
+<p>
+<XMP>
+    [if type=value term=high_water op="<" compare="[shipping]"]
+        Shipping cost is too high, charter a truck.
+    [/if]
+
+</XMP>
+<p>If you wish to do AND and OR operations, you will have to use 
+<CODE>[if explicit]</CODE>. This allows complex testing and parsing of
+values.
+<p>There are many test targets available:
 <p>
 <DL COMPACT>
 <DT><STRONG>
@@ -1978,6 +2072,7 @@ The salestax database.
 <XMP>
     [if salestax [value state] > 0]
     There is salestax for your state.
+    [else]
     No salestax for your state.
     [/else]
     [/if]
@@ -2038,7 +2133,7 @@ validcc</A>
 A special case, takes the form [if validcc no type exp_date].
 Evaluates to true if the supplied credit card number, type
 of card, and expiration date pass a validity test. Does
-checksum digit calculation to weed out typos or phony 
+a LUHN-10 calculation to weed out typos or phony 
 card numbers.
 <p>
 <DT><STRONG>
@@ -2102,9 +2197,8 @@ as in Perl:
     ne  string equivalence
 
 </XMP>
-<p>Any simple perl test can be used, including some limited regex matching (no
-whitespace or conditionals can be contained in the comparison string). Discussion
-of this is beyond the scope of this document.
+<p>Any simple perl test can be used, including some limited regex matching.
+More complex tests are best done with <CODE>[if explicit]</CODE>.
 <p>
 <DL COMPACT>
 <DT><STRONG>
@@ -2114,11 +2208,19 @@ of this is beyond the scope of this document.
 
 </STRONG>
 <DD>
-This is optional, as the text immediately following the [if ..] tag is
-used as the conditionally substitued text. When used, the [then] [/then]
-pair allows more readable constructs, as all whitespace around the [then]
-and tags will be stripped. If you wish to have leading or trailing
-whitespace, you can enclose the value in single or double quotes.
+This is optional, as the text immediately following the [if ..] tag
+is used as the conditionally substitued text.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_elsif_0">
+[elsif type field op* compare*]</A>
+
+</STRONG>
+<DD>
+(new syntax [elsif type=``type'' term=``field'' op=``op'' compare=``compare''])
+<p>Additional conditions for test, applied if the initial C<[if ..] test
+fails.
 <p>
 <DT><STRONG>
 
@@ -2558,7 +2660,7 @@ See the section on
 <A NAME="minivend_user_defined_0">
 User-defined Tags</A>
 </H2>
-MiniVend 3.03 allows the definition of user tags when using the new
+MiniVend 3.04 allows the definition of user tags when using the new
 parsed HTML syntax (a [new] tag is on the page).  They will not work
 with the old syntax.
 <p>To define a tag, place <EM>UserTag</EM> directives in your catalog.cfg file.
@@ -2603,7 +2705,45 @@ C<Your company name> will be substituted.
 </XMP>
 <p>The tag [caps]This text should be all upper case[/caps] will become
 <CODE>THIS TEXT SHOULD BE ALL UPPER CASE</CODE>.
-<p>The properties are:
+<p>Here is a useful one you might wish to use:
+<p>
+<PRE>
+    UserTag quick_table HasEndTag
+    UserTag quick_table Interpolate
+    UserTag quick_table Order   border
+    UserTag quick_table Routine &lt;&lt;EOF
+    sub {
+        my (<STRONG>$border</STRONG>,<STRONG>$input</STRONG>) = <STRONG>@_</STRONG>;
+        <STRONG>$border</STRONG> = `` BORDER=<STRONG>$border</STRONG>'' if <STRONG>$border</STRONG>;
+        my <STRONG>$out</STRONG> = ``&lt;TABLE ALIGN=LEFT<STRONG>$border</STRONG>&gt;'';
+        my <STRONG>@rows</STRONG> = split /\n+/, <STRONG>$input</STRONG>;
+        my (<STRONG>$left</STRONG>, <STRONG>$right</STRONG>);
+        for(<STRONG>@rows</STRONG>) {
+            <STRONG>$out</STRONG> .= '&lt;TR&gt;&lt;TD ALIGN=RIGHT VALIGN=TOP&gt;';
+            (<STRONG>$left</STRONG>, <STRONG>$right</STRONG>) = split /\s*:\s*/, <STRONG>$_</STRONG>, 2;
+            <STRONG>$out</STRONG> .= '&lt;B&gt;' unless <STRONG>$left</STRONG> =~ /&lt;/;
+            <STRONG>$out</STRONG> .= <STRONG>$left</STRONG>;
+            <STRONG>$out</STRONG> .= '&lt;/B&gt;' unless <STRONG>$left</STRONG> =~ /&lt;/;
+            <STRONG>$out</STRONG> .= '&lt;/TD&gt;&lt;TD VALIGN=TOP&gt;';
+            <STRONG>$out</STRONG> .= <STRONG>$right</STRONG>;
+            <STRONG>$out</STRONG> .= '&lt;/TD&gt;&lt;/TR&gt;';
+            <STRONG>$out</STRONG> .= ``\n'';
+        }
+        <STRONG>$out</STRONG> .= '&lt;/TABLE&gt;';
+    }
+    EOF
+
+</PRE>
+<p>Called with:
+<p>
+<XMP>
+    [quick-table border=2]
+    Name: [value name]
+    City: [value city][if value state], [value state][/if] [value country]
+    [/quick_table]
+
+</XMP>
+<p>The properties for UserTag are are:
 <p>
 <DL COMPACT>
 <DT><STRONG>

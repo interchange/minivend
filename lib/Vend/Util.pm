@@ -1,6 +1,6 @@
 # Util.pm - Minivend utility functions
 #
-# $Id: Util.pm,v 1.15 1997/11/03 11:31:48 mike Exp mike $
+# $Id: Util.pm,v 1.15 1997/11/03 11:31:48 mike Exp $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>

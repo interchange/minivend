@@ -62,7 +62,7 @@ sub copyright_prompt {
 
 	print <<'EOF';
 
- MiniVend V3.02
+ MiniVend V3.04
  
  Copyright 1996,1997 by Michael J. Heins <mikeh@minivend.com>
 

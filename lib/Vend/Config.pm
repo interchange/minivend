@@ -1,6 +1,6 @@
 # Config.pm - Configure Minivend
 #
-# $Id: Config.pm,v 1.22 1997/11/03 11:30:44 mike Exp mike $
+# $Id: Config.pm,v 1.24 1997/11/08 16:43:44 mike Exp mike $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>
@@ -37,7 +37,7 @@ use Fcntl;
 use Text::ParseWords;
 use Vend::Util;
 
-$VERSION = substr(q$Revision: 1.22 $, 10);
+$VERSION = substr(q$Revision: 1.24 $, 10);
 
 for( qw(search refresh cancel return secure unsecure submit control checkout) ) {
 	$Global::LegalAction{$_} = 1;
@@ -1397,22 +1397,28 @@ sub save_variable {
 
 my %tagCanon = ( qw(
      alias        	 Alias
-     implicit        Implicit
      order           Order
      posnumber       PosNumber
      posroutine      PosRoutine
      required        Required
      routine         Routine
      cannest         canNest
-     default         Default
      hasendtag       hasEndTag
+     interpolate     Interpolate
      isendanchor     isEndAnchor
-     isoperator      isOperator
      invalidatecache InvalidateCache
 ));
 
 
-my %tagAry = ( qw! Order 1 Required 1 ! );
+my %tagAry 	= ( qw! Order 1 Required 1 ! );
+my %tagBool = ( qw!
+				hasEndTag	1
+				Interpolate 1
+				Implicit 	1
+				canNest		1
+				isEndAnchor	1
+				isOperator	1
+				! );
 
 # Parses the user tags
 sub parse_tag {
@@ -1471,14 +1477,10 @@ print("Routine is $sub\n") if $Global::DEBUG;
 		$c->{$p}{$tag} = [] unless defined $c->{$p}{$tag};
 		push @{$c->{$p}{$tag}}, @v;
 	}
-#	elsif(defined $tagHash{$p}) {
-#		my(@v) = quoted_string($val);
-#		$c->{$p}{$tag} = {} unless defined $c->{$p}{$tag};
-#		my $i;
-#		for($i = 0; $i < @v; $i += 2) {
-#			$c->{$p}{$tag}{$v[$i]} = $v[$i + 1];
-#		}
-#	}
+	elsif(defined $tagBool{$p}) {
+		$c->{$p}{$tag} = 1
+			unless defined $val and $val =~ /^[0nf]/i;
+	}
 	else {
 		config_warn "UserTag '$tag' scalar parameter '$p' redefined."
 			if defined $c->{$p}{$tag};

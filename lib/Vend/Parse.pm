@@ -1,6 +1,6 @@
 # Parse.pm - Parse MiniVend tags
 # 
-# $Id: Parse.pm,v 1.11 1997/11/03 11:10:44 mike Exp $
+# $Id: Parse.pm,v 1.14 1997/11/08 16:45:21 mike Exp mike $
 #
 # Copyright 1997 by Michael J. Heins <mikeh@iac.net>
 #
@@ -20,12 +20,12 @@
 
 package Vend::Parse;
 
-# $Id: Parse.pm,v 1.11 1997/11/03 11:10:44 mike Exp $
+# $Id: Parse.pm,v 1.14 1997/11/08 16:45:21 mike Exp mike $
 
 require Vend::Parser;
 
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.11 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.14 $ =~ /(\d+)\.(\d+)/);
 
 use Safe;
 use Vend::Util;
@@ -46,7 +46,7 @@ require Exporter;
 @ISA = qw(Exporter Vend::Parser);
 # END NOAUTO
 
-$VERSION = substr(q$Revision: 1.11 $, 10);
+$VERSION = substr(q$Revision: 1.14 $, 10);
 @EXPORT = ();
 @EXPORT_OK = qw(find_matching_end find_end);
 
@@ -70,10 +70,8 @@ use vars qw($VERSION);
 #%canNest
 #%Interpolate
 #%Alias
-#%Default
 #%hasEndTag
 #%isEndAnchor
-#%isOperator
 #
 #);
 #
@@ -89,13 +87,13 @@ my %PosNumber =	(
 # END NOAUTO
 
 				accessories		=> 2,
-				area			=> 3,
-				areatarget		=> 4,
+				area			=> 2,
+				areatarget		=> 3,
 				body			=> 1,
 				buttonbar		=> 1,
 				cart			=> 1,
 				checked			=> 3,
-				data			=> 4,
+				data			=> 5,
 				default			=> 1,
 				discount		=> 1,
 				description		=> 2,
@@ -105,13 +103,14 @@ my %PosNumber =	(
 				framebase		=> 1,
 				help			=> 1,
 				'if'			=> 1,
+				include			=> 1,
 				last_page		=> 2,
 				lookup			=> 1,
 				loop			=> 1,
 				msql			=> 2,
 				nitems			=> 1,
 				order			=> 3,
-				page			=> 3,
+				page			=> 2,
 				pagetarget		=> 3,
 				perl			=> 1,
 				price			=> 3,
@@ -144,7 +143,7 @@ my %PosNumber =	(
 my %Order =	(
 # END NOAUTO
 
-				accessories		=> [qw( code false arg )],
+				accessories		=> [qw( code arg )],
 				area			=> [qw( href arg )],
 				areatarget		=> [qw( href target arg )],
 				body			=> [qw( type  )],
@@ -154,7 +153,7 @@ my %Order =	(
 				compat			=> [],
 				'currency'		=> [],
 				checked			=> [qw( name value multiple)],
-				data			=> [qw( base name code value increment)],
+				data			=> [qw( table field key value increment)],
 				default			=> [qw( name )],
 				description		=> [qw( code base )],
 				discount		=> [qw( code  )],
@@ -166,15 +165,16 @@ my %Order =	(
 				frames_on		=> [],
 				help			=> [qw( name  )],
 				'if'			=> [qw( type term op compare )],
+				include			=> [qw( file )],
 				item_list		=> [qw( name )],
 				last_page		=> [qw( target arg )],
-				lookup			=> [qw( base name code value )],
+				lookup			=> [qw( table field key value )],
 				loop			=> [qw( arg )],
 				msql			=> [qw( base type arg )],
 				nitems			=> [qw( name  )],
 				order			=> [qw( code href base )],
-				page			=> [qw( href target base )],
-				pagetarget		=> [qw( href target base )],
+				page			=> [qw( href arg )],
+				pagetarget		=> [qw( href target arg )],
 				perl			=> [qw( arg )],
 				post			=> [],
 				price			=> [qw( code quantity base )],
@@ -215,7 +215,7 @@ my %Required = (
 				buttonbar	=> [ qw( type )],
 				cart		=> [ qw( name )],
 				checked		=> [ qw( name value )],
-				data		=> [ qw( base )],
+				data		=> [ qw( table )],
 				default		=> [ qw( name )],
 				discount	=> [ qw( code )],
 				field		=> [ qw( name code )],
@@ -223,7 +223,8 @@ my %Required = (
 				framebase	=> [ qw( target )],
 				help		=> [ qw( name )],
 				'if'		=> [ qw( base )],
-				lookup		=> [ qw( base name code )],
+				include		=> [ qw( file )],
+				lookup		=> [ qw( table field key )],
 				order		=> [ qw( code )],
 				page		=> [ qw( href )],
 				pagetarget	=> [ qw( href )],
@@ -270,28 +271,6 @@ my %InvalidateCache = (
 			);
 
 # AUTOLOAD
-#%isOperator = (
-# END AUTOLOAD
-
-# NOAUTO
-my %isOperator = (
-# END NOAUTO
-
-			qw(
-				!=		1
-				!~		1
-				<=		1
-				==		1
-				=~		1
-				>=		1
-				eq		1
-				gt		1
-				lt		1
-				ne		1
-			   )
-			);
-
-# AUTOLOAD
 #%Implicit = (
 # END AUTOLOAD
 
@@ -299,12 +278,23 @@ my %isOperator = (
 my %Implicit = (
 # END NOAUTO
 
-			   qw(
-				escaped	escaped
-			    increment  increment
-				secure	secure
-				multiple	multiple
-			   )
+			'data' =>		{ qw( increment increment ) },
+			'value' =>		{ qw( escaped	escpaped ) },
+			'checked' =>	{ qw( multiple	multiple ) },
+
+			'if' =>		{ qw(
+								!=		op
+								!~		op
+								<=		op
+								==		op
+								=~		op
+								>=		op
+								eq		op
+								gt		op
+								lt		op
+								ne		op
+					   )},
+
 			);
 
 # AUTOLOAD
@@ -328,17 +318,20 @@ my %PosRoutine = (
 my %Routine = (
 # END NOAUTO
 
-				accessories		=> \&Vend::Interpolate::tag_accessories,
-				area			=> \&Vend::Interpolate::tag_areatarget,
+				accessories		=> sub {
+									&Vend::Interpolate::tag_accessories
+										($_[0], '', $_[1])
+									},
+				area			=> \&Vend::Interpolate::tag_area,
 				areatarget		=> \&Vend::Interpolate::tag_areatarget,
 				body			=> \&Vend::Interpolate::tag_body,
 				buttonbar		=> \&Vend::Interpolate::tag_buttonbar,
 				calc			=> \&Vend::Interpolate::tag_calc,
 				cart			=> \&Vend::Interpolate::tag_cart,
-				checked			=> \&Vend::Interpolate::tag_selected,
+				checked			=> \&Vend::Interpolate::tag_checked,
 				'currency'		=> \&Vend::Interpolate::currency,
 				compat			=> sub {
-										&Vend::Interpolate::interpolate_html('[old]' . $_[0]),
+										&Vend::Interpolate::interpolate_html('[old]' . $_[0]);
 									},
 				data			=> \&Vend::Interpolate::tag_data,
 				default			=> \&Vend::Interpolate::tag_default,
@@ -351,6 +344,12 @@ my %Routine = (
 				frames_off		=> \&Vend::Interpolate::tag_frames_off,
 				frames_on		=> \&Vend::Interpolate::tag_frames_on,
 				help			=> \&Vend::Interpolate::tag_help,
+				include			=> sub {
+									&Vend::Interpolate::interpolate_html(
+										&Vend::Util::readfile
+											($_[0], $Global::NoAbsolute)
+										  );
+									},
 				item_list		=> \&Vend::Interpolate::tag_item_list,
 				'if'			=> \&Vend::Interpolate::tag_self_contained_if,
 				last_page		=> \&Vend::Interpolate::tag_last_page,
@@ -359,7 +358,7 @@ my %Routine = (
 				msql			=> \&Vend::Data::msql_query,
 				nitems			=> \&Vend::Util::tag_nitems,
 				order			=> \&Vend::Interpolate::tag_order,
-				page			=> \&Vend::Interpolate::tag_pagetarget,
+				page			=> \&Vend::Interpolate::tag_page,
 				pagetarget		=> \&Vend::Interpolate::tag_pagetarget,
 				perl			=> \&Vend::Interpolate::tag_perl,
 				post			=> sub { return $_[0] },
@@ -396,6 +395,7 @@ my %Alias = (
 
 				qw(
 						href		area
+						a			pagetarget
 				)
 			);
 
@@ -410,22 +410,9 @@ my %canNest = (
 				qw(
 						if			1
 						loop		1
-						then		1
-						else		1
-
 				)
 			);
 
-
-# AUTOLOAD
-#%Default = (
-# END AUTOLOAD
-
-# NOAUTO
-my %Default = (
-# END NOAUTO
-						checked	 =>	{ value => 'on' }
-			);
 
 # AUTOLOAD
 #%hasEndTag = (
@@ -523,11 +510,31 @@ my %myRefs = (
 	 Required       => \%Required,
 	 Routine        => \%Routine,
 	 canNest        => \%canNest,
-	 Default        => \%Default,
 	 hasEndTag      => \%hasEndTag,
 	 isEndAnchor    => \%isEndAnchor,
-	 isOperator     => \%isOperator,
 	 InvalidateCache => \%InvalidateCache,
+);
+
+my %attrAlias = (
+	 page          	=> { 'base' => 'arg' },
+	 data          	=> { 
+	 						'database' => 'table',
+	 						'base' => 'table',
+	 						'name' => 'field',
+	 						'code' => 'key',
+						},
+	 'if'			=> { 
+	 						'comp' => 'compare',
+	 						'operator' => 'op',
+	 						'base' => 'type',
+						},
+	 loop	          	=> { args => 'arg', },
+	 lookup          	=> { 
+	 						'database' => 'table',
+	 						'base' => 'table',
+	 						'name' => 'field',
+	 						'code' => 'key',
+						},
 );
 
 sub add_tags {
@@ -564,8 +571,9 @@ sub comment
 }
 
 my %Monitor = ( qw(
-					loop 1
-					sort 1
+					if 1
+					data 1
+					compat 1
 					) );
 
 sub start
@@ -596,27 +604,17 @@ print("Returning text, tag $tag not found\n$origtext\n") if $Global::DEBUG;
 		$self->{INVALID} = 1;
 	}
 
-	if(0) {
-	#unless (!$Vend::Cfg->{AllowMixed}) {
-		for(@{$Required{$tag}}) {
-			next if defined $attr->{$_};
-			if (defined $Default{$tag}->{$_}) {
-				$attr->{$_} = $Default{$tag}->{$_};
-				next;
-			}
-#print("Returning blank, required attribute $_ not found\n$origtext\n") if $Global::DEBUG;
-			return undef;
-		}
-	}
-
 	$attr->{interpolate} = $self->{INTERPOLATE}
 		unless defined $attr->{interpolate};
 #print("Start $tag: wait for $self->{WAIT_BRACKET}...") if $Global::DEBUG;
 
 	for(@$attrseq) {
-		# Handle implicit tags
-		#$attr->{$_} = $Implicit{$_} if defined $Implicit{$_};
-		
+		# Attribute aliases
+		if(defined $attrAlias{$tag} and $attrAlias{$tag}{$_}) {
+			my $new = $attrAlias{$tag}{$_} ;
+			$attr->{$new} = delete $attr->{$_};
+			$_ = $new;
+		}
 		# Parse tags within tags, only works if the [ is the
 		# first character.
 print("Parsing attribute $_ $attr->{$_}\n") if $Global::DEBUG;
@@ -823,6 +821,13 @@ sub _find_tag {
 	}
 	unshift(@$attrseq, @attrseq);
 	return ($eaten);
+}
+
+sub implicit {
+	my($self, $tag, $attr) = @_;
+print("check tag='$tag' attr='$attr'...") if $Global::DEBUG;
+	return ($attr, undef) unless defined $Implicit{$tag} and $Implicit{$tag}{$attr};
+	return ( $Implicit{$tag}{$attr}, $attr );
 }
 
 1;

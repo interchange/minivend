@@ -1,6 +1,6 @@
 package Vend::Parser;
 
-# $Id: Parser.pm,v 1.6 1997/11/01 20:11:06 mike Exp $
+# $Id: Parser.pm,v 1.7 1997/11/08 16:46:27 mike Exp mike $
 
 =head1 NAME
 
@@ -106,7 +106,7 @@ use strict;
 
 use HTML::Entities ();
 use vars qw($VERSION);
-$VERSION = sprintf("%d.%02d", q$Revision: 1.6 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.7 $ =~ /(\d+)\.(\d+)/);
 
 
 sub new
@@ -239,16 +239,20 @@ sub parse
 				my %attr;
 				my @attrseq;
 
+				my $old;
+
 				# Then we would like to find some attributes
 				#
 				# Arrgh!! Since stupid Netscape violates RCF1866 by
 				# using "_" in attribute names (like "ADD_DATE") of
 				# their bookmarks.html, we allow this too.
-				while ($$buf =~ s|^(([a-zA-Z][-a-zA-Z0-9._]*)\s*)||) {
+				#while (	$$buf =~ s|^(([a-zA-Z][-a-zA-Z0-9._]*)\s*)|| ) {
+				while (	$$buf =~ s|^(([a-zA-Z][-a-zA-Z0-9._]*)\s*)|| or
+					 	$$buf =~ s|^(([=!<>][=~])\s+)||) {
 					$eaten .= $1;
 					my $attr = lc $2;
 					my $val;
-					my $old = 0;
+
 					# The attribute might take an optional value (first we
 					# check for an unquoted value)
 					if ($$buf =~ s|(^=\s*([^\"\'\]\s][^\]\s]*)\s*)||) {
@@ -265,10 +269,16 @@ sub parse
 							 $$buf =~ m|^(=\s*[\"\'].*)|s) {
 						$$buf = "$eaten$1";
 						return $self;
-					} else {
-						# assume attribute with implicit value, which 
-						# means in MiniVend no value is set and the
+					} elsif (!$old) {
+						# assume attribute with implicit value, but
+						# if not,no value is set and the
 						# eaten value is grown
+print("Implicit test...") if $Global::DEBUG;
+						($attr,$val) = $self->implicit($tag,$attr);
+						$old = 1 unless $val;
+print("old=$old val=$val attr=$attr\n") if ! $old and $Global::DEBUG;
+					} else {
+print("Abort attribute parsing, attr='$attr'.\n") if $Global::DEBUG;
 						$old = 1;
 					}
 					next if $old;

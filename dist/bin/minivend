@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# MiniVend version 3.03
+# MiniVend version 3.04
 #
 # $Id: minivend,v 1.11 1997/11/03 13:16:04 mike Exp mike $
 #
@@ -77,7 +77,7 @@ $Global::SendMailLocation = '/usr/lib/sendmail';
 use lib "$Global::VendRoot/lib";
 use vars qw($VERSION);
 
-$VERSION = '3.03';
+$VERSION = '3.04';
 use strict;
 use Fcntl;
 use Config;
@@ -1851,7 +1851,7 @@ sub dispatch {
 	}
 
 	if($Vend::Cfg->{DisplayErrors} and $Global::DisplayErrors) {
-		$SIG{__DIE__} = sub {
+		$SIG{"__DIE__"} = sub {
 							my $msg = shift;
 							response('html', <<EOF);
 <HTML><HEAD><TITLE>Fatal MiniVend Error</TITLE></HEAD><BODY>
@@ -2200,7 +2200,7 @@ sub parse_options {
 
 sub version {
 	print "MiniVend version $VERSION Copyright 1995 Andrew M. Wilcox\n";
-	print "                      Copyright 1996 Michael J. Heins\n";
+	print "                      Copyright 1996,1997 Michael J. Heins\n";
 }
 
 sub usage {
@@ -2209,7 +2209,8 @@ sub usage {
 
 MiniVend comes with ABSOLUTELY NO WARRANTY.  This is free software, and
 you are welcome to redistribute and modify it under the terms of the
-GNU General Public License.
+GNU General Public License. (Unless you SPAM, in which case you may
+not use MiniVend at all).
 
 Command line options:
 
@@ -2221,7 +2222,9 @@ Command line options:
      -outdir <dir>    specify output directory for static page tree
      -serve           start server
      -test            report problems with config files
+     -unix            run with UNIX-domain socket
      -version         display program version
+     -DEBUG           run foreground in debug mode
 END
 }
 

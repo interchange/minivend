@@ -1,6 +1,6 @@
 # Vend/TextSearch.pm:  Search indexes with Perl
 #
-# $Id: TextSearch.pm,v 1.8 1997/05/22 07:00:05 mike Exp $
+# $Id: TextSearch.pm,v 1.9 1997/11/08 17:32:07 mike Exp mike $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::TextSearch
 #
@@ -37,7 +37,7 @@ require Vend::Search;
 @ISA = qw(Vend::Search);
 # END NOAUTO
 
-$VERSION = substr(q$Revision: 1.8 $, 10);
+$VERSION = substr(q$Revision: 1.9 $, 10);
 
 use Text::ParseWords;
 use Search::Dict;
@@ -308,7 +308,7 @@ EOF
         if($g->{head_skip} == 1) {
             my $field_names;
             chomp($field_names = <Vend::TextSearch::SEARCH>);
-            $g->{field_names} = [ split /$index_delim/, $field_names]
+            $g->{field_names} = [ split /\Q$index_delim/, $field_names]
                 unless defined $g->{field_names} || $sort_string;
         }
         elsif($g->{head_skip} > 1) {

@@ -1,8 +1,8 @@
-# MiniVend V3.03
+# MiniVend V3.04
 # 
 # Copyright 1996,1997 by Michael J. Heins <mikeh@minivend.com>
 #
-# Largely based on Vend 0.2
+# Based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
 # Portions from Vend 0.3
@@ -41,14 +41,39 @@ Please feel free to send them to Mike Heins, <mikeh@minivend.com>.
 
                       W H A T ' S   N E W 
 
+MiniVend 3.04 is a minor release to fix bugs in 3.03:
+
+    * If file test was failing on a Safe trap. Fixed.
+
+    * PIPE databases did not work in 3.03 (only) -- they now
+      work well even for searching.
+
+    * Major bug in new parser fixed, now virtually every
+      tag should be parsed by MiniVend in 'NewTags Yes'
+      mode.  Switching to the new parser is recommended,
+      as new features will not be added to the old parser.
+
+    * New [elsif ...] addition to [if ...] was not
+      documented or announced.
+
+    * Perl 5.003 should run MiniVend without changes.
+
+    * Escape mechanism for values works properly.
+
+    * [include file] tag added.
+
+    * UserTag now accepts Interpolate option.
+
+    * Other minor bug fixes.
+
 MiniVend 3.03 has many bug fixes and feature set improvements.
 
 There is one incompatible change:
 
-	* If you are using Static builds, you must now define
-	  'Static Yes' in the catalog.cfg file to get static
-	  pages to build or run.  This was done to provide a
-	  single "on/off" switch for static builds.
+    * If you are using Static builds, you must now define
+      'Static Yes' in the catalog.cfg file to get static
+      pages to build or run.  This was done to provide a
+      single "on/off" switch for static builds.
 
 As well as adding the following features/fixes:
 
@@ -68,10 +93,10 @@ As well as adding the following features/fixes:
       lists may be sorted with the same syntax, and all may be sorted
       on any database field entry.
 
-	  	[search-list]
-		[sort products:category products:name:f]
-		...
-		[/search-list]
+        [search-list]
+        [sort products:category products:name:f]
+        ...
+        [/search-list]
 
       The above will sort a search return on two fields in
       the database -- and will work the same for shopping carts,
@@ -479,12 +504,8 @@ Solaris:   You must use the File::Lock module -- flock()
            locking must be used.  This version of MiniVend includes
            File::Lock, and attempts to install it.
 
-           If you have Perl 5.004, you may be able to
-           disregard File::Lock -- MiniVend will try if
-           appropriage.
-
-           GCC compilation problems should disappear in this
-           release.
+           If you have Perl 5.004 you can disregard
+           File::Lock.
 
 -------------------------------------------------------------
 
@@ -674,29 +695,31 @@ send kudos, comments, questions, and complaints to:
 
             Recommended DBM    Tested on     Notes
            -----------------  ------------  -----------------------
-Linux         DB_File          1.2.x & up    This is what MiniVend is
+Linux         GDBM             2.0.x & up    This is what MiniVend is
                                              developed on -- all features
                                              should work normally.
 
-FreeBSD       DB_File          2.1.0, 2.1.5  Many users run MiniVend on
-                                             this OS, but there are
-                                             known problems with 
-                                             reliability. Take care.
 
-BSDI          DB_File                        Many users run MiniVend on
-                                             this OS, but there are
-                                             known problems with 
-                                             reliability. Take care.
+FreeBSD       DB_File          2.1.0, 2.1.5  Many users run MiniVend on
+                                             this OS. You will want to
+                                             set SafeSignals to No.
+
+
+BSDI          DB_File          2.1, 3.0      Many users run MiniVend on
+                                             this OS. The vlink UNIX mode
+                                             will not work with V3.x but
+                                             tlink/INET works fine.
+
 
 Solaris 2     GDBM             2.4,2.5       Many users run MiniVend on
                                              this OS, no known problems
                                              once you get it going.
-                                             File::Lock less of a problem,
-                                             GCC problems should be caught
-                                             by the configurator.
+                                             File::Lock not needed for
+                                             Perl 5.004 -- using Perl 5.004
+                                             is highly recommended.
 
 
-SunOS 4.1.x   DB_File          4.1.3         Some users run MiniVend on
+SunOS 4.1.x   DB_File          4.1.x         Some users run MiniVend on
                                              this OS, no known problems
 
 
@@ -704,18 +727,17 @@ DEC/OSF, aka  GDBM             3.0           Some users run MiniVend on
 Digital UNIX                                 this OS, no known problems
                                              
 
-IRIX          GDBM             5.3           Server may be difficult to
+IRIX          GDBM             5.3,6.2       Server may be difficult to
                                              stop for re-configuration.
                                              No other known problems.
 
-HP/UX         ????????         10.1          A few users, may be some
+HP/UX          -               10.1          A few users, may be some
                                              trouble with vlink/tlink
                                              compilation.
 
-SCO           ????????         ??????        No known users, looking for
-                                             reports of compatibility
+SCO            -               3.2           Should work fine as of 3.04
 
-AIX           ????????         ??????        No known users, looking for
-                                             reports of compatibility
+AIX            -               4.1           Reported to work with little
+                                             difficulty
 
 
