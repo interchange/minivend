@@ -156,8 +156,11 @@ sub log_http_data {
 }
 
 sub map_misc_cgi {
-	$CGI::user = $CGI::remote_user;
+	if (!$CGI::remote_host && $CGI::remote_addr){
+		$CGI::remote_host = gethostbyaddr(Socket::inet_aton($CGI::remote_addr),Socket::AF_INET);
+	}
 	$CGI::host = $CGI::remote_host || $CGI::remote_addr;
+	$CGI::user = $CGI::remote_user;
 
 	$CGI::script_path = $CGI::script_name;
 	$CGI::script_name = $CGI::server_host . $CGI::script_path
@@ -196,6 +199,10 @@ EOF
 #::logDebug("Check robot UA=$Global::RobotUA IP=$Global::RobotIP");
 	if ($Global::RobotUA and $CGI::useragent =~ $Global::RobotUA) {
 #::logDebug("It is a robot by UA!");
+		$CGI::values{mv_tmp_session} = 1;
+	}
+	elsif ($Global::RobotHost and $CGI::remote_host =~ $Global::RobotHost) {
+#::logDebug("It is a robot by host!");
 		$CGI::values{mv_tmp_session} = 1;
 	}
 	elsif ($Global::RobotIP and $CGI::remote_addr =~ $Global::RobotIP) {
