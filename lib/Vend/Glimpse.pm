@@ -2,7 +2,7 @@
 #
 # $Id$
 #
-# ADAPTED FOR USE WITH MINIVEND from Search::Glimpse
+# ADAPTED FOR USE WITH INTERCHANGE from Search::Glimpse
 #
 # Copyright (C) 1996-2000 Akopia, Inc. <info@akopia.com>
 #

@@ -2,7 +2,7 @@
 #
 # $Id$
 #
-# ADAPTED FOR USE WITH MINIVEND from Search::TextSearch
+# ADAPTED FOR USE WITH INTERCHANGE from Search::TextSearch
 #
 # Copyright (C) 1996-2000 Akopia, Inc. <info@akopia.com>
 #

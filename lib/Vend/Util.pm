@@ -1353,7 +1353,7 @@ sub logGlobal {
 				unless "\L$Global::Syslog->{tag}" eq 'none';
 		}
 		else {
-			$tag = " -t minivend";
+			$tag = " -t interchange";
 		}
 		$tag .= ".$opt->{level}" if $tag and ! $leveled;
 

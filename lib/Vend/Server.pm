@@ -1056,7 +1056,7 @@ sub server_both {
 			print "$msg\n";
 		}
 		else {
-			$msg = errmsg( "No sockets -- MINIVEND SERVER TERMINATING\a" );
+			$msg = errmsg( "No sockets -- INTERCHANGE SERVER TERMINATING\a" );
 			::logGlobal( {level => 'alert'}, $msg );
 			print "$msg\n";
 			exit 1;
