@@ -1067,7 +1067,7 @@ if($opt->{debug}) {
 		$data = [];
 		for my $l (@looks) {
 			next unless $db;
-			next unless $l =~ /^select\s+/i;
+			next unless $l =~ /^\s*select\s+/i;
 			my $qr = $db->query($l);
 			ref($qr) eq 'ARRAY' and push @$data, @$qr;
 		}
