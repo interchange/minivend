@@ -478,9 +478,14 @@ eval {
 		import Data::Dumper 'DumperX';
 		$Data::Dumper::Indent = 1;
 		$Data::Dumper::Terse = 1;
-		$Pretty_uneval = \&Data::Dumper::DumperX;
-		$Fast_uneval = \&Data::Dumper::DumperX
-			unless defined $Fast_uneval;
+		$Data::Dumper::Deepcopy = 1;
+		if(defined $Fast_uneval) {
+			$Pretty_uneval = \&Data::Dumper::Dumper;
+		}
+		else {
+			$Pretty_uneval = \&Data::Dumper::DumperX;
+			$Fast_uneval = \&Data::Dumper::DumperX
+		}
 };
 
 *uneval_fast = defined $Fast_uneval       ? $Fast_uneval       : \&uneval_it;
@@ -904,12 +909,40 @@ sub vendUrl {
 	push @parms, "$::VN->{mv_pc}=$ct"                 	if defined $ct;
 	push @parms, "$::VN->{mv_cat}=$Vend::Cfg->{CatalogName}"
 														if defined $Vend::VirtualCat;
+	if($Vend::AccumulatingLinks) {
+		my $key = $path;
+		$key =~ s/\.html?$//;
+		my $value = '';
+		if($arguments) {
+			$value = [ $key, $arguments ];
+			$key .= "/$arguments";
+		}
+		push(@Vend::Links, [$key, $value]) unless $Vend::LinkFound{$key}++;
+
+	}
 	return $r unless @parms;
     return $r . '?' . join("&", @parms);
 } 
 
 sub secure_vendUrl {
 	return vendUrl($_[0], $_[1], $Vend::Cfg->{SecureURL});
+}
+
+sub change_url {
+	my $url = shift;
+	return $url if $url =~ m{^(?:\w+:)?/};
+#::logDebug("changed $url");
+	my @args;
+	($url, @args) = split /[?&]/, $url;
+	return Vend::Interpolate::tag_area( $url, '', {
+											form => join "\n", @args,
+										} );
+}
+
+sub resolve_links {
+	my $html = shift;
+	$html =~ s/(<a\s+[^>]*href\s*=\s*)(["'])([^'"]+)\2/$1 . $2 . change_url($3) . $2/gei;
+	return $html;
 }
 
 my $use = undef;
