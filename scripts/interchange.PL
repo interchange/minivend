@@ -2427,7 +2427,7 @@ sub dump_env {
 }
 
 sub version {
-	print "Interchange version $VERSION Copyright 1996-2001 Red Hat, Inc.\n";
+	print "Interchange version $VERSION Copyright 1996-2002 Red Hat, Inc.\n";
 }
 
 =head1 NAME
@@ -3020,7 +3020,7 @@ GNU General Public License.
 
 =head1 COPYRIGHT
 
-Copyright 1995-2001, Red Hat, Inc. All rights reserved except as in the
+Copyright 1995-2002, Red Hat, Inc. All rights reserved except as in the
 license.
 
 =cut

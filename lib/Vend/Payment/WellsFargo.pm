@@ -2,7 +2,7 @@
 #
 # $Id$
 #
-# Copyright (C) 1999-2001 Red Hat, Inc. <interchange@redhat.com>
+# Copyright (C) 1999-2002 Red Hat, Inc. <interchange@redhat.com>
 #
 # by Mark Johnson <markj@redhat.com> based off of
 # AuthorizeNet.pm by

@@ -2,7 +2,7 @@
 #
 # $Id$
 #
-# Copyright (C) 1997-2001 Red Hat, Inc. <interchange@redhat.com>
+# Copyright (C) 1997-2002 Red Hat, Inc. <interchange@redhat.com>
 #
 # Based on HTML::Parser
 # Copyright 1996 Gisle Aas. All rights reserved.
@@ -47,7 +47,7 @@ expanded.
 
 =head1 COPYRIGHT
 
-Copyright 1997-2001 Red Hat, Inc.  
+Copyright 1997-2002 Red Hat, Inc.  
 Original HTML::Parser module copyright 1996 Gisle Aas.
 
 This library is free software; you can redistribute it and/or

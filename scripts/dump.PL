@@ -52,7 +52,7 @@ DOIT: {
 #
 # $Id$
 #
-# Copyright (C) 1996-2001 Red Hat, Inc. <interchange@redhat.com>
+# Copyright (C) 1996-2002 Red Hat, Inc. <interchange@redhat.com>
 #
 # This program was originally based on Vend 0.2 and 0.3
 # Copyright 1995-96 by Andrew M. Wilcox <awilcox@world.std.com>

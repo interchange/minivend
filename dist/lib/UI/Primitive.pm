@@ -2,7 +2,7 @@
 
 # $Id$
 
-# Copyright (C) 1998-2001 Red Hat, Inc. <interchange@redhat.com>
+# Copyright (C) 1998-2002 Red Hat, Inc. <interchange@redhat.com>
 
 # Author: Michael J. Heins <mheins@redhat.com>
 # Former maintainer: Stefan Hornburg <racke@linuxia.de>

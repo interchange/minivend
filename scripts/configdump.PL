@@ -52,7 +52,7 @@ DOIT: {
 #
 # $Id$
 #
-# Copyright 1999, 2000 by Stefan Hornburg <racke@linuxia.de>
+# Copyright 1999-2002 by Stefan Hornburg <racke@linuxia.de>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

@@ -2,7 +2,7 @@
 #
 # $Id$
 #
-# Copyright (C) 1999-2001 Red Hat, Inc. <interchange@redhat.com>
+# Copyright (C) 1999-2002 Red Hat, Inc. <interchange@redhat.com>
 #
 # Author: Mike Heins <mheins@redhat.com>
 
