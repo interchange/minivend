@@ -80,6 +80,7 @@ my @Order = ( qw(
 					mv_return_file_name
 					mv_return_reference
 					mv_substring_match
+					mv_start_match
 					mv_return_spec
 					mv_spelling_errors
 					mv_search_field
@@ -152,6 +153,7 @@ my %Scan = ( qw(
                     sf  mv_search_field
                     sg  mv_search_group
                     si  mv_search_immediate
+                    sm  mv_start_match
                     sp  mv_search_page
                     sq  mv_sql_query
                     sr  mv_search_relate
