@@ -357,7 +357,7 @@ sub signio {
 			);
 	
 
-	my $orderID = $opt->{order_id} || gen_order_id($opt);
+	my $orderID = $opt->{order_id};
 	$amount = $opt->{total_cost} if ! $amount;
 
     if(! $amount) {
@@ -378,7 +378,6 @@ sub signio {
                     SHIPTOZIP   => $actual{zip},
                     EXPDATE     => $exp,
                     TENDER      => 'C',
-                    ORIGID      => $orderID,
                     PWD         => $secret,
                     USER        => $user,
 					TRXTYPE		=> $transtype,
@@ -386,6 +385,9 @@ sub signio {
 
 	$query{PARTNER} = $opt->{partner} || charge_param('partner');
 	$query{VENDOR}  = $opt->{vendor}  || charge_param('vendor');
+	$query{ORIGID} = $orderID if $orderID;
+
+	$orderID ||= gen_order_id($opt);
 
     for (keys %varmap) {
         $query{$_} = $actual{$varmap{$_}};
