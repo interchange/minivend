@@ -2838,7 +2838,7 @@ sub main_loop {
 	# Parse command line options, getting mode if not -serve
 	# May actually exit in some situations
 	parse_options()
-		or die usage() . "\n";
+		or usage(), die "\n";
 
 	# Cannot run as root unless in 'make test'
 	if($> == 0 and ! $Global::Windows) {
@@ -3008,6 +3008,7 @@ print errmsg("\n##### DEBUG MODE, running in foreground #####\n") if $Global::DE
 eval { main_loop(); };
 if ($@) {
 	my($msg) = ($@);
+	$Vend::Log_suppress = 1;
 	logGlobal( $msg );
 	if ($Global::DisplayErrors) {
 		print "$msg\n";
