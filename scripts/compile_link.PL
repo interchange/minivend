@@ -51,8 +51,12 @@ use lib '/usr/local/interchange/lib';
 use lib '/usr/local/interchange';
 #use lib '~_~INSTALLARCHLIB~_~';
 
-use Getopt::Long;
+use strict;
 use Config;
+use File::Copy;
+use Getopt::Long;
+
+Getopt::Long::config(qw/permute/);
 
 my $Self = {
 	LINK_HOST      => 'localhost',
@@ -74,6 +78,7 @@ my $Self = {
 #	INSTALLBIN => '~_~INSTALLBIN~_~',
 };
 
+### END CONFIGURATION VARIABLES
 
 my $prog = $0;
 $prog =~ s:.*/::;
@@ -103,8 +108,6 @@ options:
   --perl                Use Perl tlink program
   --source              Alternate source dir (default $Self->{SRC_DIR})
 EOF
-
-Getopt::Long::config(qw/permute/);
 
 my $Output;
 my $Force;
@@ -168,8 +171,6 @@ sub doit {
 	return "$orig$template" unless defined $replace;
 	return "$preamble$replace$postamble$template";
 }
-
-use File::Copy;
 
 if($Build_dir) {
 	if (-e $Build_dir and (! -d _ or ! -w _)) {
