@@ -110,6 +110,15 @@ my $Tag = new Vend::Tags;
 		.
 		qq(>{APPEND})
 		,
+	file =>
+		qq({PREPEND}<input type="file" name="{NAME}" value="{ENCODED}")
+		.
+		qq({COLS?} size="{COLS}"{/COLS?})
+		.
+		qq({EXTRA?} {EXTRA}{/EXTRA?})
+		.
+		qq(>{APPEND})
+		,
 	text =>
 		qq({PREPEND}<input type="text" name="{NAME}" value="{ENCODED}")
 		.
@@ -525,7 +534,7 @@ sub movecombo {
 	$opt->{name} = "X$name";
 	my $ejs = ",1" if $opt->{rows} > 1;
 	$opt->{extra} .= qq{ onChange="addItem(this.form['X$name'],this.form['$name']$ejs)"}
-            unless $opt->{extra};
+            unless $opt->{extra} =~ m/\bonchange\s*=/i;
 	my $tbox = '';
 	my $out = dropdown($opt, $opts);
 
@@ -593,7 +602,10 @@ sub dropdown {
 	my $price = $opt->{price} || {};
 
 	my $select;
+#::logDebug("template for selecthead: $Template{selecthead}");
+#::logDebug("opt is " . ::uneval($opt));
 	my $run = attr_list($Template{selecthead}, $opt);
+#::logDebug("run is now: $run");
 	my ($multi, $re_b, $re_e, $regex);
 #::logDebug("select multiple=$opt->{multiple}");
 	if($opt->{multiple}) {
@@ -1098,6 +1110,13 @@ if($opt->{debug}) {
 	$opt->{value} = $opt->{default} if ! defined $opt->{value};
     $opt->{encoded} = encode($opt->{value}, $ESCAPE_CHARS::std);
     $opt->{value} =~ s/&#91;/\[/g if $opt->{enable_itl};
+
+	if($opt->{class}) {
+		$opt->{extra}	= $opt->{extra}
+						? qq{$opt->{extra} class="$opt->{class}"}
+						: qq{class="$opt->{class}"}
+						;
+	}
 
 	# Action taken for various types
 	my %daction = (
