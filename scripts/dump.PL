@@ -103,7 +103,7 @@ use Fcntl;
 my $Extension;
 
 BEGIN {
-	$Global::GDBM = $Global::DB_File = $Global::NDBM = 0;
+	$Global::GDBM = $Global::DB_File = 0;
 	$Extension = '';
     AUTO: {
         eval {require GDBM_File and $Global::GDBM = 1};
