@@ -4,7 +4,7 @@
 
 # Copyright (C) 1998-2002 Red Hat, Inc. <interchange@redhat.com>
 
-# Author: Michael J. Heins <mheins@redhat.com>
+# Author: Michael J. Heins <mikeh@perusion.net>
 # Former maintainer: Stefan Hornburg <racke@linuxia.de>
 
 # This file is free software; you can redistribute it and/or modify it
