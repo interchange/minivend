@@ -55,7 +55,7 @@ sub create {
 	my $flags = GDBM_NEWDB;
 	$flags |= GDBM_FAST if $Fast_write;
 	my $dbm = tie(%$tie, 'GDBM_File', $filename, $flags, $File_permission_mode)
-		or die errmsg("%s %s: %s\n", errmsg("create"), $filename, $!);
+		or die ::errmsg("%s %s: %s\n", ::errmsg("create"), $filename, $!);
 
 	$tie->{'c'} = join("\t", @$columns);
 
