@@ -506,6 +506,10 @@ sub inc_field {
     return $value;
 }
 
+sub create_sql {
+    return undef;
+}
+
 sub touch {
     my ($s) = @_;
 	$s = $s->import_db() if ! defined $s->[$TIE_HASH];
