@@ -865,6 +865,8 @@ use vars qw(
 			%Page_pids
 			$SOAP_servers
 			%SOAP_pids
+			$Job_servers
+			%Lifetime
 			$vector
 			$p_vector
 			$s_vector
@@ -875,6 +877,8 @@ BEGIN {
 }
 $Num_servers = 0;
 $SOAP_servers = 0;
+$Job_servers = 0;
+%Lifetime = ();
 
 # might also trap: QUIT
 
@@ -963,7 +967,7 @@ sub housekeeping {
 	rand();
 	$Last_housekeeping = $now;
 
-	my ($c, $num,$reconfig, $restart, @files);
+	my ($c, $num,$reconfig, $restart, $jobs, @files);
 	my @pids;
 
 		if($Global::PreFork) {
@@ -1013,6 +1017,7 @@ sub housekeeping {
 		($reconfig) = grep $_ eq 'reconfig', @files;
 		($restart) = grep $_ eq 'restart', @files
 			if $Signal_Restart || $Global::Windows;
+		($jobs) = grep $_ eq 'jobs', @files;
 		if($Global::PIDcheck) {
 			$Num_servers = 0;
 			@pids = grep /^pid\.\d+$/, @files;
@@ -1051,11 +1056,6 @@ EOF
 						)
 					{
 						::remove_catalog($1);
-					}
-					elsif( $directive =~ /^jobs$/i) {
-						my ($cat, @jobs) = grep /\S/, split /[\s,\0]+/, $value;
-#::logGlobal("restart line found value='$value'");
-						run_jobs($cat, @jobs);
 					}
 					else {
 						::change_global_directive($directive, $value);
@@ -1124,6 +1124,66 @@ EOF
 			$respawn = 1;
 			
 		}
+		if (defined $jobs) {
+			my (@scheduled_jobs, @queued_jobs);
+			open(Vend::Server::JOBS, "+<$Global::RunDir/jobs")
+				or die "open $Global::RunDir/jobs: $!\n";
+			lockfile(\*Vend::Server::JOBS, 1, 1)
+				or die "lock $Global::RunDir/jobs: $!\n";
+			while(<Vend::Server::JOBS>) {
+				chomp;
+				my ($directive,$value) = split /\s+/, $_, 2;
+				my ($cat, $delay, @jobs) = grep /\S/, split /[\s,\0]+/, $value;
+				if ($delay && $delay < time()) {
+					# job expired
+#::logDebug ("Jobs @jobs expired ($delay vs $now)\n");
+				} elsif ($Job_servers++ >= $Global::Jobs->{MaxServers}) {
+						# no slot for job
+						$Job_servers--;
+#::logDebug ("Jobs @jobs queued, already %d jobs running/scheduled", $Job_servers);
+                        push(@queued_jobs, "$directive $value");
+                } else {
+#::logDebug ("Scheduled job @jobs for running");
+					push (@scheduled_jobs, [$cat, @jobs]);
+				}
+                if (@queued_jobs > 20) {
+					::logGlobal({ level => 'notice' }, "Excessive size of job queue, stopping");
+					last;
+				}
+			}
+
+			truncate(Vend::Server::JOBS, 0)
+				or die "truncate $Global::RunDir/jobs: $!\n";
+            seek(Vend::Server::JOBS, 0, 0)
+                or die "seek $Global::RunDir/jobs: $!\n";
+
+            if (@queued_jobs) {
+#::logDebug("Size of queue $$: %s", scalar(@queued_jobs));
+				print Vend::Server::JOBS join("\n", @queued_jobs, '');
+                unlockfile(\*Vend::Server::JOBS)
+					or die "unlock $Global::RunDir/jobs: $!\n";
+				close(Vend::Server::JOBS)
+					or die "close $Global::RunDir/jobs: $!\n";
+			} else {
+				unlockfile(\*Vend::Server::JOBS)
+					or die "unlock $Global::RunDir/jobs: $!\n";
+				close(Vend::Server::JOBS)
+					or die "close $Global::RunDir/jobs: $!\n";
+				unlink "$Global::RunDir/jobs"
+					or die "unlink $Global::RunDir/jobs: $!\n";
+			}
+
+			# now we run the scheduled jobs
+			for my $jobref (@scheduled_jobs) {
+				eval {
+					run_jobs (@$jobref);
+				};
+
+				if($@) {
+					::logGlobal({ level => 'notice' }, $@);
+				}
+			}
+		}
 
 		if($respawn) {
 			if($Global::PreFork) {
@@ -1169,8 +1229,20 @@ EOF
             my $fn = "$Global::RunDir/$_";
             ($Num_servers--, next) if ! -f $fn;
             my $runtime = $now - (stat(_))[9];
-            next if $runtime < $Global::PIDcheck;
             s/^pid\.//;
+            my ($lifetime, $isjob);
+            if (exists $Lifetime{$_}) {
+ 				$lifetime = $Lifetime{$_};
+				$isjob = 1;
+			} else {
+				$lifetime = $Global::PIDcheck;
+			}
+            next if $runtime < $lifetime;
+			if ($isjob) {
+	            delete $Lifetime{$_};
+    	        $Job_servers--;
+			}
+
             if(kill 9, $_) {
                 unlink $fn and $Num_servers--;
                 ::logGlobal({ level => 'error' }, "hammered PID %s running %s seconds", $_, $runtime);
@@ -1830,6 +1902,15 @@ sub process_ipc {
 		$SOAP_servers--;
 		start_soap(undef, 1);
 	}
+	elsif ($thing =~ /^running job (\d+)/) {
+#::logDebug("registered job pid $1");
+		$Lifetime{$1} = $Global::Jobs->{MaxLifetime} || 30;
+	}
+	elsif ($thing =~ /^finishing job (\d+)/) {
+#::logDebug("finished job pid $1");
+		$Job_servers--;
+		delete $Lifetime{$1};
+	}
 	elsif($thing =~ /^\d+$/) {
 		close $fh;
 		$Num_servers++;
@@ -2293,6 +2374,7 @@ sub run_jobs {
 		#fork again
 		unless ($pid = fork) {
 
+			send_ipc("running job $$");
 			reset_per_fork();
 			$::Instance = {};
 			eval { 
@@ -2307,6 +2389,7 @@ sub run_jobs {
 					if defined $Vend::Cfg->{ErrorFile};
 			}
 			clean_up_after_fork();
+			send_ipc("finishing job $$");
 
 			undef $::Instance;
 			select(undef,undef,undef,0.050) until &$ppidsub == 1;

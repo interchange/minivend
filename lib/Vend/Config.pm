@@ -305,6 +305,7 @@ sub global_directives {
 	['SOAP_StartServers', 'integer',          1],
 	['SOAP_Host',         undef,              'localhost 127.0.0.1'],
 	['SOAP_Control',     'action',           ''],
+	['Jobs',		 	 'hash',     	 	 'MaxLifetime 600 MaxServers 1'],
 	['IPCsocket',		 undef,	     	 	 "$Global::VendRoot/etc/socket.ipc"],
 	['HouseKeeping',     'integer',          60],
 	['Mall',	          'yesno',           'No'],

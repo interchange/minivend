@@ -55,14 +55,20 @@ sub signal_jobs {
 	shift;
 	$Vend::mode = 'jobs';
 	my $arg = shift;
-	my ($cat, $job) = split /\s*=\s*/, $arg, 2;
+	my ($cat, $job, $delay) = split /\s*=\s*/, $arg, 3;
+	
 	$Vend::JobsCat = $cat;
+	if ($delay =~ /^(\d+)$/) {
+		$delay + time;
+	} else {
+		$delay = 0;
+	}
 #::logGlobal("signal_jobs: called cat=$cat job=$job");
 	$job = join ",", $job, $Vend::JobsJob;
 	$job =~ s/^,+//;
 	$job =~ s/,+$//;
 	$Vend::JobsJob = $job;
-	Vend::Util::writefile("$Global::RunDir/restart", "jobs $cat $job\n");
+	Vend::Util::writefile("$Global::RunDir/jobs", "jobs $cat $delay $job\n");
 #::logGlobal("signal_jobs: wrote file, ready to control_interchange");
 	control_interchange('jobs', 'HUP');
 }
