@@ -153,6 +153,16 @@ sub parse_click {
 	}
 }
 
+## This is the set of variables we don't want to dump or save in
+## sessions for security reasons.
+@Global::HideCGI = qw(
+						mv_password
+						mv_verify
+						mv_password_old
+						mv_credit_card_number
+						mv_credit_card_cvv2
+					);
+
 # This is the set of CGI-passed variables to ignore, in other words
 # never set in the user session.  If set in the mv_check pass, though,
 # they will stick.
