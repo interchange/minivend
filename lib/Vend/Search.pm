@@ -1138,6 +1138,7 @@ sub save_more {
 #::logDebug("save_more: $id to $file.");
 	my $new = { %$s };
 	$new->{mv_results} = $out;
+	delete $new->{search_routines};
 #::logDebug("save_more:object:" . ::uneval($new));
 	eval {
 		Vend::Util::uneval_file($new, $file);
