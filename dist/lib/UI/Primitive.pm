@@ -36,7 +36,7 @@ use vars qw!
 	!;
 
 use File::Find;
-use File::CounterFile;
+use Vend::CounterFile;
 use Text::ParseWords;
 use Exporter;
 use strict;

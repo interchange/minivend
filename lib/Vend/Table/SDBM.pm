@@ -95,7 +95,7 @@ sub open_table {
 		$flags = O_RDWR;
 		if(! defined $config->{AutoNumberCounter}) {
 			eval {
-				$config->{AutoNumberCounter} = new File::CounterFile
+				$config->{AutoNumberCounter} = new Vend::CounterFile
 											"$config->{DIR}/$config->{name}.autonumber",
 											$config->{AUTO_NUMBER} || '00001';
 			};

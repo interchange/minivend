@@ -1198,9 +1198,9 @@ sub _required {
 
 sub counter_number {
 	my $file = shift || $Vend::Cfg->{OrderCounter};
-	$File::CounterFile::DEFAULT_DIR = $Vend::Cfg->{VendRoot}
+	$Vend::CounterFile::DEFAULT_DIR = $Vend::Cfg->{VendRoot}
 		unless $file =~ m!^/!;
-	my $c = new File::CounterFile $file, "000000";
+	my $c = new Vend::CounterFile $file, "000000";
 	return $c->inc;
 }
 

@@ -1258,7 +1258,7 @@ sub assign_username {
         my $file = shift || $self->{OPTIONS}{'counter'};
         my $start = $self->{OPTIONS}{username} || 'U00000';
         $file = './etc/username.counter' if ! $file;
-        my $ctr = File::CounterFile->new($file, $start);
+        my $ctr = Vend::CounterFile->new($file, $start);
         return $ctr->inc();
 }
 

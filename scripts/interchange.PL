@@ -316,7 +316,7 @@ use Vend::Data;
 use Vend::UserDB;
 use Vend::Interpolate;
 use Vend::Page;
-use File::CounterFile;
+use Vend::CounterFile;
 
 if( ! $Global::Windows and $> == -1 || scalar(getpwuid($>)) eq 'nobody' ) {
 	warn errmsg("\aYou probably don't want to run as nobody!\n");
@@ -1859,7 +1859,7 @@ EOF
 	}
 
 	if($Global::HitCount) {
-		my $ctr = new File::CounterFile
+		my $ctr = new Vend::CounterFile
 					"$Global::ConfDir/hits.$Vend::Cat";
         $ctr->inc();
 	}

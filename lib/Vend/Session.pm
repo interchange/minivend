@@ -201,8 +201,8 @@ sub count_ip {
 		my $grace = time() - ($Global::Variable->{MV_ROBOT_EXPIRE} || 86400);
 		unlink $fn if -M $fn < $grace;
 	}
-	return File::CounterFile->new($fn)->inc() if $inc;
-	return File::CounterFile->new($fn)->value();
+	return Vend::CounterFile->new($fn)->inc() if $inc;
+	return Vend::CounterFile->new($fn)->value();
 }
 
 

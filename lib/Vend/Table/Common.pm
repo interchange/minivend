@@ -28,7 +28,7 @@ use strict;
 package Vend::Table::Common;
 require Vend::DbSearch;
 require Vend::TextSearch;
-require File::CounterFile;
+require Vend::CounterFile;
 use Vend::Util;
 
 use Exporter;
@@ -140,7 +140,7 @@ sub autonumber {
 	local($/) = "\n";
 	my $c = $s->[$CONFIG];
 	if(! defined $c->{AutoNumberCounter}) {
-		$c->{AutoNumberCounter} = new File::CounterFile
+		$c->{AutoNumberCounter} = new Vend::CounterFile
 									"$c->{DIR}/$c->{name}.autonumber", $start;
 	}
 	my $num;
