@@ -100,7 +100,7 @@ sub open_table {
 			$alt_index++;
 			redo DOCONNECT;
 		}
-		die ::errmsg("Unable to connect to LDAP server %s", $host:$port);
+		die ::errmsg("Unable to connect to LDAP server %s", "$host:$port");
 	}
 	$ldap->bind(
 		dn => $config->{BIND_DN},
@@ -149,7 +149,7 @@ sub create {
 	($host, $port) = split /:/, $host if ($host =~ /:/);
 	my $column_index = Vend::Table::Common::create_columns($columns, $config);
 	my $ldap = Net::LDAP->new($host, port => $port)
-		or die ::errmsg("Unable to connect to LDAP server %s", $host:$port);
+		or die ::errmsg("Unable to connect to LDAP server %s", "$host:$port");
 #::logDebug("created object " . ::uneval($ldap));
 	$ldap->bind(
 		dn => $config->{BIND_DN},
