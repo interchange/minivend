@@ -3271,7 +3271,7 @@ my %cond_op = (
 sub pull_cond {
 	my($string, $reverse, $cond, $lhs) = @_;
 #::logDebug("pull_cond string='$string' rev='$reverse' cond='$cond' lhs='$lhs'");
-	my ($op, $rhs) = split /\s+/, $cond;
+	my ($op, $rhs) = split /\s+/, $cond, 2;
 	$rhs =~ s/^(["'])(.*)\1$/$2/;
 	if(! defined $cond_op{$op} ) {
 		logError("bad conditional operator %s in if-PREFIX-data", $op);
