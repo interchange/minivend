@@ -132,12 +132,8 @@ sub column_exists {
 	my ($locale);
 	
 	$s = $s->import_db() if ! defined $s->[$OBJ];
-	$locale = $::Scratch->{mv_locale} || 'default';
-	if (exists $s->[$CONFIG]->{MAP}->{$column}->{$locale}) {
-		$column = $s->[$CONFIG]->{MAP}->{$column}->{$locale};
-	}
-	
-	return defined($s->[$CONFIG]{COLUMN_INDEX}{lc $column});
+	my ($orig_db, $orig_col) = $s->_map_field($column);
+	return defined($orig_db->[$CONFIG]{COLUMN_INDEX}{lc $orig_col});
 }
 
 sub set_row {
