@@ -445,15 +445,17 @@ sub signio {
     }
 
     my %varmap = ( qw/
-                            ACCT     mv_credit_card_number
-                            ZIP      b_zip
-                            STREET   b_address
+						ACCT		mv_credit_card_number
+						ZIP			b_zip
+						STREET		b_address
+						SHIPTOZIP	zip
+						COMMENT1	comment1
+						COMMENT2	comment2
         /
     );
 
     my %query = (
                     AMT         => $amount,
-                    SHIPTOZIP   => $actual{zip},
                     EXPDATE     => $exp,
                     TENDER      => 'C',
                     PWD         => $secret,
