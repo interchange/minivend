@@ -1491,7 +1491,7 @@ sub new_account {
 				if $Vend::Cfg->{CookieLogin};
 
 			$self->log('new account') if $options{'log'};
-			$self->set_values();
+			$self->set_values() unless $self->{OPTIONS}{no_set};
 			$self->login()
 				or die ::errmsg(
 							"Cannot log in after new account creation: %s",
