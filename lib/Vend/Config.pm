@@ -131,7 +131,6 @@ qw/
 my %HashDefaultBlank = (qw(
 					SOAP			1
 					Mail			1
-					DatabaseDefault	1
 					Accounting		1
 					Levy			1
 				));
