@@ -301,6 +301,7 @@ sub write_session {
 	$Vend::Session->{username} = $Vend::username;
 	$Vend::Session->{admin} = $Vend::admin;
 	$Vend::Session->{superuser} = $Vend::superuser;
+	$Vend::Session->{login_table} = $Vend::login_table;
     $s = ! $File_sessions ? uneval_fast($Vend::Session) : $Vend::Session;
     $Vend::SessionDBM{$Vend::SessionName} = $s or 
 		die "Data was not stored in SessionDBM\n";
@@ -394,9 +395,10 @@ sub read_session {
 
 	$Vend::Session->{host} = $CGI::host;
 
-	$Vend::username = $Vend::Session->{username};
-	$Vend::admin    = $Vend::Session->{admin};
+	$Vend::username    = $Vend::Session->{username};
+	$Vend::admin       = $Vend::Session->{admin};
 	$Vend::superuser   = $Vend::Session->{superuser};
+	$Vend::login_table = $Vend::Session->{login_table};
 
 	$Vend::Session->{arg}  = $Vend::Argument;
 
