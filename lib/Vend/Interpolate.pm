@@ -3495,7 +3495,7 @@ my $once = 0;
 											?	pull_if($4)
 											:	pull_else($4)!ige;
 		$run =~ s#$B$QR{_calc}$E$QR{'/_calc'}#tag_calc($1)#ige;
-		$run =~ s#$B$QR{_exec}$E$QR{'/_exec'}#($Vend::Cfg->{Sub}{$1} || sub { 'ERROR' })->($2,$row)#ige;
+		$run =~ s#$B$QR{_exec}$E$QR{'/_exec'}#init_calc() if ! $Calc_initialized;($Vend::Cfg->{Sub}{$1} || sub { 'ERROR' })->($2,$row)#ige;
 		$run =~ s#$B$QR{_filter}$E$QR{'/_filter'}#filter_value($1,$2)#ige;
 		$run =~ s#$B$QR{_last}$E$QR{'/_last'}#
                     my $tmp = interpolate_html($1);
@@ -3604,7 +3604,7 @@ sub iterate_hash_list {
 											?	pull_if($4)
 											:	pull_else($4)!ige;
 		$run =~ s#$B$QR{_calc}$E$QR{'/_calc'}#tag_calc($1)#ige;
-		$run =~ s#$B$QR{_exec}$E$QR{'/_exec'}#($Vend::Cfg->{Sub}{$1} || sub { 'ERROR' })->($2,$item)#ige;
+		$run =~ s#$B$QR{_exec}$E$QR{'/_exec'}#init_calc() if ! $Calc_initialized;($Vend::Cfg->{Sub}{$1} || sub { 'ERROR' })->($2,$item)#ige;
 		$run =~ s#$B$QR{_filter}$E$QR{'/_filter'}#filter_value($1,$2)#ige;
 		$run =~ s#$B$QR{_last}$E$QR{'/item_last'}#
                     my $tmp = interpolate_html($1);
