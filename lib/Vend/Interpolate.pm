@@ -94,8 +94,6 @@ my @Share_routines;
 
 BEGIN {
 	@Share_vars = qw/
-							$mv_filter_value
-							$mv_filter_name
 							$s
 							$q
 							$item
@@ -914,8 +912,6 @@ sub input_filter_do {
 	$routine = $opt->{routine} || ''
 		if ! $routine;
 	if($routine =~ /\S/) {
-		$Vend::Interpolate::mv_filter_value = $CGI::values{$varname};
-		$Vend::Interpolate::mv_filter_name = $varname;
 		$routine = interpolate_html($routine);
 		$CGI::values{$varname} = tag_calc($routine);
 	}
