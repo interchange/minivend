@@ -311,10 +311,10 @@
                <td style="padding: 5px">[page href="admin/order_status"
 			   							 form="order=[loop-code]"
 									]
-                [display    table=transactions
+                [display    table=orderline
                             column=status
-                            key="[loop-code]"
-                            arbitrary=order_view
+                            key="[sql-code]"
+                            type=display
                 ]</A>
 [calc]
 	$total_weight += ([field field=weight key="[sql-param sku]"] + 0 || 0) * [sql-data orderline quantity];
