@@ -138,6 +138,7 @@ sub open_table {
 *field_settor	= \&Vend::Table::Common::field_settor;
 *isopen			= \&Vend::Table::Common::isopen;
 *inc_field		= \&Vend::Table::Common::inc_field;
+*name			= \&Vend::Table::Common::name;
 *numeric		= \&Vend::Table::Common::numeric;
 *quote			= \&Vend::Table::Common::quote;
 *record_exists	= \&Vend::Table::Common::record_exists;

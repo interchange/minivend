@@ -648,6 +648,7 @@ eval {
 # Unfortunate hack need for Safe searches
 *column_index	= \&Vend::Table::Common::column_index;
 *column_exists	= \&Vend::Table::Common::column_exists;
+*name			= \&Vend::Table::Common::name;
 *numeric		= \&Vend::Table::Common::numeric;
 *isopen			= \&Vend::Table::Common::isopen;
 *reset			= \&Vend::Table::Common::reset;

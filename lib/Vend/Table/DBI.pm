@@ -684,6 +684,12 @@ sub dbh {
 	return $s->[$DBI];
 }
 
+sub name {
+	my ($s) = shift;
+	$s = $s->import_db() if ! defined $s->[$DBI];
+	return $s->[$CONFIG]{REAL_NAME} || $s->[$CONFIG]{name};
+}
+
 sub columns {
 	my ($s) = shift;
 	$s = $s->import_db() if ! defined $s->[$DBI];

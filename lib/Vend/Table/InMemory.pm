@@ -226,6 +226,7 @@ sub ref {
 *test_column	= \&Vend::Table::Common::test_column;
 *column_index	= \&Vend::Table::Common::column_index;
 *field			= \&Vend::Table::Common::field;
+*name			= \&Vend::Table::Common::name;
 *numeric		= \&Vend::Table::Common::numeric;
 *set_field		= \&Vend::Table::Common::set_field;
 *suicide		= \&Vend::Table::Common::suicide;

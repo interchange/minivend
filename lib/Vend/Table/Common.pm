@@ -247,6 +247,12 @@ sub record_exists {
     return $r;
 }
 
+sub name {
+	my ($s) = shift;
+	$s = $s->import_db() if ! defined $s->[$TIE_HASH];
+	return $s->[$CONFIG]{name};
+}
+
 sub row_hash {
     my ($s, $key) = @_;
 	$s = $s->import_db() if ! defined $s->[$TIE_HASH];
