@@ -2017,13 +2017,14 @@ sub update_data {
 						 next;
 					};
 				Vend::Interpolate::tag_value_extended(
-										$file_fields[$i],
-										{
-											outfile => $outfile,
-											umask => '022',
-											yes => '1',
-										}
-										)
+						$file_fields[$i],
+						{
+							outfile => $outfile,
+							umask => $::Scratch->{mv_create_umask} || '022',
+							auto_create_dir => $::Scratch->{mv_auto_create_dir},
+							yes => '1',
+						}
+					)
 					or do {
 						 logError("failed to write %s: %s", $outfile, $!);
 						 next;
