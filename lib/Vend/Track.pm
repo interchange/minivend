@@ -102,6 +102,10 @@ sub header {
 			push(@hdr, "$aref->[0]=$aref->[1]");
 		}
 	}
+	for(@hdr) {
+		s/\n/<CR>/g;
+		s/;/<SEMICOLON>/g;
+	}
 	join('&',@hdr);
 }
 
