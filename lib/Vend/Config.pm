@@ -524,24 +524,8 @@ sub catalog_directives {
 	['UserDB',			 'locale',	     	 ''], 
 	['UserDatabase',	 undef,		     	 ''],  #undocumented
 	['RobotLimit',		 'integer',		      0],
-	my $rfh = $s->{rfh};
-	if($Vend::write_redirect and ! $rfh) {
-		$rfh = gensym();
-		my $fn = $Vend::Cfg->{RedirectCache} . $CGI::path_info;
-		my $save = umask(022);
-		open $rfh, "> $fn"
-			or do {
-				::logError("Unable to write redirected page %s: %s", $fn, $!);
-				undef $Vend::write_redirect;
-				undef $rfh;
-			};
-		$s->{rfh} = $rfh;
-		umask $save;
-	}
-
 	['OrderLineLimit',	 'integer',		      0],
 	['StaticPage',		 'warn',     	     ''],
-		print $rfh $$body if $rfh;
 	['StaticPath',		 'warn',     	     ''],
 	['StaticPattern',	 'warn',     	     ''],
 	['StaticSuffix',	 'warn',     	     ''],
@@ -619,7 +603,6 @@ sub set_directive {
 	return undef;
 }
 
-	print $rfh $$body if $rfh;
 sub get_catalog_default {
 	my ($directive) = @_;
 	my $directives = catalog_directives();
@@ -876,7 +859,6 @@ CONFIGLOOP:
 #print "found $_\n";
 			undef $ifdef;
 			undef $begin_ifdef;
-	close $http->{rfh} if $http->{rfh};
 			next;
 		}
 		if(/^\s*${leadinghash}if(n?)def\s+(.*)/i) {

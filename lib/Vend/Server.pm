@@ -524,8 +524,24 @@ sub respond {
 #	select($oldfh);
 # END SUNOSDIGITAL
 
+	my $rfh = $s->{rfh};
+	if($Vend::write_redirect and ! $rfh) {
+		$rfh = gensym();
+		my $fn = $Vend::Cfg->{RedirectCache} . $CGI::path_info;
+		my $save = umask(022);
+		open $rfh, "> $fn"
+			or do {
+				::logError("Unable to write redirected page %s: %s", $fn, $!);
+				undef $Vend::write_redirect;
+				undef $rfh;
+			};
+		$s->{rfh} = $rfh;
+		umask $save;
+	}
+
 	if($Vend::ResponseMade || $CGI::values{mv_no_header} ) {
 		print $fh $$body;
+		print $rfh $$body if $rfh;
 #show_times("end response send") if $Global::ShowTimes;
 		return 1;
 	}
@@ -603,6 +619,7 @@ sub respond {
 
     print $fh "\r\n";
     print $fh $$body;
+	print $rfh $$body if $rfh;
 #show_times("end response send") if $Global::ShowTimes;
     $Vend::ResponseMade = 1;
 }
@@ -859,6 +876,7 @@ sub connection {
 	show_times("begin dispatch") if $Global::ShowTimes;
     ::dispatch($http) if $http;
 	show_times("end connection") if $Global::ShowTimes;
+	close $http->{rfh} if $http->{rfh};
 	undef $Vend::Cfg;
 }
 
