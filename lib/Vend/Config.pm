@@ -349,6 +349,7 @@ sub catalog_directives {
     ['Route',            'locale',           ''],
 	['LocaleDatabase',    undef,             ''],
 	['DbDatabase',        'dbdatabase',        ''],
+	['RouteDatabase',     'routeconfig',        ''],
 	['DirectiveDatabase', 'dbconfig',        ''],
 	['VariableDatabase',  'dbconfig',        ''],
     ['RequiredFields',   undef,              ''],
@@ -1961,6 +1962,7 @@ my %Hash_ref = (  qw!
 							FILTER_FROM   FILTER_FROM
 							FILTER_TO     FILTER_TO 
 							COLUMN_DEF    COLUMN_DEF
+							FIELD_ALIAS   FIELD_ALIAS
 							NUMERIC       NUMERIC
 							WRITE_CATALOG WRITE_CATALOG
 					! );
@@ -2238,6 +2240,35 @@ sub get_configdb {
 		return '';
 	}
 	return ($db, $table);
+}
+
+sub parse_routeconfig {
+	my ($var, $value) = @_;
+
+	my ($table, $file, $type);
+	return '' if ! $value;
+	local($Vend::Cfg) = $C;
+
+	my ($db, $table) = get_configdb($var, $value);
+
+
+	my ($k, @f);	# key and fields
+	my @l;			# refs to locale repository
+	my @n;			# names of locales
+	my @h;			# names of locales
+
+	@n = $db->columns();
+	shift @n;
+	my $i;
+	while( ($k, undef, @f ) = $db->each_record) {
+::logDebug("Got route key=$k f=@f");
+		for ($i = 0; $i < @f; $i++) {
+			next unless length($f[$i]);
+			$C->{Route_repository}{$k}{$n[$i]} = $f[$i];
+		}
+	}
+	$db->close_table();
+	return $table;
 }
 
 sub parse_dbconfig {

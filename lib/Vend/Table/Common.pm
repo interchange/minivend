@@ -89,8 +89,12 @@ sub create_columns {
 		$config->{KEY} = $columns->[0];
 	}
     my $i;
+	my $alias = $config->{FIELD_ALIAS} || {};
+::logDebug("field_alias: " . ::uneval($alias)) if $config->{FIELD_ALIAS};
     for ($i = 0;  $i < @$columns;  ++$i) {
         $column_index->{$columns->[$i]} = $i;
+		defined $alias->{$columns->[$i]}
+			and $column_index->{ $alias->{ $columns->[$i] } } = $i;
 		next unless defined $key and $key eq $columns->[$i];
 		$config->{KEY_INDEX} = $i;
 		undef $key;

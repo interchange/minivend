@@ -833,15 +833,17 @@ sub readfile {
     my($file, $no) = @_;
     my($contents);
     local($/);
-	$Global::Variable->{MV_FILE} = $file;
 
-	if($no and ($file =~ m:^\s*/: or $file =~ m#\.\./.*\.\.#)) {
+	if($no and (::file_name_is_absolute($file) or $file =~ m#\.\./.*\.\.#)) {
 		::logError("Can't read file '%s' with NoAbsolute set" , $file);
 		::logGlobal({}, "Can't read file '%s' with NoAbsolute set" , $file );
 		return undef;
 	}
 
+    return undef if ! -f $file;
     return undef if ! open(READIN, $file);
+
+	$Global::Variable->{MV_FILE} = $file;
 
 	binmode(READIN) if $Global::Windows;
 	undef $/;
@@ -854,8 +856,11 @@ sub readfile {
 						$key = $2 || $3;		
 						defined $Vend::Cfg->{Locale}->{$key}
 						?  ($Vend::Cfg->{Locale}->{$key})	: $3 ~eg;
+		$contents =~ s~\[LC\]([\000-\377]*?)\[/LC\]~
+						find_locale_bit($1) ~eg;
+		undef $Lang;
 	}
-    $contents || '';
+    return $contents;
 }
 
 sub is_yes {
