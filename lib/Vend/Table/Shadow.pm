@@ -64,6 +64,9 @@ sub create {
 	
 	no strict 'refs';
 	$obj = &{"Vend::Table::$config->{OrigClass}::create"}('',$config,$columns,$tablename);
+	# during an import the object has the wrong class, so we fix it here
+	bless $obj, "Vend::Table::$config->{OrigClass}";
+
 	my $s = [$config, $tablename, undef, $columns, undef, $obj];
 	bless $s, $class;
 	
