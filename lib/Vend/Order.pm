@@ -1396,7 +1396,7 @@ sub route_order {
 			$::Values->{mv_credit_card_info} = build_cc_info(\%attrlist);
 		}
 		elsif ($::Values->{mv_credit_card_info}) {
-			$::Values->{mv_credit_card_info} =~ /BEGIN\s+PGP\s+MESSAGE/
+			$::Values->{mv_credit_card_info} =~ /BEGIN\s+[PG]+\s+MESSAGE/
 				and $pre_encrypted = 1;
 		}
 
