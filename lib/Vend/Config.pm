@@ -960,7 +960,7 @@ CONFIGLOOP:
 				my $msg = errmsg(
 					"Please specify the %s directive in the configuration file '%s'",
 					$CDname{$var},
-					$configfile,
+					($passed_file || $C->{ConfigFile}),
 				);
 
 				die "$msg\n";
