@@ -1,10 +1,10 @@
 # Dispatch.pm: dispatch URL to page or handler
 #
-# $Id: Dispatch.pm,v 1.9 1995/10/30 19:52:20 amw Exp $
+# $Id: Dispatch.pm,v 1.10 1996/01/30 23:22:41 amw Exp $
 #
 package Vend::Dispatch;
 
-# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+# Copyright 1995, 1996 by Andrew M. Wilcox <awilcox@maine.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,13 +27,24 @@ require Exporter;
              report_error);
 
 use strict;
-use Vend::Directive qw(Dump_request Dump_session Default_page Page_URL
+use Vend::Directive qw(Dump_request Default_page Page_URL
                        Display_errors);
 require Vend::Http;
 use Vend::Log;
 use Vend::Page;
 use Vend::Session;
 use Vend::Uneval;
+
+=head1 NAME
+
+Vend::Dispatch - dispatches HTTP request
+
+=head1 DESCRIPTION
+
+The dispatch() function accepts a URL and dispatches to an action
+function or displays the indicated catalog page.  
+
+=cut
 
 my $H;
 sub http { $H; }
@@ -59,55 +70,34 @@ sub cgi_user {
 
 ##
 
-my $Debug;
-my $date_logged;
+my ($Reports);
 
-sub dump_date {
-    unless ($date_logged) {
-        lock_log();
-        log_error(localtime() . "\n");
-        $date_logged = 1;
-    }
+sub report {
+    my ($message) = @_;
+    $Reports .= $message;
+}
+sub report_error { report(@_) }
+
+
+sub show_date {
+    return localtime() . "\n";
 }
 
-my $request_logged;
-my $request_path;
-my $request_session_id;
-
-sub dump_request {
-    unless ($request_logged) {
-        dump_date();
-        log_error("Request: Path = '$request_path'; ".
-                  "Session ID = ".
-                  (defined($request_session_id) ? "'$request_session_id'"
-                                                : "<not specified>").
-                  "\n");
-        $request_logged = 1;
-    }
+sub show_initial_session {
+    my ($initial_session) = @_;
+    return 'Initial session ' . session_id() . ': '
+           . uneval($initial_session) . "\n";
 }
 
-my $initial_session_logged;
-my $initial_session;
-
-sub dump_initial_session {
-    unless ($initial_session_logged) {
-        dump_date();
-        log_error('Session '.session_id().': '.
-                  uneval($initial_session)."\n");
-        $initial_session_logged = 1;
-    }
+sub show_request {
+    my ($request_path, $request_session_id) = @_;
+    return "Request: Path = '$request_path'; "
+           . "Session ID = "
+           . (defined($request_session_id) ? "'$request_session_id'"
+                                           : "undef")
+           . "\n";
 }
 
-sub report_error {
-    my ($msg) = @_;
-
-    dump_request();
-    dump_initial_session();
-    log_error($msg);
-}
-
-
-##
 
 # based on longmess() from Carp.pm
 
@@ -119,18 +109,6 @@ sub longmess {
 	$mess .= "    in $sub called from $file line $line\n";
     }
     $mess;
-}
-
-sub log_warning {
-    my $l = longmess($_[0], 1);
-    print $l if $Debug;
-    report_error($l);
-}
-
-sub expound_error {
-    my $l = longmess($_[0], 1);
-    print $l if $Debug;
-    die $l;
 }
 
 
@@ -145,13 +123,7 @@ sub dispatch {
 
     $H = $http;
 
-    $Debug = $debug;
-    $date_logged = 0;
-    $request_logged = 0;
-    $initial_session_logged = 0;
     $Vend::Message = '';
-
-    # @path = ();
 
     my $args = {};
     my $q = http()->Query;
@@ -163,11 +135,9 @@ sub dispatch {
         }
     }
 
-    $request_path = http()->Path_Info;
+    my $request_path = http()->Path_Info;
     $request_path = '' unless defined $request_path;
-    $request_session_id = $sessionid = $args->{se};
-
-    dump_request if Dump_request;
+    my $request_session_id = $sessionid = $args->{se};
 
     if (defined $sessionid && $sessionid ne '') {
         open_session($sessionid, cgi_host(), cgi_user());
@@ -177,24 +147,72 @@ sub dispatch {
 
     my $initial_session = Session;
 
-    my $eval_error;
+    my ($error_traceback, @warnings, @warning_traceback, $eval_error);
+
+    my $trace_error = sub {
+        my ($msg) = @_;
+        $error_traceback = longmess($msg, 1)
+            unless $msg =~ m/^ABORT:/;
+        die $msg;
+    };
+
+    my $trace_warning = sub {
+        my ($msg) = @_;
+        push @warnings, $msg;
+        push @warning_traceback, longmess($msg, 1);
+    };
+
+    $Reports = '';
+
     {
-        local $SIG{'__DIE__'} = \&expound_error;
-        local $SIG{'__WARN__'} = \&log_warning;
+        local $SIG{'__DIE__'} = $trace_error;
+        local $SIG{'__WARN__'} = $trace_warning;
         my $saved_eval_error = $@;
-        eval {
-            act($request_path, $args);
-        };
+        eval { act($request_path, $args) };
         $eval_error = $@;
         $@ = $saved_eval_error;
     }
 
+    undef $eval_error if $eval_error =~ m/^ABORT:/;
+
+    my $problem = $Reports || $eval_error || @warnings;
+
+    my $report = '';
+    if ($problem or Dump_request) {
+        $report = show_date() . show_initial_session($initial_session)
+                  . show_request($request_path, $request_session_id);
+    }
+
+    if ($problem) {
+        $report .= $Reports if $Reports;
+        print $Reports if $debug and $Reports;
+
+        $report .= join('', @warnings) if @warnings;
+        print join('', @warnings) if $debug and @warnings;
+
+        $report .= $eval_error if $eval_error;
+        print $eval_error if $debug and $eval_error;
+
+    }
+
+    if (Dump_request and not $eval_error) {
+        $report .= "Final session " . session_id() . ": "
+                   . uneval(Session) . "\n";
+    }
+
+    if ($eval_error or @warnings) {
+        $report .= "\nTraceback information:\n";
+        $report .= $error_traceback if $eval_error;
+        $report .= join("\n", @warning_traceback) if @warnings;
+    }
+
+    log_error $report . "\n" if $report;
+
     if ($eval_error) {
         close_session(0);
-        report_error($eval_error);
         if (not http()->response_made) {
             if (Display_errors) {
-                http()->respond("text/plain", "$eval_error\n");
+                http()->respond("text/plain", $report);
             }
             else {
                 technical_difficulties();
@@ -204,13 +222,8 @@ sub dispatch {
     }
     else {
         close_session(1);
-        log_error('Session '.session_id().': '.
-                  uneval($initial_session)."\n")
-            if Dump_session;
     }
 
-    log_error("\n") if $date_logged;
-    unlock_log();
     undef $H;
     $abort;
 }
@@ -313,8 +326,8 @@ sub vend_url {
 sub interaction_error {
     my ($msg) = @_;
 
-    report_error("Difficulty interacting with browser:\n$msg");
-    display_special_page("interact", $msg);
+    display_special_page("interact", $msg) unless http->response_made;
+    die "Difficulty interacting with browser:\n$msg";
 }
 
 # Page
@@ -322,7 +335,7 @@ sub interaction_error {
 sub _display_page {
     my ($name) = @_;
 
-    my $code = page_code($name, $Debug);
+    my $code = page_code($name);
     die "Missing page: $name\n" unless defined $code;
     $Current_page = $name;
     http()->respond("text/html", &$code());
@@ -342,7 +355,7 @@ sub display_page {
     my ($name) = @_;
     my ($text);
 
-    if (defined page_code($name, $Debug)) {
+    if (defined page_code($name)) {
         _display_page($name);
         return 1;
     }

@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # setup:  read configuration file and install application
 #
-# $Id: setup,v 1.20 1995/12/15 21:55:26 amw Exp $
+# $Id: setup,v 1.22 1996/01/30 23:34:53 amw Exp $
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-my $Version = "0.3.3";
+my $Version = "0.3.4";
 
 use Getopt::Long;
 # use strict;
@@ -277,7 +277,6 @@ sub configuration {
     directive 'Display_errors',    'No',       'yesno';
     directive 'Session_expire',    '4 hours',  'timespan';
     directive 'Dump_request',      'No',       'yesno';
-    directive 'Dump_session',      'No',       'yesno';
 }
 
 
@@ -371,10 +370,10 @@ sub app_dir {
 sub parse_url {
     my ($c, $value) = @_;
 
-    if ($value !~ m/^http:/i) {
+    if ($value !~ m/^https?:/i) {
         $c->warning("The " . $c->directive() .
                     " directive (now set " .
-                    "to '$value') should probably start with 'http:'");
+                    "to '$value') should probably start with 'http:' or 'https:'");
     }
     
     $value =~ s!/$!!;

@@ -1,6 +1,6 @@
 # Table/GDBM.pm: access a table stored in a GDBM file
 #
-# $Id: GDBM.pm,v 1.4 1995/10/10 19:07:13 amw Exp $
+# $Id: GDBM.pm,v 1.5 1995/12/20 18:24:52 amw Exp $
 #
 package Vend::Table::GDBM;
 
@@ -113,7 +113,7 @@ sub row {
     my ($s, $key) = @_;
     my $line = $s->[3]{$key};
     croak "There is no row with index '$key'" unless defined $line;
-    return split(/\t/, $line);
+    return split(/\t/, $line, 9999);
 }
 
 sub field_accessor {
@@ -158,7 +158,7 @@ sub each_record {
     my ($s) = @_;
     my @a = each %{$s->[3]};
     if (@a) {
-        return ($a[0], split(/\t/, $a[1]));
+        return ($a[0], split(/\t/, $a[1], 9999));
     }
     else {
         return ();

@@ -1,10 +1,10 @@
 # Startup.pm:  startup Vend program and process command line arguments
 #
-# $Id: Startup.pm,v 1.21 1995/12/15 21:55:28 amw Exp $
+# $Id: Startup.pm,v 1.23 1996/01/30 23:34:55 amw Exp $
 #
 package Vend::Startup;
 
-# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+# Copyright 1995, 1996 by Andrew M. Wilcox <awilcox@maine.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,21 +20,26 @@ package Vend::Startup;
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+use Fcntl;
+use FileHandle;
 use Getopt::Long;
+use POSIX;
 use strict;
 use Vend::Directive
-      qw(App_directory Data_directory Modules Phd_directory
-         Display_errors Read_permission Database
+      qw(App App_directory App_program Data_directory Modules Phd_directory
+         Perl_program Display_errors Read_permission Database
          Session_expire Write_permission);
 use Vend::Dispatch;
 require Vend::Http;
+use Vend::lock;
+use Vend::Log;
 use Vend::Page;
 use Vend::Require;
 use Vend::Server;
 use Vend::Session;
 use Vend::Uneval;
 
-my $Vend_version = "0.3.3";
+my $Vend_version = "0.3.4";
 
 my $Running_as_cgi_bin;
 my $Mode;
@@ -53,8 +58,7 @@ sub parse_options {
                "expire",
                "dump-sessions",
                "server",
-               "debug",
-               "restart")
+               "debug")
         or exit 1;
 
     # if ($Vend::Startup::opt_config) {
@@ -75,14 +79,12 @@ sub parse_options {
 	$Mode = 'dump-sessions';
     } elsif ($Vend::Startup::opt_server) {
 	$Mode = 'server';
-    } elsif ($Vend::Startup::opt_restart) {
-        $Mode = 'restart';
     }
 }
 
 
 sub version {
-    print "Vend version $Vend_version, Copyright 1995 Andrew M. Wilcox.\n";
+    print "Vend version $Vend_version, Copyright 1995, 1996 Andrew M. Wilcox.\n";
 }
 
 sub usage {
@@ -140,6 +142,8 @@ sub expound_error {
     die $l;
 }
 
+my @Modules;
+
 sub startup {
     my ($initialize) = @_;
 
@@ -174,8 +178,8 @@ sub startup {
     # my $vdb_class = "Vdb_" . Database;
     # require "$vdb_class.pm";
 
-    my @modules = split(/\s+/, Modules);
-    foreach (@modules) {
+    @Modules = split(/\s+/, Modules);
+    foreach (@Modules) {
         s!::!/!g;
         print "Loading $_\n" if ($Mode eq 'test');
         Require("$_.pm");
@@ -183,12 +187,7 @@ sub startup {
 
     # read_config_file($config_file);
 
-    {
-        no strict 'refs';
-        foreach (@modules) {
-            &{$_."::init"}() if defined &{$_."::init"};
-        }
-    }
+    run_module_setup_functions();
 
     read_phds(Phd_directory);
     read_templates(Phd_directory);
@@ -198,18 +197,13 @@ sub startup {
         exit 0;
     }
 
-    initialize_Session(Database,
-                       Data_directory,
-                       Session_expire,
-                       $File_creation_mask);
-
     if ($Mode eq 'cgi') {
+        die;
         my $http = new Vend::Http::CGI;
         $http->populate(\%ENV);
         dispatch($http);
     }
     elsif ($Mode eq 'server')        { run_server($Vend::Startup::opt_debug) }
-    elsif ($Mode eq 'restart')       { restart_server() }
     elsif ($Mode eq 'expire')        { expire_sessions() }
     elsif ($Mode eq 'dump-sessions') { dump_sessions() }
     else {
@@ -217,5 +211,173 @@ sub startup {
     }
     exit 0;
 }
+
+sub run_module_setup_functions {
+    no strict 'refs';
+    my ($module, $function);
+    foreach $module (@Modules) {
+        $function = $module . "::setup";
+        &$function() if defined &$function;
+    }
+}
+
+sub run_module_init_functions {
+    no strict 'refs';
+    my ($module, $function);
+    foreach $module (@Modules) {
+        $function = $module . "::init";
+        &$function() if defined &$function;
+    }
+}
+
+my $Pid_file;
+
+sub aquire_server_lock {
+    $Pid_file = Data_directory . "/" . App . ".pid";
+    open(PID, "+>>$Pid_file") or die "Couldn't open '$Pid_file': $!\n";
+    autoflush PID 1;
+
+    # server already running?
+    unless (lockfile(\*PID, 1, 0)) {
+        seek(PID, 0, 0) or die "Can't seek '$Pid_file': $!\n";
+        my $pid = <PID> or die "Couldn't read '$Pid_file': $!\n";
+        chomp $pid;
+        kill('TERM', $pid)
+            or die "Couldn't send signal to terminate process $pid: $!\n";
+        print "Shutting down current Vend " . App . " server...\n";
+        lockfile(\*PID, 1, 1);
+    }
+
+    {
+        no strict 'subs';       # avoid Perl truncate bug
+        truncate(PID, 0) or die "Can't truncate '$Pid_file': $!\n";
+    }
+    print PID "$$\n";
+}
+
+
+# sub grab_pid {
+#     my $ok = lockfile(\*Vend::Server::Pid, 1, 0);
+#     if (not $ok) {
+#         chomp(my $pid = <Vend::Server::Pid>);
+#         return $pid;
+#     }
+#     {
+#         no strict 'subs';
+#         truncate(Vend::Server::Pid, 0) or die "Couldn't truncate pid file: $!\n";
+#     }
+#     print Vend::Server::Pid $$, "\n";
+#     return 0;
+# }
+
+# sub open_pid {
+#     $Pid_file = Data_directory . "/" . App . ".pid";
+#     open(Vend::Server::Pid, "+>>$Pid_file")
+#         or die "Couldn't open '$Pid_file': $!\n";
+#     seek(Vend::Server::Pid, 0, 0);
+#     my $o = select(Vend::Server::Pid);
+#     $| = 1;
+#     {
+#         no strict 'refs';
+#         select($o);
+#     }
+# }
+
+sub become_daemon {
+    my ($pid1, $pid2);
+
+    if ($pid1 = fork) {
+        # parent
+        wait;
+        exit 0;
+    }
+    elsif (not defined $pid1) {
+        # fork error
+        print "Can't fork: $!\n";
+        exit 1;
+    }
+
+    # child 1
+    if ($pid2 = fork) {
+        # child 1
+        exit 0;
+    }
+    elsif (not defined $pid2) {
+        print "child 1 can't fork: $!\n";
+        exit 1;
+    }
+
+    # child 2
+    sleep 1 until getppid == 1;
+    setsid();
+}
+
+
+sub run_server {
+    my ($debug) = @_;
+    my $next;
+    my $pid;
+
+    if ($debug) {
+        run_server_in_foreground();
+    }
+    else {
+        run_daemon_server();
+    }
+
+    initialize_Session(Database,
+                       Data_directory,
+                       Session_expire,
+                       $File_creation_mask);
+    run_module_init_functions();
+
+    my $next = server(Data_directory . "/socket", $debug);
+
+    if (not $debug and $next eq 'reload') {
+        log_error(localtime().
+                  "\nServer restarting on signal HUP\n\n");
+        system(Perl_program() . " " . App_program . " -server &");
+    }
+    exit 0;
+}
+
+sub run_server_in_foreground {
+    aquire_server_lock();
+    print "Vend ", App(), " server started (process id $$)\n";
+}
+
+sub run_daemon_server {
+    # locks are not held across fork(), so we'll wait to shutdown the
+    # old running server and lock the pid file after the fork.
+
+    become_daemon();
+    aquire_server_lock();
+
+    print "Vend ", App(), " server started (process id $$)\n";
+
+    open(STDOUT, ">&Vend::Log::ERROR");
+    $| = 1;
+    open(STDERR, ">&Vend::Log::ERROR");
+    select(STDERR); $| = 1; select(STDOUT);
+    close(STDIN);
+
+    log_error(localtime()."\nServer running on pid $$\n\n");
+
+    # fcntl(PID, F_SETFD, 1)
+    #    or die "Can't fcntl close-on-exec flag for '$Pid_file': $!\n";
+}
+
+# sub restart_server {
+#     open_pid();
+#     my $pid = grab_pid();
+#     if ($pid) {
+#         log_error("Can't restart: another Vend server has already been started\n");
+#         exit 1;
+#     }
+# 
+#     log_error(localtime()."\nServer restarted with pid $$\n\n");
+#     server($Socket_file);
+# }
+
 
 1;

@@ -1,6 +1,6 @@
 # Orders.pm:  process a completed order
 #
-# $Id: Orders.pm,v 1.13 1995/12/04 20:24:43 amw Exp $
+# $Id: Orders.pm,v 1.14 1996/01/30 23:29:08 amw Exp $
 #
 package Vend::Orders;
 
@@ -89,15 +89,9 @@ sub order_body {
     my ($fn, $body);
 
     $fn = App_directory . "/report";
-    if (!open(Vend::Orders::IN, $fn)) {
-	report_error("Could not open report file '$fn': $!\n");
-	return undef;
-    }
-    {
-	local($/);
-	undef $/;
-	$body = <Vend::Orders::IN>;
-    }
+    open(IN, $fn) or die "Could not open report file '$fn': $!\n";
+    local $/ = undef;
+    $body = <Vend::Orders::IN>;
     close(Vend::Orders::IN);
 
     $body =~ s/\$(\w+)/$class->report_field($1, $seen, $sequence)/ge;

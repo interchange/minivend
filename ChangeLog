@@ -1,3 +1,50 @@
+Tue Jan 30 23:34:55 1996  Andrew Wilcox  <awilcox@maine.com>
+
+    * Vend/Startup.pm, setup: Version 0.3.4.
+
+    * setup (configuration): take out Dump_session directive.
+    (parse_url): accept "https:" without warning.
+
+    * Vend/Util.pm (wrap, fill_table, file_modification_time): new functions.
+
+    * Vend/Table/Import.pm (import_ascii_delimited):
+    fix bug where trailing empty fields were
+      getting dropped.
+
+    * Vend/Orders.pm (order_body):
+    call die() if the report file can't be opened.
+
+    * Vend/Startup.pm (startup):
+    call setup() in modules before starting server, and init()
+      afterwards.  Initialize session after starting the server.
+    (run_module_setup_functions, run_module_init_functions): new
+      functions.
+    (aquire_server_lock, become_daemon, run_server_in_foreground,
+      run_deamon_server): new functions.
+    (run_server): moved here from Server.pm.  Now kills a running Vend
+      server before starting the new one.
+
+    * Vend/Server.pm (run_server): moved to Startup.pm.
+    (restart_server): deleted.
+
+    * Vend/Dispatch.pm:
+    No longer dump error and warning tracebacks to the screen, but only
+      include them in the error log file.
+    (dispatch): don't perform traceback if error begins with "ABORT:".
+    (interaction_error): now calls die().
+    (_display_page): take out $Debug argument.
+    (report): new function, synonym for report_error().
+
+    * Vend/Dispatch.pm, Vend/Directive.pm, Vend/Builtin.pm:
+    Documentation update.
+
+    * Vend/Shopcart.pm: New module.
+
+Wed Dec 20 18:24:52 1995  Andrew Wilcox  <awilcox@maine.com>
+
+    * Vend/Table/GDBM.pm (row, each_record):
+    wasn't splitting out trailing empty field values.
+
 Fri Dec 15 21:55:28 1995  Andrew Wilcox  <awilcox@maine.com>
 
     * Vend/Startup.pm, setup: Version 0.3.3

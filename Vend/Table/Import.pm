@@ -1,6 +1,6 @@
 # Table/Import.pm: import a table
 #
-# $Id: Import.pm,v 1.2 1995/10/31 14:18:46 amw Exp $
+# $Id: Import.pm,v 1.3 1996/01/30 23:30:10 amw Exp $
 #
 package Vend::Table::Import;
 
@@ -43,7 +43,7 @@ sub import_ascii_delimited {
     eval <<"END";
         while (<IN>) {
             chomp;
-            \@fields = split(/$delimiter/, \$_);
+            \@fields = split(/$delimiter/, \$_, 99999);
             \$key = shift \@fields;
             \$out->set_row(\$key, \@fields);
         }

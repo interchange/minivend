@@ -1,6 +1,6 @@
 # Directive.pm: provides access to configuration directives
 #
-# $Id: Directive.pm,v 1.5 1995/10/30 19:51:51 amw Exp $
+# $Id: Directive.pm,v 1.6 1996/01/30 23:17:30 amw Exp $
 #
 package Vend::Directive;
 
@@ -23,6 +23,22 @@ package Vend::Directive;
 use Carp;
 use strict;
 no strict 'refs';
+
+=head1 NAME
+
+Vend::Directive - Access configuration directives
+
+=head1 SYNOPSIS
+
+    use Vend::Directive qw(Data_directory Mail_order_to);
+
+=head1 DESCRIPTION
+
+For each directive listed, a subroutine is created in the caller's
+namespace which returns the value of the configuration directive of
+the same name.
+
+=cut
 
 sub import {
     my ($package) = caller;

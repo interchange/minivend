@@ -1,6 +1,6 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.13 1995/12/15 20:11:53 amw Exp $
+# $Id: Server.pm,v 1.14 1996/01/30 23:23:59 amw Exp $
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -50,17 +50,13 @@ sub respond {
 package Vend::Server;
 require Exporter;
 @Vend::Server::ISA = qw(Exporter);
-@Vend::Server::EXPORT = qw(run_server restart_server);
+@Vend::Server::EXPORT = qw(server);
 
-use Fcntl;
 use Socket;
 use strict;
 use Vend::Directive qw(Display_errors Perl_program App Data_directory
                        App_program);
-use Vend::lock;
 use Vend::Log;
-
-my $Socket_file = Data_directory . "/socket";
 
 sub _read {
     my ($in) = @_;
@@ -244,135 +240,5 @@ sub server {
 #     }
 # }
 
-
-my $Print_errors;
-
-sub grab_pid {
-    my $ok = lockfile(\*Vend::Server::Pid, 1, 0);
-    if (not $ok) {
-        chomp(my $pid = <Vend::Server::Pid>);
-        return $pid;
-    }
-    {
-        no strict 'subs';
-        truncate(Vend::Server::Pid, 0) or die "Couldn't truncate pid file: $!\n";
-    }
-    print Vend::Server::Pid $$, "\n";
-    return 0;
-}
-
-use POSIX;
-
-my $pidfile;
-
-sub open_pid {
-    $pidfile = Data_directory . "/" . App . ".pid";
-    open(Vend::Server::Pid, "+>>$pidfile")
-        or die "Couldn't open '$pidfile': $!\n";
-    seek(Vend::Server::Pid, 0, 0);
-    my $o = select(Vend::Server::Pid);
-    $| = 1;
-    {
-        no strict 'refs';
-        select($o);
-    }
-}
-
-sub run_server {
-    my ($debug) = @_;
-    my $next;
-    my $pid;
-
-    $Print_errors = $debug;
-
-    open_pid();
-
-    if ($debug) {
-        $pid = grab_pid();
-        if ($pid) {
-            print "The Vend ".App()." server is already running ".
-                "(process id $pid)\n";
-            exit 1;
-        }
-
-        print "Vend ", App(), " server started (process id $$)\n";
-        server($Socket_file, $debug);
-        exit 0;
-    }
-
-    else {
-        fcntl(Vend::Server::Pid, F_SETFD, 0)
-            or die "Can't fcntl close-on-exec flag for '$pidfile': $!\n";
-        my ($pid1, $pid2);
-        if ($pid1 = fork) {
-            # parent
-            wait;
-            exit 0;
-        }
-        elsif (not defined $pid1) {
-            # fork error
-            print "Can't fork: $!\n";
-            exit 1;
-        }
-        else {
-            # child 1
-            if ($pid2 = fork) {
-                # still child 1
-                exit 0;
-            }
-            elsif (not defined $pid2) {
-                print "child 1 can't fork: $!\n";
-                exit 1;
-            }
-            else {
-                # child 2
-                sleep 1 until getppid == 1;
-
-                $pid = grab_pid();
-                if ($pid) {
-                    print "The Vend ".App()." server is already running ".
-                        "(process id $pid)\n";
-                    exit 1;
-                }
-
-                print "Vend ", App(), " server started (process id $$)\n";
-
-                close(STDIN);
-                close(STDOUT);
-                close(STDERR);
-                open(STDOUT, ">&Vend::Log::ERROR");
-                $| = 1;
-                open(STDERR, ">&Vend::Log::ERROR");
-                select(STDERR); $| = 1; select(STDOUT);
-
-                log_error(localtime()."\nServer running on pid $$\n\n");
-                setsid();
-
-                fcntl(Vend::Server::Pid, F_SETFD, 1)
-                    or die "Can't fcntl close-on-exec flag for '$pidfile': $!\n";
-
-                $next = server($Socket_file, $debug);
-                if ($next eq 'reload') {
-                    log_error(localtime().
-                              "\nServer restarting on signal HUP\n\n");
-                    exec(Perl_program, App_program, "-restart");
-                }
-                exit 0;
-            }
-        }
-    }                
-}
-
-sub restart_server {
-    open_pid();
-    my $pid = grab_pid();
-    if ($pid) {
-        log_error("Can't restart: another Vend server has already been started\n");
-        exit 1;
-    }
-
-    log_error(localtime()."\nServer restarted with pid $$\n\n");
-    server($Socket_file);
-}
 
 1;

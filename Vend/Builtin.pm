@@ -1,6 +1,6 @@
 # Builtin.pm: defines placeholders available to all Vend applications
 #
-# $Id: Builtin.pm,v 1.9 1995/11/28 18:30:21 amw Exp $
+# $Id: Builtin.pm,v 1.10 1996/01/30 23:10:08 amw Exp $
 #
 package Vend::Builtin;
 
@@ -27,9 +27,38 @@ use Vend::Session;
 use Vend::Page;
 
 
+=head1 NAME
+
+Vend::Builtin - Common placeholder definitions for all applications
+
+=head1 FUNCTIONS
+
+=head2 C<[message]>
+
+Returns the contents of the global variable $Vend::Message, which is
+used to display messages such as fields in the shopping list that have
+to be filled in.
+
+=cut
+
 define_placeholder '[message]', sub {
     $Vend::Message;
 };
+
+=head2 C<[page-url "name"]>
+
+Returns the URL which references the specified catalog page.
+Names that start with a "/" are absolute names, rooted in the
+C<Page-directory> as defined in the configuration file.
+Names that don't start with a "/" are relative to the current
+page being displayed.
+
+Using a relative page name serves the same purpose as using a relative
+URL in HTML.  The difference is that the location of the page is
+determined by Vend instead of by the browser.  The page-url
+placeholder always returns a fully qualified URL.
+
+=cut
 
 define_placeholder '[page-url $pg]', sub {
     my ($pg) = @_;
@@ -47,9 +76,28 @@ define_placeholder '[page-url $pg]', sub {
     }
 };
 
+=head2 C<[default-page-url]>
+
+Returns a URL refering to the default page of the catalog.  The name
+of the default page is specified by the Default_page directive.
+
+=cut
+
 define_placeholder '[default-page-url]', sub {
     vend_url(Default_page);
 };
+
+=head2 C<[external-url $img]>
+
+Inline images and other non-textual entities are served directly by
+your HTTPD server and do not go through Vend.  You can set up an
+C<External-directory> parallel to your C<Page-directory> structure, if
+you wish.  This is particularly handy for inline images.  Absolute
+names beginning with a "/" are rooted in the C<External-URL>.
+Relative names, those which don't start with a "/", use the parallel
+location to the page currently being displayed.
+
+=cut
 
 define_placeholder '[external-url $img]', sub {
     my ($img) = @_;
@@ -67,7 +115,11 @@ define_placeholder '[external-url $img]', sub {
     }
 };
 
-# Returns the text of the user entered field.
+=head2 C<[value $field]>
+
+Returns the value of the user-entered field.
+
+=cut
 
 define_placeholder '[value $field]', sub {
     my ($field) = @_;
@@ -82,6 +134,14 @@ define_placeholder '[value $field]', sub {
     }
 };
 
+
+=head2 C<[checked-if $field $value]>
+
+This placeholder is used in a checkbox input field tag to include the
+"checked" attribule.  Returns "checked" if the C<field> currently has
+the specified C<value>, and returns nothing ("") if not.
+
+=cut
 
 define_placeholder '[checked-if $field $value]', \&checked_if;
 
