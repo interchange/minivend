@@ -483,6 +483,7 @@ sub catalog_directives {
 	['StaticTrack',		 undef,     	     ''],
 	['SOAP',			 'yesno',			 'No'],
 	['SOAP_Enable',		 'hash',			 ''],
+	['SOAP_Action',		 'action',			 ''],				   
 	['UserDB',			 'locale',	     	 ''], 
 	['UserDatabase',	 undef,		     	 ''],  #undocumented
 	['RobotLimit',		 'integer',		      0],
