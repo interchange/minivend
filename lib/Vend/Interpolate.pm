@@ -4991,7 +4991,9 @@ sub iterate_hash_list {
 	my $r = '';
 
 	# Optimize for no-match, on-match, etc
-	if($text !~ /\[(?:if-)?$Prefix-/) {
+	# Ugly second regex is for quantity-name/modifier-name, wish they would
+	# go away
+	if($text !~ /\[(?:if-)?$Prefix-/ and $text !~ /\[[qm][uo]/i) {
 		for(; $i <= $end; $i++) {
 			$r .= $text;
 		}
