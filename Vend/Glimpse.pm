@@ -1,6 +1,6 @@
 # Vend/Glimpse.pm:  Search indexes with Glimpse
 #
-# $Id: Glimpse.pm,v 2.5 1996/12/16 08:53:44 mike Exp $
+# $Id: Glimpse.pm,v 2.6 1997/01/18 15:03:38 mike Exp $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::Glimpse
 #
@@ -28,7 +28,7 @@ package Vend::Glimpse;
 require Vend::Search;
 @ISA = qw(Vend::Search);
 
-$VERSION = substr(q$Revision: 2.5 $, 10);
+$VERSION = substr(q$Revision: 2.6 $, 10);
 use Text::ParseWords;
 use strict;
 
@@ -170,7 +170,7 @@ sub search {
 		if defined $g->{search_file} && $g->{search_file};
 
 	push(@cmd, '-w') unless $g->{substring_match};
-	push(@cmd, '-l') if $g->{return_file_name};
+	push(@cmd, '-O -U') if $g->{return_file_name};
 	
 	# Calls and returns sort string based on
 	# sort_field and sort_options settings

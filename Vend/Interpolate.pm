@@ -1,6 +1,6 @@
 # Interpolate.pm - Interpret MiniVend tags
 # 
-# $Id: Interpolate.pm,v 2.20 1997/01/07 01:33:26 mike Exp $
+# $Id: Interpolate.pm,v 2.22 1997/03/14 07:54:16 mike Exp mike $
 #
 # Copyright 1996 by Michael J. Heins <mikeh@iac.net>
 #
@@ -22,7 +22,7 @@ package Vend::Interpolate;
 require Exporter;
 @ISA = qw(Exporter);
 
-$VERSION = substr(q$Revision: 2.20 $, 10);
+$VERSION = substr(q$Revision: 2.22 $, 10);
 
 @EXPORT = qw (
 
@@ -252,6 +252,9 @@ sub tag_data {
 	elsif($selector eq 'session') {
 		return (! defined $Vend::Session->{$field}
 			? '' :  $Vend::Session->{$field} );
+	}
+	elsif($selector eq 'sessionid') {
+		return $Vend::SessionID;
 	}
 	elsif($selector eq 'config') {
 		no strict 'refs';
@@ -543,6 +546,14 @@ sub tag_process_order {
 	}
 }
 
+
+sub do_tag {
+    my($text) = @_;
+    $text =~ s/&#91;/[/g;
+    $text =~ s/&#93;/]/g;
+    interpolate_html("[$text]");
+}
+
 sub tag_perl {
 	my($args,$body) = @_;
 	my ($result,$file, $sub);
@@ -575,6 +586,9 @@ sub tag_perl {
 		elsif(/^items/) {
 			$Vend::Interpolate::Safe{'items'} = [@{$Vend::Items}];
 		}
+		elsif(/^cart/) {
+			$Vend::Interpolate::Safe{'carts'} = $Vend::Session->{'carts'};
+		}
 		elsif(/^file/) {
 			$file = 1;
 		}
@@ -589,6 +603,7 @@ sub tag_perl {
 		}
 	}
 	$safe->share('%Safe');
+	$safe->share('%Safe', '&do_tag');
 	$safe->untrap(@{$Global::SafeUntrap})
 		if $Global::SafeUntrap;
 
@@ -605,12 +620,12 @@ sub tag_perl {
 		}
 
 		if (defined $Vend::Session->{scratch}->{$name}) {
-			my $sub = $Vend::Session->{scratch}->{$name};
-			$result = $safe->reval( '@_ = ' . $body . ';' . $code . $sub);
+			$result = $safe->reval( '@_ = ' . $body . ';' . $code .
+						$Vend::Session->{scratch}->{$name});
 		}
 		elsif (defined $Vend::Cfg->{Sub}->{$name}) {
-			my $sub = $Vend::Cfg->{Sub}->{$name};
-			$result = $safe->reval( '@_ = ' . $body . ';' . $code . $sub);
+			$result = $safe->reval( '@_ = ' . $body . ';' . $code .
+						$Vend::Cfg->{Sub}->{$name} );
 		}
 		elsif (defined $Global::GlobalSub->{$name}) {
 			$result = &{$Global::GlobalSub->{$name}};
@@ -719,7 +734,6 @@ sub tag_if {
 		#$op =~ s/[^rwxezfdTsB]//g;
 		#$op = substr($op,0,1) || 'f';
 		$op = 'f';
-		$safe->untrap(249);
 		$op = qq|-$op "$term"|;
 	}
 	elsif($base eq 'validcc') {
@@ -756,7 +770,8 @@ sub tag_if {
 	}
 
 	RUNSAFE: {
-		#$status = eval "$op"
+		$safe->untrap(@{$Global::SafeUntrap})
+		   if $Global::SafeUntrap;
 		$status = $safe->reval($op)
 			unless ($@ or $status);
 		if ($@) {
@@ -1305,7 +1320,7 @@ sub tag_row {
 		$lines[$i] = [];
 		@{$lines[$i]} = tag_column($spec,$col);
 		# Discover X dimension
-		@len[$i] = length(${$lines[$i]}[0]);
+		$len[$i] = length(${$lines[$i]}[0]);
 		if(${$lines[$i]}[1] =~ /^<\s*input\s+/i) {
 			shift @{$lines[$i]};
 		}
@@ -1793,11 +1808,13 @@ sub tag_ups {
 		logError("UPS lookup called, no zone file defined");
 		return undef;
 	}
+
 	@Vend::UPS = split(/\n/, readfile($Vend::Cfg->{'UpsZoneFile'})) unless @Vend::UPS;
 	unless (defined @Vend::UPS) {
 		logError("UPS lookup called, zone file not found");
 		return undef;
 	}
+
 	$zip = substr($zip, 0, 3);
 	$zip =~ s/^0+//;
 	@fieldnames = split /\t/, $Vend::UPS[0];
@@ -1818,6 +1835,10 @@ sub tag_ups {
 		$zone = $data[$point];
 		return 0 unless $zone ||= 0;
 		last;
+	}
+
+	if( ($weight - int($weight)) > .01) {
+		$weight = int($weight + 1);
 	}
 
 	my $cost = tag_data($type,$zone,$weight);

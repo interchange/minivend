@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 #
-# MiniVend version 2.00
+# MiniVend version 2.03b
 #
 # $Id: minivend.pl,v 2.15 1997/01/07 01:35:23 mike Exp $
 #
@@ -11,7 +11,7 @@
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
 # Enhancements made by and
-# Copyright 1996 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996, 1997 by Michael J. Heins <mikeh@iac.net>
 #
 # See the file 'Changes' for information.
 #
@@ -34,7 +34,7 @@ $Global::VendRoot = '/home/minivend';
 $Global::ConfDir = "$Global::VendRoot/etc";
 
 # Uncomment next line if you want to guarantee use of DB_File
-#$ENV{MINIVEND_DB_FILE} = 1;
+#$ENV{MINIVEND_DBFILE} = 1;
 
 # Uncomment next line if you want to use no DBM, sessions
 # stored in files and databases in memory (or mSQL)
@@ -868,8 +868,7 @@ sub do_process {
     }
 	elsif ($todo eq 'search') {
 		update_user();
-    	put_session();
-		return do_search();
+		do_search();
     }
 	elsif ($todo eq 'cancel') {
 		$Vend::Session->{'values'}->{'credit_card_no'} = 'xxxxxxxxxxxxxxxxxxxxxx';
@@ -1225,12 +1224,22 @@ EOF
 	
     if (defined $CGI::query_string && $CGI::query_string ne '') {
 		($sessionid, $argument) = split(/;/, $CGI::query_string);
+		if ($CGI::cookie =~ /\bMV_SESSION_ID=\w{8}
+								( :
+								\d{1,3}\.
+								\d{1,3}\.
+								\d{1,3}\.
+								\d{1,3})		\b/x) {
+			$CGI::cookiehost = $1;
+		}
     }
 
 	# Get a cookie if we have no session id (and its there)
     unless (defined $sessionid && $sessionid ne '') {
-		if ($CGI::cookie =~ /\bMV_SESSION_ID=(\w{8})\b/) {
+		if ($CGI::cookie =~ /\bMV_SESSION_ID=(\w{8})
+							(:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})?\b/x) {
 			$sessionid = $1;
+			$CGI::cookiehost = $2;
 		}
 	}
 
@@ -1381,8 +1390,8 @@ sub parse_options {
 }
 
 sub version {
-	print "MiniVend version 2.03 Copyright 1995 Andrew M. Wilcox\n";
-	print "                      Copyright 1996 Michael J. Heins\n";
+	print "MiniVend version 2.03b Copyright 1995 Andrew M. Wilcox\n";
+	print "                       Copyright 1996, 1997 Michael J. Heins\n";
 }
 
 sub usage {

@@ -1,3 +1,20 @@
+MiniVend 2.03b - Bug fixes
+* Made ready to run with Perl 5.004 by fixing SafeUntrap (will
+  find correct version, use Opcode.pm style if version greater
+  than 5.00320) and a few warnings
+
+* Added all patches from patch set A
+
+* Added patch that allows accesses from multiple proxy servers
+  (i.e. AOL) while retaining session for SSL
+
+* Added Safe{'carts'} access method
+
+* Added 'do_tag' routine that allows access to tags within
+  perl user subroutines.  Called with:
+
+  	$data = do_tag("data arbitrary field1 $key");
+
 MiniVend 2.03 - User reconfiguration and internet-domain server,
 
 * Re-configuring a catalog can now be done on an individual

@@ -1,6 +1,6 @@
 # Vend/Scan.pm:  Prepare searches for MiniVend
 #
-# $Id: Scan.pm,v 2.8 1997/01/07 01:16:56 mike Exp $
+# $Id: Scan.pm,v 2.10 1997/03/14 07:54:16 mike Exp mike $
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ require Exporter;
 			perform_search
 			);
 
-$VERSION = substr(q$Revision: 2.8 $, 10);
+$VERSION = substr(q$Revision: 2.10 $, 10);
 
 use strict;
 use Vend::Util;
@@ -106,6 +106,7 @@ my %Map = ( qw(
 					mv_record_delim		record_delim
 					mv_return_delim		return_delim
 					mv_return_fields	return_fields
+					mv_return_file_name	return_file_name
 					mv_search_field		search_field
 					mv_search_file		search_file
 					mv_search_page		search_page
@@ -191,6 +192,7 @@ my %Parse = (
 	sort_field			=>	\&_column,
 	sort_option			=>	\&_array,
 	sort_crippled		=>	\&_yes,
+	sort_command		=>	\&_command,
 	search_file         => 	\&_scalar_or_array,
 	field_names         =>	\&_array,
 	spelling_errors     => 	sub { my $n = int($_[1]); $n < 8 ? $n : 1; },
@@ -440,7 +442,7 @@ sub perform_search {
 }
 
 sub _column {
-	return '' unless $_[1];
+	return undef unless $_[1];
 	my @fields = split /\s*[,\0]\s*/, $_[1];
 	my $col;
 	for(@fields) {
@@ -493,6 +495,12 @@ sub _find_field {
 		$i++;
 	}
 	return undef;
+}
+
+sub _command {
+    return undef unless defined $_[1];
+    return undef unless $_[1] =~ m{^\S+$};
+    return $_[1];
 }
 
 sub _array {

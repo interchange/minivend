@@ -1,7 +1,7 @@
 #!/usr/local/bin/perl -wT
 # vlink.pl: runs as a cgi program and passes request to Vend server
 #           via TCP UNIX-domain socket
-#   $Id: vlink.pl,v 1.1 1996/12/16 05:57:23 mike Exp $
+#   $Id: vlink.pl,v 1.2 1997/01/18 15:07:38 mike Exp mike $
 #
 #   Copyright 1996 by by Mike Heins <mikeh@iac.net>
 #
@@ -77,12 +77,17 @@ my $Entity = '';
 sub get_entity {
 
   return '' unless defined $ENV{CONTENT_LENGTH};
-  my $len = $ENV{CONTENT_LENGTH};
+  my $len = $ENV{CONTENT_LENGTH} || 0;
   return '' unless $len;
 
+  my $check;
 
-  my $buf = '';
-  $Entity = read(SOCK, $buf, $len);
+  $check = read(STDIN, $Entity, $len);
+
+  die_page("Entity wrong length")
+	  unless $check == $len;
+
+  $Entity;
 
 }
 
@@ -114,7 +119,7 @@ sub send_environment () {
 sub send_entity {
 	return '' unless defined $ENV{CONTENT_LENGTH};
 	my $len = $ENV{CONTENT_LENGTH};
-	warn "got a length of $len\n";
+
 	return '' unless $len > 0;
 
 	my $val = "entity\n";

@@ -1,4 +1,4 @@
-# $Id: Util.pm,v 2.9 1996/12/16 08:53:44 mike Exp $
+# $Id: Util.pm,v 2.10 1997/01/18 15:03:38 mike Exp $
 
 package Vend::Util;
 require Exporter;
@@ -561,7 +561,7 @@ sub send_mail {
 
     $ok = 0;
     SEND: {
-		open(Vend::MAIL,"|$Vend::Cfg->{'SendMailProgram'} $to") or last SEND;
+		open(Vend::MAIL,"|$Vend::Cfg->{'SendMailProgram'} -t") or last SEND;
 		print Vend::MAIL "To: $to\n", $reply, "Subject: $subject\n\n", $body
 	    	or last SEND;
 		close Vend::MAIL or last SEND;

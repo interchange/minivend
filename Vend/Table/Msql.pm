@@ -1,6 +1,6 @@
 # Table/Msql.pm: access a table stored in an Msql Database
 #
-# $Id: Msql.pm,v 1.4 1996/12/16 08:53:44 mike Exp $
+# $Id: Msql.pm,v 1.5 1997/01/18 15:06:03 mike Exp $
 #
 
 # Basic schema
@@ -24,7 +24,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::Msql;
-$VERSION = substr(q$Revision: 1.4 $, 10);
+$VERSION = substr(q$Revision: 1.5 $, 10);
 
 use Carp;
 use strict;
@@ -34,7 +34,7 @@ my @Hex_string;
 {
     my $i;
     foreach $i (0..255) {
-        $Hex_string[$i] = sprintf("%02X", $i);
+        $Hex_string[$i] = sprintf("%%%02X", $i);
     }
 }
 

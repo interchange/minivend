@@ -20,7 +20,7 @@ while (@ARGV) {
 usage: stop [-f]
 
 Stops all MiniVend daemons. The -f flag forces unlink of
-all PID files and sockets.
+all PID files, status files, and sockets.
 EOF
 	$force = 1;
 }
@@ -100,6 +100,12 @@ while( @pids = grep /^minivend.pid/, readdir CONFDIR) {
 	}
 	sleep 3;
 	rewinddir CONFDIR;
+}
+
+if($force) {
+	rewinddir CONFDIR;
+	my(@running) = grep /^mvrunning/, readdir CONFDIR;
+	unlink @running;
 }
 
 closedir CONFDIR;

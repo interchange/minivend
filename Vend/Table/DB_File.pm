@@ -1,6 +1,6 @@
 # Table/DB_File.pm: access a table stored in a DB file hash
 #
-# $Id: DB_File.pm,v 1.2 1996/08/22 17:35:08 mike Exp $
+# $Id: DB_File.pm,v 1.3 1997/01/18 15:06:03 mike Exp $
 #
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -8,6 +8,9 @@
 # Modified 1996 by Mike Heins <mikeh@iac.net>
 #
 # $Log: DB_File.pm,v $
+# Revision 1.3  1997/01/18 15:06:03  mike
+# Fixed % bug -- wouldn't display
+#
 # Revision 1.2  1996/08/22 17:35:08  mike
 # Save solid snapshot of multiple catalog Vend
 #
@@ -33,7 +36,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::DB_File;
-$VERSION = substr(q$Revision: 1.2 $, 10);
+$VERSION = substr(q$Revision: 1.3 $, 10);
 use Carp;
 use strict;
 use Fcntl;
@@ -43,7 +46,7 @@ my @Hex_string;
 {
     my $i;
     foreach $i (0..255) {
-        $Hex_string[$i] = sprintf("%02X", $i);
+        $Hex_string[$i] = sprintf("%%%02X", $i);
     }
 }
 

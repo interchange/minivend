@@ -1,4 +1,4 @@
-# $Id: Session.pm,v 1.12 1997/01/05 02:02:24 mike Exp $
+# $Id: Session.pm,v 1.13 1997/03/14 07:54:16 mike Exp mike $
 
 package Vend::Session;
 require Exporter;
@@ -302,7 +302,7 @@ sub dump_sessions {
 sub session_name {
     my($host, $user, $fn, $proxy);
 
-    $host = escape_chars($CGI::host);
+    $host = escape_chars($CGI::cookiehost || $CGI::host);
     $proxy = index($host,"proxy");
     $host = substr($host,$proxy)
     	if ($proxy >= 0);

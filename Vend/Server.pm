@@ -1,6 +1,6 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.8 1997/01/07 01:16:56 mike Exp $
+# $Id: Server.pm,v 1.10 1997/03/14 07:54:16 mike Exp mike $
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -42,7 +42,7 @@ sub respond {
     my ($s, $content_type, $body) = @_;
     my $fh = $s->{fh};
 	if (! $CGI::cookie and $Vend::Cfg->{'Cookies'}) {
-		print $fh "Set-Cookie: MV_SESSION_ID=" . $Vend::SessionID . "; path=/\r\n";
+		print $fh "Set-Cookie: MV_SESSION_ID=" . $Vend::SessionName . "; path=/\r\n";
     }
     print $fh "Content-type: $content_type\r\n\r\n";
     print $fh $body;
@@ -216,6 +216,7 @@ sub restore_signals {
 # check to make sure we haven't too many running servers
 sub housekeeping {
 
+	return;
 	my ($c, $num,$reconfig, @files);
 
 		opendir(Vend::Server::CHECKRUN, $Global::ConfDir)
@@ -680,6 +681,13 @@ sub run_server {
 					$next = server_inet($debug);
 				}
 				unlockfile(\*Vend::Server::Pid);
+	opendir(CONFDIR, $Global::ConfDir) 
+		or die "Couldn't open directory $Global::ConfDir: $!\n";
+	my @running = grep /^mvrunning/, readdir CONFDIR;
+	for(@running) {
+		unlink "$Global::ConfDir/$_" or die
+			"Couldn't unlink status file $Global::ConfDir/$_: $!\n";
+	}
 				unlink $pidfile;
                 exit 0;
             }

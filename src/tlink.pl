@@ -1,7 +1,7 @@
 #!/usr/local/bin/perl -wT
 # tlink.pl: runs as a cgi program and passes request to Vend server
 #
-#   $Id: tlink.pl,v 1.2 1997/01/07 01:40:44 mike Exp mike $
+#   $Id: tlink.pl,v 1.3 1997/01/18 15:07:38 mike Exp mike $
 #
 #   Copyright 1996 by by Mike Heins <mikeh@iac.net>
 #
@@ -78,14 +78,20 @@ my $Entity = '';
 sub get_entity {
 
   return '' unless defined $ENV{CONTENT_LENGTH};
-  my $len = $ENV{CONTENT_LENGTH};
+  my $len = $ENV{CONTENT_LENGTH} || 0;
   return '' unless $len;
 
+  my $check;
 
-  my $buf = '';
-  $Entity = read(STDIN, $buf, $len);
+  $check = read(STDIN, $Entity, $len);
+
+  die_page("Entity wrong length")
+      unless $check == $len;
+
+  $Entity;
 
 }
+
 
 
 sub send_arguments {
@@ -115,7 +121,6 @@ sub send_environment () {
 sub send_entity {
 	return '' unless defined $ENV{CONTENT_LENGTH};
 	my $len = $ENV{CONTENT_LENGTH};
-	warn "got a length of $len\n";
 	return '' unless $len > 0;
 
 	my $val = "entity\n";
