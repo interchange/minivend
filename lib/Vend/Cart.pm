@@ -226,8 +226,7 @@ sub toss_cart {
 					$col = $tab;
 					$tab = $item->{mv_ib} || $Vend::Cfg->{ProductFiles}[0];
 				}
-				$item->{mv_max_quantity} = ::tag_data($tab, $col, $item->{code})
-											 || '';
+				$item->{mv_max_quantity} = ::tag_data($tab, $col, $item->{code});
 
 				if(
 					length $item->{mv_max_quantity}
