@@ -526,6 +526,7 @@ sub directory_process {
 my %Postprocess = (
 
 	cgibase			=> \&strip_trailing_slash,
+	cgidir			=> \&strip_trailing_slash,
 	basedir			=> \&strip_trailing_slash,
 	documentroot	=> \&directory_process,
 	imagedir		=> \&directory_process,
