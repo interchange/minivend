@@ -92,8 +92,17 @@ sub finish_order {
 
 sub view_page {
 	my ($self, $page) = @_;
+	my @params;
 
-	push (@{$self->{actions}}, ['VIEWPAGE', {page => $page}]);
+	if (exists $Vend::Cfg->{TrackPageParam}->{$page}) {
+		for (split /,/, $Vend::Cfg->{TrackPageParam}->{$page}) {
+			next if $_ eq 'mv_credit_card_number' || $_ eq 'mv_credit_card_cvv2';
+			if ($CGI::values{$_} =~ /\S/) {
+				push(@params, "$_=$CGI::values{$_}");
+			}
+		}
+	}
+	push (@{$self->{actions}}, ['VIEWPAGE', {page => $page, params => \@params}]);
 }
 
 sub view_product {
@@ -119,7 +128,7 @@ my %hdrsubs = ('ADDITEM' => sub {my $href = shift; join (',', $href->{'code'}, $
 											   $_->{'quantity'},
 											   $_->{'price'})}
 									 @{$href->{'items'}});},
-			   'VIEWPAGE' => sub {my $href = shift; $href->{'page'}},
+			   'VIEWPAGE' => sub {my $href = shift; join ("\t", $href->{'page'}, @{$href->{'params'}})},
 			   'VIEWPROD' => sub {my $href = shift; join ("\t", $href->{'code'}, $href->{'description'}, $href->{'category'});});
 
 sub header {

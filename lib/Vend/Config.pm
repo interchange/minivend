@@ -472,6 +472,7 @@ sub catalog_directives {
 	['EncryptKey',		 undef,     	     ''],
 	['AsciiTrack',	 	 undef,     	     ''],
 	['TrackFile',	 	 undef,     	     ''],
+	['TrackPageParam',	 'hash',     	     ''],
 	['SalesTax',		 undef,     	     ''],
 	['SalesTaxFunction', undef,     	     ''],
 	['StaticDBM',  	 	 undef,     	     ''],
