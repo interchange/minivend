@@ -67,7 +67,7 @@ require Exporter;
 );
 
 # LEGACY4
-push @EXPORT qw(
+push @EXPORT, qw(
 	send_mail
 );
 # END LEGACY4
