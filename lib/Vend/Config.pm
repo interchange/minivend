@@ -2439,9 +2439,9 @@ sub parse_list_wildcard {
 }
 
 sub parse_list_wildcard_full {
-	my $value = '^(' . get_wildcard_list(@_,1) . ')$';
+	my $value = get_wildcard_list(@_,1);
 	return '' unless length($value);
-	return qr/$value/i;
+	return qr/^($value)$/i;
 }
 
 # Make a dos-ish regex into a Perl regex, check for errors
