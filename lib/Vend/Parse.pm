@@ -568,6 +568,7 @@ sub html_start {
     my($self, $tag, $attr, $attrseq, $origtext, $end_tag) = @_;
 #::logDebug("HTML tag=$tag Interp='$Interpolate{$tag}' origtext=$origtext attributes:\n" . ::uneval($attr));
 	$tag =~ tr/-/_/;   # canonical
+	$Vend::CurrentTag = $tag = lc $tag;
 
 	my $buf = \$self->{_buf};
 
@@ -887,13 +888,19 @@ EOF
 
 }
 
+sub eval_die {
+	my $msg = shift;
+	$msg =~ s/\(eval\s+\d+/(tag '$Vend::CurrentTag'/;
+	die($msg, @_);
+}
+
 # syntax color '"
 
 sub start {
 	return html_start(@_) if $_[0]->{HTML};
     my($self, $tag, $attr, $attrseq, $origtext, $empty_container) = @_;
 	$tag =~ tr/-/_/;   # canonical
-	$tag = lc $tag;
+	$Vend::CurrentTag = $tag = lc $tag;
 	my $buf = \$self->{_buf};
 
 	my($tmpbuf);
@@ -1034,6 +1041,7 @@ EOF
 		}
 	}
 
+	local($SIG{__DIE__}) = \&eval_die;
 	if($hasEndTag{$tag}) {
 		# Handle embedded tags, but only if interpolate is 
 		# defined (always if using old tags)
