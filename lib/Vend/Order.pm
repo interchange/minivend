@@ -863,8 +863,17 @@ sub pgp_encrypt {
 #::logDebug("called pgp_encrypt key=$key cmd=$cmd");
 	$cmd = $Vend::Cfg->{EncryptProgram} unless $cmd;
 	$key = $Vend::Cfg->{EncryptKey}	    unless $key;
+#::logDebug("pgp_encrypt using key=$key cmd=$cmd");
 
-	
+	$key =~ s/,/ /g;	# turn commas to spaces
+	$key =~ s/^\s+//;	# strip leading spaces
+	$key =~ s/\s+$//;	# strip trailing spaces
+	$key =~ s/\s+/ /g;	# convert multiple spaces to single spaces
+
+	my @keys = split /\s/, $key;		
+
+	my $keyparam;
+
 	if("\L$cmd" eq 'none') {
 		return ::errmsg("NEED ENCRYPTION ENABLED.");
 	}
@@ -872,25 +881,30 @@ sub pgp_encrypt {
 		return ::errmsg("NEED ENCRYPTION KEY POINTER.");
 	}
 	elsif($cmd =~ m{^(?:/\S+/)?\bgpg$}) {
-		$cmd .= " --batch --always-trust -e -a -r '%s'";
+		$cmd .= " --batch --always-trust -e -a ";
+		$keyparam = ' -r ';
 	}
 	elsif($cmd =~ m{^(?:/\S+/)?pgpe$}) {
-		$cmd .= " -fat -r '%s'";
+		$cmd .= " -fat ";
+		$keyparam = ' -r ';
 	}
 	elsif($cmd =~ m{^(?:/\S+/)?\bpgp$}) {
-		$cmd .= " -fat - '%s'";
+		$cmd .= " -fat - ";
+		$keyparam = ' ';
 	}
 
 	if($cmd =~ /[;|]/) {
 		die ::errmsg("Illegal character in encryption command: %s", $cmd);
 	}
 
-	if($key) {
-		$cmd =~ s/%%/:~PERCENT~:/g;
-		$key =~ s/'/\\'/g;
-		$cmd =~ s/%s/$key/g;
-		$cmd =~ s/:~PERCENT~:/%/g;
-	}
+
+	$cmd =~ s/%%/:~PERCENT~:/g;
+
+	foreach my $thiskey (@keys) {
+		$thiskey =~ s/'/\\'/g;
+		$cmd .= "$keyparam '$thiskey' ";
+	}  
+	$cmd =~ s/:~PERCENT~:/%/g;
 
 #::logDebug("after  pgp_encrypt key=$key cmd=$cmd");
 
