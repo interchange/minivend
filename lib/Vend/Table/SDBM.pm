@@ -124,6 +124,8 @@ sub open_table {
 
 	my $columns = [split(/\t/, $tie->{'c'})];
 
+	$config->{VERBATIM_FIELDS} = 1 unless defined $config->{VERBATIM_FIELDS};
+
 	my $column_index = Vend::Table::Common::create_columns($columns, $config);
 
 	my $s = [

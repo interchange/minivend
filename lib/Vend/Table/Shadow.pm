@@ -425,7 +425,7 @@ sub _parse_sql {
 	my ($stmt);
 	
 	eval {
-		$stmt = Vend::SQL_Parser->new($query, $parser);
+		$stmt = Vend::SQL_Parser->new($query);
 	};
 	
 	if ($@) {

@@ -149,9 +149,11 @@ sub search {
 
 	my (@fn) = $dbref->columns();
 
+#::logDebug("specs=" . ::uneval($s->{mv_searchspec}));
 	@specs = @{$s->{mv_searchspec}};
 
 	@pats = $s->spec_check(@specs);
+#::logDebug("specs now=" . ::uneval(\@pats));
 
 	if ($s->{mv_coordinate}) {
 		undef $f;

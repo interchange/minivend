@@ -684,6 +684,7 @@ EOF
 #::logDebug("Begin=" . join ",", @begin);
 #::logDebug("Group=" . join ",", @group);
 #::logDebug("Ors=" . join ",", @{$s->{mv_orsearch}});
+#::logDebug("Field count=$field_count");
 		my @code;
 		my $candidate = '';
 		my ($i, $start, $term, $like);
@@ -742,6 +743,7 @@ EOF
 			 }
 			 my $grp = $group[$i] || 0;
 			 my $frag = qq{$negates[$i]\$fields[$i] $start$specs[$i]$term};
+#::logDebug("Code fragment is q!$frag!");
 			 unless ($code[$grp]) {
 				 $code[$grp] = [ $frag ];
 			 }
