@@ -171,6 +171,7 @@ sub init_calc {
 	$Scratch    = $Safe{scratch} = $::Scratch;
 	$Values     = $Safe{values}  = $::Values;
 	$Session                     = $Vend::Session;
+	$Search                      = $Vend::SearchObject ||= {};
 	$Variable   = $::Variable;
 	$Calc_initialized = 1;
 	return;
@@ -3783,6 +3784,10 @@ sub fly_page {
 		return undef;
 	}
 
+# TRACK
+	$Vend::Track->view_product($code);
+# END TRACK
+	
 # LEGACY
 	list_compat($opt->{prefix}, \$page);
 # END LEGACY

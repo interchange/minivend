@@ -82,6 +82,12 @@ sub display_page {
 	}
 
     $page = readin($name);
+# TRACK
+	if (defined $page) {
+		$Vend::Track->view_page($name);
+	}
+# END TRACK	
+		
 	# Try for on-the-fly if not there
 	if(! defined $page) {
 		$page = Vend::Interpolate::fly_page($name);

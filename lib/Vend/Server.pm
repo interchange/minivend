@@ -305,6 +305,9 @@ sub respond {
 				and $Vend::StatusLine !~ m{^HTTP/};
 		$Vend::StatusLine .= ($Vend::StatusLine =~ /^Content-Type:/im)
 							? '' : "\r\nContent-Type: text/html\r\n";
+# TRACK
+        $Vend::StatusLine .= "X-Track: " . $Vend::Track->header() . "\r\n";
+# END TRACK        
 		print Vend::Server::MESSAGE canon_status($Vend::StatusLine);
 		print Vend::Server::MESSAGE "\r\n";
 		print Vend::Server::MESSAGE $$body;
@@ -328,6 +331,9 @@ sub respond {
 	}
 
 	if (defined $Vend::InternalHTTP or defined $ENV{MOD_PERL} or $CGI::script_name =~ m:/nph-[^/]+$:) {
+# TRACK
+        $Vend::StatusLine .= "X-Track: " . $Vend::Track->header() . "\r\n";
+# END TRACK                            
 		if(defined $Vend::StatusLine) {
 			$Vend::StatusLine = "HTTP/1.0 200 OK\r\n$Vend::StatusLine"
 				if $Vend::StatusLine !~ m{^HTTP/};
@@ -376,8 +382,11 @@ sub respond {
     if (defined $Vend::StatusLine) {
 		print $fh canon_status($Vend::StatusLine);
 	}
-	elsif(! $Vend::ResponseMade) {
+	elsif(! $Vend::ResponseMade) {        
 		print $fh canon_status("Content-Type: text/html");
+# TRACK        
+        print $fh canon_status("X-Track: " . $Vend::Track->header() . "\r\n");
+# END TRACK
 	}
 
     print $fh "\r\n";

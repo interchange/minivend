@@ -1852,6 +1852,9 @@ sub add_items {
 			}
 			else {
 #::logDebug("adding to line");
+# TRACK
+                $Vend::Track->add_item($cart,$item);
+# END TRACK
 				push @$cart, $item;
 			}
 		}
