@@ -2047,14 +2047,6 @@ sub flag {
 			}
 		}
 	}
-	elsif($flag eq 'build') {
-		$Vend::ForceBuild = $value;
-		$text = $opt->{name} if $opt->{name};
-		if($text) {
-			$Vend::ScanName = Vend::Util::escape_chars(interpolate_html($text));
-		}
-		@status = ("Set build flag: %s name=%s", $value, $Vend::ScanName);
-	}
 	elsif($flag eq 'checkhtml') {
 		$Vend::CheckHTML = $value;
 		@status = ("Set CheckHTML flag: %s", $value);
