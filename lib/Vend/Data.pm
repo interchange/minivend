@@ -459,7 +459,10 @@ sub read_salestax {
     my($code, $percent);
 
 	return unless $Vend::Cfg->{SalesTax};
-	my $file = Vend::Util::catfile($Vend::Cfg->{ProductDir}, "salestax.asc");
+	my $file = $Vend::Cfg->{Special}{'salestax.asc'};
+	$file = Vend::Util::catfile($Vend::Cfg->{ProductDir}, "salestax.asc")
+		unless $file;
+
 	$Vend::Cfg->{SalesTaxTable} = {};
     -f $file and open(Vend::SALESTAX, "< $file") or do {
 					logError( "Could not open salestax file %s: %s" ,
