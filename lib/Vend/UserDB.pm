@@ -1175,11 +1175,18 @@ sub login {
 			if $Vend::Cfg->{CookieLogin};
 
 		if ($self->{LOCATION}{LAST} ne 'none') {
+			my $now = time();
+			my $login_time;
+			unless($self->{OPTIONS}{null_time}) {
+				$login_time = $self->{OPTIONS}{iso_time}
+						? POSIX::strftime("%Y-%m-%d %H:%M:%S", localtime($now))
+						: $now;
+			}
 			eval {
 				$udb->set_field( $self->{USERNAME},
-										$self->{LOCATION}{LAST},
-										time()
-									  );
+									$self->{LOCATION}{LAST},
+									$login_time
+									);
 			};
 			if ($@) {
 				my $msg = ::errmsg("Failed to record timestamp in UserDB: %s", $@);
