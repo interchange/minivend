@@ -868,6 +868,7 @@ sub reset_vars {
 	package CGI;
 	reset 'A-Z';
 	reset 'a-z';
+	srand();
 #::logDebug("Reset vars");
 }
 
