@@ -2933,7 +2933,6 @@ $l_pkey</td>};
 					pointer => $rcount,
 					stacker => $tcount,
 					columns => $lf,
-					extra => $opt->{link_extra},
 				);
 				$rcount++;
 				push @lout, $Tag->row_edit(\%o);
