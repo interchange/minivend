@@ -96,7 +96,7 @@ use Vend::Data;
 use Vend::Form;
 require Vend::Cart;
 
-
+use HTML::Entities;
 use Vend::Server;
 use Vend::Scan;
 use Vend::Tags;
@@ -147,6 +147,7 @@ BEGIN {
 							&uneval
 							&get_option_hash
 							&dotted_hash
+							&encode_entities
 							&HTML
 							&interpolate_html
 						/;
