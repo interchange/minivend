@@ -988,9 +988,9 @@ sub set_slice {
 		my $rc = $sth->execute(@$vary)
 			or die ::errmsg("execute %s: %s", $sql, $DBI::errstr);
 
-		my $val	= $s->[$CONFIG]->{AUTO_SEQUENCE}
+		$val	= $s->[$CONFIG]->{AUTO_SEQUENCE}
 				?  $s->last_sequence_value()
-				: $tkey;
+				: $key;
 	};
 
 	if($@) {
