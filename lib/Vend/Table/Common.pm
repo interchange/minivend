@@ -1323,8 +1323,9 @@ EndOfRoutine
 	delete $out->[$CONFIG]{_Dirty};
 	unlockfile(\*IN) or die "unlock\n";
     close(IN);
+	my $dot = $out->[$CONFIG]{HIDE_AUTO_FILES} ? '.' : '';
 	if($numeric_guess) {
-		my $fn = Vend::Util::catfile($out->[$CONFIG]{DIR}, $out->[$CONFIG]{file});
+		my $fn = Vend::Util::catfile($out->[$CONFIG]{DIR}, "$dot$out->[$CONFIG]{file}");
 		Vend::Util::writefile(
 					">$fn.numeric",
 					join " ", map { $field_names[$_] } @possible,

@@ -492,6 +492,8 @@ sub new {
 sub open_table {
     my ($class, $config, $tablename) = @_;
 	
+	my $dot = $config->{HIDE_AUTO_FILES} ? '.' : '';
+
 	$config->{PRINTERROR} = 0 if ! defined $config->{PRINTERROR};
 	$config->{RAISEERROR} = 1 if ! defined $config->{RAISEERROR};
     my @call;
@@ -504,7 +506,7 @@ sub open_table {
     if (! $config->{AUTO_SEQUENCE} and ! defined $config->{AutoNumberCounter}) {
 	    eval {
 			$config->{AutoNumberCounter} = new Vend::CounterFile
-									"$config->{DIR}/$config->{name}.autonumber",
+									"$config->{DIR}/$dot$config->{name}.autonumber",
 									$config->{AUTO_NUMBER} || '00001';
 		};
 		if($@) {

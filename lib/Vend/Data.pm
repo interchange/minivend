@@ -875,10 +875,12 @@ sub import_database {
 
 	$obj->{ObjectType} = $class_config->{Class};
 
+	my $dot = $obj->{HIDE_AUTO_FILES} ? '.' : '';
+
 	if($class_config->{Extension}) {
 		$database_dbm = Vend::Util::catfile(
 												$dir,
-												"$base."     .
+												"$dot$base."     .
 												$class_config->{Extension}
 											);
 		$new_database_dbm =  Vend::Util::catfile(
