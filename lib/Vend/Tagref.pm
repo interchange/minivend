@@ -23,11 +23,9 @@ package Vend::Tagref;
 use lib "$Global::VendRoot/lib";
 use lib '../lib';
 
-# $Id$
-
 use Vend::Parse;
 
-$VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
+$VERSION = substr(q$Revision$, 10);
 
 use vars '%myRefs';
 
