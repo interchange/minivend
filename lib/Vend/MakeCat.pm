@@ -343,9 +343,9 @@ EOF
 # CGI will talk to.
 #
 # If Interchange is running on the same server as your web
-# server, this should be "localhost". If the web server is on a
-# different machine, it is the IP address of the machine
-# Interchange is running on.
+# server, this should be "localhost" or "127.0.0.1". If the web
+# server is on a different machine, it is the IP address of the
+# machine Interchange is running on.
 EOF
 
 	linkmode => <<EOF,
@@ -1514,7 +1514,7 @@ sub find_inet_info {
 	my $prog = "$Conf{relocate}$Conf{vendroot}/src/tlink";
 	my $the_one = sum_it($prog);
 	my $defport = '7786';
-	my $defhost = 'localhost';
+	my $defhost = '127.0.0.1';
 
 	my @poss = glob("$Conf{relocate}$Conf{vendroot}/src/tlink.*.*");
 	for (@poss) {

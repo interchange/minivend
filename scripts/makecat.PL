@@ -1378,7 +1378,7 @@ EOF
 		}
 
 		sethistory(grep !$seen{$_}++, @hosts);
-		$default = $defhost || $Conf{linkhost} || 'localhost';
+		$default = $defhost || $Conf{linkhost} || '127.0.0.1';
 		while(! $lh) {
 			$lh = prompt("Link host? ", $default);
 			redo INETASK if $lh eq '@';

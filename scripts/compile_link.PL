@@ -39,7 +39,7 @@ Getopt::Long::config(qw/permute/);
 
 BEGIN {
 	$::Self = {
-		LINK_HOST      => 'localhost',
+		LINK_HOST      => '127.0.0.1',
 		LINK_PORT      => 7786,
 		LINK_TIMEOUT   => 30,
 		LINK_FILE      => '/usr/local/interchange/etc/socket',
