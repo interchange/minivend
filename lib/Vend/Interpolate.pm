@@ -6720,6 +6720,7 @@ sub levies {
 		if($type eq 'salestax') {
 			my $save;
 			$sort = $l->{sort} || '010';
+			my $lab_field = $l->{label_value} || $Vend::Cfg->{SalesTax};
 			if($l->{tax_fields}) {
 				$save = $Vend::Cfg->{SalesTax};
 				$Vend::Cfg->{SalesTax} = $l->{tax_fields};
@@ -6731,7 +6732,7 @@ sub levies {
 			$cost = salestax(undef, { tax_type => $l->{tax_type} } );
 			$desc = errmsg(
 						$l->{description} || 'Sales Tax',
-						$::Values->{$Vend::Cfg->{SalesTax}},
+						$::Values->{$lab_field},
 					);
 			$Vend::Cfg->{SalesTax} = $save if defined $save;
 		}
