@@ -478,7 +478,7 @@ sub _check_acl {
 sub _set_acl {
 	my ($self, $loc, %options) = @_;
 	return undef unless $self->{OPTIONS}{location};
-	if($options{mode} =~ /^\s*expire\s+(.*)/i) {
+	if($options{mode} =~ /^\s*expires?\s+(.*)/i) {
 		my $secs = Vend::Config::time_to_seconds($1);
 		my $now = time();
 		$options{mode} = $secs + $now;
