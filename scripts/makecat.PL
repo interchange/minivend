@@ -2114,7 +2114,7 @@ The makecat program can build a catalog based completely on a command line
 description. An example is in eg/makecat.sh.
 
 There are just a few flag-based options:
- 
+
 =over 4
 
 =item C<-F>
