@@ -302,6 +302,8 @@ sub AUTOLOAD {
     $routine =~ s/.*:://;
 	if ($Vend::Cfg->{SOAP_Action}{$routine}) {
 		$sub = $Vend::Cfg->{SOAP_Action}{$routine};
+		Vend::Interpolate::init_calc();
+		new Vend::Tags;
 	} elsif (! $Allowed_tags{$routine}) {
 		die ::errmsg("Not allowed routine: %s", $routine);
 	}
