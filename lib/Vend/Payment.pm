@@ -142,6 +142,7 @@ sub map_actual {
 		item_code
 		item_desc
 		lname
+		mv_credit_card_cvv2
 		mv_credit_card_exp_month
 		mv_credit_card_exp_year
 		mv_credit_card_number

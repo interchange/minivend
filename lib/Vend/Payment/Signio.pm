@@ -491,6 +491,7 @@ sub signio {
 
     my %varmap = ( qw/
 						ACCT		mv_credit_card_number
+						CVV2		mv_credit_card_cvv2
 						ZIP			b_zip
 						STREET		b_address
 						SHIPTOZIP	zip
