@@ -2434,11 +2434,13 @@ sub parse_array_complete {
 
 sub parse_list_wildcard {
 	my $value = get_wildcard_list(@_,0);
+	return '' unless length($value);
 	return qr/$value/i;
 }
 
 sub parse_list_wildcard_full {
 	my $value = '^(' . get_wildcard_list(@_,1) . ')$';
+	return '' unless length($value);
 	return qr/$value/i;
 }
 
