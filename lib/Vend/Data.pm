@@ -1,4 +1,4 @@
-# $Id: Data.pm,v 1.6 1997/05/05 20:14:20 mike Exp $
+# $Id: Data.pm,v 2.11 1997/01/07 01:16:56 mike Exp $
 
 package Vend::Data;
 require Exporter;
@@ -9,6 +9,7 @@ close_database
 column_exists
 database_field
 database_ref
+database_exists_ref
 database_key_exists
 db_column_exists
 export_database

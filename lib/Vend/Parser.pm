@@ -1,6 +1,6 @@
 package Vend::Parser;
 
-# $Id: Parser.pm,v 1.4 1997/04/22 15:31:04 mike Exp $
+# $Id: Parser.pm,v 2.5 1996/10/30 09:27:37 aas Exp $
 
 =head1 NAME
 
@@ -107,7 +107,7 @@ use strict;
 
 use HTML::Entities ();
 use vars qw($VERSION);
-$VERSION = sprintf("%d.%02d", q$Revision: 1.4 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 2.5 $ =~ /(\d+)\.(\d+)/);
 
 
 sub new

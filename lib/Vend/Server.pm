@@ -1,6 +1,6 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.8 1997/05/05 20:14:20 mike Exp $
+# $Id: Server.pm,v 1.8 1997/01/07 01:16:56 mike Exp $
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -49,13 +49,17 @@ sub respond {
 		print $fh "HTTP/1.0 200 OK\r\n";
 	}
 	if ($Vend::Session->{frames} and $CGI::values{mv_change_frame}) {
-#print("Window target: $CGI::values{mv_change_frame}\n") if $Global::DEBUG;
 		print $fh "Window-target: " . $CGI::values{mv_change_frame} . "\r\n";
     }
 
 	if ((defined $Vend::Expire or ! $CGI::cookie) and $Vend::Cfg->{'Cookies'}) {
 		print $fh "Set-Cookie: MV_SESSION_ID=" . $Vend::SessionName . ";";
-		print $fh " path=/;";
+		if($Global::Mall) {
+			print $fh " path=$CGI::script_path;";
+		}
+		else {
+			print $fh " path=/;";
+		}
 		print $fh " expires=" .
 					strftime "%a, %d-%b-%y %H:%M:%S GMT ", gmtime($Vend::Expire)
 			if defined $Vend::Expire and $Vend::Expire;
@@ -207,7 +211,6 @@ sub setup_signals {
     $SIG{'PIPE'} = 'IGNORE';
 
 	if($Config{'osname'} eq 'irix' or ! $Config{d_sigaction}) {
-#print("using stupid SYSV signal semantics...\n") if $Global::DEBUG;
 		$SIG{'INT'}  = $Routine_INT;
 		$SIG{'TERM'} = $Routine_TERM;
 		$SIG{'USR1'} = $Routine_USR1;
@@ -243,7 +246,6 @@ sub housekeeping {
 
 	$Last_housekeeping = $now;
 
-#print("Got to housekeeping.\n") if $Global::DEBUG;
 	my ($c, $num,$reconfig, $restart, @files);
 
 		opendir(Vend::Server::CHECKRUN, $Global::ConfDir)
@@ -254,7 +256,6 @@ sub housekeeping {
 		($reconfig) = grep $_ eq 'reconfig', @files;
 		($restart) = grep $_ eq '.restart', @files;
 		if (defined $restart) {
-#print("Got to restart.\n") if $Global::DEBUG;
 			open(Vend::Server::RECONFIG, "+<$Global::ConfDir/.restart")
 				or die "open $Global::ConfDir/.restart: $!\n";
 			lockfile(\*Vend::Server::RECONFIG, 1, 1)
@@ -316,13 +317,16 @@ EOF
 		@files = grep /^mvrunnin/, @files;
 		my $pdata;
 		for(@files) {
-			open(CHECKIT, "$Global::ConfDir/$_") or die "open $_: $!\n";
+			# probably already unlinked by daemon if not there
+			open(CHECKIT, "$Global::ConfDir/$_") or next;
 			chop($pdata = <CHECKIT>);
 			close(CHECKIT) or die "close $_: $!\n";
 			my($pid, $time) = split /\s+/, $pdata;
-			if((time - $time) > 180) {
-				kill(9, $pid);
+			if((time - $time) > $Global::HammerLock) {
+				kill "KILL", $pid;
 				unlink "$Global::ConfDir/$_";
+				kill "USR2", $Vend::MasterProcess;
+				::logGlobal("Killed process $pid started " . localtime($time));
 			}
 		}
 
@@ -347,16 +351,12 @@ sub server_inet {
 
 	socket(Vend::Server::SOCKET, PF_INET, SOCK_STREAM, $proto)
 			|| die "socket: $!";
-#print("socket created\n") if $Global::DEBUG;
-#open(Global::DEBUG, ">>/tmp/mvdebug$$");
 	setsockopt(Vend::Server::SOCKET, SOL_SOCKET, SO_REUSEADDR, pack("l", 1))
 			|| die "setsockopt: $!";
 	bind(Vend::Server::SOCKET, sockaddr_in($port, INADDR_ANY))
 			|| die "bind: $!";
-#print("socket bound\n") if $Global::DEBUG;
 	listen(Vend::Server::SOCKET,5)
 			|| die "listen: $!";
-#print("socket listen\n") if $Global::DEBUG;
 
 	for (;;) {
 
@@ -364,14 +364,12 @@ sub server_inet {
         vec($rin, fileno(Vend::Server::SOCKET), 1) = 1;
 
         $n = select($rout = $rin, undef, undef, $tick);
-#print("select $n\n") if $Global::DEBUG;
 
         if ($n == -1) {
             if ($! =~ m/^Interrupted/) {
                 if ($Signal_Terminate) {
                     last;
                 }
-#print("interrupted $n\n") if $Global::DEBUG;
             }
             else {
 				my $msg = $!;
@@ -381,16 +379,13 @@ sub server_inet {
         }
         elsif (vec($rout, fileno(Vend::Server::SOCKET), 1)) {
 
-#print("selected SOCKET $rout\n") if $Global::DEBUG;
 			$ok = accept(Vend::Server::MESSAGE, Vend::Server::SOCKET);
 			die "accept: $!" unless defined $ok;
 		
 			my($port,$iaddr) = sockaddr_in($ok);
 			my $name = gethostbyaddr($iaddr,AF_INET);
 
-#print("connection from $name [" .   inet_ntoa($iaddr) . "] at port $port\n") if $Global::DEBUG;
 
-#print("accepted $ok $name\n") if $Global::DEBUG;
 
 			unless ($host =~ /\b$name\b/io
 						or do {
@@ -408,11 +403,8 @@ sub server_inet {
 				::logGlobal ("Can't fork: $!\n");
 			}
 			elsif (! $pid) {
-#print("fork 1\n") if $Global::DEBUG;
 				#fork again
 				unless ($pid = fork) {
-#print join " ", times(), "\n" if $Global::DEBUG;
-#print("fork 2\n") if $Global::DEBUG;
 					kill "USR1", $Vend::MasterProcess;
 					open(Vend::Server::PIDFILE, ">$handle")
 						or die "create pidfile $handle: $!\n";
@@ -420,8 +412,7 @@ sub server_inet {
 					close(Vend::Server::PIDFILE)
 						or die "close pidfile $handle: $!\n";
 
-					select(undef,undef,undef,0.050) until getppid == 1;
-#print("going to connection\n") if $Global::DEBUG;
+					select(undef,undef,undef,0.020) until getppid == 1;
 					eval { inet_connection(undef, $debug) };
 					if ($@) {
 						my $msg = $@;
@@ -430,9 +421,6 @@ sub server_inet {
 					}
 					unlink $handle;
 					kill "USR2", $Vend::MasterProcess;
-#print("back from connection\n") if $Global::DEBUG;
-#print join " ", times(), "\n" if $Global::DEBUG;
-#print Global::DEBUG "Finish: ",  join " ", times(), "\n";
 					exit(0);
 				}
 				exit(0);
@@ -494,6 +482,8 @@ sub server_unix {
 
 	unlink $socket_filename;
 	socket(Vend::Server::SOCKET, AF_UNIX, SOCK_STREAM, 0) || die "socket: $!";
+	setsockopt(Vend::Server::SOCKET, SOL_SOCKET, SO_REUSEADDR, pack("l", 1))
+		|| die "setsockopt: $!";
 	bind(Vend::Server::SOCKET, pack("S", AF_UNIX) . $socket_filename . chr(0))
 		or die "Could not bind (open as a socket) '$socket_filename':\n$!\n";
 
@@ -505,11 +495,6 @@ sub server_unix {
 	listen(Vend::Server::SOCKET, 5) or die "listen: $!";
     for (;;) {
 
-#print "Got to beginning." if $Global::DEBUG;
-		unlink $socket_filename;
-		socket(Vend::Server::SOCKET, AF_UNIX, SOCK_STREAM, 0) || die "socket: $!";
-		bind(Vend::Server::SOCKET, pack("S", AF_UNIX) . $socket_filename . chr(0))
-			or die "Could not bind (open as a socket) '$socket_filename':\n$!\n";
 		#chmod $Global::FileCreationMask, $socket_filename;
 
 		chmod 0600, $socket_filename;
@@ -517,14 +502,11 @@ sub server_unix {
 		#DEBUG
 		#chmod 0666, $socket_filename; #DEBUG
 
-		listen(Vend::Server::SOCKET, 5) or die "listen: $!";
-
         $rin = '';
         vec($rin, fileno(Vend::Server::SOCKET), 1) = 1;
 
         $n = select($rout = $rin, undef, undef, $tick);
 
-#print "Got past vec." if $Global::DEBUG;
 
         if ($n == -1) {
             if ($! =~ m/^Interrupted/) {
@@ -547,8 +529,6 @@ sub server_unix {
         elsif (vec($rout, fileno(Vend::Server::SOCKET), 1)) {
             my $ok = accept(Vend::Server::MESSAGE, Vend::Server::SOCKET);
             die "accept: $!" unless defined $ok;
-			#my $new_socket = get_socketname $socket_filename;
-			#rename $socket_filename, $new_socket;
 
        		my $handle = get_socketname("$Global::ConfDir/mvrunning");
 
@@ -603,10 +583,6 @@ sub server_unix {
            select(undef,undef,undef,0.300);
            last if $Signal_Terminate || $Signal_Debug;
         }
-
-#print "Got to end of loop, nearly." if $Global::DEBUG;
-#print("Got past terminate.\n") if $Global::DEBUG;
-#print("Got to end.\n") if $Global::DEBUG;
 
 
     }

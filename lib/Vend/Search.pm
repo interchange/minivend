@@ -27,7 +27,7 @@
 #
 package Vend::Search;
 
-$VERSION = substr(q$Revision: 1.8 $, 10);
+$VERSION = substr(q$Revision: 1.6 $, 10);
 $DEBUG = 0;
 
 =head1 NAME

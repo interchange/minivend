@@ -1,4 +1,4 @@
-# $Id: Config.pm,v 1.8 1997/05/05 04:40:16 mike Exp $
+# $Id: Config.pm,v 2.14 1997/01/05 02:02:24 mike Exp $
 
 package Vend::Config;
 require Exporter;
@@ -41,6 +41,7 @@ sub global_directives {
 	['SendMailProgram',  'executable',       $Global::SendMailLocation],
     ['ForkSearches',	  undef,     	     ''],  # Prevent errors on 2.02 upgrade
 	['HouseKeeping',      undef,             60],
+	['Mall',	          'yesno',           'No'],
 	['MaxServers',        undef,             2],
 	['GlobalSub',		 'subroutine',       ''],
 	['FullUrl',			 'yesno',            'No'],
@@ -115,6 +116,7 @@ sub catalog_directives {
     ['OrderCounter',	 undef,     	     ''],
     ['ImageDir',	 	 undef,     	     ''],
     ['UseCode',		 	 undef,     	     'yes'],
+    ['SetGroup',		 'valid_group',      ''],
     ['UseModifier',		 'array',     	     ''],
     ['TransparentItem',	 undef,     	     ''], 
     ['LogFile', 		  undef,     	     'etc/log'],
@@ -318,12 +320,17 @@ CONFIGLOOP: {
 					("$name{$lvar}: Can't read from file until ConfigDir defined");
 			}
 			$file = $name{$lvar} unless $file;
+			if($Global::NoAbsolute) {
 			config_error(
 			  "No leading / allowed if NoAbsolute set. Contact administrator.\n")
 				if $file =~ m.^/.;
 			config_error(
 			  "No leading ../.. allowed if NoAbsolute set. Contact administrator.\n")
 				if $file =~ m#^\.\./.*\.\.#;
+			config_error(
+			  "Symbolic links not allowed if NoAbsolute set. Contact administrator.\n")
+				if -l $file;
+			}
 			$file = "$C->{ConfigDir}/$file" unless $file =~ m!^/!;
 			$file = escape_chars($file);			# make safe for filename
 			my $tmpval = readfile($file);
@@ -525,7 +532,7 @@ sub get_files {
 	foreach $file (@files) {
 		config_error(
 		  "No leading ../.. allowed if NoAbsolute set. Contact administrator.\n")
-		if $file =~ m#^\.\./.*\.\.#;
+		if $file =~ m#^\.\./.*\.\.# and $Global::NoAbsolute;
 ##print "Got to get_files: '$dir' '@files'\n" if $Global::DEBUG;
 		push(@out,"\n") unless
 			push(@out,readfile("$dir/$file.html"));
@@ -757,10 +764,10 @@ sub parse_relative_dir {
 		unless defined $C->{'VendRoot'};
 		config_error(
 		  "No leading / allowed if NoAbsolute set. Contact administrator.\n")
-		if $value =~ m.^/.;
+		if $value =~ m.^/. and $Global::NoAbsolute;
 		config_error(
 		  "No leading ../.. allowed if NoAbsolute set. Contact administrator.\n")
-		if $value =~ m#^\.\./.*\.\.#;
+		if $value =~ m#^\.\./.*\.\.# and $Global::NoAbsolute;
 	
     $value = "$C->{'VendRoot'}/$value" unless $value =~ m.^/.;
     $value =~ s./$..;
@@ -806,6 +813,21 @@ sub time_to_seconds {
     }
 
     $n;
+}
+
+sub parse_valid_group {
+    my($var, $value) = @_;
+
+	return '' unless $value;
+
+	my($name,$passwd,$gid,$members) = getgrnam($value);
+
+    config_error("$var: Group name '$value' is not a valid group\n")
+		unless defined $gid;
+	$name = getpwuid($<);
+    config_error("$var: MiniVend user '$name' not in group '$value'\n")
+		unless $members =~ /\b$name\b/;
+    $gid;
 }
 
 sub parse_valid_page {
@@ -915,10 +937,10 @@ sub parse_profile {
 	for(@files) {
 		config_error(
 		  "No leading / allowed if NoAbsolute set. Contact administrator.\n")
-		if m.^/.;
+		if m.^/. and $Global::NoAbsolute;
 		config_error(
 		  "No leading ../.. allowed if NoAbsolute set. Contact administrator.\n")
-		if m#^\.\./.*\.\.#;
+		if m#^\.\./.*\.\.# and $Global::NoAbsolute;
 		push @$c, (split /\s*[\r\n]+__END__[\r\n]+\s*/, readfile($_));
 	}
 	for($i = 0; $i < @$c; $i++) {

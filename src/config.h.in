@@ -6,5 +6,11 @@
 /* Define if environ is declared in unistd.h */
 #undef ENVIRON_DECLARED
 
+/* Define if you have the strerror function.  */
+#undef HAVE_STRERROR
+
 /* Define if you have the socket library (-lsocket).  */
 #undef HAVE_LIBSOCKET
+
+/* Define if you have the DNS functions library (-lnsl).  */
+#undef HAVE_LIBNSL

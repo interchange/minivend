@@ -1,4 +1,4 @@
-# $Id: Session.pm,v 1.7 1997/05/05 20:14:20 mike Exp $
+# $Id: Session.pm,v 1.12 1997/01/05 02:02:24 mike Exp $
 
 package Vend::Session;
 require Exporter;
@@ -152,6 +152,7 @@ sub new_session {
 			last unless exists $Vend::SessionDBM{$Vend::SessionID};
 		}
     }
+	$CGI::cookie = '';
     $Vend::SessionName = $name;
 	add_session_marker();
     init_session();

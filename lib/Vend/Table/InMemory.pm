@@ -138,12 +138,6 @@ sub inc_field {
     $a->[$s->column_index($column)] += $adder;
 }
 
-sub touch {
-    my ($s) = @_;
-    my $val = $s->[2]{'c'};
-    $s->[$TIE_HASH]{'c'} = $val;
-}
-
 sub each_record {
     my ($s) = @_;
     my @e = each %{$s->[2]};
@@ -169,6 +163,8 @@ sub clear_table {
     my ($s) = @_;
     %{$s->[2]} = ();
 }
+
+sub touch { 1 }
 
 sub version { $Vend::Table::InMemory::VERSION }
 

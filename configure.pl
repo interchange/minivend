@@ -950,11 +950,10 @@ HOSTNAME: {
 	}
 }
 
-LOCK_GCC: {
-	last LOCK_GCC unless
+LOCK: {
+	last LOCK unless
 		$Config{'osname'} =~ /solaris/i;
-	$GCCFLAG = ' -lsocket -DSVR4';
-	eval {require File::Lock and last LOCK_GCC }; 
+	eval {require File::Lock and last LOCK }; 
 
 		print <<EOF;
 
@@ -973,14 +972,14 @@ EOF
 			system	$PERL,
 				'-npi', '-e',
 				"'s!^\s*#\s*(use\s+File::Lock)!$1!'",
-				'Vend/Util.pm';
+				'lib/Vend/Util.pm';
 		}
 		else {
 			warn "\nInstall FAILED.\n";
 			require 5.00393;
 		}
 
-} # last LOCK_GCC
+} # last LOCK
 
 MDMODULE: {
 	eval {require MD5};
@@ -1152,45 +1151,24 @@ if (is_yes($ans)) {
 	my $CC = findexe('cc') || findexe('gcc');
 	warn "No C compiler found, this phase will not be successful, I bet...\n"
 		unless $CC;
-	$CC = 'cc' unless $CC;
-	$CC .= $GCCFLAG if (defined $GCCFLAG and $CC =~ /gcc$/);
 	$? = 1;
 	chdir 'src' || die "Couldn't change to source directory: $!\n";
 	system "./configure";
+	eval `cat syscfg`;
 	print "Compiling, this may take a sec...";
 	unless($?) {
 		$? = 1;
-              print "Compiling with $CC -o vlink vlink.c'\n"
+        print "Compiling with $CC $CFLAGS $LIBS -o vlink vlink.c'\n"
                       if $DEBUG;
-		system "$CC -o vlink vlink.c";
+		system "$CC $CFLAGS $LIBS -o vlink vlink.c";
 		if($?) {
 			warn "\nCompiliation of vlink.c FAILED.\n";
 			$vfail = 1;
 		}
-		system "$CC -o tlink tlink.c";
+		system "$CC $CFLAGS $LIBS -o tlink tlink.c";
 		if($?) {
 			warn "\nCompiliation of tlink.c FAILED.\n";
 			$tfail = 1;
-		}
-		if (defined $vfail and $Config{'osname'} eq 'solaris') {
-			print "Trying Solaris compile of vlink with GCC....";
-			system "gcc -DSVR4 -lsocket -o vlink vlink.c";
-			if($?) {
-				warn "\nCompiliation of vlink.c FAILED again.\n";
-			}
-			else {
-				print "succeeded!\n";
-			}
-		}
-		if (defined $tfail and $Config{'osname'} eq 'solaris') {
-			print "Trying Solaris compile of tlink with GCC....";
-			system "gcc -DSVR4 -lsocket -o tlink tlink.c";
-			if($?) {
-				warn "\nCompiliation of tlink.c FAILED again.\n";
-			}
-			else {
-				print "succeeded!\n";
-			}
 		}
 	}
 	else {

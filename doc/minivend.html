@@ -2983,6 +2983,7 @@ iterating lists.
  mv_case              S   Turns on case sensitivity
  mv_cartname          O   Sets the shopping cart name
  mv_cache_params      S   Determines cacheing of searches
+ mv_change_frame      A   Any form, changes frame target of form output
  mv_check             A   Any form, sets multiple user variables after update
  mv_checkout          O   Sets the checkout page
  mv_click             A   Any form, sets multiple form variables before update
@@ -4425,9 +4426,6 @@ the product code, but could be a key to any of the arbitrary
 databases. The value placed by the [item-code] tag is set to whatever
 the first field (separated by whitespace) is, at least when the 
 default of <STRONG>yes</STRONG> is in the UseCode directive. 
-<p>NOTE: The special item tags (item_price, item_data, item_accessory,
-etc.) still refer to fields in the product database. To access arbitrary
-databases, you will need to use the idiom [data database field [item_code]].
 <p>
 <DL COMPACT>
 <DT><STRONG>
@@ -5423,6 +5421,99 @@ longest possible value since the browser will scroll the field, but
 you should set it large enough to be comfortable for the customer.
 <p>
 <H2> 
+<A NAME="minivend_product_0">
+Product Pricing</A>
+</H2>
+MiniVend maintains a price in its database for every product. The price
+field is the one required field in the product database -- it is necessary
+to build the price routines.
+<p>For speed, MiniVend builds the code that is used to determine a product's
+price at catalog configuration time. If you choose to change a directive
+that affects product pricing you must reconfigure the catalog.
+<p>There are several ways that MiniVend can modify the price of a product during 
+normal catalog operation. Several of them require that the 
+<A HREF="minivend.html#minivend_pricing_asc_0">pricing.asc</A>
+
+file be present, and that you define a pricing database.  You do that by
+placing the following directive in 
+<A HREF="minivend.html#minivend_catalog_cfg_0">catalog.cfg</A>
+:
+<p>
+<XMP>
+  Database  pricing pricing.asc 1
+
+</XMP>
+<p>Configurable directives and tags with regard to pricing:
+<p>
+<UL>
+<LI>Quantity price breaks are configured by means of the 
+<A HREF="minivend.html#minivend_pricebreaks_0">PriceBreaks</A>
+ and
+
+<A HREF="minivend.html#minivend_mixmatch_0">MixMatch</A>
+ directives.  They require a field named specifically 'price'
+in the pricing database.  The <STRONG>price</STRONG> field contains a space-separated
+list of prices that correspond to the quantity levels defined in the
+
+<A HREF="minivend.html#minivend_pricebreaks_0">PriceBreaks</A>
+ directive. If quantity is to be applied to all items in
+the shopping cart (as opposed to quantity of just that item) then the
+
+<A HREF="minivend.html#minivend_mixmatch_0">MixMatch</A>
+ directive should be set to <STRONG>Yes</STRONG>.
+<p>
+<LI>Individual line-item prices can be adjusted according to the value of
+their attributes.  See 
+<A HREF="minivend.html#minivend_priceadjustment_0">PriceAdjustment</A>
+ and 
+<A HREF="minivend.html#minivend_commonadjust_0">CommonAdjust</A>
+. The
+pricing database <EM>must</EM> be defined unless you define the 
+<A HREF="minivend.html#minivend_commonadjust_0">CommonAdjust</A>
+
+behavior.
+<p>
+<LI>Product discounts for specific products, all products, or the entire
+order can be configured with the [discount ...] tag. Discounts are applied
+on a per-user basis -- you can gate the discount based on membership in a
+club or other arbitrary means. See 
+<A HREF="minivend.html#minivend_product_1">Product Discounts</A>
+.
+<p>
+</UL>
+For example, if you decided to adjust the price of T-shirt part number.99-102 up 1.00 when the size is extra large and down 1.00 when the size is small,
+you would have the following directives defined in &lt;catalog.cfg&gt;:
+<p>
+<XMP>
+  Database          pricing pricing.asc 1
+  UseModifier       size
+  PriceAdjustment   size
+
+</XMP>
+<p>To enable the automatic modifier handling of MiniVend 3.0, you would
+define a size field in products.asc:
+<p>
+<XMP>
+  code    description   price    size
+  99-102  T-Shirt       10.00    S=Small, M=Medium, L=Large*, XL=Extra Large
+
+</XMP>
+<p>You would place the proper tag within your [item-list] on the shopping-basket
+or order page:
+<p>
+<XMP>
+        [item-accessories size]
+
+</XMP>
+<p>In the pricing.asc database source, you would need:
+<p>
+<XMP>
+  code      S       XL
+  99-102    -1.00   1.00
+
+</XMP>
+<p>
+<H2> 
 <A NAME="minivend_item_1">
 Item Attributes</A>
 </H2>
@@ -5556,7 +5647,7 @@ order report, order receipt, or any other page containing an
 [item_list]. 
 <p>
 <H2> 
-<A NAME="minivend_product_0">
+<A NAME="minivend_product_1">
 Product Discounts</A>
 </H2>
 Product discounts can be set upon display of any page. The discounts
@@ -6230,6 +6321,35 @@ The [framebase frame] element sets a base target for a page.
     reframe.html    Re-enables frames after they have been turned off
 
 </XMP>
+<p>
+<H2> 
+<A NAME="minivend_changing_0">
+Changing output frame in a form</A>
+</H2>
+If you want to send output to different frames based on input
+from the user, you can set the <EM>mv_change_frame</EM> variable. If found
+<EM>in the current form</EM>, a <EM>Window-Target:</EM> header will be sent
+to route the HTML output to the frame named in <EM>mv_change_frame</EM>.
+<p>You can use 
+<A HREF="minivend.html#minivend_one_click_0">One-click Multiple Variables</A>
+ to set the target if you
+wish.
+<p>
+<XMP>
+  <INPUT TYPE="submit" name="mv_todo" value="Search">
+  <INPUT TYPE="submit" name="mv_click" value="Continue Shopping">
+  [set Continue Shopping]
+  mv_todo=return
+  mv_nextpage=browse
+  mv_change_frame=_top
+  [/set]
+
+</XMP>
+<p>The above snippet will, when placed in a MiniVend form, send the output
+of a <STRONG>Search</STRONG> submission to the current default frame, but when
+<STRONG>Continue Shopping</STRONG> is selected the output will will go to the page
+<EM>browse.html</EM> with the page routed to the top level frame for the
+current browser window.
 <p>
 <H2> 
 <A NAME="minivend_body_1">
@@ -7663,9 +7783,9 @@ MixMatch</A>
 
 </STRONG>
 <DD>
-A setting of no says that quantity price breaks will be on TOTAL
-quantity, yes says that quantity price breaks are on a per-item quantity.
-Default is no.
+A yes/no directive.  A setting of <STRONG>yes</STRONG> says that quantity price breaks
+will be on TOTAL quantity, <STRONG>no</STRONG> says that quantity price breaks are on
+a per-item quantity.  Default is <STRONG>no</STRONG>.
 <p>
 <XMP>
     MixMatch        yes
@@ -8114,13 +8234,6 @@ is built at catalog startup.)
     PriceAdjustment   size
 
 </XMP>
-<p>Care needs to be used.  Each possible attribute value must have a
-<STRONG>unique</STRONG> column name, which when found for that item code, contains the
-price adjustment (if any) to be made for <EM>any</EM> attribute containing
-that value.  Used in concert with 
-<A HREF="minivend.html#minivend_priceadjustment_0">PriceAdjustment</A>
-, and is not set by
-default, disabling the common adjustment database feature.
 <p>
 <DT><STRONG>
 

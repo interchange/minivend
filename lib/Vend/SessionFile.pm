@@ -1,6 +1,6 @@
 # SessionFile.pm:  stores session information in files
 #
-# $Id: SessionFile.pm,v 1.1 1997/01/24 15:37:12 mike Exp $
+# $Id: SessionFile.pm,v 1.3 1997/01/07 01:16:56 mike Exp $
 #
 # Copyright 1996 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996 by Michael J. Heins <mikeh@iac.net>
@@ -20,7 +20,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
-# $Id: SessionFile.pm,v 1.1 1997/01/24 15:37:12 mike Exp $
+# $Id: SessionFile.pm,v 1.3 1997/01/07 01:16:56 mike Exp $
 
 package Vend::SessionFile;
 require Tie::Hash;

@@ -7,6 +7,7 @@ AC_PROG_CC
 
 dnl Checks for libraries.
 AC_CHECK_LIB(socket, socket)
+AC_CHECK_LIB(nsl, gethostbyname)
 
 dnl Checks for header files.
 dnl AC_HEADER_STDC
@@ -27,6 +28,7 @@ fi
 dnl Checks for library functions.
 AC_TYPE_SIGNAL
 dnl AC_CHECK_FUNCS(select socket strerror)
+AC_CHECK_FUNCS(select socket strerror)
 
 dnl Checks for system services
 dnl AC_SYS_RESTARTABLE_SYSCALLS

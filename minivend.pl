@@ -1,8 +1,8 @@
 #!/usr/local/bin/perl
 #
-# MiniVend version 2.00
+# MiniVend version 3.00
 #
-# $Id: minivend.pl,v 1.7 1997/05/05 20:13:51 mike Exp $
+# $Id: minivend.pl,v 2.15 1997/01/07 01:35:23 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -11,7 +11,7 @@
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
 # Enhancements made by and
-# Copyright 1996 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996, 1997 by Michael J. Heins <mikeh@iac.net>
 #
 # See the file 'Changes' for information.
 #
@@ -1358,10 +1358,11 @@ sub map_cgi {
     $CGI::query_string = http()->Query;
     $CGI::referer = http()->Referer;
 	unless ($Global::FullUrl) {
-		$CGI::script_name = http()->Script;
+		$CGI::script_name = $CGI::script_path = http()->Script;
 	}
 	else {
 		$CGI::script_name = http()->URI;
+		$CGI::script_path = http()->Script;
 	}
 
 	$CGI::post_input = http()->read_entity_body(http());
@@ -1397,6 +1398,15 @@ sub dispatch {
 	}
 	else {
 		$Vend::Cfg = $Global::Standalone;
+	}
+
+	if ($Vend::Cfg->{SetGroup}) {
+		eval {$( = $Vend::Cfg->{SetGroup}};
+		if ($@) {
+			my $msg = $@;
+			logGlobal("Can't set group to GID $Vend::Cfg->{SetGroup}: $msg");
+			logError("Can't set group to GID $Vend::Cfg->{SetGroup}: $msg");
+		}
 	}
 
 	if (defined $CGI::reconfigure_catalog) {

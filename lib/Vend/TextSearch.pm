@@ -1,6 +1,6 @@
 # Vend/TextSearch.pm:  Search indexes with Perl
 #
-# $Id: TextSearch.pm,v 1.7 1997/05/05 20:14:20 mike Exp $
+# $Id: TextSearch.pm,v 1.7 1997/01/05 09:11:01 mike Exp $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::TextSearch
 #

@@ -1,6 +1,6 @@
 # Interpolate.pm - Interpret MiniVend tags
 # 
-# $Id: Interpolate.pm,v 1.9 1997/05/05 20:14:20 mike Exp $
+# $Id: Interpolate.pm,v 2.20 1997/01/07 01:33:26 mike Exp $
 #
 # Copyright 1996 by Michael J. Heins <mikeh@iac.net>
 #
@@ -32,7 +32,7 @@ require Exporter;
 @ISA = qw(Exporter);
 # END NOAUTO
 
-$VERSION = substr(q$Revision: 1.9 $, 10);
+$VERSION = substr(q$Revision: 2.20 $, 10);
 
 @EXPORT = qw (
 
@@ -870,6 +870,8 @@ sub tag_if {
 
 	RUNSAFE: {
 		#$status = eval "$op"
+		$op =~ /([\000-\377]*)/;
+		$op = $1;
 		$safe->untrap(@{$Global::SafeUntrap});
 		$status = $safe->reval($op)
 			unless ($@ or $status);
@@ -1078,23 +1080,47 @@ sub do_tag {
 		if($arg =~ s/^\s*flag\s+([\s\S]*)//i ) {
 			do_flag($1, $text);
 		}
-		elsif($arg =~ /^\s*each\s+($Codere)/i ) {
+		elsif($arg =~ /^\s*import\s+($Codere)/i ) {
 			my $db = database_exists_ref($1) 
 				or do {
 					$arg =~ s/\s*\w+\s+//;
-					logError("tag each: unknown database '$arg'.");
+					logError("tag import: unknown database '$arg'.");
 					return '';
 				};
+			$db->test_column("NeVairBE");
+			return '';
+		}
+		elsif($arg =~ /^\s*each\s+($Codere)/i ) {
+			my $base = $1;
+			my $db = database_exists_ref($base) 
+				or do {
+					logError("tag each: unknown database '$base'.");
+					return '';
+				};
+			$db->test_column("NeVairBE");
+			$db = database_exists_ref($base);
 			my $key;
-			while($key = $db->each_record()) {
-				loop_substitute($key, $text);
+			my $out = '';
+			while(($key) = $db->each_record()) {
+				$out .= loop_substitute($key, $text);
 			}
+			return $out;
 		}
 		elsif($arg =~ /^\s*time\b/i ) {
 			unless ($text =~ /\S/) {
 				return scalar localtime();
 			}
 			return POSIX::strftime($text, localtime());
+		}
+		elsif($arg =~ /^\s*untaint\b/i ) {
+			my(@vars) = split /\s+/, $text;
+			for(@vars) {
+				next unless defined 
+					$Vend::Session->{'values'}->{$_};
+				$Vend::Session->{'values'}->{$_} =~ /([\000-\377]*)/;
+				$Vend::Session->{'values'}->{$_} = $1;
+			}
+			return '';
 		}
 		elsif($arg =~ /^\s*mime(?:\s+)?([\s\S]+)?/i ) {
 			my $opt = $1 || '';

@@ -1,7 +1,7 @@
 /* tlink.c:  runs as a cgi program and passes request to Vend server
 			 via TCP/IP 
 
-   $Id: tlink.c,v 1.1 1997/04/22 15:31:27 mike Exp $
+   $Id: tlink.c,v 1.1 1997/04/22 15:31:27 mike Exp mike $
 
    Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 
@@ -62,6 +62,11 @@
 extern char** environ;
 #endif
 
+/* For GCC on Solaris systems */
+#ifndef INADDR_NONE
+#define INADDR_NONE -1
+#endif
+
 /* The following symbols should be defined:
  * 
  * LINK_HOST
@@ -89,6 +94,11 @@ struct sockaddr_in ServAddr;
 /* Define as x to enable verbose debugging output.
  */
 
+#ifdef HAVE_STRERROR
+#define ERRMSG strerror
+#else
+#define ERRMSG perror
+#endif
 
 /* Return this message to the browser when the server is not running.
  */
@@ -132,7 +142,7 @@ static void die(e, msg)
   printf("Content-type: text/plain\r\n\r\n");
   printf("We are sorry, but the cgi-bin server is unavailable due to a\r\n");
   printf("system error.\r\n\r\n");
-  printf("%s: %s (%d)\r\n", msg, strerror(e), e);
+  printf("%s: %s (%d)\r\n", msg, ERRMSG(e), e);
   exit(1);
 }
 

@@ -2,7 +2,7 @@
 #
 # MiniVend version 1.04
 #
-# $Id: Order.pm,v 1.4 1997/05/02 05:50:03 mike Exp $
+# $Id: Order.pm,v 2.8 1997/01/07 01:16:56 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -30,7 +30,7 @@
 package Vend::Order;
 require Exporter;
 
-$VERSION = substr(q$Revision: 1.4 $, 10);
+$VERSION = substr(q$Revision: 2.8 $, 10);
 $DEBUG = 0;
 
 # AUTOLOAD

@@ -1,4 +1,4 @@
-# $Id: Offline.pm,v 1.2 1997/03/29 08:53:37 mike Exp $
+# $Id: Offline.pm,v 1.3 1996/12/27 10:00:20 mike Exp $
 #
 # Offline.pm - Offline database build module for Vend
 #              Also builds product indices and the other

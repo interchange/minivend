@@ -32,77 +32,110 @@ Please feel free to send them to Mike Heins, <mikeh@iac.net>.
 
                       W H A T ' S   N E W 
 
-MiniVend 2.03 is greatly changed from MiniVend 2.02, though
-catalogs should be almost completely compatible, with the
-exception of one or two precedence changes in the [if ...]
-conditionals.
+MiniVend 3.00 is greatly changed from MiniVend 2.03, though catalogs
+should be almost completely compatible. The exceptions are one or two
+pricing and shipping database changes.  In both cases, there is available
+backward compatibility. 
 
 Changes include:
 
-	* Re-configuring a catalog can now be done on an individual
-	  basis.  No more server re-starts for a user to change their
-	  configuration.
+    * A powerful static page building capability is in place.
+      This allows completely automated generation of static HTML
+      pages based on MiniVend databases.  Use it to build static
+      category lists and product pages that will load quickly without
+      the necessity of MiniVend parsing them.
+    
+    * Dynamic page parsing speed is increased by about 30% when
+      using the standard syntax.
 
-	* MiniVend no longer requires DBM, though it is still best to use
-	  GDBM or DB_File if available. There is a file-based session
-	  storage message mechanism, and product databases can
-	  be stored in memory.  This is automatically selected if
-	  appropriate.
+    * Multiple product databases allow the breakout of product lines,
+      new-used product separation, multi-vendor order routing, and
+      more.  The database an item is ordered from is kept with the
+      item in the shopping cart, so items ordered with the same part
+      number from different databases will not overwrite each other.
 
-	* Multi-server mechanism changed completely.  Only one
-	  server runs when in quiescent state -- it forks additional
-	  servers as necessary, up to a limit you decide.
+    * Database tables are now writeable.  Atomic incrementation is
+      supported, which means that reliable inventory counts can be
+      kept.  Form-based database updates are expanded to encompass
+      all databases, not just mSQL.
 
-	* Runs on just about any Unix operating system with
-	  no changes, providing Perl 5.002 is available.  This
-	  includes IRIX, which formerly would not run MiniVend.
+    * Transactions can be logged to an arbitrary file in an arbitrary
+      format with [tag log file]data[/tag].
 
-	* Perl subroutines can now be defined on three levels, and
-	  directly called from MiniVend pages. Two use the Safe.pm module
-	  for enforcing security, while an administrator-enabled GlobalSub
-	  routine can run external programs for complete control.
+    * Databases can be exported to an ASCII file with the [tag export ...]
+      [/tag] construct.
 
-	* mSQL support is now considered stable, and the databases
-	  can be updated by forms from within MiniVend.
+    * Shipping is much improved, with built-in subroutine calls, 
+      error messages for out of bounds condtions, drop-in UPS zone
+      files, configurable handling charges, UPS cost rounding, and
+      more regular syntax.
 
-	* The link CGI program may now use TCP-based sockets, which
-	  allows the link CGI to be located on a different machine than
-	  the MiniVend server.  Be careful of security, though!
+    * Item attribute selection greatly improved, with automated building
+      of the item attribute selection.  Item attributes can easily be 
+      specified at the time of order.
 
-	* Perl link programs are provided for systems without a C compiler.
-	  (Solaris still needs a C compiler for File::Lock, unless it is
-	  already installed on Perl.)
+    * Item attributes can cause price adjustments on either an
+      item basis or attribute basis.
 
-	* Search sorting and list parsing can now be done on a named
-	  field basis for all files.
+    * Uses Data::Dumper's C-based uneval code when available,
+	  improving session storage speed.
 
-	* Search sorting can be done right on the page from returned
-	  fields, and be sorted by field based on form options.
+    * Database tables are only actually opened when referenced,
+      improving speed greatly on systems that have a large number
+      of tables in the database.
 
-	* Search sorting can be done right on the page from returned
-	  fields, and be sorted by field based on form options.
+    * Experimental DBI/DBD example interface provided, which
+      will allow attachment of supported SQL databases like Solid,
+      Oracle, or Sybase. THIS IS EARLY ALPHA SOFTWARE. Use only on
+      an experimental basis, never with live data.
 
-	* Order and search profiles now can be fully evaluated 
-	  for conditionals.
+    * Search engine has improved coordinated matching, with full
+      field-independent case-sensitivity, substring matching, and
+      negation.
 
-	* The [if ...] conditionals are much improved.  Contained
-	  HTML can now be deferred until the last interpolation pass
-	  with the [post] [/post] tag pair.  Fixed problem with
-	  [if salestax ..].
+    * Search speed greatly improved when doing complex
+      field-coordinated searches.
 
-	* New mv_click and mv_check special variables set multiple
-	  form parameters with a single form button.
+    * The FullUrl directive allows different virtual hosts to have
+      link programs with the same name, i.e. all named /cgi-bin/shop.
 
-	* Cookies are only sent once if enabled, preventing annoying
-	  multiple warnings if the user has them turned on.
-	
-	* If the user is going through multiple proxy servers (as
-	  AOL users do), the session will be stable.
-	
-	* If REMOTE_USER is present, the IP address will not be
-	  used for 
+    * A new (and still experimental) page syntax allows more regular
+      parsing of tags, removing some of the interpolation-order anomalies
+      inherent in the old-style tags. It can be invoked on individual
+      pages with the [new] tag.
 
-	* Many other minor bug fixes, improvements, and changes.
+    * Search cacheing is much improved, and searches can be pre-built
+      when using the static page build capability.
+
+    * Pages can be cached, which especially improves performance of
+      large parsed pages. Static build is preferred to cache, but
+      with large databases it is not practical to build every item
+      in advance.
+
+    * Supports Perl 5.004 transparently, making runtime changes to
+      affected modules.
+
+    * Better security with the NoAbsolute, AdminPage, .access, and
+      AdminDatabase tags.
+
+    * Improved handling of cookies, with savable sessions and dynamic
+      expire times.
+
+    * Mailed orders may have MIME attachements. Though the author
+      loathes routinely-used MIME, it has value as a way to attach
+      an encrypted credit card number for easy processing by an
+      order entry workstation.
+
+    * Search sorting bugs fixed.
+
+    * New $Safe{'cgi'}->{form_value} access in embedded Perl allows
+      complex conditional search or order routines to be more
+      intelligent with regard to user input.
+
+    * New FormIgnore directive allows certain variables to be
+      expunged from the user session.
+
+    * Many other minor bug fixes, improvements, and changes.
 
 -------------------------------------------------------------
 
@@ -122,9 +155,9 @@ IMPORTANT NOTE: If you don't give evidence of having read and
 
 Here is the short version:
 
-    gzip -d mvend203.tar.gz
-    tar xf mvend203.tar
-    cd mvend203
+    gzip -d mvend300.tar.gz
+    tar xf mvend300.tar
+    cd mvend300
     ./configure
     su
     bin/makecat sample
@@ -134,14 +167,14 @@ Here is the short version:
 With comments:
 
     # Unzip and untar the file -- if you have GNU tar, you can combine
-    # the first two steps with 'tar xzf mvend203.tar.gz'
-    gzip -d mvend203.tar.gz
-    tar xf mvend203.tar
+    # the first two steps with 'tar xzf mvend300.tar.gz'
+    gzip -d mvend300.tar.gz
+    tar xf mvend300.tar
 
     # Change directory to the one that was created -- this is a change
     # from MiniVend 1.0x.
     #
-    cd mvend203
+    cd mvend300
 
     # If you have trouble with picking up the wrong Perl version,
     # try  '/dir/where/perl/is/perl configure.pl /dir/where/perl/is/perl'.
@@ -155,24 +188,25 @@ With comments:
     #
     # If in doubt, the defaults are probably OK.
     #
-	# If you are upgrading from a previous version, put the 
-	# former MiniVend root directory in when prompted for
-	# VendRoot.
-	#
+    # If you are upgrading from a previous version, put the 
+    # former MiniVend root directory in when prompted for
+    # VendRoot.
+    #
     ./configure
 
-	####
+    ####
 
-	   At this point, you can follow the instructions that
-	   the configure program generates.  If you installed
-	   MiniVend in another directory besides the current one,
-	   you will have to change directories to that directory
-	   before continuing.
+       At this point, you can follow the instructions that
+       the configure program generates.  If you installed
+       MiniVend in another directory besides the current one,
+       you will have to change directories to that directory
+       before continuing.
 
-	####
+    ####
 
     # Become superuser if you are an ISP or other organization that
-    # will be running multiple catalogs
+    # will be running multiple catalogs. If you don't have root access,
+    # don't worry about it.
     #
     su
 
@@ -240,13 +274,30 @@ IRIX:      The UNIX-domain socket version may not work on
            some operating system versions -- patch 596
            is recommended.
 
-FreeBSD:   If the kernel parameter CHILD_MAX is not configured
-           above the default of 40, expect problems.
+BSDI, FreeBSD:
+           The BSD socket code does not appear to be reliable
+           when combined with Perl, and you may observe server
+           freezes as a result.  MiniVend will not as of this
+           writing even work with BSDI 3.0 -- nor will Perl
+           socket code of any kind, for that matter. BSD is the
+           only known OS with this problem -- it is recommended
+           that you use another for MiniVend if at all possible.
+
+           If the kernel parameter CHILD_MAX is not configured
+           above the default of 40, expect problems. Same with
+           SO_MAXCONN and some other kernel parameters. 
+
+           In short, if you are using BSD you can expect problems
+           with MiniVend.  Infuriating, hard-to-trace ones.
 
 Solaris:   You must use the File::Lock module -- flock()
-           emulation in Perl does not work properly, and fcntl()
-           locking must be used.  This version of MiniVend
-           includes File::Lock, and attempts to install it.
+           emulation in Perl 5.003 does not work properly, and fcntl()
+           locking must be used.  This version of MiniVend includes
+           File::Lock, and attempts to install it.
+
+           If you have Perl 5.004, you may be able to
+           disregard File::Lock -- MiniVend will try if
+           appropriage.
 
            If you are using GCC on Solaris, you may have to
            compile manually and pass -DSVR4 -lsocket on the
@@ -274,19 +325,12 @@ Solaris:   You must use the File::Lock module -- flock()
    MiniVend is freely-redistributable under the GNU General Public
    License -- you can download it via FTP.
 
-   IMPORTANT NOTE:  MiniVend requires Perl 5.002 or higher and GDBM
+   IMPORTANT NOTE:  MiniVend requires Perl 5.003 or higher and GDBM
    or DB_File databases. The program is no longer compatible with 
-   NDBM or Perl 5.001.
-   
-    Features
+   NDBM or Perl 5.001.  It *may* work with Perl 5.002, but it is
+   no longer supported.
 
-    MiniVend is a full-featured electronic catalog system (commonly
-    known as a shopping cart) with fast and easy online ordering. It
-    is designed to provide an interface complete with SSL security
-    and full database support. It is as powerful as commercial
-    systems costing thousands of dollars.
-
-    MiniVend 2.03 Features
+    MiniVend 3.00 Features
 
        * Users maintain a "shopping cart" for ordered items
        * Multiple independent or shared catalogs allow one server
@@ -338,7 +382,8 @@ Solaris:   You must use the File::Lock module -- flock()
         * Fully-configurable discounts with coupons or
           across-the-board discounts
         * Fully-configurable quantity pricing
-        * Back end order entry capability
+        * Fully-configurable item price adjustments
+        * Sophisticated back end order entry capability
         * Full client-side imagemap support, including frame targets and form
           submits
         * Fully configurable order reports
@@ -386,14 +431,18 @@ should be able to access the new catalogs.
                               A N D
                      C O M P A T I B I L I T Y
 
-MiniVend has been well-tested on Solaris 2, SunOS, Linux,
-OSF/Alpha, BSDI, and FreeBSD.  It should work on any UNIX
-with Perl 5.002 or higher.
+MiniVend has been well-tested on Solaris 2, SunOS, Linux, HP-UX,
+and OSF/Alpha.  It should work on any UNIX with Perl 5.003 or
+higher.
+
+BSDI and FreeBSD are known to have problems with Perl socket
+code, which MiniVend relies heavily upon. You can expect some
+reliability problems with those operating systems.
 
 DB_File is the fastest DBM for use with MiniVend -- GDBM is
 the easiest to build if you must install it yourself.
 
-For Solaris 2, you will need the File::Lock module, which is
+For Solaris 2, you may need the File::Lock module, which is
 now included with MiniVend (installation is attempted).
 
 Please let the author know if you have successfully run MiniVend
@@ -426,7 +475,7 @@ Key things that people sometimes don't understand:
        and other databases.  Determine your data set first.
 
     -- The demo pages are there to be played with.  With MiniVend
-       2.03, you can't stop the system simply by changing a page.
+       3.00, you can't stop the system simply by changing a page.
 
     -- Many of the configurable features of MiniVend are determined
        by the directives in catalog.cfg (or minivend.cfg in a standalone
@@ -457,19 +506,21 @@ Linux         DB_File          1.2.x & up    This is what MiniVend is
                                              should work normally.
 
 FreeBSD       DB_File          2.1.0, 2.1.5  Many users run MiniVend on
-                                             this OS, no known problems
-
+                                             this OS, but there are
+                                             known problems with 
+                                             reliability. Take care.
 
 BSDI          DB_File                        Many users run MiniVend on
-                                             this OS, no known problems
-
+                                             this OS, but there are
+                                             known problems with 
+                                             reliability. Take care.
 
 Solaris 2     GDBM             2.4,2.5       Many users run MiniVend on
                                              this OS, no known problems
-											 once you get it going.
-											 File::Lock less of a problem,
-											 GCC problems should be caught
-											 by the configurator.
+                                             once you get it going.
+                                             File::Lock less of a problem,
+                                             GCC problems should be caught
+                                             by the configurator.
 
 
 SunOS 4.1.x   DB_File          4.1.3         Some users run MiniVend on
@@ -480,12 +531,13 @@ DEC/OSF, aka  GDBM             3.0           Some users run MiniVend on
 Digital UNIX                                 this OS, no known problems
                                              
 
-IRIX          GDBM             5.3           No known problems at this
-                                             point, though not many real
-                                             installations are up yet.
+IRIX          GDBM             5.3           Server may be difficult to
+                                             stop for re-configuration.
+                                             No other known problems.
 
-UnixWare      ????????         ??????        No known users, looking for
-                                             reports of compatibility
+HP/UX         ????????         10.1          A few users, may be some
+                                             trouble with vlink/tlink
+                                             compilation.
 
 SCO           ????????         ??????        No known users, looking for
                                              reports of compatibility
@@ -493,6 +545,4 @@ SCO           ????????         ??????        No known users, looking for
 AIX           ????????         ??????        No known users, looking for
                                              reports of compatibility
 
-HP/UX         ????????         ??????        No known users, looking for
-                                             reports of compatibility
 
