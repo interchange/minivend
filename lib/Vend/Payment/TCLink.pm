@@ -28,9 +28,9 @@
 
 package Vend::Payment::TCLink;
 
-=head1 Interchange TrustCommerce Support
+=head1 NAME
 
-Vend::Payment::TCLink $Revision$
+Vend::Payment::TCLink - Interchange TrustCommerce Support
 
 =head1 SYNOPSIS
 

@@ -34,9 +34,9 @@
 
 package Vend::Payment::AuthorizeNet;
 
-=head1 Interchange AuthorizeNet Support
+=head1 NAME
 
-Vend::Payment::AuthorizeNet $Revision$
+Vend::Payment::AuthorizeNet - Interchange AuthorizeNet Support
 
 =head1 SYNOPSIS
 

@@ -32,9 +32,9 @@
 
 package Vend::Payment::ECHO;
 
-=head1 Interchange ECHO Support
+=head1 NAME
 
-Vend::Payment::ECHO $Revision$
+Vend::Payment::ECHO - Interchange ECHO Support
 
 =head1 AUTHOR
 

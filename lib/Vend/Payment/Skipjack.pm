@@ -24,9 +24,9 @@
 
 package Vend::Payment::Skipjack;
 
-=head1 Interchange Skipjack Support
+=head1 NAME
 
-Vend::Payment::Skipjack $Revision$
+Vend::Payment::Skipjack - Interchange Skipjack Support
 
 =head1 SYNOPSIS
 

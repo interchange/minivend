@@ -22,9 +22,9 @@
 
 package Vend::Payment::Signio;
 
-=head1 Interchange support for Signio/Verisign Payflow Pro
+=head1 NAME
 
-Vend::Payment::Signio $Revision$
+Vend::Payment::Signio - Interchange support for Signio/Verisign Payflow Pro
 
 =head1 SYNOPSIS
 

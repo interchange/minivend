@@ -32,9 +32,9 @@
 
 package Vend::Payment::BoA;
 
-=head1 Interchange BoA Support
+=head1 NAME
 
-Vend::Payment::BoA $Revision$
+Vend::Payment::BoA - Interchange Bank of America Support
 
 =head1 SYNOPSIS
 

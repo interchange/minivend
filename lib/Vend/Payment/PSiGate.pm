@@ -39,9 +39,9 @@
 
 package Vend::Payment::PSiGate;
 
-=head1 Interchange PSiGate Support
+=head1 NAME
 
-Vend::Payment::PSiGate $Revision$
+Vend::Payment::PSiGate - Interchange PSiGate Support
 
 =head1 SYNOPSIS
 

@@ -25,9 +25,9 @@
 #
 package Vend::Payment::TestPayment;
 
-=head1 Interchange payment test module
+=head1 NAME
 
-Vend::Payment::TestPayment $Revision$
+Vend::Payment::TestPayment - Interchange payment test module
 
 =head1 SYNOPSIS
 

@@ -24,9 +24,9 @@ package Vend::Payment::MCVE;
 use vars qw($VERSION);
 $VERSION = substr(q$Revision$, 10);
 
-=head1 Interchange MCVE support
+=head1 NAME
 
-Vend::Payment::MCVE $Revision$
+Vend::Payment::MCVE - Interchange MCVE support
 
 =head1 SYNOPSIS
 

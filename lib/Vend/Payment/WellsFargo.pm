@@ -31,9 +31,9 @@
 
 package Vend::Payment::WellsFargo;
 
-=head1 Interchange WellsFargo Support
+=head1 NAME
 
-Vend::Payment::WellsFargo $Revision$
+Vend::Payment::WellsFargo - Interchange WellsFargo Support
 
 =head1 SYNOPSIS
 

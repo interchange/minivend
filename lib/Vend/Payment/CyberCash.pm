@@ -27,9 +27,9 @@ package Vend::Payment::CyberCash;
 
 $VERSION = substr(q$Revision$, 10);
 
-=head1 Interchange CyberCash Support
+=head1 NAME
 
-Vend::Payment::CyberCash $Revision$
+Vend::Payment::CyberCash - Interchange CyberCash Support
 
 =head1 SYNOPSIS
 

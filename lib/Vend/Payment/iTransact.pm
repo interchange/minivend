@@ -23,9 +23,9 @@
 
 package Vend::Payment::iTransact;
 
-=head1 Interchange iTransact Support
+=head1 NAME
 
-Vend::Payment::iTransact $Revision$
+Vend::Payment::iTransact - Interchange iTransact Support
 
 =head1 SYNOPSIS
 
