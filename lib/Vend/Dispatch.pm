@@ -738,6 +738,10 @@ sub adjust_cgi {
     die "REQUEST_METHOD is not defined" unless defined $CGI::request_method
 		or @Global::argv;
 
+	if ($Global::HostnameLookups && !$CGI::remote_host && $CGI::remote_addr && !$CGI::values{mv_tmp_session}) {
+		$CGI::remote_host = gethostbyaddr(Socket::inet_aton($CGI::remote_addr),Socket::AF_INET);
+	}
+
 	# The great and really final AOL fix
 	#
     $host      = $CGI::remote_host;
