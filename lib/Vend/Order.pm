@@ -1141,6 +1141,18 @@ sub _phone_us_with_area_strict {
 
 sub _email {
 	my($ref, $var, $val) = @_;
+	if($val and $val =~ /[\040-\176]+\@[-A-Za-z0-9.]+\.[A-Za-z]+/) {
+		return (1, $var, '');
+	}
+	else {
+		return (undef, $var,
+			errmsg( "'%s' not an email address", $val )
+		);
+	}
+}
+
+sub _email_only {
+	my($ref, $var, $val) = @_;
 	if($val and $val =~ /^[\040-\176]+\@[-A-Za-z0-9.]+\.[A-Za-z]+$/) {
 		return (1, $var, '');
 	}
