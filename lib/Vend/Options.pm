@@ -193,6 +193,7 @@ sub tag_options {
 	}
 	$item ||= { code => $sku };
 	$opt = get_option_hash($opt);
+	find_joiner($opt);
 
 	my $module = find_options_type($item, $opt)
 		or return '';
