@@ -85,9 +85,11 @@ sub open_table {
 		$flags = GDBM_WRITER;
 		if(! defined $config->{AutoNumberCounter}) {
 			eval {
+				my $dot = $config->{HIDE_AUTO_FILES} ? '.' : '';
 				$config->{AutoNumberCounter} = new Vend::CounterFile
-											"$config->{DIR}/$config->{name}.autonumber",
-											$config->{AUTO_NUMBER} || '00001';
+									"$config->{DIR}/$dot$config->{name}.autonumber",
+									$config->{AUTO_NUMBER} || '00001',
+									$config->{AUTO_NUMBER_DATE};
 			};
 			if($@) {
 				::logError("Cannot create AutoNumberCounter: %s", $@);

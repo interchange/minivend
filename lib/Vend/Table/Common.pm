@@ -149,8 +149,12 @@ sub autonumber {
 	local($/) = "\n";
 	my $c = $s->[$CONFIG];
 	if(! defined $c->{AutoNumberCounter}) {
+		my $dot = $c->{HIDE_AUTO_FILES} ? '.' : '';
 		$c->{AutoNumberCounter} = new Vend::CounterFile
-									"$c->{DIR}/$c->{name}.autonumber", $start;
+									"$c->{DIR}/$dot$c->{name}.autonumber",
+									$start,
+									$c->{AUTO_NUMBER_DATE},
+									;
 	}
 	my $num;
 	do {

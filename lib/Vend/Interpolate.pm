@@ -2394,7 +2394,7 @@ sub tag_counter {
 	
     $file = $Vend::Cfg->{VendRoot} . "/$file"
         unless Vend::Util::file_name_is_absolute($file);
-    my $ctr = new Vend::CounterFile $file, $opt->{start} || undef;
+    my $ctr = new Vend::CounterFile $file, $opt->{start} || undef, $opt->{date};
     return $ctr->value() if $opt->{value};
     return $ctr->dec() if $opt->{decrement};
     return $ctr->inc();
