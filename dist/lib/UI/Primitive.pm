@@ -832,7 +832,10 @@ sub meta_display {
 			$record->{$_} =~ s/_UI_COLUMN_/$column/g;
 			$record->{$_} =~ s/_UI_KEY_/$key/g;
 		}
-			
+		for(qw/height width/) {
+			$record->{$_} = $o->{$_}
+				if defined $o->{$_};
+		}
 		if($record->{height}) {
 			if($record->{type} =~ /multi/i) {
 				$record->{type} = "MULTIPLE SIZE=$record->{height}";
