@@ -815,17 +815,17 @@ sub dotted_hash {
 }
 
 sub get_option_hash {
-	if (ref $_[0]) {
-		return $_[0] unless ref $_[1];
-		for(keys %{$_[1]}) {
-			$_[0]->{$_} = $_[1]->{$_}
-				unless defined $_[0]->{$_};
-		}
-		return $_[0];
-	}
-	return {} unless $_[0] =~ /\S/;
 	my $string = shift;
 	my $merge = shift;
+	if (ref $string) {
+		return $string unless ref $merge;
+		for(keys %{$merge}) {
+			$string->{$_} = $merge->{$_}
+				unless defined $string->{$_};
+		}
+		return $string;
+	}
+	return {} unless $string =~ /\S/;
 	$string =~ s/^\s+//;
 	$string =~ s/\s+$//;
 	if($string =~ /^{/ and $string =~ /}/) {
