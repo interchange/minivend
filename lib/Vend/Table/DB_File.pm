@@ -39,15 +39,8 @@ sub create {
 	$config = {} unless defined $config;
 	my $File_permission_mode = $config->{File_permission_mode} || 0666;
 
-	die "columns argument $columns is not an array ref\n"
+	die ::errmsg("columns argument %s is not an array ref", $columns)
 		unless CORE::ref($columns) eq 'ARRAY';
-
-	# my $column_file = "$filename.columns";
-	# my @columns = @$columns;
-	# open(COLUMNS, ">$column_file")
-	#    or die "Couldn't create '$column_file': $!";
-	# print COLUMNS join("\t", @columns), "\n";
-	# close(COLUMNS);
 
 	my $column_index = Vend::Table::Common::create_columns($columns, $config);
 
@@ -55,7 +48,7 @@ sub create {
 	my $flags = O_RDWR | O_CREAT;
 
 	my $dbm = tie(%$tie, 'DB_File', $filename, $flags, $File_permission_mode)
-		or die "Could not create '$filename': $!";
+		or die errmsg("%s %s: %s\n", errmsg("create"), $filename, $!);
 
 	$tie->{'c'} = join("\t", @$columns);
 

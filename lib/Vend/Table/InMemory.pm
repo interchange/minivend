@@ -71,7 +71,7 @@ sub create {
 
 	undef $config->{Transactions};
 
-	die "columns argument $columns is not an array ref\n"
+	die ::errmsg("columns argument %s is not an array ref", $columns)
 		unless CORE::ref($columns) eq 'ARRAY';
 
 	my $column_index = Vend::Table::Common::create_columns($columns, $config);
@@ -106,7 +106,11 @@ sub close_table {
 sub row {
 	my ($s, $key) = @_;
 	my $a = $s->[$TIE_HASH]{$key};
-	die "There is no row with index '$key'" unless defined $a;
+    die $s->log_error(
+					"There is no row with index '%s' in database %s",
+					$key,
+					$s->[$FILENAME],
+			) unless defined $a;
 	return @$a;
 }
 

@@ -113,11 +113,13 @@ $ESCAPE_CHARS::ok_in_url =
 		'-_./~='
 	;
 
-## This is an alias for a commonly-used function
-*dbref = \&Vend::Data::database_exists_ref;
-
 ## This is a character class for HTML::Entities
 $ESCAPE_CHARS::std = "^\n\t !\#\$%\'-;=?-Z\\\]-~";
+
+## Some standard error templates
+
+## This is an alias for a commonly-used function
+*dbref = \&Vend::Data::database_exists_ref;
 
 my $need_escape;
 
