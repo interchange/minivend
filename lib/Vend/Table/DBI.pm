@@ -1470,6 +1470,7 @@ sub field_settor {
 
 sub foreign {
     my ($s, $key, $foreign) = @_;
+	return single($s, $s->[$KEY], $foreign) if ref($foreign);
 	$s = $s->import_db() if ! defined $s->[$DBI];
 	my $idx;
 	if( $s->[$TYPE] and $idx = $s->column_index($foreign) )  {
@@ -1485,6 +1486,48 @@ sub foreign {
 		$sth->execute();
 	};
 	return '' if $@;
+	my $data = ($sth->fetchrow_array())[0];
+	return '' unless $data =~ /\S/;
+	return $data;
+}
+
+sub single {
+    my ($s, $field, $qhash) = @_;
+	$s = $s->import_db() if ! defined $s->[$DBI];
+	my $idx;
+
+	my $q = "select $field from $s->[$TABLE] WHERE ";
+	
+	my @fields;
+	my @dats;
+
+	if(ref($qhash) eq 'ARRAY') {
+		for(@$qhash) {
+			s/(\w+)\s*=\s*//
+				or next;
+			push @fields, "$1 = ?";
+			push @dats, $_;
+		}
+	}
+	elsif(ref($qhash) eq 'HASH') {
+		while(my ($k,$v) = each %$qhash) {
+			push @fields, "$k = ?";	
+			push @dats, $v;	
+		}
+	}
+	else {
+		::logError("Bad single data query parameter type: %s", ref($qhash));
+		return undef;
+	}
+	
+	$q .= join ' AND ', @fields;
+#::logDebug("DBI single: query=$q");
+    my $sth;
+	eval {
+		$sth = $s->[$DBI]->prepare($q);
+		$sth->execute(@dats);
+	};
+	return undef if $@;
 	my $data = ($sth->fetchrow_array())[0];
 	return '' unless $data =~ /\S/;
 	return $data;
