@@ -269,8 +269,18 @@ sub global_directives {
 	['DumpStructure',	 'yesno',     	     'No'],
 	['DumpAllCfg',	     'yesno',     	     'No'],
 	['DisplayErrors',    'yesno',            'No'],
-	['Inet_Mode',         'yesno',            defined $Global::Inet_Mode ? ($Global::Inet_Mode) : 'Yes'],
-	['Unix_Mode',         'yesno',            defined $Global::Unix_Mode ? ($Global::Unix_Mode) : 'Yes'],
+	['Inet_Mode',         'yesno',            (
+												defined $Global::Inet_Mode
+												||
+												defined $Global::Unix_Mode
+												)
+												? ($Global::Inet_Mode || 0) : 'Yes'],
+	['Unix_Mode',         'yesno',            (
+												defined $Global::Inet_Mode
+												||
+												defined $Global::Unix_Mode
+												)
+												? ($Global::Unix_Mode || 0) : 'Yes'],
 	['TcpMap',           'hash',             ''],
 	['Environment',      'array',            ''],
 	['TcpHost',           undef,             'localhost 127.0.0.1'],
