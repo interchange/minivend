@@ -2403,11 +2403,12 @@ EOF
 EOF
 	}
 
+	$opt->{top_buttons_rows} = 5 unless defined $opt->{top_buttons_rows};
+
 	#### Extra buttons
 	my $extra_ok =	$blob_widget
 						|| $opt->{output_map}
-	  					|| $linecount > 4
-						|| $opt->{notable}
+	  					|| $linecount >= $opt->{top_buttons_rows}
 						|| defined $opt->{include_form}
 						|| $mlabel;
 	if ($extra_ok and ! $opt->{no_top} and ! $opt->{nosave}) {
