@@ -282,11 +282,11 @@ sub testpayment {
 	}
 	elsif($opt->{transaction} eq 'void' ) {
 		$msg ||= 'Void failure: %s';
-		if(! $opt->{order_id}) {
+		if(! $actual->{order_id}) {
 			$result{'pop.status'} = 'failure';
 			$result{'pop.error-message'} = errmsg($msg,'Need order-id');
 		}
-		elsif($opt->{auth_code}) {
+		elsif(! $actual->{auth_code}) {
 			$result{'pop.status'} = 'failure';
 			$result{'pop.error-message'} = errmsg($msg,'Need auth-code');
 		}
