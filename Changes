@@ -1,0 +1,77 @@
+MiniVend 1.1 - Extensive changes 
+* Added [salestax], [subtotal] tags
+* Added CustomShipping, DefaultShipping, Backend, SalesTax,
+  and Tracking directives
+* Added backend order entry in the tracking DBM database
+* Added order archiving in the tracking DBM database
+* Added page stats in the tracking DBM database
+* Added custom shipping charges with shipping.asc file
+* Added sales tax calcuation with salestax.asc file
+* Changed name of vendadm/avend to MAT
+* Documented all of the above
+* Added example backend order entry programs (bin/entord and
+  bin/trackrpt)
+
+MiniVend 1.0a - Fixed minor configuration and catalog bugs 2/13/96
+
+MiniVend 1.0 - Extensive changes to the documentation 2/11/96
+and programs to change the name.
+* Added [random] element and Random directive for random
+  messages embedded in pages
+* Added [help item] element and Help directive for inline
+  help messages
+
+Version 0.2m8
+* Added [body n] element and Mv_Background, Mv_TextColor, 
+  Mv_BgColor, Mv_LinkColor, and Mv_VlinkColor directives
+  for user-customizeable appearance
+* Added [buttonbar n] element and ButtonBars directive for canned
+  button bars
+
+Version 0.2m7
+* Added Server.pm and Http.pm support, now much faster when
+  running in server mode
+* Made locking more portable by using Vend::lock.pm module
+* Changed configure script to support server mode
+* Added VendRoot/etc dir to hold socket, pidfile, and conf files
+* Docs still don't discuss all this, next version
+
+Version 0.2m6	Splinter version by Mike Heins - February 3, 1996
+* Added client-side imagemap support
+* Added tags
+	[areatarget page target]
+	[area page]
+* Added comma prices with PriceCommas directive
+* Configuration utility for installation
+* Improved documentation for all
+* Added frames demo
+* Deleted [search][/search] tag
+* Regularized variables over vendadm.pl, vendpage, vend.pl
+* Added password check on vendadm.pl
+* Changed default file names to make ready for NT version
+
+Version 0.2m5	Splinter version by Mike Heins - January 26, 1996
+* Added frame support
+* Add tags	[pagetarget page frame][/pagetarget]
+	      	[frames-on]
+	      	[frames-off]
+* vendadm(8L) utility added to help administer Vend
+
+Version 0.2m4	Splinter version by Mike Heins - December 28, 1995
+* Subdirectory capabilty added ('/' added to $codere)
+* Search engine added to search product index (ASCII)
+* Search engine added to search page tree (glimpse, untested)
+* Add tags	[search][/search]
+	      	[search-list][/search-list]
+			[item-link]
+* Product codes put in dbm files, with makedb command to make them
+  from ASCII source
+* Fourth field (page location) added to product file
+* vendpage(8L) utility added to help maintain tree
+
+Version 0.2
+  svend.c cleaned up
+  configuration directives now get correct default values
+
+Version 0.1
+  initial release

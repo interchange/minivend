@@ -1,0 +1,94 @@
+<HTML>
+<HEAD>
+<TITLE>The Art Store Home Page</TITLE>
+<FRAMESET cols="320,*">
+	<FRAMESET rows="160,*,100">
+		<FRAME SRC="/sample/images/artstore.gif" SCROLLING=NO MARGINWIDTH=1
+		MARGINHEIGHT=1 name=banner>
+		</FRAME>
+		<FRAME SRC="feature.html" NAME=search>
+		</FRAME>
+		<FRAME SRC="address.html" NAME=address MARGINWIDTH=1 MARGINHEIGHT=1>
+		</FRAME>
+	</FRAMESET>
+	<FRAMESET ROWS="*,150">
+		<FRAME SRC="__VEND_URL__/fr_greet" NAME=main>
+		</FRAME>
+		<FRAME SRC="special1.html" NAME=special>
+		</FRAME>
+	</FRAMESET>
+</FRAMESET>
+<NOFRAMES>
+
+</HEAD>
+<BODY Background="/sample/images/blue_pap.gif">
+ 
+
+<IMG SRC="/sample/images/artstore.gif" ALT="[ ART STORE LOGO ]" ALIGN="CENTER">
+<H1>Welcome to The Art Store</H1>
+
+(The MiniVend Demonstration System)
+
+<P>
+We have reproductions of some the great are of all ages.
+<A HREF="__VEND_URL__/fr_sel">
+Browse</A> the category you like -- or try
+<A HREF="__VEND_URL__/fr_search">searching</A>
+for your favorite artist.
+
+<P>
+<TABLE>
+<TR>
+<TD ALIGN=ABSBOTTOM>
+<A HREF="__VEND_URL__/fr_search">
+<IMG SRC="/sample/images/web_srch.gif" ALT="[search]" BORDER=0><BR>
+Search for your<BR>favorite!</A>
+<TD>
+<P>
+To use the search feature, just press the link to your left.  That will
+send you to a frame that will let you search on artist, title, or
+museum. 
+<TR>
+<TR>
+<TD ALIGN=ABSBOTTOM>
+<A HREF="__VEND_URL__/fr_sel">
+<IMG SRC="/sample/images/art.gif" ALT="[PAINTING]" BORDER=0><BR>
+Select by<BR>category!</A>
+<TD>
+<P>
+To select by category, click on the button to the left.
+</TABLE>
+Either way, just press the order button for an item you like!
+Our electronic order form will automatically add it
+to your list. Fill out the attached order form
+to place your order. That's all there is to it!
+<P>
+
+<H4>MiniVend Hints</H4>
+<H5><UL>
+	<LI>This is a suggested format for your index.html page
+	<LI>It should be compatible with both frame and non-frame browsers
+	<LI>You will only see this page if you access with an non-frame
+	browser, the frame-based browsers will read the framesets and
+	jump to the fr_greet page instead
+	<LI>The <I>Customize your display</I> link will allow the user
+	to control frames/non-frames operation (if they have frames)
+	<LI>The background is fixed
+	<LI>The buttonbar below is fixed, because MiniVend hasn't yet
+	been called
+	<LI>There are no MiniVend elements in this page -- it should reside
+	in (one of) your HTML directories
+	<LI>You won't be able to turn this hint off, since it is not defined
+	with the MiniVend help element
+</UL></H5>
+<P>
+<IMG SRC="/sample/images/artbar0.gif" USEMAP="#ARTBAR">
+<MAP NAME=ARTBAR>
+<AREA COORDS="198,0,278,20" HREF="__VEND_URL__/fr_sel">
+<AREA COORDS="303,0,363,20" HREF="__VEND_URL__/fr_search">
+<AREA COORDS="388,0,442,20" HREF="__VEND_URL__/catalog">
+<AREA COORDS="473,0,537,20" HREF="__VEND_URL__/control">
+<AREA COORDS="0,0,560,20" NOHREF>
+</MAP>
+</BODY>
+</HTML>

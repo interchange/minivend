@@ -1,0 +1,27 @@
+#!/usr/bin/perl
+# stop - stops Vend when in server mode
+$VendRoot = '/usr/local/lib/minivend';
+$VEND = '/usr/local/lib/minivend/minivend.pl';
+$PERL = '/usr/local/bin/perl';
+$ConfDir = '/usr/local/lib/minivend/etc';
+$PerlFlags = '-wT';
+$PidFile = "$ConfDir/minivend.pid";
+## END CONFIGURABLE VARIABLES
+
+
+open(PID, $PidFile)
+	|| die "Couldn't open $PidFile. Vend apparently not up.\n";
+chomp($PID = <PID>);
+
+kill 15, $PID
+	or die "Couldn't terminate Vend: $!\n";
+
+print <<EOF ;
+Termination signal sent to Vend daemon.
+
+Check the error log (probably $VendRoot/error.log) to see if
+the daemon has stopped.
+
+EOF
+
+sleep 2;

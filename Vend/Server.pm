@@ -1,6 +1,6 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.14 1996/01/30 23:23:59 amw Exp $
+# $Id: Server.pm,v 1.14 1996/02/04 02:15:08 mjh Exp $
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -50,20 +50,21 @@ sub respond {
 package Vend::Server;
 require Exporter;
 @Vend::Server::ISA = qw(Exporter);
-@Vend::Server::EXPORT = qw(server);
+@Vend::Server::EXPORT = qw(run_server restart_server);
 
+use Fcntl;
 use Socket;
 use strict;
-use Vend::Directive qw(Display_errors Perl_program App Data_directory
-                       App_program);
-use Vend::Log;
+use Vend::lock;
+
+my $LINK_FILE = '/usr/local/lib/minivend/etc/socket';
 
 sub _read {
     my ($in) = @_;
     my ($r);
     
     do {
-	$r = sysread(Vend::Server::MESSAGE, $$in, 512, length($$in));
+        $r = sysread(Vend::Server::MESSAGE, $$in, 512, length($$in));
     } while (!defined $r and $! =~ m/^Interrupted/);
     die "read: $!" unless defined $r;
     die "read: closed" unless $r > 0;
@@ -94,26 +95,26 @@ sub read_cgi_data {
     $in = '';
 
     for (;;) {
-	$block = _find(\$in, "\n");
-	if (($n) = ($block =~ m/^arg (\d+)$/)) {
-	    $#$argv = $n - 1;
-	    foreach $i (0 .. $n - 1) {
-		$$argv[$i] = _string(\$in);
-	    }
-	} elsif (($n) = ($block =~ m/^env (\d+)$/)) {
-	    foreach $i (0 .. $n - 1) {
-		$e = _string(\$in);
-		if (($key, $value) = ($e =~ m/^([^=]+)=(.*)$/s)) {
-		    $$env{$key} = $value;
-		}
-	    }
-	} elsif ($block =~ m/^entity$/) {
-	    $$entity = _string(\$in);
-	} elsif ($block =~ m/^end$/) {
-	    last;
-	} else {
-	    die "Unrecognized block: $block\n";
-	}
+        $block = _find(\$in, "\n");
+        if (($n) = ($block =~ m/^arg (\d+)$/)) {
+            $#$argv = $n - 1;
+            foreach $i (0 .. $n - 1) {
+                $$argv[$i] = _string(\$in);
+            }
+        } elsif (($n) = ($block =~ m/^env (\d+)$/)) {
+            foreach $i (0 .. $n - 1) {
+                $e = _string(\$in);
+                if (($key, $value) = ($e =~ m/^([^=]+)=(.*)$/s)) {
+                    $$env{$key} = $value;
+                }
+            }
+        } elsif ($block =~ m/^entity$/) {
+            $$entity = _string(\$in);
+        } elsif ($block =~ m/^end$/) {
+            last;
+        } else {
+            die "Unrecognized block: $block\n";
+        }
     }
 }
 
@@ -125,7 +126,7 @@ sub connection {
     read_cgi_data(\@argv, \%env, \$entity);
 
     my $http = new Vend::Http::Server \*Vend::Server::MESSAGE, \%env, $entity;
-    my $abort = Vend::Dispatch::dispatch($http, $debug);
+    my $abort = ::dispatch($http,$debug);
     $abort;
 }
 
@@ -137,7 +138,7 @@ my $Signal_Terminate;
 my $Signal_Debug;
 my $Signal_Locking;
 my %orig_signal;
-my @trapped_signals = qw(HUP INT TERM);
+my @trapped_signals = qw(HUP INT TERM USR1 USR2);
 
 # might also trap: QUIT USR1 USR2
 
@@ -149,8 +150,8 @@ sub setup_signals {
     $SIG{'INT'}  = sub { $Signal_Terminate = 1; };
     $SIG{'TERM'} = sub { $Signal_Terminate = 1; };
     # $SIG{'QUIT'} = sub { $Signal_Debug = 1; };
-    # $SIG{'USR1'} = sub { $Signal_Locking = 'long term'; };
-    # $SIG{'USR2'} = sub { $Signal_Locking = 'short term'; };
+    $SIG{'USR1'} = sub { $Signal_Locking = 'short term'; };
+    $SIG{'USR2'} = sub { $Signal_Locking = 'long term'; };
     $SIG{'PIPE'} = 'IGNORE';
 }
 
@@ -169,7 +170,7 @@ sub server {
     socket(Vend::Server::SOCKET, AF_UNIX, SOCK_STREAM, 0) || die "socket: $!";
     unlink $socket_filename;
     bind(Vend::Server::SOCKET, pack("S", AF_UNIX) . $socket_filename . chr(0))
-	or die "Could not bind (open as a socket) '$socket_filename':\n$!\n";
+        or die "Could not bind (open as a socket) '$socket_filename':\n$!\n";
     chmod 0600, $socket_filename;
     listen(Vend::Server::SOCKET, 5) or die "listen: $!";
 
@@ -177,6 +178,23 @@ sub server {
     $abort = 0;
     for (;;) {
         last if $abort || $Signal_Reload || $Signal_Terminate || $Signal_Debug;
+
+		if ($Signal_Locking) {
+			my $sleep = 1;
+			if ($Signal_Locking =~ /short/i) {
+            	::logError(localtime()."\nUnlock for $sleep seconds on pid $$\n\n");
+			}
+			elsif ($Signal_Locking =~ /long/i) {
+            	::logError(localtime()."\nUnlock for 120 seconds on pid $$\n\n");
+				$sleep = 120;
+			}
+			$SIG{'USR1'} = $SIG{'USR2'} = 'IGNORE';
+			::close_session();
+			sleep $sleep;
+			::read_products();
+			::open_session();
+			setup_signals();
+		}
 
         $rin = '';
         vec($rin, fileno(Vend::Server::SOCKET), 1) = 1;
@@ -201,10 +219,8 @@ sub server {
         elsif (vec($rout, fileno(Vend::Server::SOCKET), 1)) {
             my $ok = accept(Vend::Server::MESSAGE, Vend::Server::SOCKET);
             die "accept: $!" unless defined $ok;
-            # print "connection\n";
             $abort = connection($debug);
             close Vend::Server::MESSAGE;
-            # print "  closed\n";
         }
 
         else {
@@ -215,10 +231,10 @@ sub server {
     close(Vend::Server::SOCKET);
     restore_signals();
 
-    if ($Signal_Terminate) {
-        log_error(localtime()."\nServer terminating on signal TERM\n\n");
-        return 'terminate';
-    }
+   	if ($Signal_Terminate) {
+       	::logError(localtime()."\nServer terminating on signal TERM\n\n");
+       	return 'terminate';
+   	}
     return 'reload' if $Signal_Reload || $abort;
     return '';
 }
@@ -240,5 +256,142 @@ sub server {
 #     }
 # }
 
+
+my $Print_errors;
+sub grab_pid {
+    my $ok = lockfile(\*Vend::Server::Pid, 1, 0);
+    if (not $ok) {
+        chomp(my $pid = <Vend::Server::Pid>);
+        return $pid;
+    }
+    {
+        no strict 'subs';
+        truncate(Vend::Server::Pid, 0) or die "Couldn't truncate pid file: $!\n";
+    }
+    print Vend::Server::Pid $$, "\n";
+    return 0;
+}
+
+use POSIX;
+
+my $pidfile;
+
+sub open_pid {
+    $pidfile = $Config::ConfDir . "/minivend.pid";
+    open(Vend::Server::Pid, "+>>$pidfile")
+        or die "Couldn't open '$pidfile': $!\n";
+    seek(Vend::Server::Pid, 0, 0);
+    my $o = select(Vend::Server::Pid);
+    $| = 1;
+    {
+        no strict 'refs';
+        select($o);
+    }
+}
+
+sub run_server {
+    my ($debug) = @_;
+    my $next;
+    my $pid;
+	my $silent = 0;
+	
+	# This will happen if it is a netstart
+	if ($debug < 0) {
+		$debug = 0;
+		$silent = 1;
+	}
+    $Print_errors = $debug;
+
+    open_pid();
+
+    if ($debug) {
+        $pid = grab_pid();
+        if ($pid) {
+            print "The MiniVend server is already running ".
+                "(process id $pid)\n";
+            exit 1;
+        }
+
+        print "MiniVend server started (process id $$)\n";
+        server($LINK_FILE, $debug);
+        exit 0;
+    }
+
+    else {
+        fcntl(Vend::Server::Pid, F_SETFD, 0)
+            or die "Can't fcntl close-on-exec flag for '$pidfile': $!\n";
+        my ($pid1, $pid2);
+        if ($pid1 = fork) {
+            # parent
+            wait;
+            exit 0;
+        }
+        elsif (not defined $pid1) {
+            # fork error
+            print "Can't fork: $!\n";
+            exit 1;
+        }
+        else {
+            # child 1
+            if ($pid2 = fork) {
+                # still child 1
+                exit 0;
+            }
+            elsif (not defined $pid2) {
+                print "child 1 can't fork: $!\n";
+                exit 1;
+            }
+            else {
+                # child 2
+                sleep 1 until getppid == 1;
+
+                $pid = grab_pid();
+                if ($pid) {
+                    print "The MiniVend server is already running ".
+                        "(process id $pid)\n"
+						unless $silent;
+                    exit 1;
+                }
+
+                print "MiniVend server started (process id $$)\n"
+					unless $silent;
+
+                close(STDIN);
+                close(STDOUT);
+                close(STDERR);
+                open(STDOUT, ">&Vend::DEBUG");
+                $| = 1;
+                open(STDERR, ">&Vend::DEBUG");
+                select(STDERR); $| = 1; select(STDOUT);
+
+                ::logError(localtime()."\nServer running on pid $$\n\n");
+                setsid();
+
+                fcntl(Vend::Server::Pid, F_SETFD, 1)
+                    or die "Can't fcntl close-on-exec flag for '$pidfile': $!\n";
+
+                $next = server($LINK_FILE, $debug);
+                if ($next eq 'reload') {
+                    ::logError(localtime().
+                              "\nServer restarting on signal HUP\n\n");
+                    exec($Config::PERL, $Config::VEND, "-restart");
+                }
+                exit 0;
+            }
+        }
+    }                
+}
+
+sub restart_server {
+    open_pid();
+    my $pid = grab_pid();
+    if ($pid) {
+        ::logError("Can't restart: another MiniVend server has already been started\n");
+        exit 1;
+    }
+
+    ::logError(localtime()."\nServer restarted with pid $$\n\n");
+    server($LINK_FILE);
+}
 
 1;

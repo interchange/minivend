@@ -1,6 +1,6 @@
 # Http.pm:  interface to cgi protocol
 #
-# $Id: Http.pm,v 1.7 1995/10/30 19:57:28 amw Exp $
+# $Id: Http.pm,v 1.8 1996/02/03 14:50:00 mjh Exp $
 #
 package Vend::Http;
 
@@ -195,7 +195,7 @@ sub respond {
 package Vend::form;
 
 use strict;
-use Vend::Uneval;
+#use Vend::Uneval;
 
 sub unhexify {
     my($s) = @_;
@@ -213,7 +213,7 @@ sub parse_form_input {
     # We have to deal with browsers which use CRLF, CR or LF.
     $input =~ s/\r?[\n\r]/&/mg;
 
-    # Log::log_error("Post input is $input\n");
+    Main::logError("Post input is $input\n");
     my $values = {};
     foreach $pair (split(/&/, $input)) {
 	($key, $value) = ($pair =~ m/([^=]+)=(.*)/)
@@ -225,7 +225,7 @@ sub parse_form_input {
         $aref = $values->{$key} || ($values->{$key} = []);
 	push @$aref, $value;
     }
-    # Log::log_error("form values are ".uneval($values)."\n");
+    Main::logError("form values are ".Main::uneval($values)."\n");
     $values;
 }
 

@@ -1,3 +1,0 @@
-directive 'Mail_order_to';
-directive 'Shopping_list_page', 'list';
-directive 'Order_subsequent', 'list';

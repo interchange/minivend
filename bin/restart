@@ -1,0 +1,27 @@
+#!/usr/bin/perl
+# start - starts Vend in server mode
+$VendRoot = '/usr/local/lib/minivend';
+$VEND = '/usr/local/lib/minivend/minivend.pl';
+$PERL = '/usr/local/bin/perl';
+$ConfDir = '/usr/local/lib/minivend/etc';
+$PerlFlags = '-wT';
+$PidFile = "$ConfDir/minivend.pid";
+## END CONFIGURABLE VARIABLES
+
+
+open(PID, $PidFile)
+	|| die "Couldn't open $PidFile. Vend apparently not up.\n";
+chomp($PID = <PID>);
+
+kill 1, $PID
+	or die "Couldn't restart Vend: $!\n";
+
+print <<EOF ;
+Hang-up signal sent to Vend daemon.
+
+Check the error log (probably $VendRoot/error.log) to see if
+the daemon has restarted properly.
+
+EOF
+
+sleep 2;

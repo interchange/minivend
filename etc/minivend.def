@@ -1,0 +1,37 @@
+BackendOrder	BLANK_DEFAULT
+ButtonBars		BLANK_DEFAULT
+CustomShipping	BLANK_DEFAULT
+DefaultShipping	default
+DescriptionTrim	BLANK_DEFAULT
+DisplayErrors	Yes
+FinishOrder		Finish Incomplete Order
+Glimpse			glimpse
+Help			BLANK_DEFAULT
+ItemLinkDir		BLANK_DEFAULT
+ItemLinkValue	More Details
+MailOrderTo		UNDEFINED
+Mv_Background	BLANK_DEFAULT
+Mv_BgColor		BLANK_DEFAULT
+Mv_LinkColor	BLANK_DEFAULT
+Mv_TextColor	BLANK_DEFAULT
+Mv_VlinkColor	BLANK_DEFAULT
+OrderFrame		order
+OrderReport		report
+PageDir			pages
+PriceCommas		yes
+ProductDir		products
+Random			BLANK_DEFAULT
+ReadPermission	user
+ReportIgnore	BLANK_DEFAULT
+RequiredFields	BLANK_DEFAULT
+SalesTax		BLANK_DEFAULT
+SearchFrame		main
+SearchOverMsg	BLANK_DEFAULT
+SendMailProgram	/usr/lib/sendmail
+SessionDatabase	session
+SessionExpire	1 day
+Shipping		0
+Tracking		BLANK_DEFAULT
+UseCode			yes
+VendURL			UNDEFINED
+WritePermission	user

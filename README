@@ -1,0 +1,348 @@
+# MiniVend V1.0
+# 
+# Copyright 1996 by Michael J. Heins <mikeh@iac.net>
+#
+# Largely based on Vend 0.2
+# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+#
+# Portions from Vend 0.3
+# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+
+Welcome to MiniVend, based on Vend, Andrew Wilcox's fine shopping cart
+program.  This program is completely unsupported, without warranty of
+any kind -- but that doesn't mean I am not interested in problems,
+suggestions, or comments.  Please feel free to send them to me, Mike
+Heins, <mikeh@iac.net>.
+
+                                   MINIVEND
+                                       
+   MiniVend is a full-featured electronic catalog system (commonly known
+   as a shopping cart) with online ordering capability. It is designed to
+   provide an interface complete with automated entry of orders into your
+   database.
+
+   MiniVend is freely-redistributable under the GNU General Public
+   License -- you can download it via HTTP.
+
+     * Users maintain a "shopping cart" for ordered items
+     * Catalogs can be of almost unlimited size with excellent
+       performance
+     * Search capability
+     * Full frames support
+     * Works well with all browsers
+     * Back end order entry capability
+     * Full client-side imagemap support, including frame targets
+     * Automatic installation and configuration
+     * Remote administration via the web
+     * The vendpage utility maintains parallel HTML and Vend page trees
+     * Runs under Perl 5 and almost any UNIX
+     * Designed to be secure, runs with taint checking enabled
+     * User-customizable colors and backgrounds
+     * Built-in online help capability
+     * Central control of buttonbars
+     * Sales tax calculation (zip code and state)
+     * Shipping calculation (quantity and/or weight)
+     * Blank field checking
+     * Configurable order reports
+     * Much more
+       
+   
+   Andrew Wilcox wrote Vend, the copylefted shopping cart software.
+   MiniVend is based on Vend V0.2, but enhanced considerably, adding
+   support for frames, search capability, remote administration,
+   superfast server mode, client-side imagemaps, user-customizable help
+   and displays, and more. This version of Vend includes an automatic
+   configuration and installation utility, and continues to be free under
+   the GNU copyleft.
+
+
+   ----------------------------------------------------------------
+
+                C H A N G E S   F R O M   V E N D
+
+MiniVend has been modified in several ways from the original Vend 0.2 --
+see the file Changes for more information.
+
+	1. The product index is now searchable via an ASCII search
+	engine.  The ASCII search operates well at catalog sizes of 
+	4,000 items, so unless your catalog gets larger than that, it
+	should suffice.
+
+	2. The product listings are broken out into two DBM files,
+	containing the product description and price.  This improves
+	performance for large catalogs.
+
+	3. Frames are fully supported, with the [pagetarget page frame]
+	tag, the [framebase frame] tag, and the OrderFrame and
+	SearchFrame directives.  This allows the user to maintain a
+	context, with a search frame, a search result frame, a banner, a
+	footer, and an order page.  The structure is up to you.
+	A sample frame-based demo comes with this release.
+
+	4. The [item-link] and [search-list] tags allow search-lists to
+	be built up with links to the catalog page of the item, based on
+	a fourth field in the ASCII products file.  The UseCode
+	directive allows this to be overridden to allow a link to a page
+	for the individual part number.  (The part numbers are then
+	constrained to characters that make legal file names).
+
+	5. The MiniVend Administration Tool (MAT) allows remote
+	administration and configuration via the web.  There are 11
+	configuration functions supported, including database
+	translation, .htm to .html renaming, carriage return
+	addition/subtraction, server control, session expiration and
+	display, and directive configuration.  See the file
+	doc/mat.html for documentation.
+
+	6. The vendpage(8) utility allows a separate HTML page tree for
+	standard and Vend-style HTML.  This means you can write the
+	page in standard HTML, with only a few special constructs for
+	the order buttons.  Then you run vendpage(8), which makes a 
+	Vend page tree with the URLS re-written to Vend tags.  See
+	the file doc/vendpage.html for more information.
+
+	7. The page appearance can be controlled with the [help item],
+	[body n], [buttonbar n], and [random] elements, which allow
+	page-sensitive help, custom colors and backgrounds, configurable
+	button bars, and random messages to be placed in pages with
+	a single tag.
+
+	8. Sales tax and custom shipping charge calculation can
+	be easily done, based on several user-entered fields.
+
+	9. Back end order entry is possible, with the tracking feature.
+
+    -------------------------------------------------------------------
+
+	                            D E M O
+
+There is a modest demo supplied which demonstrates frames on MiniVend,
+along with the result of automatic page generation.  Using the new
+UseCode directive, it is possible to generate a link to each individual
+item with an automatic page builder.  The Catalog Converter from
+Internet Robotics was used for this demo -- the catalog pages were
+untouched by human hands, other than generating a template.  It is
+possible to build inline images, clickable sounds, and other doo-dads
+into these pages, and then automatically generate Vend references to
+them.
+
+To install the demo, simply copy the following pages from the sample
+directory into the directory sample/ under your HTML root.
+
+				index.html
+				address.html
+				feature.html
+				special1.html
+				special2.html
+				special3.html
+				images/*.gif
+
+The images may be broken unless you specify the proper ImageDir path with
+the Vend directive, or use the suggested base URL of /sample/.
+
+The configure script will give you a chance to install the demo
+automatically -- this is with no doubt the easiest way to see the
+full demo.  I suggest you use it.
+
+    -------------------------------------------------------------------
+
+                          A V A I L A B I L I T Y
+
+MiniVend has been well-tested on SunOS, Linux, and FreeBSD. The
+underlying Vend engine has certainly been tested on several more OS
+versions -- and it should work on any UNIX with Perl 5 and GDBM or NDBM
+support.
+
+Please let the author know if you have successfully run MiniVend on
+any additional platforms.
+
+    -------------------------------------------------------------------
+
+                          I N S T A L L A T I O N
+
+Try typing:
+
+	./configure
+
+at the prompt after unpacking the tar file.  If it doesn't work,
+then try:
+
+	perl configure.pl /usr/bin/perl
+
+Replace 'perl' and '/usr/bin/perl' with whatever you happen to call Perl
+with.  You can try 'whereis perl', which might have info that escaped
+the configure script.
+
+If none of that works, you will have to follow the steps below -- you
+should check out the documentation, but it will be in POD format, and if
+you don't have Perl 5, you are out of luck anyway.  You can try building
+it with './makedocs', or just looking at the file doc/minivend.pod.
+
+The installation is quite complex.  There are 8 basic steps.
+
+1. Read the documentation.
+2. Determine your system configuration
+3. Edit and compile the dispatch programs
+4. Adjust the script files
+5. Configure your HTTP server
+6. Install the dispatch programs and utilities
+7. Set up your database
+8. Create your page tree
+
+
+1. READ THE DOCUMENTATION
+
+All of the information is there, and it should be clear enough to the
+very technically-oriented user with some knowledge of UNIX.  EXPECT
+PROBLEMS IF YOU DON'T FIT THIS DESCRIPTION. Assistance of an expert may
+be vital. Caveat Emptor.  To make the docs, you can type at the
+prompt:
+	
+	sh makedocs
+
+That will use pod2html and pod2man to make the POD documentation.
+
+2. DETERMINE YOUR SYSTEM CONFIGURATION
+
+You need to know at the minimum before compiling the dispatch
+programs:
+
+	a. The UID your CGI program will run under.  This is
+	often 'nobody', but the numeric ID is needed. Copy the
+	testcgi script provided to your cgi-bin directory and
+	run it -- it should give you the information. Actually,
+	with MiniVend 1.01, and its server mode, you can get
+	along without it, but MAT will not work.
+
+	b. The location of your Perl 5 binary. Perl 5.001m or higher is
+	recommended for best results -- it might run under Perl 5.000,
+	but I wouldn't recommend it.
+
+    c. The location that your vend.pl script will be in.  Creating
+	the directory $HOME/minivend is one possibility -- the default
+	is /usr/local/lib/minivend.
+
+3. EDIT AND COMPILE THE DISPATCH PROGRAMS
+
+To compile vlink, which is needed to run in server mode, you should read
+the documentation under "Setting up VLINK".  Basically, you need to edit
+the defines LINK_FILE, LINK_TIMEOUT, PERL, and VEND in src/link.c, and
+then:
+
+	cd src
+	./configure
+	cc -o vlink vlink.c
+
+To make svend, edit the first three lines of svend.c, the dispatch
+program for the main Vend program.  Use the information you got in step
+2.
+
+#define CGIUSER	65534
+#define PERL 	/usr/bin/perl
+#define VEND	/usr/local/lib/minivend/minivend.pl
+
+You will need a C compiler -- gcc will work fine, as will most
+stock compilers.  Compilation is simple, and is done with the commands:
+
+	cc -o svend svend.c
+	cc -o mat mat.c
+
+This will create two binaries, svend and mat.  You will actually
+install them in Step 6.
+
+4. ADJUST THE SCRIPT FILES
+
+Edit each of the files to call the proper Perl if desired. This is not
+really needed for MAT or minivend.pl -- they are called with the
+dispatch programs, and don't need a shbang line except for Perl
+directives. A proper shbang is required for vendpage, makedbm, and
+the server control scripts (stop,start,restart).
+
+You should use the -w and -T flags, for warnings and tainting.  This is
+the default.  See the file src/bug1.pl for a tainting bug exhibited on
+some systems, in particular Linux.
+
+The minivend.pl script needs to know the location of its toplevel
+directory.  That is set in the variable $Config::VendRoot -- edit the
+file if you are not using the default /usr/local/lib/minivend.
+
+DBM Type: If you have GDBM, you don't need to change the default setting.  If you
+have NDBM but no GDBM, uncomment the line for NDBM and comment out the
+line for GDBM.  The two lines appear near the top of the file, and
+are reproduced below.
+
+  use GDBM_File; $Config::GDBM = 1; $Config::NDBM = 0;
+  #use NDBM_File; $Config::NDBM = 1; $Config::GDBM = 0;
+
+The MAT(8) utility has a number of configurable variables
+that need to be set. See the comments in the file for information
+on how to set them.
+
+The makegdbm and makendbm scripts can be called with the -d option to
+set the VendRoot directory, or can be edited to make your VendRoot
+the default.
+
+5. CONFIGURE YOUR HTTP SERVER
+
+This is quite installation dependent.  For the NCSA server, you will
+need to create a script alias for the directory you plan on placing
+svend in, and a PASSWORD-PROTECTED script directory for the MAT
+program.  See your HTTP server documentation for information on how
+to do this. 
+
+6. INSTALL THE DISPATCH PROGRAMS AND UTILITIES
+
+If you want to run in server mode, copy the vlink program to your
+cgi-bin directory and make it SUID to a user ID other than root.  DON'T
+MAKE IT SUID ROOT!  Use the command:
+
+	chmod u+s vlink
+
+If you don't use vlink, copy the svend program to your cgi-bin directory
+and make it SUID to a user ID other than root.  DON'T MAKE IT SUID ROOT!
+Use the command:
+
+	chmod u+s svend
+
+If you want to run the program without SUID permissions on the
+dispatch programs, you
+will need to configure the ReadFilePermission and WriteFilePermission
+directives as 'world'.  That will create world-writable session
+files and error logs.  It is also possible to make the files owned
+by the CGI user.  If using vlink, you will also have to edit the 
+file Vend/Server.pm and change the line that sets the socket file
+permissions to 0666 instead of 0600.
+
+The MAT utility requires SUID permissions, since the configuration
+files are not (and should not be) world-writable.  If you can't do
+SUID, don't use MAT.
+
+7. SET UP THE DATABASE
+
+Create the products.asc file according to the Vend documentation.
+Run the makegdbm or makendbm script (depending on your DBM type) to
+create the DBM product databases.
+
+8. CREATE YOUR PAGE TREE
+
+Examine the sample page tree supplied, and create some catalog pages
+that match your database.
+
+If you have completed steps 1-8 properly, you should have a running 
+Vend catalog. More information can be found in the doc/ directory.
+

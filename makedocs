@@ -1,0 +1,31 @@
+#!/bin/sh
+
+if test `echo -n test | wc -c` -eq 4
+then F='-n'
+E=
+else F=
+E='\c'
+fi
+
+cd bin
+
+pod2html mat
+mv mat.html ../doc
+
+echo $F "Creating mat.8 man page...$E"
+pod2man mat | sed 's/MAT 1/MAT 8/'> ../doc/mat.8
+echo "done."
+
+pod2html vendpage 
+mv vendpage.html ../doc/vendpage.html
+
+echo $F "Creating vendpage.1 man page...$E"
+pod2man vendpage > ../doc/vendpage.1
+echo "done."
+
+cd ../doc
+pod2html minivend.pod
+
+echo $F "Creating minivend.1 man page...$E"
+pod2man minivend.pod > minivend.1
+echo "done."

@@ -1,0 +1,262 @@
+DescriptionTrim	BLANK_DEFAULT
+This sets the text string after which no more of the product
+description will be displayed in the search list.
+
+DisplayErrors	Yes
+Controls whether program errors will be appended to the
+browser display.
+
+FinishOrder		Finish Incomplete Order
+The value that will be used as the anchor text for the
+[finish-order] tag. Can be text or an image -- any legal
+HTML.
+
+Glimpse			glimpse
+Controls the location of the external glimpse search engine.
+
+ItemLinkDir		BLANK_DEFAULT
+The directory where the [item-link] tag will base all of its
+hot links in.
+
+ItemLinkValue	More Details
+The value that will be used as the anchor text for the
+[item-link] tag. Can be text or an image -- any legal HTML.
+
+MailOrderTo		UNDEFINED
+The address where orders will be mailed. This must be defined.
+
+OrderFrame		order
+The frame name where the order page will go, if frames are
+enabled.
+
+OrderReport		report
+The name of the file containing the order report template.
+
+PageDir			pages
+The subdirectory of VendRoot where the actual MiniVend pages
+reside.
+
+PriceCommas		yes
+Whether commas will be inserted in prices outputted by
+MiniVend.
+
+ProductDir		products
+The location of the product database files.
+
+ReadPermission	user
+Controls the permissions of the session database, and
+error.log file.  This only takes effect if the program is
+creating a new file.
+
+ReportIgnore	BLANK_DEFAULT
+Fields to ignore for the purposes of mailing an order. A
+COMMA-SEPARATED list. Fields beginning with 'mv_' are
+ignored automatically.
+
+RequiredFields	BLANK_DEFAULT
+Fields that the user MUST fill at least something in before
+their order can be processed. A COMMA-SEPARATED list.
+
+SearchFrame		main
+The frame name where search results will go, if frames are
+enabled.
+
+SearchOverMsg	BLANK_DEFAULT
+The default message that will be displayed if the search
+function finds more than the number of matches it is limited
+to.
+
+SendMailProgram	/usr/lib/sendmail
+The location of the sendmail binary, needed for mailing orders.
+
+SessionDatabase	session
+The base name of the session database. DONT CHANGE THIS!
+
+SessionExpire	1 day
+The time after which user sessions will expire.
+
+Shipping		0
+A flat shipping charge that will be added to any order. A
+zero value disables it.
+
+UseCode			yes
+Determines whether the product code will be used as the base
+for the [item-link] file name.
+
+VendURL			UNDEFINED
+The URL that calls the main MiniVend dispatch program. Must
+be defined.  This will be suggested as the name to move the
+compiled dispatch program to. It should look something like:
+
+     http://YOUR_SERVER_NAME/cgi-bin/vlink
+ 
+
+WritePermission	user
+Controls the permissions of the session database, and
+error.log file.  This only takes effect if the program is
+creating a new file.
+
+VendRoot	/usr/local/lib/minivend
+The first thing we need to know is where you want MiniVend
+to be installed. This will serve as 'VendRoot', the place
+where all operations will be based from, and all relative
+directory paths will start from.
+
+DBMtype		gdbm
+This is the style of DBM file you will be using.
+    
+It is STRONGLY SUGGESTED that the value you see presented be
+accepted.  Change only if you know what you are doing.
+
+ErrorFile	error.log
+This is where MiniVend will write its runtime errors. If you
+make it root-based, be careful that you have permission to
+write the file, or bad things will happen.
+
+ConfigFile	minivend.cfg
+This is where the current MiniVend configuration is stored,
+relative to the VendRoot.
+
+HtmlDir		/usr/local/etc/httpd/htdocs
+This is your main HTML document directory (aka DocumentRoot). It
+is important if you plan on using mat(8) or running the
+sample configuration.
+
+PERL		/usr/bin/perl
+This is where Perl 5 is located. It is mandatory to know this.
+If a suggestion has been made, and you are running this
+configure, it is probably correct. You can change it if you have
+a later version of Perl.
+
+HelpFile	etc/mvconf.cmt
+The file that holds these messages and the variable definitions.
+
+CGIUSER		65534
+This is the user ID that the HTTP server will run under. It is
+very important, and is needed to compile the dispatch programs.
+The presented value is a guess based on your system information.
+
+VEND		minivend.pl
+This is the main MiniVend program location. It shouldn't need to
+be changed from this.
+
+MAT			bin/mat
+This is the mat(8) program location. It shouldn't need to be
+changed from this. It is used to compile mat.c for proper
+dispatch.
+
+CgiBin		/usr/local/etc/httpd/cgi-bin
+This is the place where the vlink and/or svend dispatch programs
+reside -- it needs to be in a script-aliased CGI directory.
+
+ProtBin		/usr/local/etc/httpd/prot-bin
+This is the location where the mat dispatch program will
+reside. It should be PASSWORD-PROTECTED by your HTTP server.
+
+ImageDir	/images
+Where the images are relative to HTTP server DocumentRoot. This
+is mainly needed for vendpage(1).
+
+HostName	localhost
+This is your host name, the one which will be used to activate
+the system. The value presented may be a guess by the configure
+program, but use the real fully-qualified host name. Often has a
+'www' prepended.
+
+RunType		server
+This determines your initial run state. It is easily reversible
+except for the demo, which will be configured according to your
+selection.  Server mode requires starting minivend.pl as a
+daemon, then having references to the VendURL call that daemon.
+Running in server mode is MUCH faster.  If you want to run in
+static mode, type 'static'.
+
+LINK_FILE		/usr/local/lib/minivend/etc/socket
+The location of the UNIX-domain socket that will allow the
+MiniVend server and the vlink program to communicate.  DON'T
+CHANGE THIS UNLESS YOU WANT HEARTACHE!
+
+LINK_TIMEOUT	10
+The number of seconds the link program will wait before 
+returning an error message that the MiniVend Server is not 
+running.
+
+ConfDir			/usr/local/lib/minivend/etc
+The directory which holds various MiniVend configuration files,
+the pid file which tells you what process MiniVend is running on,
+and the data socket file.  No need to change this.
+
+Mv_BgColor		BLANK_DEFAULT
+Background colors, 1 through 15.  Start with a BEGIN tag,
+then define up to 15 colors for the 15 schemes.  Enter
+'none' for the default.
+
+Mv_TextColor	BLANK_DEFAULT
+Text colors, 1 through 15.  Start with a BEGIN tag, then
+define up to 15 colors for the 15 schemes.  Enter 'none' for
+the default.
+
+Mv_LinkColor	BLANK_DEFAULT
+Link colors, 1 through 15.  Start with a BEGIN tag, then
+define up to 15 colors for the 15 schemes.  Enter 'none' for
+the default.
+
+Mv_VlinkColor	BLANK_DEFAULT
+Visited link colors, 1 through 15.  Start with a BEGIN tag, then
+define up to 15 colors for the 15 schemes.  Enter 'none' for
+the default.
+
+Mv_Background	BLANK_DEFAULT
+Background patterns, 1 through 15.  Start with a BEGIN tag,
+then define up to 15 backgrounds for the 15 schemes.
+
+ButtonBars		BLANK_DEFAULT
+Button bars 0 to 15, specified with a Vend-style filename, i.e. no
+.html suffix, (even though the file will have one), relative
+to the MiniVend page directory. Called by the [buttonbar n] tag,
+numbers start from 0.
+
+Random			BLANK_DEFAULT
+Random messages 0 to 15, specified with a Vend-style filename, i.e. no
+.html suffix, (even though the file will have one), relative
+to the MiniVend page directory. Called by the [random] tag.
+
+Help			BLANK_DEFAULT
+Files with help items, specified with a Vend-style filename,
+i.e. no .html suffix, (even though the file will have one), relative
+to the MiniVend page directory. Help items are keyed by name.
+Called by the [help item] tag.
+
+SalesTax		BLANK_DEFAULT
+The FIELD NAME which is the key to the sales tax calculation. This
+is defined in ProductDir/salestax.asc, and is most commonly
+zipcode or state, one of the fields on the order report. If
+left blank, no sales tax calculation is done.  If an entry
+for that field name is not found, it uses the field 'default',
+which must be defined in the file.  The default can be 0.
+
+CustomShipping	BLANK_DEFAULT
+The FIELD NAME which is the key to the custom shipping calculation.  This
+is defined in ProductDir/shipping.asc, and is most commonly the value of
+a radio button field selecting shipping mode -- one of the fields on the
+order report. If left blank, no custom shipping calculation is done.  If
+an entry for that field name (and quantity) is not found, it uses the
+field 'default', which must be defined in the file.  The default can be
+0. This overrides the Shipping entry.  If neither are defined,
+nothing will be added for shipping.
+
+Tracking		BLANK_DEFAULT
+The name of the statistics tracking database, if tracking is desired.
+Defaults to no tracking.  Suggested value is 'tracking', which will
+create a DBM file in the ProductDir with statistics on how many times
+pages are served, and track any orders placed (with the full text of
+the order report).
+
+BackendOrder	BLANK_DEFAULT
+Controls the fields that are prepended to the item codes and quantities
+for teh backend ordering capability.  These are the values from the
+user form in 'order.html'.  You can access any value in that 
+hash. If blank, no backend ordering is in force.
+
+DefaultShipping	default
+Sets the initial shipping mode.

@@ -1,0 +1,176 @@
+#!/usr/bin/perl
+#
+#  TRACKRPT - Report on the tracking database
+#
+
+BEGIN {
+$VendRoot = '/usr/local/lib/minivend';
+}
+$ProductDir = 'products';
+$ConfDir = '/usr/local/lib/minivend/etc';
+use GDBM_File; $GDBM = 1;
+
+### END CONFIGURABLE VARIABLES
+
+use lib $::VendRoot;
+use Getopt::Std;
+use Fcntl;
+use Vend::lock;
+ 
+my $trackfile = "$VendRoot/$ProductDir/tracking";
+
+
+$::USAGE = <<EOF ;
+$0 - Report on tracking database
+
+    $0 [-bops] [inputfile]
+
+    OPTIONS:
+
+        -b  do backend order entry
+        -o  show orders (the default if no option present)
+        -p  pause (pause and wait for <CR> at every order)
+        -s  output statistics (the default if no option present)
+        -w  allow writing of database (defaults to read-only)
+
+    The inputfile defaults to "$trackfile"
+    if not specified. Don't append the DBM suffix.
+
+EOF
+
+getopts('bopsw')
+    or die "Couldn't read program options: $@\n$::USAGE\n";
+
+$trackfile  = $ARGV[0] || $trackfile;
+
+# If from option
+
+$Pause      = $opt_p || $opt_p || 0;
+$Backend    = $opt_b || $opt_b || 0;
+$Stats      = $opt_s || $opt_s || 0;
+$Orders     = $opt_o || $opt_o || 0;
+$Writeable  = $opt_w || $opt_w || 0;
+
+# Show stats and orders if no flags present
+unless ($Backend || $Stats || $Orders) {
+    $Stats  = 1;
+    $Orders = 1;
+}
+
+my $lockfile = "$ConfDir/tracking.lock";
+
+open(TrackingLock, "+>>$lockfile")
+        or die "Could not open '$lockfile': $!\n";
+lockfile(\*TrackingLock, 1, 0)
+        or die "Could not lock '$lockfile': $!\n";
+
+#Open the database files
+if(defined $GDBM && $GDBM && !$Writeable) {
+        tie(%Tracking, 'GDBM_File', $trackfile . ".gdbm",
+        &GDBM_READER, 0644)
+        or die "Could not tie to $trackfile: $!\n";
+}
+elsif(defined $NDBM && $NDBM && !$Writeable) {
+        tie(%Tracking, 'NDBM_File', $trackfile,
+        &O_RDONLY, 0644)
+        or die "Could not tie to $trackfile: $!\n";
+}
+elsif(defined $GDBM && $GDBM && $Writeable) {
+        tie(%Tracking, 'GDBM_File', $trackfile . ".gdbm",
+        &GDBM_WRITER, 0644)
+        or die "Could not tie to $trackfile: $!\n";
+}
+elsif(defined $NDBM && $NDBM && $Writeable) {
+        tie(%Tracking, 'NDBM_File', $trackfile,
+        &O_RDWR, 0644)
+        or die "Could not tie to $trackfile: $!\n";
+}
+else {
+        die "No DBM implementation configured!\n";
+}
+
+my ($code, $data);
+
+$date = localtime();
+
+if($Stats) {
+    print "Statistics Report for $date\n\n";
+    print "File: $trackfile\n\n";
+    printf "%-40s %6s\n", "Page Name", "Hits";
+    printf "%-40s %6s\n\n", '-' x 40, "------";
+}
+
+foreach $code (keys %Tracking) {
+    if ($code =~ /^order/i) {
+        $Order{$code} = $Tracking{$code};
+        next;
+    }
+    elsif ($code =~ /^backend/i) {
+        $Backend{$code} = $Tracking{$code};
+        next;
+    }
+    elsif ($code =~ /^mv_next_order/i) { next }
+		
+    next unless $Stats;
+    printf "%-40s %6d\n", $code, $Tracking{$code};
+}
+
+$| = 1;
+my $ans = 'yes';
+print "Press ENTER to continue..." if $Pause && $Stats;
+$ans = <STDIN> if $Pause && $Stats;
+
+for (sort keys %Order) {
+    last unless $Orders;
+    printf "--------------  %16s  ----------------\n", $_;
+    print $Order{$_};
+    printf "\n--------------  %16s  ----------------\n\n", '   END ORDER   ';
+    print "Press ENTER to continue..." if $Pause;
+    $ans = <STDIN> if $Pause;
+}
+
+my $backenddata;
+
+for (sort keys %Backend) {
+    last unless $Backend;  # Don't do this if no -b option
+    $code = $_;
+    printf "--------------  %25s  ----------------\n", $code;
+    $backdata = $Backend{$code};
+    $backdata =~ s/\0/\n/g;
+    print $backdata;
+    printf "\n--------------  %25s  ----------------\n\n", '   END BACKEND ORDER   ';
+    print "Press ENTER to continue..." if $Pause;
+    $ans = <STDIN> if $Pause;
+
+# You might add the following to process an order, if
+# you had a batch order-entry program named 'entord'
+# which accepted parameters one per line.  A fake order
+# entry is in the bin directory -- you can uncomment
+# this and try it out if you wish...
+#
+#    print "Enter this order? [yes] " if $Pause;
+#    $ans = <STDIN> if $Pause;
+#    unless ($ans =~ /^\s*n/i) {
+#		my $status;
+#        open (ENTORD, "| $VendRoot/bin/entord")
+#            || die "Couldn't run entord: $!\n";
+#        print ENTORD $backdata;
+#        close ENTORD;
+#        unless ( $status = $? ) {
+#            delete $Tracking{$code};  # Have to have -w option
+#            print "Press ENTER to continue..." if $Pause;
+#            $ans = <STDIN> if $Pause;
+#        }
+#        else {
+#            die "ENTORD not accepting orders: Status $status returned\n";
+#        }
+#    }
+        
+}
+
+
+untie(%Tracking);
+
+unlockfile(\*TrackingLock)
+        or die "Could not unlock '$lockfile': $!\n";
+close(TrackingLock)

@@ -1,0 +1,45 @@
+<HTML>
+<HEAD>
+<TITLE>Search The Art Store</TITLE>
+[framebase main]
+</HEAD>
+[body 1]
+<H3>
+<IMG SRC="/sample/images/web_srch.gif" ALT="SEARCH">
+Search our Catalog
+</H3>
+
+<P>
+<FORM ACTION="[process-search]" METHOD=POST>
+
+<B>Artist/Title</B><BR>
+<INPUT TYPE=text NAME="mv_searchspec" SIZE=25>
+<BR>
+<TABLE>
+<TR>
+<TD>
+<INPUT TYPE="submit" NAME="mv_todo" VALUE="Search">
+<INPUT TYPE="hidden" NAME="mv_doit" VALUE="search">
+<P>[finish-order]<BR>
+[pagetarget help main]
+	<STRONG>Help</STRONG>[/page]
+<TD>
+	Limit matches to:
+	<SELECT NAME="mv_matchlimit">
+			<OPTION>1
+			<OPTION>5
+			<OPTION>10
+			<OPTION SELECTED>25
+			<OPTION>50
+			<OPTION>100
+			<OPTION>200
+	</SELECT><BR>
+<INPUT TYPE="radio" NAME="mv_orsearch" VALUE="no" CHECKED>Must match all<BR>
+<INPUT TYPE="radio" NAME="mv_orsearch" VALUE="yes">Match any<BR>
+<INPUT TYPE="checkbox" NAME="mv_case" VALUE="yes">Case sensitive<BR>
+<INPUT TYPE="checkbox" NAME="mv_perl" VALUE="yes">Match exactly<BR>
+</TABLE>
+</FORM>
+[help header][help fr_search][help footer]
+</UL></H5>
+</body> </html>

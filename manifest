@@ -1,0 +1,112 @@
+###  MiniVend 1.0 Manifest ###
+###                        ###
+###   DON'T edit this !!!  ###
+###                        ###
+##############################
+
+README static 0644
+Copying static 0644
+Changes static 0644
+Vend dir 0755
+bin dir 0755
+doc dir 0755
+etc dir 0755
+src dir 0755
+pages odir 0755
+products odir 0755
+sample odir 0755
+sample/help odir 0755
+sample/images odir 0755
+bin/htpasswd.pl script 0700 shbang
+bin/entord script 0755 shbang
+bin/makedbm script 0755 shbang,vars:VendRoot:ProductDir,dbm
+bin/mat script 0644 shbang,vars:VendRoot:ConfigFile:ConfDir:PERL:ProductDir:PageDir,dbm
+bin/vendpage script 0755 shbang,vars:VendRoot:PageDir:ImageDir:HtmlDir
+bin/restart script 0755 shbang,vars:VendRoot:ConfDir:VEND:PERL
+bin/start script 0755 shbang,vars:VendRoot:ConfDir:VEND:PERL
+bin/stop script 0755 shbang,vars:VendRoot:ConfDir:VEND:PERL
+bin/trackrpt script 0755 shbang,vars:VendRoot:ConfDir:ProductDir,dbm
+configure script 0755
+configure.pl script 0755 shbang
+doc/minivend.pod static 0644
+etc/minivend.def static 0444
+etc/mvconf.cfg conf 0644
+etc/mvconf.cmt static 0644
+makedocs script 0755
+manifest static 0644
+pages/empty static 0644
+products/products.asc static 0644
+products/shipping.asc static 0644
+products/salestax.asc static 0644
+report static 0644
+sample.cfg static 0644
+sample/00-0011.html vendpage 0644
+sample/00-341.html vendpage 0644
+sample/00-342.html vendpage 0644
+sample/00-343.html vendpage 0644
+sample/19-202.html vendpage 0644
+sample/21-221.html vendpage 0644
+sample/34-101.html vendpage 0644
+sample/address.html htmlpage 0644
+sample/artbar0.html vendpage 0644
+sample/artbar1.html vendpage 0644
+sample/artbar2.html vendpage 0644
+sample/ban_tool.html vendpage 0644
+sample/catalog.html vendpage 0644
+sample/control.html vendpage 0644
+sample/confirmation.html vendpage 0644
+sample/failed.html vendpage 0644
+sample/feature.html htmlpage 0644
+sample/fr_greet.html vendpage 0644
+sample/fr_search.html vendpage 0644
+sample/fr_sel.html vendpage 0644
+sample/help.html vendpage 0644
+sample/help/hintfile.html vendpage 0644
+sample/images/00-0011.jpg htmlpage 0644
+sample/images/art.gif htmlpage 0644
+sample/images/artbar0.gif htmlpage 0644
+sample/images/artbar1.gif htmlpage 0644
+sample/images/artbar2.gif htmlpage 0644
+sample/images/artstore.gif htmlpage 0644
+sample/images/bg.gif htmlpage 0644
+sample/images/blue.gif htmlpage 0644
+sample/images/blue_pap.gif htmlpage 0644
+sample/images/button_y.gif htmlpage 0644
+sample/images/eyes.gif htmlpage 0644
+sample/images/phonelin.gif htmlpage 0644
+sample/images/pink_fab.gif htmlpage 0644
+sample/images/staircase.jpg htmlpage 0644
+sample/images/red.gif htmlpage 0644
+sample/images/undercon.gif htmlpage 0644
+sample/images/ups.gif htmlpage 0644
+sample/images/web_srch.gif htmlpage 0644
+sample/images/yellow_w.gif htmlpage 0644
+sample/index.html htmlpage 0644 text:__VEND_URL__:VendURL
+sample/interact.html vendpage 0644
+sample/missing.html vendpage 0644
+sample/needfield.html vendpage 0644
+sample/nf_greet.html vendpage 0644
+sample/noproduct.html vendpage 0644
+sample/notfound.html vendpage 0644
+sample/order.html vendpage 0644
+sample/rand1.html vendpage 0644
+sample/rand2.html vendpage 0644
+sample/rand3.html vendpage 0644
+sample/rand4.html vendpage 0644
+sample/rand5.html vendpage 0644
+sample/reframe.html vendpage 0644
+sample/search.html vendpage 0644
+sample/special1.html htmlpage 0644 text:__SERVER_NAME__:HostName
+sample/special2.html htmlpage 0644 text:__SERVER_NAME__:HostName
+sample/special3.html htmlpage 0644
+src/config.h.in csrc 0644
+src/configure script 0755
+src/configure.in static 0644
+src/mat.c csrc 0644 defs:CGIUSER:MAT:PERL
+src/svend.c csrc 0644 defs:CGIUSER:VEND:PERL
+src/syscfg.in static 0644
+src/vlink.c csrc 0644 defs:LINK_FILE:LINK_TIMEOUT:PERL:VEND
+minivend.pl script 0644 shbang,vars:VendRoot:VendRoot:PERL:VEND:ConfDir:ConfigFile:ErrorFile,dbm
+Vend/Server.pm script 0644 vars:LINK_FILE
+Vend/Http.pm script 0444
+Vend/lock.pm script 0444

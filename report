@@ -1,0 +1,19 @@
+      ORDER DATE: $date
+
+            Name: $name
+         Company: $company
+   Email address: $email
+
+ Billing address: $address
+City, State, Zip: $city, $state  $zip
+         Country: $country
+
+    CDMO Account: $account
+
+   Daytime Phone: $phone_day
+   Evening Phone: $phone_night
+
+Shipping Address: $s_address
+City, State, Zip: $s_city, $s_state  $s_zip
+Shipping Country: $s_country
+

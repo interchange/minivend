@@ -1,0 +1,1545 @@
+#!/usr/bin/perl
+#
+# mat.pl - MiniVend Administration Tool
+#
+# Version 0.2
+# Copyright 1996 by Mike Heins <mikeh@iac.net>
+#
+# Many routines came from Vend 0.2
+# Copyright 1995 by Andrew Wilcox <awilcox@maine.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+############### Configurable Variables ######################
+#
+# Where the Vend root directory is
+BEGIN {
+$VendRoot = '/usr/local/lib/minivend';
+}
+#
+# The product directory
+$ProductDir = 'products';
+$PageDir = 'pages';
+
+# Set up for the proper type by configure
+use GDBM_File; $GDBM = 1;
+use Fcntl;
+
+# Where Perl is
+$PERL			= '/usr/bin/perl';
+$ItemLinkDir	= '';
+$SessionDatabase = 'session';
+
+# Where the executables are
+$ConfDir		= "$VendRoot/etc";
+
+# Where the executables are
+$BinDir			= "$VendRoot/bin";
+
+# The ascii products file used for search and DBM build
+$AsciiProducts	= "$VendRoot/$ProductDir/products.asc";
+
+# The raw database
+$RawDatabase	= "$VendRoot/$ProductDir/database.txt";
+
+# Where the Vend page directory is
+$VendPageDir	= "$VendRoot/$PageDir";
+
+# Where the automatically built web pages should go
+# Remove trailing slash if present
+$CatalogDir		= "$VendPageDir/$ItemLinkDir";
+$CatalogDir		=~ s#/$##;
+
+# Where the main HTML directory is
+$HtmlDir		= '/usr/local/apache/htdocs';
+
+$ConfigFile = 'minivend.cfg';
+
+$DefaultsFile 	= "$ConfDir/minivend.def";
+
+$HelpFile 	    = "$ConfDir/mvconf.cmt";
+
+$VendpageCmd	= "$BinDir/vendpage";
+
+$MakepageCmd	= "$BinDir/catcvt -psD '|' -d $CatalogDir $RawDatabase >/dev/null";
+
+$TranslateCmd	= "$BinDir/catcvt -sD '|' $RawDatabase > $AsciiProducts";
+
+$FileCreationMask = 0600;
+
+
+############## END CONFIGURABLE VARIABLES ###################
+
+use lib $::VendRoot;
+use Config;
+use Vend::lock;
+require "find.pl";
+
+sub is_yes {
+	return( defined($_[0]) && ($_[0] =~ /^[yt1]/i));
+}
+
+sub is_no {
+	return( !defined($_[0]) || ($_[0] =~ /^[nf0]/i));
+}
+
+sub errorbox {
+    local($title,@message) = @_;
+	&html_header($title);
+	print "<H1>$title</H1>\n";
+    for(@message) {
+		s/\n/<BR>\n/g;
+		print;
+	}
+	&html_trailer('');
+    exit;
+}
+
+sub set_expire {
+	my $amount = shift;
+	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) =
+		gmtime(time + $amount);
+	my (@wd) = qw(Sun Mon Tue Wed Thu Fri Sat);
+	my (@mon) = qw(Jan Feb Mar Apr May Jun
+					Jul Aug Sep Oct Nov Dec);
+	sprintf "Expires: %s, %02d %s %d %02d:%02d:%02d GMT\n",
+		$wd[$wday], $mday, $mon[$mon], $year, $hour, $min, $sec;
+}
+
+sub cgi_decode {
+	$FORM = '';
+	unless (defined $ENV{'REQUEST_METHOD'}) {
+		warn "Unrecognized request type";
+		return undef;
+	}
+	if ($ENV{'REQUEST_METHOD'} eq "GET") {
+		return 0;
+	}
+	elsif ($ENV{'REQUEST_METHOD'} eq "POST") {
+		read(STDIN,$FORM,$ENV{'CONTENT_LENGTH'});
+	} 
+	elsif ($ENV{'REQUEST_METHOD'} eq "SHELL") {
+		undef $/;
+		$FORM = <>;
+		chop($FORM);
+		$/ = "\n";
+	} 
+	else {
+		$FORM = '';
+		errorbox "Unrecognized request type";
+		return undef;
+	}
+#my $form = $FORM;
+#$form =~ s/&/\n/g;
+#errorbox("Got here!", "$form");
+  for (split(/&/,$FORM)) {
+    s/\+/ /g;
+
+    s/%([0-9A-Fa-f]{2})/pack('c',hex($1))/eg;
+    ($key, $val) = split(/=/,$_,2);
+
+	if (defined $FORM{$key}) {
+    	$FORM{$key} .= "\0";
+	}
+	else {
+		push(@FORM,$key);
+		$FORM{$key} = '';
+	}
+    $FORM{$key} .= $val;
+  }
+  return 1; 
+}
+
+sub regularize {
+	for (@_) {
+			s/[\\]\n//g;
+			s/\n\s+/ /g;
+			s/\s+$//g;
+	}
+	wantarray ? @_ : $_[0];
+}
+
+sub dontwarn {
+	
+}
+
+sub html_trailer {
+	print <<EOF ;
+</body></html>
+EOF
+}
+
+sub html_header {
+	local($title) = $_[0];
+
+	print <<EOF ;
+Content-type: text/html
+
+<HEAD><TITLE>
+$title
+</title></head>
+<HTML><BODY>
+EOF
+}
+
+sub content_html {
+	print "Content-type: text/html\n\n";
+}
+
+=head1 NAME
+
+mat - administrative interface for MiniVend
+
+=head1 SYNOPSIS
+
+    http://SERVER_NAME/protected-bin/mat
+
+=head1 DESCRIPTION
+
+The MiniVend Administration Tool (MAT) puts an HTML adminstrative
+interface on the MiniVend shopping cart software, allowing non-UNIX
+users to administer it.
+
+When VendRoot is referred to in the following text, it refers to
+the directory where MiniVend is installed.
+
+It reads the set of configurable variables from a defaults
+file (normally F<VendRoot/bin/minivend.def>), and modifies them with those in
+the Vend configuration file (by default F<VendRoot/minivend.cfg>).
+
+It is dispatched by an SUID executable compiled from C,
+I<which must be in a password-protected CGI directory>.  It should 
+B<NEVER BE SUID ROOT>!  The author won't be responsible in any case,
+and especially if the program is left unprotected.
+
+The HTML DocumentRoot and the MiniVend PageDir must be defined in 
+program variables.  That is normally done by the MiniVend configuration
+utility, but can be done manually.
+
+It's default action when called with the GET method is to dispatch
+its form, with the current configuration filled in.  If it receives
+a post back from a form that it has dispatched, and that it has current
+authorization for, it will perform one of several actions.
+
+=over 4
+
+=item 1. Translate
+Call an external program to translate a database to MiniVend format.
+That function is defined in a variable, I<$TranslateCmd>, in the program
+configuration area.  Its product is probably the F<products.asc> file, which
+holds the product information for searches and conversion to the
+product price and description DBM files.
+
+=item 2. Make DBM
+Make the DBM files which hold product information.  The DBM type, either NDBM
+or GDBM, is defined in the program by a variable.
+
+=item 3. Make catalog pages
+Call an external program to automatically make HTML catalog pages.
+That function is defined in a variable, I<$MakepageCmd>, in the program
+configuration area. A variable, I<$CatalogDir>, is defined to give the
+command access to a path where it should make the pages.
+
+=item 4. HTML to Vend
+Call an external program, vendpage(1), to automatically
+convert HTML files and links to MiniVend format. The source
+directory is the HTML page directory, the target the MiniVend
+page directory.
+
+=item 5. Rename .htm to .html
+Rename any .htm files in the MiniVend page or HTML page directory to
+.html extenstions.  Skips the automatically-generated catalog directory.
+
+=item 6. Add Carriage Returns
+Add carriage returns to any files in the MiniVend page or HTML page directory.
+Skips the automatically-generated catalog directory.
+
+=item 7. Trim Carriage Returns
+Remove carriage returns from any files in the MiniVend page or HTML page directory.
+Skips the automatically-generated catalog directory.
+
+=item 8. Display Sessions
+Displays the MiniVend sessions in the database.
+
+=item 9. Expire Sessions
+Expires the MiniVend session file according to the setting of SessionExpire.
+
+=item 10. Configure
+Change the MiniVend configuration file.
+
+=back
+
+=head2 Options
+
+None, other than those in the configuration files and program variables. 
+
+=head2 Configuration File Format
+
+The defaults file, then the configuration file, are scanned at
+program startup.  There is only one variable type -- simple (scalar) variables. 
+A new variable may be installed by simply adding it to the F<minivend.def>
+file, along with any default value.
+
+The format is simple.  The variable name is the first entry on the line,
+and may contain only alpha-numeric characters, dashes, and underscores.
+It is followed by any number of spaces and/or tabs or equals signs, then
+the variable value. The variable value is everything till the end of the
+line, with no same-line comments allowed.
+
+The MiniVend configuration file is then scanned, and values are checked against
+the defaults.  If a variable differs, it will be written to the configuration
+file. If it is the same, I<it will not be written>.
+
+B<WARNING>:Only program hackers should change the minivend.def file, for if
+it differs from the configuration in the minivend.pl file,
+B<the system will not work>.
+
+The variables themselves are described in the MiniVend documentation.
+
+=head2 Translate Function
+
+This is activated by clicking the I<Transmit> button in the form.
+This is dependent on the external translation program. The default
+input file is F<VendRoot/ProductDir/database.txt>, the default output
+file is F<VendRoot/ProductDir/products.asc>.  These can be changed
+in the configurable variable section at the top of the program.
+The script to perform the translation is normally located in the 
+VendRoot/bin directory.
+
+When the translate function is done, the system will be disabled
+from user access by locking the session database.  When the 
+operation is complete, the session will be unlocked.  If the CGI
+is terminated for any reason, the system may be down until fixed.
+The system will be typically disabled for a short time while
+the file is being translated.
+
+On completion, the output of the translate program is written to
+the browser in plain/text format.
+
+=head2 Make DBM Function
+
+This is activated by clicking the I<Make DBM Files> button in the form.
+This function simply takes the F<VendRoot/products/products.asc>
+file and writes it to the F<VendRoot/products/pr_pric> and
+F<VendRoot/products/pr_desc> files in DBM format.  The extension will depend
+on the DBM type in use.  GDBM creates files with a .gdbm extension,
+while NDBM creates two files, a .dir and a .pag
+
+While the DBM files are being written, the system will be disabled
+from user access by locking the products database.  When the 
+operation is complete, the product database will be unlocked.  If the CGI
+is terminated for any reason, the system may be down until fixed.
+The system will be typically disabled for a short time while
+the files are being made.  Users will see an inability to get
+any catalog pages or search results, or place any orders.  Bear
+this in mind when doing the operation, which will take up to several
+minutes depending on system load and speed.  A 2,500 record NDBM
+database on a 486/100 PC running FreeBSD has been known to take up
+to three minutes to translate.
+
+On completion, the status of the operation is returned to
+the browser in HTML format.
+
+=head2 Make Page Function
+
+This is activated by clicking the I<Make Catalog from DB> button in the form.
+This is dependent on the external page-making program. The default
+input file is F<VendRoot/products/database.txt>, the default output
+directory is F<VendRoot/pages/upc>.  These can be changed
+in the configurable variable section at the top of this program.
+
+While the make page function is done, the system will be enabled
+for user access by unlocking the session database.  When the 
+operation is complete, the session will be relocked, then the 
+results taken and returned.  If the CGI
+is terminated for any reason, the system may be down until fixed.
+
+On completion, the output of the translate program is written to
+the browser in plain/text format.
+
+=head2 HTML to Vend Function
+
+This is activated by clicking the I<HTML to Vend> button in the form.
+This uses the vendpage(1) utility to translate the HTML page directory
+tree to the MiniVend page directory tree.  All files in the HTML
+page directory will be re-written to use Vend-style [page][/page]
+tags.  See vendpage(1) for details.
+
+On completion, the output of the vendpage program is written to
+the browser in plain/text format.
+
+=head2 Rename .htm to .html Function
+
+This is activated by clicking the I<Rename .htm to .html> button in the form.
+The RENAME function simply changes all files in a directory tree that
+have a .htm file extension to a .html extension.  It is I<recursive>,
+which means that ALL files under the VendRoot/pages and/or HTML
+DocumentRoot (as selected) will be changed.
+
+B<WARNING:> This will destroy any contents of files with the
+same root file name that have a .html extension.
+It does check to see that the .htm file is newer, but be careful.
+
+Unless the number of files is very large (greater than 1000), the
+function should not take long.  On completion, the status of the
+operation is returned to the browser in HTML format.
+
+=head2 Add/Trim Carriage Returns Function
+
+This is activated by clicking the I<Add Carriage Returns> or
+I<Trim Carriage Returns> buttons in the form.  Depending on whether
+the HTML Directory or Page Directory checkboxes are selected, it will
+operate on the HTML tree or the MiniVend tree.  It is I<recursive>, which means
+that ALL files under the VendRoot/pages and/or HTML DocumentRoot (as
+selected) will be changed.
+
+The Add Carriage Returns function simply adds or trims carriage returns
+(^M characters) to all .htm, .html, .cfg, .asc, or .txt files in a
+directory tree. If adding, it adds them to a line before the linefeed
+only if not already present.
+
+If removing, it removes all unencoded carriage returns at the end of a line.
+
+While the function is in progress, the system will be disabled
+from user access by locking the session database.  When the 
+operation is complete, the session will be unlocked.  If the CGI
+is terminated for any reason, the system may be down until fixed.
+The system will be typically disabled for just a short time while
+the files are being changed.
+
+On completion, the status of the operation is returned to
+the browser.
+
+=head2 Display Sessions Function
+
+The Display Sessions function simply dumps any user sessions in the session
+database to the browser in plain/text format. Lines will not
+be wrapped, so the output may be hard to read.
+
+=head2 Expire Function
+
+The Expire function simply expires all sessions that are older
+than allowed by the SessionExpire variable. This is normally best
+done on a daily basis by a crontab(8) entry, but is provided for convenience.
+
+=head2 Configuration Editing
+
+Each configuration variable is presented in a fill-out form, 
+and is written as is. Any variables that are not the default value will
+be at the top -- the ones that have the default value will be
+in alphabetical order toward the bottom of the file.
+
+While the configuration file and/or MiniVend program are being written, the
+system will be disabled from user access by locking the session
+database.  When the operation is complete, the session will be unlocked.
+If the CGI is terminated for any reason, the system may be down until
+fixed.  The system will be typically disabled for a very short time
+while the files are being written. No one should notice.
+
+Certain variables may have an effect on sessions in progress, in
+particular the variables which set the frames for certain functions.
+
+After the file is written, the file is tested, and if there
+are any problems reported, the old file will be restored.
+
+=head2 Bugs
+
+The translate function is not well defined, and requires an
+external program.
+
+There is no intermediate status indication, so while some of the
+lengthy commands are in progress the only indication is the 
+hourglass (or other indication) from the browser.
+
+=head2 Author
+
+I<Mike Heins>, B<Internet Robotics>, mikehC<@>iac.net
+
+=head2 Credits
+
+Many routines came from Andrew Wilcox's Vend 0.2 package.
+
+=cut
+
+sub session_name {
+    $Vend::SessionID;
+}
+
+
+sub init_session {
+    $Vend::Session = {
+	'iteration' => 1,
+	'time' => time,
+    };
+}
+
+sub write_and_close_session {
+    write_session();
+    close_session();
+}
+
+sub open_session { open_session_dbm(@_); }
+sub new_session { new_session_dbm(@_); }
+sub close_session { close_session_dbm(); }
+sub write_session { write_session_dbm(); }
+sub read_session { read_session_dbm(); }
+
+sub open_session_dbm {
+	my($wait) = shift;
+	defined $wait or $wait = 0;
+    open(Vend::SessionLock, "+>>$ConfDir/session.lock")
+		or die "Could not open '$ConfDir/session.lock': $!\n";
+    unless (lockfile(\*Vend::SessionLock, 1, $wait)) {
+		return undef;
+	}
+    
+    # pick one
+	if($GDBM) {
+    	tie(%Vend::SessionDBM, 'GDBM_File', $SessionDatabase . ".gdbm",
+		&GDBM_WRCREAT, $FileCreationMask)
+		or die "Could not tie to $SessionDatabase: $!\n";
+	}
+	elsif($NDBM) {
+    	tie(%Vend::SessionDBM, 'NDBM_File', $SessionDatabase,
+		&O_RDWR|&O_CREAT, $FileCreationMask)
+		or die "Could not tie to $SessionDatabase: $!\n";
+	}
+	else {
+		die "No DBM implementation configured!\n";
+	}
+
+    $Vend::SessionName = session_name();
+	1;
+}
+
+sub new_session_dbm {
+    my($name);
+
+    for (;;) {
+		$Vend::SessionID = random_string();
+		$name = session_name();
+		last unless defined $Vend::SessionDBM{$name};
+    }
+    $Vend::SessionName = $name;
+    init_session();
+}
+
+sub check_pid {
+	open(::PIDFILE, "$ConfDir/minivend.pid")
+		or return(1,0);
+    my $ok = lockfile(\*::PIDFILE, 1, 0);
+    chomp(my $pid = <::PIDFILE>);
+	unlockfile(\*::PIDFILE);
+	close(PIDFILE);
+    return ($ok,$pid);
+}
+
+sub getsigs {
+	my(%signo);
+	my $name;
+    defined $Config{sig_name} || die "No sigs?";
+	my $i = 0;
+    foreach $name (split(' ', $Config{sig_name})) {
+    	$signo{$name} = $i;
+		$i++;
+    }
+	%signo;
+}
+
+sub close_session_dbm {
+    #pick one
+
+    untie %Vend::SessionDBM
+		or die "Could not close $SessionDatabase: $!\n";
+
+    unlockfile(\*Vend::SessionLock)
+		or die "Could not unlock '$ConfDir/session.lock': $!\n";
+    close(Vend::SessionLock)
+		or die "Could not close '$ConfDir/session.lock': $!\n";
+}
+
+sub write_session_dbm {
+    my($s);
+    $Vend::Session->{'time'} = time;
+    $s = uneval($Vend::Session);
+    $Vend::SessionDBM{$Vend::SessionName} = $s;
+    die "Data was not stored in DBM file\n"
+		if $Vend::SessionDBM{$Vend::SessionName} ne $s;
+}
+
+sub read_session_dbm {
+    my($s);
+
+    $s = $Vend::SessionDBM{$Vend::SessionName};
+    $Vend::Session = eval($s);
+    errorbox "Could not eval '$s' from session dbm: $@\n" if $@;
+}
+
+
+## RANDOM_STRING
+
+# leaving out 0, O and 1, l
+$RANDOM_STRING::chars =
+    "ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+
+# Return a string of random characters.
+
+sub random_string {
+    my($len) = @_;
+    $len = 8 unless $len;
+    my($r, $i);
+
+    $r = '';
+    for ($i = 0;  $i < $len;  ++$i) {
+	$r .= substr($RANDOM_STRING::chars,
+		     int(rand(length($RANDOM_STRING::chars))), 1);
+    }
+    $r;
+}
+
+
+## UNEVAL
+
+# Returns a string representation of an anonymous array, hash, or scaler
+# that can be eval'ed to produce the same value.
+# uneval([1, 2, 3, [4, 5]]) -> '[1,2,3,[4,5,],]'
+
+sub uneval {
+    my($o) = @_;		# recursive
+    my($r, $s, $i, $key, $value);
+
+    $r = ref $o;
+    if (!$r) {
+	$o =~ s/[\\"\$@]/\\$&/g;
+	$s = '"' . $o . '"';
+    } elsif ($r eq 'ARRAY') {
+	$s = "[";
+	foreach $i (0 .. $#$o) {
+	    $s .= uneval($o->[$i]) . ",";
+	}
+	$s .= "]";
+    } elsif ($r eq 'HASH') {
+	$s = "{";
+	while (($key, $value) = each %$o) {
+	    $s .= "'$key' => " . uneval($value) . ",";
+	}
+	$s .= "}";
+    } else {
+	$s = "'something else'";
+    }
+
+    $s;
+}
+
+sub wanted {
+	my $rename = defined $FORM{'func_rename'};
+	my $dosify = defined $FORM{'func_dosify'};
+	my $unixify = defined $FORM{'func_unixify'};
+	my ($mod, $lmod, $lname);
+
+	unless ($rename || $dosify || $unixify) {
+		close_session;
+		errorbox("ERROR: No utility function specified");
+	}
+
+	if($name eq $CatalogDir) {
+		$prune || ($prune = 1);
+	}
+
+	RENAME: {
+		if($rename) {
+			last RENAME unless $_ =~ /\.htm$/;
+			$lname  = "${name}l";
+			if( -e  $lname) {
+				push(@Errors, "$lname: file exists\n");
+				$lmod = (stat(_))[9];
+				$mod = (stat($name))[9];
+				if ($mod < $lmod) {
+					push(@Errors, "$lname: newer than $name -- unchanged.\n");
+					last RENAME;
+				}
+				unlink $lname;
+			}
+			rename $name, $lname;
+		}
+	}
+
+	DOSIFY: {
+		if ($dosify) {
+			last DOSIFY unless -f $name;	#skip directories
+			last DOSIFY unless $name =~ /\.(html?|txt|conf|cfg|asc)$/;
+			$lname = "$name.dosify";
+			unless (rename $name, $lname) {
+				close_session;
+				errorbox "ERROR: Couldn't rename",
+							"Couldn't rename $name to $lname";
+			}
+			open(RENIN, $lname) || die "Couldn't read $lname: $!\n";
+			open(RENOUT, ">$name") || die "Couldn't create $name: $!\n";
+			while(<RENIN>) {
+				s/\r*$/\r/;
+				print RENOUT $_;
+			}
+			close RENIN;
+			close RENOUT;
+			unlink $lname;
+		}
+	}
+
+	UNIXIFY: {
+		if ($unixify) {
+			last UNIXIFY unless -f $name;	#skip directories
+			last UNIXIFY unless $name =~ /\.(html?|txt|conf|cfg|asc)$/;
+			$lname = "$name.unixify";
+			unless (rename $name, $lname) {
+				close_session;
+				errorbox "ERROR: Couldn't rename",
+							"Couldn't rename $name to $lname";
+			}
+			open(RENIN, $lname) || die "Couldn't read $lname: $!\n";
+			open(RENOUT, ">$name") || die "Couldn't create $name: $!\n";
+			while(<RENIN>) {
+				s/\r+$//;
+				print RENOUT $_;
+			}
+			close RENIN;
+			close RENOUT;
+			unlink $lname;
+		}
+	}
+}
+
+sub readconfig {
+	my($status,$key,$val);
+	open(DEFAULTS, $DefaultsFile)
+		|| do {
+				close_session;
+				errorbox("Couldn't open defaults file: $!\n");
+			};
+	open(CONFIG, $ConfigFile)
+		|| do {
+				close_session;
+				errorbox("Couldn't open config file: $!\n");
+			};
+
+	while(<DEFAULTS>) {
+		next if /^\s*#/;	# Ignore comments
+		next unless /\S/;	# Ignore blanks
+		chomp;
+		($key, $value) = split(/[\t =]+/, $_, 2);
+		$Default{$key} = $value;
+	}
+	close DEFAULTS;
+
+	while(<CONFIG>) {
+		next if /^\s*#/;	# Ignore comments
+		next unless /\S/;	# Ignore blanks
+		chomp;
+		($key, $value) = split(/[\s=]+/, $_, 2);
+		$Vendfig{$key} = $value;
+	}
+	close CONFIG;
+
+	%Current = %Default;
+
+	# Check that all config file values are valid
+	for(keys %Vendfig) {
+		unless (defined $Default{$_}) {
+			close_session;
+			errorbox( "Configuration file error",
+					"$_ doesn't exist!");
+		}
+		$Current{$_} = $Vendfig{$_}
+	}
+
+	for(keys %Default) {
+		if ($Default{$_} eq 'UNDEFINED' and ! $Vendfig{$_}) {
+			$Error{$_} = "$_ mandatory, can't be blank.";
+			$Current{$_} = "ERROR: ";
+		}
+		elsif ($Current{$_} eq 'BLANK_DEFAULT') {
+			$Current{$_} = '';
+		}
+	}
+	1;
+}
+
+# Takes a file name as an argument, and returns associative
+# array with help text
+sub gethelp {
+	my $file = shift;
+	my ($thing, $var, $comment);
+	my (%help);
+
+	if (open(HELP, $file)) {
+    	$/ = '';
+    	while(<HELP>) {
+        	($thing, $comment) = split /\n/, $_, 2;
+        	($var, undef) =  split /\s+/, $thing, 2;
+        	$help{$var} = $comment;
+    	}
+    	close HELP;
+    	$/ = "\n";
+	}
+	else {
+		 return undef;
+	}
+	%help;
+}
+
+sub writeconfig {
+	my($status,$key,$val);
+	open(WRITECONFIG, ">$ConfigFile")
+		|| die "Couldn't write $ConfigFile: $!, died";
+	my %remaining = %Default;
+	for(sort keys %Default) {
+		delete $remaining{$_};
+		next if $FORM{$_} eq $Default{$_};
+		next unless $FORM{$_};
+		printf WRITECONFIG "%-20s %s\n", $_, $FORM{$_};
+	}
+	close WRITECONFIG;
+	if (scalar(keys %remaining)) {
+		push(@Errors, "Not all values present in form!\n");
+		return undef;
+	}
+	return 1;
+}
+
+sub sendform {
+	my($iteration) = $Vend::Session->{'iteration'} + 1;
+	html_header("Vend Configuration Menu");
+	$HR = $ENV{'HTTP_USER_AGENT'} =~ /lynx/i ? '<HR>' : '';
+	print <<EOF ;
+<H1>Vend Configuration</H1>
+<P>
+<FORM METHOD=POST ACTION="$ENV{'SCRIPT_NAME'}"
+		ENCTYPE="application/x-www-form-urlencoded">
+<INPUT TYPE=HIDDEN NAME="sessionid" VALUE="$Vend::SessionID">
+<INPUT TYPE=HIDDEN NAME="iteration" VALUE="$iteration">
+<TABLE BORDER=1>
+EOF
+	if($ServerRunning) {
+		print <<EOF ;
+<TR><TD WIDTH=100><B>Server Control</B></TD>
+	<TD>
+	<INPUT TYPE=SUBMIT	NAME="func_stop" VALUE="Stop Server"><BR>
+	</TD>
+	<TD>
+	<INPUT TYPE=SUBMIT	NAME="func_restart" VALUE="Re-read Config"><BR>
+	</TD>
+</TR>
+$HR
+EOF
+	}
+	else {
+		print <<EOF ;
+<TR><TD WIDTH=100><B>Server Control</B></TD>
+	<TD COLSPAN=2>
+	<INPUT TYPE=SUBMIT	NAME="func_start" VALUE="Start Server"><BR>
+	</TD>
+</TR>
+$HR
+<TR><TD WIDTH=100><B>Database</B></TD>
+	<TD>
+	<INPUT TYPE=SUBMIT	NAME="func_translate" VALUE="Translate"><BR>
+	</TD>
+	<TD>
+	<INPUT TYPE=SUBMIT	NAME="func_makedbm" VALUE="Make DBM Files"><BR>
+	</TD>
+</TR>
+$HR
+<TR><TD WIDTH=100><B>Pages</B></TD>
+	<TD>
+	<INPUT TYPE=SUBMIT	NAME="func_makepage" VALUE="Make Catalog from DB"><BR>
+	</TD>
+	<TD>
+	<INPUT TYPE=SUBMIT	NAME="func_vendpage" VALUE="HTML to Vend"><BR>
+	</TD>
+</TR>
+$HR
+<TR><TD WIDTH=100 ROWSPAN=3><B>Utility</B></TD>
+	<TD>
+	<INPUT TYPE=SUBMIT	NAME="func_rename" VALUE="Rename .htm to .html"><BR>
+	</TD>
+	<TD>
+	<INPUT TYPE=CHECKBOX NAME="rendir" VALUE="$HtmlDir" CHECKED>
+	HTML Directory<BR>
+	<INPUT TYPE=CHECKBOX NAME="rendir" VALUE="$VendPageDir" CHECKED>
+	Page Directory<BR>
+	</TD>
+</TR>
+$HR
+<TR>
+	<TD>
+	<INPUT TYPE=SUBMIT	NAME="func_dosify" VALUE="Add carriage returns"><BR>
+	</TD>
+	<TD>
+	<INPUT TYPE=CHECKBOX NAME="dosifydir" VALUE="$HtmlDir" CHECKED>
+	HTML Directory<BR>
+	<INPUT TYPE=CHECKBOX NAME="dosifydir" VALUE="$VendPageDir" CHECKED>
+	Page Directory<BR>
+	</TD>
+$HR
+<TR>
+	<TD>
+	<INPUT TYPE=SUBMIT	NAME="func_unixify" VALUE="Trim carriage returns"><BR>
+	</TD>
+	<TD>
+	<INPUT TYPE=CHECKBOX NAME="unixifydir" VALUE="$HtmlDir" CHECKED>
+	HTML Directory<BR>
+	<INPUT TYPE=CHECKBOX NAME="unixifydir" VALUE="$VendPageDir" CHECKED>
+	Page Directory<BR>
+	</TD>
+</TR>
+$HR
+<TR><TD WIDTH=100><B>Session</B></TD>
+	<TD>
+	<INPUT TYPE=SUBMIT	NAME="func_dump" VALUE="Display sessions"><BR>
+	</TD>
+	<TD>
+	<INPUT TYPE=SUBMIT	NAME="func_expire" VALUE="Expire sessions"><BR>
+	</TD>
+</TR>
+EOF
+	}
+	print "</TABLE>\n";
+	
+	if(defined %Error) {
+		print "<H2>Values that are in error</H2>\n";
+		print "<TABLE>\n";
+		for (sort keys %Error) {
+			print <<EOF ;
+<TR>
+	<TD>
+	<A HREF="$ENV{'SCRIPT_NAME'}#$_">$_</A>
+	</TD>
+	<TD>
+	<INPUT NAME="$_" VALUE="$Current{$_}$Error{$_}" SIZE="60"><BR>
+	</TD>
+</TR>
+EOF
+			$Done{$_} = 1;
+		}
+		print "</TABLE>\n";
+	}
+	
+	print "<BR><H2>Values set in configuration file </H2>\n";
+	print "<TABLE>\n";
+	for (sort keys %Vendfig) {
+		next if $Done{$_};
+		print <<EOF ;
+<TR>
+	<TD>
+	<A HREF="$ENV{'SCRIPT_NAME'}#$_">$_</A>
+	</TD>
+	<TD>
+	<INPUT NAME="$_" VALUE="$Current{$_}" SIZE="60"><BR>
+	</TD>
+</TR>
+EOF
+		$Done{$_} = 1;
+	}
+	print "</TABLE>\n";
+
+	print "<TABLE>\n";
+	print "<TR><TD WIDTH=100></TD><TD>";
+	print qq|<INPUT TYPE=SUBMIT	NAME="func_config" VALUE="Configure">\n|;
+	print "</TD></TR></TABLE>\n";
+	
+	print "<BR><H2>Values that are default</H2>\n";
+	print "<TABLE>\n";
+	for (sort keys %Default) {
+		next if $Done{$_};
+		print <<EOF ;
+<TR>
+	<TD>
+	<A HREF="$ENV{'SCRIPT_NAME'}#$_">$_</A>
+	</TD>
+	<TD>
+	<INPUT NAME="$_" VALUE="$Current{$_}" SIZE="60"><BR>
+	</TD>
+</TR>
+EOF
+		$Done{$_} = 1;
+	}
+	print "</TABLE>\n";
+
+	print "</FORM>\n";
+	print "<HR SIZE=4><H2>Directive Descriptions</H2>";
+	PRINTHELP: {
+		last PRINTHELP unless defined %Help;
+		for (sort keys %Default) {
+			print <<EOF ;
+<A NAME="$_">
+<HR SIZE=1>
+<H3>$_</H3></A>
+$Help{$_}
+<BR>
+EOF
+		}
+	} # end PRINTHELP
+	html_trailer;
+	
+}
+
+sub dofunction {
+	
+	my $funcs;
+	my $function;
+	my $tmpfile = "$TMPDIR/MAT~.tmp";
+	
+	for(
+		qw( func_translate func_makedbm func_rename func_unixify
+			func_restart func_start func_stop func_dump
+			func_makepage func_vendpage func_dosify
+			func_expire func_config ) 
+		) {
+		next unless defined $FORM{$_};
+		$funcs++;
+		$function = $_;
+		$::Function = $function;
+		$::Function =~ s/^func_(.*)/\u$1/;
+	}
+
+	if ($funcs != 1) {
+		close_session;
+		errorbox 'ERROR: Function Specification',
+				"There was no action (or too many actions) specified.";
+	}
+
+	if($function eq 'func_translate') {
+		errorbox("MiniVend Administration Tool Error",
+					"No translate while server is running!")
+			if $ServerRunning;
+		close_session;
+		open(RESULTS,"$TranslateCmd 2>$tmpfile |")
+			|| die "Couldn't fork: $!\n";
+		while(<RESULTS>) {
+			push(@Results,$_);
+		}
+		close RESULTS;
+		$status = $?;
+		open_session(1);
+		read_session;
+		if (-s $tmpfile) {
+			open(ERRORS,$tmpfile) || die;
+			push(@Errors,<ERRORS>);
+			close ERRORS;
+		}
+		unless ($?) {
+			push(@Results,"Translate command successful!");
+		}
+		else {
+			unshift(@Errors,@Results);
+			push(@Errors,"ERROR: Translate command unsuccessful.");
+			return undef;
+		}
+	}
+	elsif($function eq 'func_makepage') {
+		errorbox("MiniVend Administration Tool Error",
+					"No making pages while the server is running!")
+			if $ServerRunning;
+		close_session;
+		open(RESULTS,"$MakepageCmd 2>$tmpfile |")
+			|| die "Couldn't fork: $!\n";
+		while(<RESULTS>) {
+			push(@Results,$_);
+		}
+		close RESULTS;
+		$status = $?;
+		open_session(1);
+		read_session;
+		if (-s $tmpfile) {
+			open(ERRORS,$tmpfile) || die;
+			push(@Errors,<ERRORS>);
+			close ERRORS;
+		}
+		unless ($?) {
+			push(@Results,"Make page command successful!");
+		}
+		else {
+			unshift(@Errors,@Results);
+			push(@Errors,"ERROR: Make page command unsuccessful.");
+			return undef;
+		}
+	}
+	elsif($function eq 'func_vendpage') {
+		errorbox("MiniVend Administration Tool Error",
+					"No making pages while the server is running!")
+			if $ServerRunning;
+		close_session;
+		open(RESULTS,"$VendpageCmd 2>$tmpfile |")
+			|| die "Couldn't fork: $!\n";
+		while(<RESULTS>) {
+			push(@Results,$_);
+		}
+		close RESULTS;
+		$status = $?;
+		open_session(1);
+		read_session;
+		if (-s $tmpfile) {
+			open(ERRORS,$tmpfile) || die;
+			push(@Errors,<ERRORS>);
+			close ERRORS;
+		}
+		unless ($?) {
+			push(@Results,"Vendpage successful!");
+		}
+		else {
+			unshift(@Errors,@Results);
+			push(@Errors,"ERROR: Vendpage unsuccessful.");
+			return undef;
+		}
+	}
+	elsif($function eq 'func_makedbm') {
+		errorbox("MiniVend Administration Tool Error",
+					"No making DBM while the server is running!")
+			if $ServerRunning;
+		if($GDBM) {
+			$cmd = "$BinDir/makegdbm";
+		}
+		elsif($NDBM) {
+			$cmd = "$BinDir/makendbm";
+		}
+		else {
+			die "No DBM Function defined, died";
+		}
+		close_session;
+		open(RESULTS,"$cmd 2>$tmpfile |")
+			|| die "Couldn't fork: $!\n";
+		while(<RESULTS>) {
+			push(@Results,$_);
+		}
+		close RESULTS;
+		$status = $?;
+		open_session(1);
+		read_session;
+		if (-s $tmpfile) {
+			open(ERRORS,$tmpfile) || die;
+			push(@Errors,<ERRORS>);
+			close ERRORS;
+		}
+		unless ($?) {
+			push(@Results,"MAKEDBM command successful!");
+		}
+		else {
+			unshift(@Errors,@Results);
+			push(@Errors,"ERROR: MAKEDBM command unsuccessful.");
+			return undef;
+		}
+	}
+	elsif($function eq 'func_stop') {
+		write_and_close_session;
+		$NoSession = 1;
+		$cmd = "$BinDir/stop";
+		open(RESULTS,"$cmd 2>$tmpfile |")
+			|| die "Couldn't fork (or maybe open $tmpfile): $!\n";
+		while(<RESULTS>) {
+			push(@Results,$_);
+		}
+		close RESULTS;
+		$status = $?;
+
+		if (-s $tmpfile) {
+			open(ERRORS,$tmpfile) || die;
+			push(@Errors,<ERRORS>);
+			close ERRORS;
+		}
+		unlink $tmpfile;
+
+		unless ($?) {
+			push(@Results,"STOP server complete.");
+		}
+		else {
+			unshift(@Errors,@Results);
+			push(@Errors,"ERROR: STOP server command unsuccessful.");
+			return undef;
+		}
+
+	}
+	elsif($function eq 'func_start') {
+		write_and_close_session;
+		$NoSession = 1;
+		$cmd = "$BinDir/start";
+		my $gw_interface_save = $ENV{'GATEWAY_INTERFACE'};
+		$ = 0;
+		undef $ENV{'GATEWAY_INTERFACE'};
+		$ = 1;
+		open(RESULTS,"$cmd 2>$tmpfile |")
+			|| die "Couldn't fork (or maybe open $tmpfile): $!\n";
+		while(<RESULTS>) {
+			push(@Results,$_);
+		}
+		close RESULTS;
+		$status = $?;
+		$ENV{'GATEWAY_INTERFACE'} = $gw_interface_save;
+
+		if (-s $tmpfile) {
+			open(ERRORS,$tmpfile) || die;
+			push(@Errors,<ERRORS>);
+			close ERRORS;
+		}
+		unlink $tmpfile;
+
+		unless ($?) {
+			push(@Results,"START server complete.");
+		}
+		else {
+			unshift(@Errors,@Results);
+			push(@Errors,"ERROR: START server command unsuccessful.");
+			return undef;
+		}
+
+	}
+	elsif($function eq 'func_restart') {
+		write_and_close_session;
+		$NoSession = 1;
+		$cmd = "$BinDir/restart";
+		open(RESULTS,"$cmd 2>$tmpfile |")
+			|| die "Couldn't fork (or maybe open $tmpfile): $!\n";
+		while(<RESULTS>) {
+			push(@Results,$_);
+		}
+		close RESULTS;
+		$status = $?;
+
+		if (-s $tmpfile) {
+			open(ERRORS,$tmpfile) || die;
+			push(@Errors,<ERRORS>);
+			close ERRORS;
+		}
+		unlink $tmpfile;
+
+		unless ($?) {
+			push(@Results,"RESTART server complete.");
+		}
+		else {
+			unshift(@Errors,@Results);
+			push(@Errors,"ERROR: RESTART server command unsuccessful.");
+		}
+
+	}
+	elsif($function eq 'func_rename') {
+		my @dirs;
+		@dirs = split /\0/, $FORM{'rendir'}
+			if defined $FORM{'rendir'};
+		if (scalar(@dirs)) {
+			$ = 0;
+			&find( @dirs );
+			$ = 1;
+			push(@Results,"RENAME function complete.");
+		}
+		else {
+			push(@Errors,"No directory selected.");
+			return undef;
+		}
+	}
+	elsif($function eq 'func_dosify') {
+		my @dirs;
+		@dirs = split /\0/, $FORM{'dosifydir'}
+			if defined $FORM{'dosifydir'};
+		if (scalar(@dirs)) {
+			$ = 0;
+			&find( @dirs );
+			$ = 1;
+			push(@Results,"DOSIFY function complete.");
+		}
+		else {
+			push(@Errors,"No directory selected.");
+			return undef;
+		}
+	}
+	elsif($function eq 'func_unixify') {
+		my @dirs;
+		@dirs = split /\0/, $FORM{'unixifydir'}
+			if defined $FORM{'unixifydir'};
+		if (scalar(@dirs)) {
+			$ = 0;
+			&find( @dirs );
+			$ = 1;
+			push(@Results,"Trim carriage return function complete.");
+		}
+		else {
+			push(@Errors,"No directory selected.");
+			return undef;
+		}
+	}
+	elsif($function eq 'func_dump') {
+		errorbox("MiniVend Administration Tool Error",
+					"No dumping while the server is running!")
+			if $ServerRunning;
+		my $gw_interface_save = $ENV{'GATEWAY_INTERFACE'};
+		$ = 0;
+		undef $ENV{'GATEWAY_INTERFACE'};
+		$ = 1;
+		close_session;
+		open(RESULTS,"$PERL $VendRoot/minivend.pl -dump-sessions 2>$tmpfile |")
+			|| die "Couldn't fork: $!\n";
+		while(<RESULTS>) {
+			push(@Results,$_);
+		}
+		close RESULTS;
+		$status = $?;
+		$ENV{'GATEWAY_INTERFACE'} = $gw_interface_save;
+		open_session(1);
+		read_session;
+		if (-s $tmpfile) {
+			open(ERRORS,$tmpfile) || die;
+			push(@Errors,<ERRORS>);
+			close ERRORS;
+		}
+		unlink $tmpfile;
+		unless ($?) {
+			push(@Results,"DUMP command successful!");
+		}
+		else {
+			unshift(@Errors,@Results);
+			push(@Errors,"ERROR: DUMP command unsuccessful.");
+			return undef;
+		}
+	}
+	elsif($function eq 'func_expire') {
+		errorbox("MiniVend Administration Tool Error",
+					"No expiration while the server is running!")
+			if $ServerRunning;
+		my $gw_interface_save = $ENV{'GATEWAY_INTERFACE'};
+		$ = 0;
+		undef $ENV{'GATEWAY_INTERFACE'};
+		$ = 1;
+		close_session;
+		open(RESULTS,"$PERL $VendRoot/minivend.pl -expire 2>$tmpfile |")
+			|| die "Couldn't fork: $!\n";
+		while(<RESULTS>) {
+			push(@Results,$_);
+		}
+		close RESULTS;
+		$status = $?;
+		$ENV{'GATEWAY_INTERFACE'} = $gw_interface_save;
+		open_session(1);
+		read_session;
+		if (-s $tmpfile) {
+			open(ERRORS,$tmpfile) || die;
+			push(@Errors,<ERRORS>);
+			close ERRORS;
+		}
+		unless ($?) {
+			push(@Results,"EXPIRE command successful!");
+		}
+		else {
+			unshift(@Errors,@Results);
+			push(@Errors,"ERROR: DUMP command unsuccessful.");
+			return undef;
+		}
+	}
+	elsif($function eq 'func_config') {
+		rename "$ConfigFile", "$VendRoot/vendconf.bak"
+			|| die "Couldn't back up $ConfigFile, aborting"; 
+		unless($ServerRunning) {
+			my $gw_interface_save = $ENV{'GATEWAY_INTERFACE'};
+			$ = 0;
+			undef $ENV{'GATEWAY_INTERFACE'};
+			$ = 1;
+			close_session;
+			if(writeconfig($ConfigFile)) {
+				open(RESULTS,"$PERL $VendRoot/minivend.pl -test 2>$tmpfile |")
+					|| die "Couldn't fork: $!\n";
+				while(<RESULTS>) {
+					push(@Results,$_);
+				}
+				close RESULTS;
+				$status = $?;
+			}
+			else { $status = 1 }	# Force failure if writeconfig failed
+			open_session(1);
+			read_session;
+			$ENV{'GATEWAY_INTERFACE'} = $gw_interface_save;
+			if (-s $tmpfile) {
+				open(ERRORS,$tmpfile) || die;
+				push(@Errors,<ERRORS>);
+				close ERRORS;
+			}
+		}
+		else {
+			$status = ! writeconfig($ConfigFile);
+			push(@Results,
+				"Configuration will take effect on server restart.\n");
+		}
+		unless ($status) {
+			unlink "$VendRoot/vendconf.bak";
+			push(@Results,"Configuration written successfully!");
+		}
+		else {
+			unlink $ConfigFile;
+			rename "$VendRoot/vendconf.bak", $ConfigFile;
+			unshift(@Errors,@Results);
+			push(@Errors,"ERROR: Configuration failed.");
+			return undef;
+		}
+	}
+	1;
+}
+
+sub sendresult {
+	my $iteration = @_;
+	html_header("Results from MAT");
+	print "<PRE>\n";
+	print @Results;
+	print "</PRE>\n";
+	if (defined @Errors) {
+		print "<BR><H3>There were some errors:</H3>\n";
+		print "<PRE>\n";
+		print @Errors;
+		print "</PRE>\n";
+	}
+	print qq|<A HREF="$ENV{'SCRIPT_NAME'}?$Vend::SessionID">Return to Menu</A>|;
+	html_trailer;
+}
+	
+
+# START OF MAIN LOOP
+
+# Set temporary directory
+$TMPDIR = $ENV{'TMP'} || $ENV{'TEMP'} || '/tmp';
+
+#sub cgi_decode;
+#sub close_session;
+#sub close_session_dbm;
+#sub content_html;
+#sub dontwarn;
+#sub errorbox;
+#sub html_header;
+#sub html_trailer;
+#sub init_session;
+#sub is_no;
+#sub is_yes;
+#sub lock_session;
+#sub new_session;
+#sub new_session_dbm;
+#sub open_session;
+#sub open_session_dbm;
+#sub random_string;
+#sub read_session;
+#sub read_session_dbm;
+#sub readconfig;
+#sub regularize;
+#sub sendbuttons;
+#sub sendform;
+#sub session_name;
+#sub uneval;
+#sub write_and_close_session;
+#sub write_session;
+#sub write_session_dbm;
+
+
+# Explicitly set these
+$ENV{'PATH'} = '/bin:/usr/bin:';
+$ENV{'SHELL'} = '/bin/sh';
+$ENV{'IFS'} = '';
+
+unless (defined $ENV{'GATEWAY_INTERFACE'}) {
+	 die "ERROR: Not in CGI mode.  This program runs in web mode.\n";
+}
+unless (defined $ENV{'REMOTE_USER'}) {
+	 # uncomment this if you MUST, preferably only for testing
+	 errorbox("Unh-unh-unh!", "Can't run unprotected with a password.");
+}
+
+chdir $VendRoot 
+	|| die "Couldn't change directory to $VendRoot: $!\n";
+
+%Signal = getsigs;
+
+my $gotlock = 0;
+($gotlock, $ServerPID) = check_pid;
+$ServerRunning = $gotlock ? 0 : 1;
+my $try = 0;
+my $gotlock;
+my $killed;
+CHECKMODE:
+{
+	errorbox("Couldn't grab session after $try tries!",
+			"Something has locked the session database and won't give it up.")
+		if $try >= 10;
+	unless ( open_session() ) {
+		if ($ServerRunning) {
+			errorbox("MAT Locking Error",
+						"PIDFILE locked with no Server pid")
+				unless $ServerPID;
+			#errorbox("Fit to kill", "kill $Signal{'USR1'}, $ServerPID");
+			kill $Signal{'USR1'}, $ServerPID
+				unless $killed++;
+			select(undef,undef,undef,0.25);
+			$try++;
+			redo CHECKMODE;
+		}
+		else {
+			$try++;
+			select(undef,undef,undef,0.25);
+			redo CHECKMODE;
+		}
+	}
+	else {
+		last CHECKMODE;
+	}
+	redo CHECKMODE;
+}
+
+
+# This doesn't return if executed, just sends form
+unless (cgi_decode == 1) {
+	if (defined $ENV{'QUERY_STRING'} && $ENV{'QUERY_STRING'} ne '') {
+		$Vend::SessionID = $ENV{'QUERY_STRING'};
+		read_session;
+	}
+	else {
+		new_session;
+	}
+	readconfig;
+	%Help = gethelp($HelpFile);
+	sendform;
+	write_and_close_session;
+	exit;
+}
+
+$Vend::SessionID = $FORM{'sessionid'}
+		or errorbox "Not a valid form!";
+read_session;
+
+if( defined $FORM{'func_config'}) {
+	unless ($Vend::Session->{'iteration'} < $FORM{'iteration'}) {
+		close_session;
+		errorbox 'ERROR: Old form',
+				"That's an old form! Start a new session when changing" .
+				"configuration variables.";
+	}
+}
+
+readconfig;
+%Help = gethelp($HelpFile);
+
+if (dofunction) {
+	unless ($NoSession) {
+		$Vend::Session->{'iteration'} = $FORM{'iteration'} + 1;
+		write_and_close_session;
+	}
+	sendresult $::Function;
+}
+else {
+	close_session;
+	errorbox "Function failed!", @Errors, 
+		qq|<A HREF="$ENV{'SCRIPT_NAME'}?$Vend::SessionID">Return to menu</A>|; 
+}
+
+
