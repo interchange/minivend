@@ -263,6 +263,7 @@ my %addAttr = (
 					item_list       1
 					loop			1
 					onfly			1
+					order			1
 					page            1
 					mail            1
 					msg				1
