@@ -857,6 +857,18 @@ sub tag_data {
 	'filesafe' =>	sub {
 						return Vend::Util::escape_chars(shift);
 				},
+	'calculated' =>	sub {
+						my ($val, $tag, $table, $column, $key, $indirect) = @_;
+						$key = $CGI::values{$indirect}
+							if $indirect;
+						my $code = tag_data($table, $column, $key);
+						$code =~ s/\r/\n/g;
+#::logDebug("calculated code=$code");
+						$s = $val;
+						my $result = $ready_safe->reval($code);
+#::logDebug("calculated result='$result'");
+						return $result;
+				},
 	'mime_type' =>	sub {
 						return Vend::Util::mime_type(shift);
 				},
