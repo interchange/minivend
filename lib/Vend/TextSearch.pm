@@ -268,10 +268,9 @@ sub search {
 
 		if($s->{mv_dict_end} && defined $limit_sub) {
 			while(<SEARCH>) {
-#::logDebug("$_");
 				last if $dict_limit->($_);
-				next unless &$f();
 				next unless $limit_sub->($_);
+				chomp;
 				(push @out, $searchfile and last)
 					if $s->{mv_return_file_name};
 				push @out, $return_sub->($_);
@@ -281,34 +280,30 @@ sub search {
 			while(<SEARCH>) {
 				last if $dict_limit->($_);
 				next unless &$f();
+				chomp;
 				(push @out, $searchfile and last)
 					if $s->{mv_return_file_name};
 				push @out, $return_sub->($_);
 			}
 		}
-		elsif(! defined $f and defined $limit_sub) {
+		elsif($limit_sub) {
+#::logDebug("limit_sub");
 			while(<SEARCH>) {
 				next unless $limit_sub->($_);
+				chomp;
 				(push @out, $searchfile and last)
 					if $s->{mv_return_file_name};
 				push @out, $return_sub->($_);
 			}
 		}
-		elsif(defined $limit_sub) {
-			while(<SEARCH>) {
-				next unless &$f();
-				next unless $limit_sub->($_);
-				(push @out, $searchfile and last)
-					if $s->{mv_return_file_name};
-				push @out, $return_sub->($_);
-			}
-		}
-		elsif (!defined $f) {
+		elsif (! $f) {
 			return $s->search_error('No search definition');
 		}
 		else {
+#::logDebug("no limit_sub");
 			while(<SEARCH>) {
 				next unless &$f();
+				chomp;
 				(push @out, $searchfile and last)
 					if $s->{mv_return_file_name};
 				push @out, $return_sub->($_);
@@ -321,6 +316,7 @@ sub search {
 	$s->{matches} = scalar(@out);
 
 #::logDebug("before delayed return: self=" . ::Vend::Util::uneval_it({%$s}));
+#::logDebug("before delayed return: out=" . ::Vend::Util::uneval_it(\@out));
 	if($delayed_return and $s->{matches} > 0) {
 		$s->hash_fields($s->{mv_field_names}, qw/mv_sort_field/);
 #::logDebug("after hash fields: self=" . ::Vend::Util::uneval_it({%$s}));
@@ -329,6 +325,7 @@ sub search {
 		@out = map { $delayed_return->($_) } @out;
 	}
 #::logDebug("after delayed return: self=" . ::Vend::Util::uneval_it({%$s}));
+#::logDebug("after delayed return: out=" . ::Vend::Util::uneval_it(\@out));
 
 	if($s->{mv_unique}) {
 		my %seen;

@@ -416,13 +416,12 @@ sub get_return {
 	my ($return_sub);
 
 	if($makeref) {
-
 		# Avoid the hash key lookup, it is a closure
 		my $delim = $s->{mv_index_delim};
 
 		# We will pick out the return fields later if sorting
 		# This returns
-		if(! $final and $s->{mv_sort_field}) {
+		if( $s->{mv_sort_field} ) {
 			return ( 
 				sub {
 					[ split /$delim/o, shift(@_) ]
@@ -430,18 +429,17 @@ sub get_return {
 				1,
 			);
 		}
-
-		if(! $s->{mv_return_fields}) {
-			$return_sub = sub {
-								$_[0] =~ s/$delim.*//s;
-								return $_[0];
-						};
-		}
-		else {
+		elsif($s->{mv_return_fields}) {
 			my @fields = @{$s->{mv_return_fields}};
 			$return_sub = sub {
 							return [ (split /$delim/o, shift(@_))[@fields] ]
 						};
+		}
+		else {
+			$return_sub = sub {
+							$_[0] =~ s/$delim.*//s;
+							return [ $_[0] ];
+					};
 		}
 	}
 	else {
@@ -826,8 +824,8 @@ EOF
 		}
 		 $code .= $range_code;
 		 $code .= <<EOF;
-	\$_ = join q{$s->{mv_index_delim}}, \@\$line[$fields];
-	return(\$_ = \$line) if &\$sub();
+	local(\$_) = join q{$s->{mv_index_delim}}, \@\$line[$fields];
+	return(1) if &\$sub();
 	return undef;
 }
 EOF
