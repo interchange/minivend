@@ -98,7 +98,7 @@ BEGIN {
 		$Global::ExeName = 'minivend';
 		$Global::ConfigFile = 'minivend.cfg';
 	}
-	elsif(-f "$Global::VendRoot/interchange.cfg.dist") {
+	else {
 		$Global::ExeName = 'interchange';
 		$Global::ConfigFile = 'interchange.cfg';
 	}
