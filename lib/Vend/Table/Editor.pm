@@ -3612,7 +3612,7 @@ EOF
 show_times("end table editor call item_id=$key") if $Global::ShowTimes;
 
 	my @put;
-	if($overall_template) {
+	if($overall_template =~ /\S/) {
 		my $death = sub {
 			my $item = shift;
 			logDebug("must have chunk {$item} defined in overall template.");
