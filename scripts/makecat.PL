@@ -1337,6 +1337,7 @@ EOF
 
 	if($ask =~ /^\s*i/i) {
 		$lm = "i";
+		$Conf{linkmode} = 'INET';
 		$Inetmode = 1;
 
 		my $defport;
@@ -1381,17 +1382,20 @@ EOF
 			$lh = prompt("Link host? ", $default);
 			redo INETASK if $lh eq '@';
 		}
+		$Conf{linkport} = $lp;
+		$Conf{linkhost} = $lh;
 		unlink $prog unless $lh eq $defhost && $lp eq $defport;
 	  } # END INETASK
 	}
 	elsif($ask =~ /^\s*n/i) {
-		$prog = "NONE";
+		$Conf{linkmode} = $prog = "NONE";
 	}
 	else {
 		$lm = 'u';
+		$Conf{linkmode} = "UNIX";
 		my $def = -u '/usr/bin/suexec' ? 'y' : 'n';
 		$ask = prompt("Do you use CGIWRAP or SUEXEC? ", $def);
-		$CGIwrap = $ask =~ /^\s*y/i;
+		$Conf{cgiwrap} = $CGIwrap = $ask =~ /^\s*y/i;
 	}
 
 }
