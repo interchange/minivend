@@ -987,7 +987,7 @@ sub meta_display {
 				my $sub;
 				if($record->{lookup_exclude}) {
 					eval {
-						$sub = sub { $_[0] !~ m{$record->{lookup_exclude}}o };
+						$sub = sub { $_[0] !~ m{$record->{lookup_exclude}} };
 					};
 					if ($@) {
 						::logError(errmsg(
