@@ -4431,7 +4431,7 @@ sub iterate_hash_list {
 
 	for ( ; $i <= $end; $i++, $count++) {
 		$item = $hash->[$i];
-		$item->{mv_ip} = $i;
+		$item->{mv_ip} = $opt->{reverse} ? ($end - $i) : $i;
 		if($opt->{modular}) {
 			if($opt->{master}) {
 				next unless $item->{mv_mi} eq $opt->{master};
