@@ -1464,6 +1464,9 @@ sub route_order {
 
 		$Vend::Items = $shelf->{$c};
 
+		Vend::Interpolate::flag( 'write', {}, $route->{write_tables})
+			if $route->{write_tables};
+
 		Vend::Interpolate::flag( 'transactions', {}, $route->{transactions})
 			if $route->{transactions};
 
