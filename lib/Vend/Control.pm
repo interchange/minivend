@@ -68,7 +68,7 @@ sub signal_jobs {
 	$job =~ s/^,+//;
 	$job =~ s/,+$//;
 	$Vend::JobsJob = $job;
-	Vend::Util::writefile("$Global::RunDir/jobs", "jobs $cat $delay $job\n");
+	Vend::Util::writefile("$Global::RunDir/jobsqueue", "jobs $cat $delay $job\n");
 #::logGlobal("signal_jobs: wrote file, ready to control_interchange");
 	control_interchange('jobs', 'HUP');
 }
