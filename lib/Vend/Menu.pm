@@ -654,6 +654,8 @@ EOF
 		$row = \%line;
 	}
 
+	$row->{mv_ip} = $opt->{mv_ip}++ || 0;
+	$row->{mv_increment} = ++$opt->{mv_incrmement};
 #::logDebug("here's a row: " . ::uneval($row)) if $row->{debug};
 
 	for(@{$opt->{_transform}}) {

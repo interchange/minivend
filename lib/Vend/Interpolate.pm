@@ -3118,6 +3118,10 @@ sub tag_area {
 	if ($opt->{search}) {
 		$page = escape_scan($opt->{search});
 	}
+	elsif ($page =~ /^[a-z][a-z]+:/) {
+		### Javascript or absolute link
+		return $page;
+	}
 	elsif ($page eq 'scan') {
 		$page = escape_scan($arg);
 		undef $arg;
