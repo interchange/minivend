@@ -623,13 +623,13 @@ sub filter_value {
 			$value = sprintf($_, $value);
 			next;
 		}
+		if (/^(\d+)(\.?)$/) {
+			substr($value, $1) = $2 ? '...' : ''
+				if length($value) > $1;
+			next;
+		}
 		while( s/\.([^.]+)$//) {
 			unshift @args, $1;
-		}
-		if(/^\d+$/) {
-			substr($value , $_) = ''
-				if length($value) > $_;
-			next;
 		}
 		unless (defined $Filter{$_}) {
 			::logError ('Unknown filter %s', $_);
