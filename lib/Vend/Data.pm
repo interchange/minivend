@@ -1,4 +1,4 @@
-# $Id: Data.pm,v 1.17 1997/08/28 08:11:48 mike Exp mike $
+# $Id: Data.pm,v 1.20 1997/11/02 07:49:42 mike Exp $
 
 package Vend::Data;
 require Exporter;
@@ -230,7 +230,7 @@ sub set_field {
 
 	# Create it if it doesn't exist
 	unless ($db->record_exists($key)) {
-#print("Creating empty record $key\n") if $Global::DEBUG;
+print("Creating empty record $key\n") if $Global::DEBUG;
 		my @fields;
 		my $count = scalar $db->columns();
 		@fields = ('') x $count;
@@ -445,18 +445,23 @@ sub read_accessories {
 sub read_salestax {
     my($code, $percent);
 
+	$Vend::Cfg->{SalesTaxTable} = {};
     open(Vend::SALESTAX,"$Vend::Cfg->{ProductDir}/salestax.asc")
 	|| do {
 		logError("Could not open salestax.asc: $!");
 		return undef;
 		};
-	$Vend::Cfg->{SalesTaxTable} = {};
     while(<Vend::SALESTAX>) {
 		chomp;
 		($code, $percent) = split(/\s+/);
 		$Vend::Cfg->{SalesTaxTable}->{"\U$code"} = $percent;
     }
     close Vend::SALESTAX;
+
+	if(not defined $Vend::Cfg->{SalesTaxTable}->{'default'}) {
+		$Vend::Cfg->{SalesTaxTable}->{'default'} = 0;
+	}
+
 	1;
 }
 

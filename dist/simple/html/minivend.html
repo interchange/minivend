@@ -14,7 +14,7 @@ MiniVend -- multi-catalog shopping cart and mall
 <A NAME="minivend_version_0">
 Version</A>
 </H2>
-This document describes MiniVend 3.00, based on Andrew Wilcox's
+This document describes MiniVend 3.03, based on Andrew Wilcox's
 original Vend, Version 0.2, with portions from Vend 0.3.
 <p><p><hr>
 <H1> 
@@ -27,12 +27,17 @@ desired. From the ordering page they may complete the ordering process
 by entering their name and address, or return to browsing and select
 more items. Once the order process is completed, MiniVend submits
 the order to the system via email or an external order entry program.
+<p>Though its name begins with ``Mini'', MiniVend is anything but. It
+is a high-end, fully customizable, powerful software system with
+complete database functionality.  It is suitable for many applications
+besides shopping carts, though that is its main bent.
 <p>MiniVend plugs into a system with an SSL (Secure Sockets Layer) server,
 allowing encrypted transmission of sensitive customer data. This
 capability makes the entry of credit card numbers practical and secure.
 <p>Many different catalogs can be run from the same MiniVend server,
 allowing an ISP to serve many different customers from one or just
-a few MiniVend server processes. 
+a few MiniVend server processes. As many as 400 MiniVend catalogs have
+been run on one machine from the same server process.
 <p>Multiple servers can be forked to serve the same set of catalogs.
 This ensures fast response, while only one server runs when there is no
 catalog activity.
@@ -53,7 +58,115 @@ OVERVIEW OF MINIVEND</A>
 If you want to get started, just jump to 
 <A HREF="minivend.html#minivend_quick_0">QUICK START</A>
  below.
-The following sections briefly describe how MiniVend works.
+The following section describes how MiniVend works.
+<p>
+<H2> 
+<A NAME="minivend_the_0">
+The Vend Concept</A>
+</H2>
+MiniVend is a descendent of Vend, originally developed by Andrew Wilcox.
+Though the original Vend was much simpler than MiniVend in implementation,
+the basic concept remains unchanged. Quite simply, MiniVend maintains its
+own set of pages, <EM>outside of regular HTML space</EM>, which contain special
+tags that are intepreted by MiniVend.
+<p>The tags, which are in [square brackets], are interpreted by MiniVend and
+many different values can be substituted. Some examples are:
+<p>
+<DL COMPACT>
+<DT><STRONG>
+
+<A NAME="minivend_user_0">
+User form input</A>
+
+</STRONG>
+<DD>
+MiniVend remembers input by a user from form to form, and the value of any
+form variable is ``remembered'' and inserted upon finding a <CODE>[value input_field]</CODE>
+tag. The <CODE>input_field</CODE> is a normal HTML form field.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_database_0">
+Database contents</A>
+
+</STRONG>
+<DD>
+MiniVend can have an unlimited number of attached databases, either in one of
+its own internal formats or attached via SQL/ODBC.  The contents of a database
+can be referenced with tags like <CODE>[data table=products field=name key=334-12]</CODE>.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_session_0">
+Session parameters</A>
+
+</STRONG>
+<DD>
+Things like where the user originally found your catalog (<CODE>[data session source]</CODE>
+and <CODE>[data session referer]</CODE>), domain they are from (<CODE>[data session host]</CODE>), 
+the time of their last access (<CODE>[data session time]</CODE>), and many other parameters.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_file_0">
+File contents or program output</A>
+
+</STRONG>
+<DD>
+You can insert the contents of an outboard file with <CODE>[file directory/file]</CODE>,
+or the output from an arbitrary program (given proper permission from
+your administrator!).
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_searches_0">
+Searches of files</A>
+
+</STRONG>
+<DD>
+MiniVend supports different search engines, including 
+<A HREF="minivend.html#minivend_glimpse_0">Glimpse</A>
+, or you can
+call your own and have MiniVend process the output for you.
+<p>
+</DL>
+There are over 80 different distinct tags supporting hundreds of functions..
+<p>
+<H2> 
+<A NAME="minivend_a_0">
+A typical user session</A>
+</H2>
+The user hears about your catalog via a search engine, link from another
+page, or click-thru from a banner ad. They access the link, which is a
+URL pointing to the MiniVend link program (called VLINK or TLINK, more
+on that below).  The MiniVend server is already running on your system,
+and your catalog has been designed and tested.
+<p>The link program, which is a regular CGI program, calls the MiniVend
+server.  The MiniVend server sees the path information which is appended
+to the URL calling it, and brings up the corresponding page.  The page
+contains a link to order items from your catalog. 
+<p>The user clicks on the link and MiniVend looks in the a 
+<A HREF="minivend.html#minivend_products_0">products</A>
+ database,
+finds the item, and places it in the user's shopping cart. (Each user has
+a separate shopping cart, which is attached to their 
+<A HREF="minivend.html#minivend_session_1">session</A>
+.)
+<p>Once the user decides to purchase, they check out by filling out a form
+with their name, address, payment information, etc. In the process they
+may make choices about how the product should be shipped, how they will
+pay, and provide any other information you may ask for. They then place
+(or ``submit'') the order.
+<p>Their payment may be taken at that point via CyberCash and a soft-goods
+product downloaded -- or their order information may be simply sent to
+you, the store owner, via encrypted email or FAX.  The order is saved
+to a file or database table as backup, or in the case of fully-automated
+systems sent directly to an order entry program or database link.
+<p>All of these operations are fully configurable by you.  THe base MiniVend
+distribution includes a couple of sample stores -- some users have simply
+customized the text and images inside, changed the database entries, and 
+opened their store. You will probably want to fully customize for a distinctive
+catalog look and feel.
 <p>
 <H2> 
 <A NAME="minivend_how_0">
@@ -65,7 +178,9 @@ machine a request comes from, it may not know if the next request
 comes from the same browser or even from the same user on that
 machine.
 <p>MiniVend keeps track of who is ordering what by including in the URL a
-session id: a random string which is different for each customer
+
+<A HREF="minivend.html#minivend_session_1">session id</A>
+, which is a random piece of text which is different for each customer
 browsing the catalog.
 <p>This session ID is either tracked with cookies, or it can be passed
 along through special URLs within catalog pages. Pages in the catalog
@@ -73,7 +188,7 @@ served by MiniVend running as a cgi-bin program generate a special URL
 for every link. Here is an example of such a URL:
 <p>
 <XMP>
-    http://machine.company.com/cgi-bin/vlink/shirts?WehUkATn;;1
+    http://machine.company.com/cgi-bin/simple/browse?WehUkATn;arg;1
 
 </XMP>
 <p>An explanation of each part:
@@ -86,7 +201,7 @@ machine.company.com</A>
 
 </STRONG>
 <DD>
-Internet address of server
+Internet address of the server hosting the MiniVend catalog.
 <p>
 <DT><STRONG>
 <EM>cgi-bin</EM>
@@ -97,8 +212,8 @@ program.
 <p>
 <DT><STRONG>
 
-<A NAME="minivend_vlink_0">
-vlink</A>
+<A NAME="minivend_simple_0">
+simple</A>
 
 </STRONG>
 <DD>
@@ -106,8 +221,8 @@ Name of the program to run
 <p>
 <DT><STRONG>
 
-<A NAME="minivend_shirts_0">
-shirts</A>
+<A NAME="minivend_browse_0">
+browse</A>
 
 </STRONG>
 <DD>
@@ -116,14 +231,58 @@ Page of the catalog to display
 <DT><STRONG>
 
 <A NAME="minivend_wehukatn_0">
-WehUkATn;;1</A>
+WehUkATn</A>
 
 </STRONG>
 <DD>
-The session id
+The session ID
+<p>
+<DT><STRONG>
+
+<A NAME="minivend__0">
+;</A>
+
+</STRONG>
+<DD>
+Separates session ID from argument.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_arg_0">
+arg</A>
+
+</STRONG>
+<DD>
+An argument which can be used by MiniVend to select page display options.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend__0">
+;</A>
+
+</STRONG>
+<DD>
+Separates argument from the unique integer.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend__1">
+1</A>
+
+</STRONG>
+<DD>
+A unique integer (or source code, if it contains a letter) which prevents
+caching servers from caching the URL.
 <p>
 </DL>
-Catalog pages are written in regular HTML with extensions to.support catalog ordering. MiniVend extensions look like:
+.
+<p>
+<H2> 
+<A NAME="minivend_page_0">
+Page Delivery</A>
+</H2>
+MiniVend pages are written in regular HTML with extensions to
+support catalog ordering. MiniVend extensions look like:
 <p>
 <XMP>
     [page specials]See our specials![/page]
@@ -132,7 +291,8 @@ Catalog pages are written in regular HTML with extensions to.support catalog ord
 <p>Pages are delivered through the following steps:
 <p>
 <UL>
-<LI>The HTTPD server receives a request for a catalog page.
+<LI>The HTTPD server (Apache, Netscape, or NCSA are examples of HTTP
+servers) receives a request for a MiniVend page.
 <p>
 <LI>The server is already running as a daemon, and the request calls a small
 C program (source is vlink.c or tlink.c) that is 
@@ -140,17 +300,47 @@ C program (source is vlink.c or tlink.c) that is
 communicates with the MiniVend program via
 a UNIX- or INET-domain socket.
 <p>
-<LI>MiniVend reads the HTML source page from the catalog pages directory,
-and interprets the catalog ordering extensions in the file. If the 
-page doesn't exist, and corresponds to a part number in the database,
-it is built ``on the fly'' using a template page (default is flypage.html). In
-the process, it may read or modify any number of database tables.
+<LI>MiniVend reads the source page from the MiniVend pages directory, and
+interprets the MiniVend tags in the file. If the page doesn't exist,
+and corresponds to a part number in the database, it is built "on the
+fly" using a template page. In the process, it may read or modify any
+number of database tables. If the user's browser doesn't accept cookies,
+then any links generated on the page will contain the 
+<A HREF="minivend.html#minivend_session_1">session ID</A>
+, which
+is needed to ensure the user's session is retained.
 <p>
 <LI>The page, which is now entirely in regular HTML, is delivered to
-the HTTPD server, which returns it to the browser.
+the HTTP server, which returns it to the browser.
 <p>
 </UL>
-Once the customer has finished, the completed order is emailed to the.vendor, or placed with an external order entry program (not supplied).
+.
+<p><p><hr>
+
+<H1> 
+<A NAME="minivend_distribution_0">
+DISTRIBUTION AND SUPPORT INFORMATION</A>
+</H1>
+MiniVend is normally free of charge, and is distributed under a
+modified GNU general public license.  This means that individuals and
+organizations, both commercial and non-commercial, may generally use
+MiniVend without charge.
+<p>The only exception is that any individaul or organization using uninvited
+email solicitations (commonly known as SPAM) may not use MiniVend for a
+period of one year from their last SPAM incident.  Upon sending of SPAM,
+the user must immediately discontinue using MiniVend
+<p>Once their Internet Service Provider (or network backbone provider)
+is notified by the author, they must discontinue use of MiniVend. Use
+of MiniVend after such a notification is subject to a US<STRONG>$1</STRONG>,000 per day
+license fee payable to the author.
+<p>If such an individual uses MiniVend, let the author know and an immediate
+investigation will be started.
+<p>MiniVend is not guaranteed to be supported other than by making
+full source code available. If it breaks you get to keep both pieces.
+However, the author is always looking to improve MiniVend and sometimes
+answers questions.  The more concise and better-researched your question,
+the more likely it is to get an answer. No tutorials will be provided,
+though. You have to learn all of this stuff on your own.
 <p>
 <H2> 
 <A NAME="minivend_where_0">
@@ -162,13 +352,16 @@ The MiniVend version described in this document is available from:
     http://www.minivend.com/minivend/download.html
 
 </XMP>
-<p>If you are on a Solaris, or another UNIX which does not have native and
-complete <EM>flock()</EM> support, you must also obtain the File::Lock module at
-the same place that 
-<A HREF="minivend.html#minivend_perl_0">Perl</A>
- is available from. File::Lock is included
-in the distribution and will be installed if possible and appropriate. If
-you have Perl 5.004, you don't need File::Lock.
+<p>If you have Perl 5.004 or higher, you might try the following:
+<p>
+<XMP>
+    perl -MCPAN -e 'install Vend::Cart'
+
+</XMP>
+<p>If you are connected to the Internet and have the appropriate libraries or
+software available to Perl, MiniVend will be automatically installed.
+If this doesn't work, just obtain the distribution via FTP and follow the
+installation instructions in the README file.
 <p>
 <H2> 
 <A NAME="minivend_perl_0">
@@ -265,21 +458,17 @@ Setup for HTTP Servers</A>
 The most important issue with MiniVend is the permissions with
 which the CGI program and the MiniVend server run.
 <p>MiniVend uses a server running <EM>in the background</EM>, with a small
-C program (generically called 
-<A HREF="minivend.html#minivend_vlink_0">vlink</A>
-) that communicates with MiniVend via
+C program (generically called <CODE>vlink</CODE>) that communicates with MiniVend via
 a UNIX-domain socket.
 <p>To improve security, MiniVend normally runs with the socket file
 having 0600 permissions (rw-------), which mandates that the CGI
 program and the server run <EM>as the same user ID</EM>. This means
-that the 
-<A HREF="minivend.html#minivend_vlink_0">vlink</A>
- program must be SUID to the same user ID as
+that the <CODE>vlink</CODE> program must be SUID to the same user ID as
 the server executes under. (Or that CGIWRAP is used on a single
 catalog system).
 <p>With MiniVend 3.0 multiple catalog capability, the permissions
 situation gets a bit tricky. MiniVend comes with a program,
-<EM>makecat</EM>, which configures catalogs for a multiple catalog
+<CODE>makecat</CODE>, which configures catalogs for a multiple catalog
 system. It should properly set up ownership and permissions
 for multiple users if run as the superuser.
 <p><p><hr>
@@ -300,14 +489,14 @@ the CPAN module.
 <p>If you can't use the above, obtain, decompress and untar the distribution:
 <p>
 <XMP>
-    gzip -d minivend-3.00.tar.gz
-    tar xvf mvend300.tar
+    gzip -d minivend-3.03.tar.gz
+    tar xvf minivend-3.03.tar
 
 </XMP>
 <p>If you have GNU tar, you can combine these steps:
 <p>
 <XMP>
-    tar xvzf mvend300.tar.gz
+    tar xvzf minivend-3.03.tar.gz
 
 </XMP>
 <p>Before installing, check the site where you obtained MiniVend for any
@@ -315,7 +504,7 @@ patches that might have been issued since the release.
 <p>Change to the created directory, something like:
 <p>
 <XMP>
-    cd minivend-3.00
+    cd minivend-3.03
 
 </XMP>
 <p>Run the configure script with:
@@ -333,13 +522,13 @@ patches that might have been issued since the release.
     make install
 
 </XMP>
-<p>Replace the 'perl' with the proper path to your Perl 5.003
+<p>Replace the <CODE>perl</CODE> with the proper path to your Perl 5.003
 or higher binary.
 <p>You will be asked for the directory where you want to install MiniVend --
 any directory will do. You must of course have write permission there;
 and you will eventually need to have write permission on your CGI-BIN
 and HTML directories. This directory is referred to later in the
-documentation as <STRONG>VendRoot</STRONG> or the <EM>MiniVend software directory</EM>.
+documentation as <STRONG>VendRoot</STRONG> or the <STRONG>MiniVend software directory</STRONG>.
 <p>The process should be self-explanatory. If you discover any problems,
 refer to the section 
 <A HREF="minivend.html#minivend_if_0">If something goes wrong</A>
@@ -349,20 +538,20 @@ strongly suggested that you install the demo catalogs as a starting point for
 your own catalog -- in fact you will not be able to run MiniVend until
 you have created a catalog.
 <p>You will want separate directories to hold the catalog pages and
-databases. The <EM>makecat</EM> program supplied with MiniVend will make those
+databases. The <CODE>makecat</CODE> program supplied with MiniVend will make those
 for you.
 <p><STRONG>IMPORTANT NOTE:</STRONG> One point that is to be emphasized --
 <EM>only your base html pages go in the document space of your http server.</EM>
 Any pages with MiniVend elements/tags go in the directory set by the
 
 <A HREF="minivend.html#minivend_pagedir_0">PageDir</A>
- directive (the default is ~/catalogs/&lt;catalog_name&gt;/pages).
+ directive (the default is <CODE>~/catalogs/catalog_name/pages</CODE>).
 For the demos supplied with MiniVend, this means that only a few pages
 will be copied to your HTML directory, with the remainder of the pages
 staying in the directory defined as 
 <A HREF="minivend.html#minivend_pagedir_0">PageDir</A>
 .
-<p>If you are on an ISP where <EM>all</EM> of your files are in HTML document
+<p>If you are on an ISP where <STRONG>all</STRONG> of your files are in HTML document
 space, you should disable all access to your MiniVend catalog directory
 with the proper HTTP access restrictions. Normally that is creating
 a .htaccess file like this:
@@ -377,7 +566,7 @@ a .htaccess file like this:
 <p>If you are unable to do this, it is recommended that you do not run
 MiniVend. If you can set file permissions such that files will not be
 served, it may be OK, but security will be a problem. Please be careful
-with your users' personal information.
+with your customers' personal information.
 <p>
 <H2> 
 <A NAME="minivend_setting_0">
@@ -420,7 +609,7 @@ simple</A>
 The 
 <A HREF="minivend.html#minivend_catalog_1">catalog identifier</A>
 , used as the name of the catalog on command
-lines. In the supplied demo configurations, these would be <EM>sample</EM>
+lines. In the supplied demo configurations, these would be <CODE>sample</CODE>
 and 
 <A HREF="minivend.html#minivend_simple_0">simple</A>
 .  The identifier can contain characters from the set
@@ -493,7 +682,7 @@ means that several catalogs can share the same information, allowing
 ``virtual malls''.
 <p>
 <H2> 
-<A NAME="minivend_the_0">
+<A NAME="minivend_the_1">
 The Catalog</A>
 </H2>
 MiniVend pages are NOT in normal HTML space. They are contained in the
@@ -520,12 +709,14 @@ named for the subcatalog.)
 <DD>
 Directory that will be read when directives are set with the
 <filename notation. For example, the file 
-<A HREF="minivend.html#minivend_config_1">config/statig.pages</A>
+<A HREF="minivend.html#minivend_config_1">config/static.pages</A>
 
 will be read when the directive
 <p>
-<A HREF="minivend.html#minivend_staticpage_0">StaticPage  &lt;static.pages</A>
+<XMP>
+ StaticPage  <static.pages
 
+</XMP>
 <p>is encountered in the catalog.cfg file.
 <p>
 <DT><STRONG>
@@ -558,7 +749,7 @@ pages</A>
 Directory that contains the pages of your catalog. This
 can be considered to be the ``document root'' of the catalog.  Pages
 contained therein are called with the path information after the
-script name -- i.e. <EM>/cgi-bin/simple/products/gold</EM> will call the
+script name -- i.e. <CODE>/cgi-bin/simple/products/gold</CODE> will call the
 page in the file 
 <A HREF="minivend.html#minivend_pages_0">pages/products/gold.html</A>
 .
@@ -591,7 +782,7 @@ environment.
 <p>
 <DT><STRONG>
 
-<A NAME="minivend_session_0">
+<A NAME="minivend_session_1">
 session</A>
 
 </STRONG>
@@ -632,31 +823,29 @@ MiniVend web site for information:
 
 </XMP>
 <p>You may subscribe to the MiniVend users mail list by sending the
-<STRONG>message text</STRONG> <EM>subscribe minivend-users</EM> to:
+<STRONG>message text</STRONG> <CODE>subscribe minivend-users</CODE> to:
 <p>
 <XMP>
     majordomo@minivend.com
 
 </XMP>
 <p>Double check that you have the following things:
-<p>1. The 
-<A HREF="minivend.html#minivend_vlink_0">vlink</A>
- program is SUID, or you have made appropriate
+<p>1. The <CODE>vlink</CODE> program is SUID, or you have made appropriate
 changes in the 
 <A HREF="minivend.html#minivend_readpermission_0">ReadPermission</A>
  and <EM>WritePermission</EM> directives.
 Unless the files are world-writable, the vlink program and
 the MiniVend server must run as the same user ID!
-<p>If you have trouble with the vlink program (named <EM>sample</EM>
+<p>If you have trouble with the vlink program (named <CODE>sample</CODE>
 or 
 <A HREF="minivend.html#minivend_simple_0">simple</A>
  in the demo configurations), try copying the
-<STRONG>tlink</STRONG> INET mode link program over it. This should work
+<CODE>tlink</CODE> INET mode link program over it. This should work
 unchanged for many systems, but if you are on an ISP or
 have a non-standard network configuration you may have to
 make some changes to 
 <A HREF="minivend.html#minivend_minivend_cfg_0">minivend.cfg</A>
-.  For <STRONG>tlink</STRONG> to work
+.  For <CODE>tlink</CODE> to work
 you must have the proper host name(s) configured into the
 
 <A HREF="minivend.html#minivend_tcphost_0">TcpHost</A>
@@ -669,31 +858,27 @@ both the tlink program (before compilation, or by editing
 tlink.pl) and the 
 <A HREF="minivend.html#minivend_minivend_cfg_0">minivend.cfg</A>
  file.
-<p>The <EM>tlink</EM> program does <EM>not</EM> need to be SUID.
+<p>The <CODE>tlink</CODE> program does <STRONG>not</STRONG> need to be SUID.
 <p>2. That you have proper file permissions.
 <p><STRONG>IMPORTANT NOTE:</STRONG> The MiniVend server should not run as the user
-<EM>nobody</EM>!
+<CODE>nobody</CODE>!
 <p>The program files can be owned by anyone, but any databases, ASCII
 database source files, error logs, and the directory that holds them
 must be <STRONG>writable</STRONG> by the proper user ID, that is the one that is
 executing the minivend program.  The best way to operate in
-multi-user, multi-catalog setups is to create a special <EM>minivend</EM>
+multi-user, multi-catalog setups is to create a special <CODE>minivend</CODE>
 user, then put that user in the group that each catalog user is in. If
 you can define a group for each individual user, that provides the best
 security. Then all associated files can be in 664 or 775 mode, and you
 should have no problems with permissions.
-<p>3. The 
-<A HREF="minivend.html#minivend_vlink_0">vlink</A>
- program is being executed on a machine that has the
+<p>3. The <CODE>vlink</CODE> program is being executed on a machine that has the
 socket file 
 <A HREF="minivend.html#minivend_etc_0">etc/socket</A>
  on a directly attached disk. UNIX-domain
 sockets will not work on NFS-mounted filesystems!  That means the
-server <EM>minivend</EM> and the CGI program 
-<A HREF="minivend.html#minivend_vlink_0">vlink</A>
- must be executing
+server <CODE>minivend</CODE> and the CGI program <CODE>vlink</CODE> must be executing
 on the same machine.
-<p>The <EM>tlink</EM> program does not have this problem, but it must have the
+<p>The <CODE>tlink</CODE> program does not have this problem, but it must have the
 proper host name(s) and TCP ports set in the 
 <A HREF="minivend.html#minivend_tcphost_0">TcpHost</A>
  and 
@@ -705,11 +890,9 @@ directives in
 if sensitive information like customer credit card numbers is being
 placed on a network wire.
 <p>4. MiniVend by default monitors both the UNIX and INET domain sockets
-that connect to it. If you are only using 
-<A HREF="minivend.html#minivend_vlink_0">vlink</A>
-, the server can be
-started with the <EM>start_unix</EM> command -- with <EM>tlink</EM>, the server is
-started with <EM>start_inet</EM>.
+that connect to it. If you are only using <CODE>vlink</CODE>, the server can be
+started with the <CODE>start_unix</CODE> command -- with <CODE>tlink</CODE>, the server is
+started with <CODE>start_inet</CODE>.
 <p>If you have a problem you are not able to correct, and you have <STRONG>closely</STRONG>
 examined the documentation and support resources from front to end,
 you can submit a problem report to:
@@ -914,9 +1097,7 @@ Pages in the catalog are written in regular HTML with extensions to
 support catalog ordering. To distinguish them from regular HTML, these
 extended elements use square brackets instead of angular brackets.
 <p>The first page displayed in the catalog, if no argument is supplied
-to the 
-<A HREF="minivend.html#minivend_vlink_0">vlink</A>
- or <EM>tlink</EM> cgi-bin program, is ``catalog.html''. This
+to the <CODE>vlink</CODE> or <CODE>tlink</CODE> cgi-bin program, is ``catalog.html''. This
 page will contain links to other catalog pages with the [page] element.
 Individual products can be ordered by the [order &lt;item-code&gt;] element,
 which brings up the shopping basket page ``basket.html''. The shopping
@@ -948,7 +1129,7 @@ automatically point the browser to those pages when appropriate. This
 reduces the number of pages that MiniVend must parse in real time, and
 can increase server capacity by orders of magnitude. See
 
-<A HREF="minivend.html#minivend_static_1">Static Page Building</A>
+<A HREF="minivend.html#minivend_static_1">STATIC PAGE BUILDING</A>
 .
 <p>
 <H2> 
@@ -981,28 +1162,28 @@ and display HTML pages, and perform system control.
 A reference to most of the tags follows.
 <p><STRONG>NOTE:</STRONG> In the descriptions, parameters marked with an asterisk* are
 optional.
-<p>When a tag is separated by an underscore, as in <STRONG>item_list</STRONG>, a dash
-is just as appropriate (i.e. <STRONG>item-list</STRONG>). They are interchangeable,
+<p>When a tag is separated by an underscore, as in <EM>item_list</EM>, a dash
+is just as appropriate (i.e. <CODE>item-list</CODE>). They are interchangeable,
 except that the ending tag and beginning tag should match (don't
 use [item-list] list [/item_list]).
-<p>Beginning with MiniVend 3.0, there is an experimental page
-syntax which interprets tags with named arguments, similar to HTML.
-It has more regular precedence rules -- tags are interpreted in 
-sequential order rather than a set interpolation sequence. (Page serving
-speed is usually somewhat slower when using the new syntax.)
-The calling syntax is shown under the normal syntax -- if not specified,
-it is the same. Some tags (those inside item_list or loop constructs,
-for example) are not changed.
-<p>To use the new page syntax, place <STRONG>one</STRONG> [new] tag at the top of the page.
-To force old syntax, place <STRONG>one</STRONG> [old] tag at the very top of the page. Further
-[new] and [old] tags will control syntax in re-evaluated portions of
-the page (for example, within the [tag]minivend tags[/tag] construct). 
-<p>See <EM>tags.html</EM> for an alphabetical reference.
+<p>Beginning with MiniVend 3.0, there is an alternative page syntax which
+interprets tags with named arguments, similar to HTML.  It has more
+regular precedence rules -- tags are interpreted in sequential order
+rather than a set interpolation sequence.  The calling syntax is shown
+under the normal syntax -- if not specified, it is the same. Some tags
+(those inside item_list or loop constructs, for example) are not changed.
+<p>To use the new page syntax, place <STRONG>one</STRONG> <CODE>[new]</CODE> tag at the top of
+the page -- or enable the 
+<A HREF="minivend.html#minivend_newtags_0">NewTags</A>
+ directive.  To force old syntax,
+place <STRONG>one</STRONG> <CODE>[old]</CODE> tag at the very top of the page. Further [new] and
+[old] tags will control syntax in re-evaluated portions of the page . The
+[compat] tag will allow regions of [old] code within a [new] document.
 <p>
 <DL COMPACT>
 <DT><STRONG>
 
-<A NAME="minivend_page_0">
+<A NAME="minivend_page_1">
 [page pg arg*]</A>
 
 </STRONG>
@@ -1031,15 +1212,17 @@ reference, a static page reference will be inserted.
 <DD>
 (new syntax [page href=``dir/page'' target=``frame'' arg=``argument''])
 <p>Same as the page element above, except it specifies an output frame to
-target if frames are turned on. The name <EM>is</EM> case-sensitive, and if
+target if frames are turned on. The name <STRONG>is</STRONG> case-sensitive, and if
 it doesn't exist a new window will be popped up. This is the same as
 the [page ...] tag if frames are not activated.
 For example, [pagetarget shirts main] will expand into a link like &lt;a
 <A HREF="href=``http://machine.company.com/cgi-bin/vlink/shirts?WehUkATn;;1''">href=``http://machine.company.com/cgi-bin/vlink/shirts?WehUkATn;;1''</A> TARGET=``main''&gt;. The
-catalog page displayed will come from ``shirts.html'' in the
-pages directory, and be output to the 'main' frame. Be careful,
+catalog page displayed will come from <CODE>shirts.html</CODE> in the
+pages directory, and be output to the <CODE>main</CODE> frame. Be careful,
 frame names are case-sensitive.
-<p>The optional <EM>arg</EM> is used just as in the <EM>page</EM> tag.
+<p>The optional 
+<A HREF="minivend.html#minivend_arg_0">arg</A>
+ is used just as in the <EM>page</EM> tag.
 <p>
 <DT><STRONG>
 
@@ -1070,7 +1253,9 @@ client-side imagemap. You set up the &lt;AREA> tag with:
          HREF="http://machine.company.com/vlink/page?ErTxVV8l;;38">
 
 </XMP>
-<p>The optional <EM>arg</EM> is used just as in the <EM>page</EM> tag.
+<p>The optional 
+<A HREF="minivend.html#minivend_arg_0">arg</A>
+ is used just as in the <EM>page</EM> tag.
 <p>
 <DT><STRONG>
 
@@ -1082,11 +1267,13 @@ client-side imagemap. You set up the &lt;AREA> tag with:
 (new syntax [area href=``dir/page'' target=``frame'' arg=``argument''])
 <p>Like the <EM>areatarget</EM> element, except it will never yield
 a frame target.
-<p>The optional <EM>arg</EM> is used just as in the <EM>page</EM> tag.
+<p>The optional 
+<A HREF="minivend.html#minivend_arg_0">arg</A>
+ is used just as in the <EM>page</EM> tag.
 <p>
 <DT><STRONG>
 
-<A NAME="minivend_page_1">
+<A NAME="minivend_page_2">
 [/page], [/pagetarget]</A>
 
 </STRONG>
@@ -1171,8 +1358,10 @@ code in the list of products to order and display the order page.
 
 should be a product code listed in one of the ``products'' databases. The
 optional argument <STRONG>cart/page</STRONG> selects the shopping cart the item will be
-placed in (begin with / to use the default cart 'main') and the order page
-that will display the order. The optional argument <STRONG>database</STRONG> constrains
+placed in (begin with / to use the default cart <CODE>main</CODE>) and the order page
+that will display the order. The optional argument 
+<A HREF="minivend.html#minivend_database_1">database</A>
+ constrains
 the order to a particular products file -- if not specified, all databases
 defined as products files will be searched in sequence for the item.
 <p>
@@ -1285,7 +1474,7 @@ this can be used to allow entry of an attribute at time of order.
 <p>
 <DT><STRONG>
 
-<A NAME="minivend_file_0">
+<A NAME="minivend_file_1">
 [file name]</A>
 
 </STRONG>
@@ -1523,7 +1712,7 @@ currency specification. For instance:
 , 
 <A HREF="minivend.html#minivend_pricedivide_0">PriceDivide</A>
 , and <EM>PriceComma</EM> settings as
-appropriate, and can contain a [calc] region. If Locale is set to 'pt',
+appropriate, and can contain a [calc] region. If Locale is set to <CODE>pt</CODE>,
 and 
 <A HREF="minivend.html#minivend_pricedivide_0">PriceDivide</A>
  to 100, the following
@@ -1708,7 +1897,7 @@ you will run into many situations where it is useful.
 <p>
 <DT><STRONG>
 
-<A NAME="minivend_file_1">
+<A NAME="minivend_file_2">
 file</A>
 
 </STRONG>
@@ -1818,7 +2007,7 @@ with the [set name]value[/set] element.
 <p>
 <DT><STRONG>
 
-<A NAME="minivend_session_0">
+<A NAME="minivend_session_1">
 session</A>
 
 </STRONG>
@@ -1860,7 +2049,7 @@ value</A>
 </STRONG>
 <DD>
 The MiniVend user variables, typically set in search,
-control, or order forms. Variables beginning with 'mv_'
+control, or order forms. Variables beginning with <CODE>mv_</CODE>
 are MiniVend special values, and should be tested/used
 with caution.
 <p>
@@ -1868,7 +2057,11 @@ with caution.
 .
 <p>
 </DL>
-The <EM>field</EM> term is the specifier for that area. For example, [if session.frames] would return true if the 'frames' session parameter was set.
+The 
+<A HREF="minivend.html#minivend_field_2">field</A>
+ term is the specifier for that area. For example, [if session.frames] would return true if the 
+<A HREF="minivend.html#minivend_frames_0">frames</A>
+ session parameter was set.
 <p>As an example, consider buttonbars for frame-based setups. It would be
 nice to display a different buttonbar (with no frame targets) for sessions
 that are not using frames:
@@ -1971,7 +2164,7 @@ MiniVend tags displayed on the page).
 <p>
 <DT><STRONG>
 
-<A NAME="minivend__0">
+<A NAME="minivend__2">
 [ n [any] HTML n ]</A>
 
 </STRONG>
@@ -2064,7 +2257,11 @@ as the [item-list] tag, except for order-item-specific values. Intended
 to pull multiple attributes from an item modifier -- but can be useful
 for other things, like building a pre-ordained product list on a page.
 <p>Limited to 1024 values in the list in the direct call -- to iterate
-over a complete <EM>database</EM> use [tag each database] list text [/tag].
+over a complete 
+<A HREF="minivend.html#minivend_database_1">database</A>
+ use [tag each 
+<A HREF="minivend.html#minivend_database_1">database</A>
+] list text [/tag].
 <p>
 <DT><STRONG>
 
@@ -2073,7 +2270,9 @@ over a complete <EM>database</EM> use [tag each database] list text [/tag].
 
 </STRONG>
 <DD>
-Performs any of a number of operations, based on the presence of <EM>arg</EM>.
+Performs any of a number of operations, based on the presence of 
+<A HREF="minivend.html#minivend_arg_0">arg</A>
+.
 The arguments that may be given are:
 <p>
 <DL COMPACT>
@@ -2084,8 +2283,10 @@ each database</A>
 
 </STRONG>
 <DD>
-Returns a loop-list with every key in <EM>database</EM> evaluated
-as the [loop-code]. This will return the key and field <EM>name</EM>
+Returns a loop-list with every key in 
+<A HREF="minivend.html#minivend_database_1">database</A>
+ evaluated
+as the [loop-code]. This will return the key and field <CODE>name</CODE>
 for every record in the 
 <A HREF="minivend.html#minivend_products_0">products</A>
  database:
@@ -2103,7 +2304,7 @@ export database file* type*</A>
 </STRONG>
 <DD>
 Exports a complete MiniVend database to its text source file (or any
-specified file). The integer <EM>n</EM>, if specified, will select export in
+specified file). The integer <CODE>n</CODE>, if specified, will select export in
 one of the enumerated MiniVend export formats. The following tag will
 export the products database to products.txt (or whatever you have
 defined its source file as), in the format specified by the
@@ -2130,7 +2331,7 @@ defined its source file as), in the format specified by the
 <p>The file is relative to the catalog directory, and only may be
 an absolute path name if 
 <A HREF="minivend.html#minivend_noabsolute_0">NoAbsolute</A>
- is set to <EM>No</EM>.
+ is set to <CODE>No</CODE>.
 <p>
 <DT><STRONG>
 
@@ -2142,7 +2343,7 @@ flag arg</A>
 Sets a MiniVend condition.
 <p>The following enables writes on the 
 <A HREF="minivend.html#minivend_products_0">products</A>
- and <EM>sizes</EM> databases
+ and <CODE>sizes</CODE> databases
 held in MiniVend internal DBM format:
 <p>
 <XMP>
@@ -2175,7 +2376,7 @@ shopping cart to the file logs/transactions.txt:
 <p>The file is relative to the catalog directory, and only may be
 an absolute path name if 
 <A HREF="minivend.html#minivend_noabsolute_0">NoAbsolute</A>
- is set to <EM>No</EM>.
+ is set to <CODE>No</CODE>.
 <p>
 <DT><STRONG>
 
@@ -2185,9 +2386,7 @@ mime description_string</A>
 </STRONG>
 <DD>
 Returns a MIME-encapsulated message with the boundary as employed
-in the other mime tags, and the 
-<A HREF="minivend.html#minivend_description_2">description</A>
- used as the 
+in the other mime tags, and the <CODE>description_string</CODE> used as the 
 Content-Description. For example
 <p>
 <XMP>
@@ -2356,6 +2555,222 @@ See the section on
 .
 <p>
 <H2> 
+<A NAME="minivend_user_defined_0">
+User-defined Tags</A>
+</H2>
+MiniVend 3.03 allows the definition of user tags when using the new
+parsed HTML syntax (a [new] tag is on the page).  They will not work
+with the old syntax.
+<p>To define a tag, place <EM>UserTag</EM> directives in your catalog.cfg file.
+The directive takes the form:
+<p>
+<XMP>
+   UserTag  tagname  property  value
+
+</XMP>
+<p>where <CODE>tagname</CODE> is the name of the tag, <CODE>property</CODE> is the attribute
+(described below), and 
+<A HREF="minivend.html#minivend_value_0">value</A>
+ is the value of the property for that
+tagname.
+<p>The user tags can either be based on Perl subroutines or just be
+aliases for existing tags. Some quick examples are below.
+<p>An alias:
+<p>
+<XMP>
+    UserTag product_name Alias     data products title
+
+</XMP>
+<p>This will change [product_name 99-102] into [data products title 99-102],
+which will output the <CODE>title</CODE> database field for product code <CODE>99-102</CODE>.
+Don't use this with <CODE>[item-data ...]</CODE> and <CODE>[item-field ...]</CODE>, as they
+are parsed separately.  You could do <CODE>[product-name [item-code]]</CODE>, though.
+<p>A simple subroutine:
+<p>
+<XMP>
+    UserTag company_name Routine   sub { "Your company name" }
+ 
+When you place a [company-name] tag in a MiniVend page, the text 
+C<Your company name> will be substituted.
+
+</XMP>
+<p>A subroutine with a passed text as an argument:
+<p>
+<XMP>
+    UserTag caps   Routine   sub { return "\U@_" }
+    UserTag caps   HasEndTag 
+
+</XMP>
+<p>The tag [caps]This text should be all upper case[/caps] will become
+<CODE>THIS TEXT SHOULD BE ALL UPPER CASE</CODE>.
+<p>The properties are:
+<p>
+<DL COMPACT>
+<DT><STRONG>
+
+<A NAME="minivend_alias_0">
+Alias</A>
+
+</STRONG>
+<DD>
+An alias for an existing (or other user-defined) tag. It takes the
+form:
+<p>
+<XMP>
+    UserTag tagname Alias    tag to insert
+
+</XMP>
+<p>An Alias is the only property that does not require a 
+<A HREF="minivend.html#minivend_routine_0">Routine</A>
+
+to process the tag.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_cannest_0">
+CanNest</A>
+
+</STRONG>
+<DD>
+Notifies MiniVend that this tag must be checked for nesting.
+Only applies to tags that have 
+<A HREF="minivend.html#minivend_hasendtag_0">HasEndTag</A>
+ defined, of course.
+NOTE: Your routine must handle the subtleties of nesting, so
+don't use this unless you are quite conversant with parsing
+routines.  See the routines <CODE>tag_loop_list</CODE> and <CODE>tag_if</CODE> in 
+lib/Vend/Interpolate.pm for an example of a nesting tag.
+<p>
+<XMP>
+    UserTag tagname CanNest
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_hasendtag_0">
+HasEndTag</A>
+
+</STRONG>
+<DD>
+Defines an ending [/tag] to encapsulate your text -- the text in
+between the beginning <CODE>[tagname]</CODE> and ending <CODE>[/tagname]</CODE> will
+be the last argument sent to the defined subroutine.
+<p>
+<XMP>
+    UserTag tagname HasEndTag
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_interpolate_0">
+Interpolate</A>
+
+</STRONG>
+<DD>
+If this is defined, the resulting HTML from this tag will be
+re-parsed for more MiniVend tags.
+<p>
+<XMP>
+    UserTag tagname Interpolate
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_invalidatecache_0">
+InvalidateCache</A>
+
+</STRONG>
+<DD>
+If this is defined, the presence of the tag on a page will prevent
+search cache, page cache, and static builds from operating on the
+page.
+<p>
+<XMP>
+    UserTag tagname InvalidateCache
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_order_2">
+Order</A>
+
+</STRONG>
+<DD>
+The optional arguments that can be sent to the tag. This defines not only
+the order in which they will be passed to 
+<A HREF="minivend.html#minivend_routine_0">Routine</A>
+, but the name of
+the tags. If encapsulated text is appropriate (
+<A HREF="minivend.html#minivend_hasendtag_0">HasEndTag</A>
+ is set),
+it will be the last argument.
+<p>
+<XMP>
+    UserTag tagname Order param1 param2
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_posroutine_0">
+PosRoutine</A>
+
+</STRONG>
+<DD>
+Identical to the Routine argument -- a subroutine that will be called when
+the new syntax is not used for the call, i.e. <CODE>[usertag argument]</CODE> instead
+of <CODE>[usertag ARG=argument]</CODE>. If not defined, 
+<A HREF="minivend.html#minivend_routine_0">Routine</A>
+ is used, and MiniVend
+will usually do the right thing.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_routine_0">
+Routine</A>
+
+</STRONG>
+<DD>
+An inline subroutine that will be used to process the arguments of the tag. It
+must not be named, and will be allowed to access unsafe elements only if
+the 
+<A HREF="minivend.html#minivend_minivend_cfg_0">minivend.cfg</A>
+ parameter 
+<A HREF="minivend.html#minivend_allowglobal_0">AllowGlobal</A>
+ is set for the catalog.
+<p>
+<XMP>
+    UserTag tagname Routine  sub { "your perl code here!" }
+
+</XMP>
+<p>The routine may use a ``here'' document for readability:
+<p>
+<PRE>
+    UserTag tagname Routine &lt;&lt;EOF
+    sub {
+        my (<STRONG>$param1</STRONG>, <STRONG>$param2</STRONG>, <STRONG>$text</STRONG>) = <STRONG>@_</STRONG>;
+        return ``Parameter 1 is <STRONG>$param1</STRONG>, Parameter 2 is <STRONG>$param2</STRONG>'';
+    }
+    EOF
+
+</PRE>
+<p>The usual <EM>here documents</EM> caveats apply.
+<p>Parameters defined with the 
+<A HREF="minivend.html#minivend_order_2">Order</A>
+ property will be sent to the routine
+first, followed by any encapsulated text (
+<A HREF="minivend.html#minivend_hasendtag_0">HasEndTag</A>
+ is set).
+<p>
+</DL>
+Note that the UserTag facility, combined with AllowGlobal, allows the.user to define tags just as powerful as the standard MiniVend tags.
+This is not recommended for the novice, though -- keep it simple. 8-)
+<p>
+<H2> 
 <A NAME="minivend_embedded_0">
 Embedded Perl Code</A>
 </H2>
@@ -2399,7 +2814,7 @@ like:
     [/perl]
 
 </XMP>
-<p>(The <EM>escaped</EM> causes any single quotes which might be contained in the
+<p>(The <CODE>escaped</CODE> causes any single quotes which might be contained in the
 values to be escaped, preventing syntax errors in the case of a name like
 ``O'Reilly''.)
 <p>The arguments that can be passed are any to all of:
@@ -2481,7 +2896,7 @@ anonymous hash. Referred to in your code as <STRONG>$Safe</STRONG>-&gt;{discount
 <p>
 <DT><STRONG>
 
-<A NAME="minivend_file_1">
+<A NAME="minivend_file_2">
 file</A>
 
 </STRONG>
@@ -2561,7 +2976,10 @@ file, so should be safe from individual users in a multi-catalog system.
  with the
 
 <A HREF="minivend.html#minivend_globalsub_0">GlobalSub</A>
- directive.
+ directive, or in user catalogs which have been
+enabled via 
+<A HREF="minivend.html#minivend_allowglobal_0">AllowGlobal</A>
+.
 <p>Catalog subroutines are defined in 
 <A HREF="minivend.html#minivend_catalog_cfg_0">catalog.cfg</A>
 , with
@@ -2702,7 +3120,7 @@ badsearch (pages/badsearch.html)</A>
 </STRONG>
 <DD>
 The error page displayed if there is a system or user error with the search
-engine.
+engine. Overridden by mv_failpage if set on current form.
 <p>
 <DT><STRONG>
 
@@ -2814,7 +3232,10 @@ nomatch (pages/nomatch.html)</A>
 </STRONG>
 <DD>
 This page is displayed if the search engine is used, but there
-is no match for the search specification.
+is no match for the search specification and no 
+<A HREF="minivend.html#minivend_no_match_0">[no_match]</A>
+
+region found on the search page.
 <p>
 <DT><STRONG>
 
@@ -2829,7 +3250,7 @@ file.
 <p>
 <DT><STRONG>
 
-<A NAME="minivend_order_2">
+<A NAME="minivend_order_3">
 order (pages/order.html)</A>
 
 </STRONG>
@@ -2853,7 +3274,7 @@ Contains the default output page for the search engine results. Also
 required is an input page, which can be the same as search.html or an
 additional page. Five sample input pages are supplied with the demo -
 the query.html, results.html, helpquery.html, mvfaq.html,
-and category.html files in the <EM>sample/pages</EM> directory,
+and category.html files in the <CODE>sample/pages</CODE> directory,
 <p>
 <DT><STRONG>
 
@@ -2876,13 +3297,9 @@ Checking Page HTML</A>
 MiniVend, as of release 3.02, allows you to debug your page HTML with
 an external page checking program.  Because leaving this enabled on a
 production system is potentially a very bad performance degradation, the
-program is set in a the global configuration file with the 
-<A HREF="minivend.html#minivend_checkhtml_0">CheckHTML</A>
-
+program is set in a the global configuration file with the <EM>CheckHTML</EM>
 directive.
-<p>To check a page for validity, set the global directive 
-<A HREF="minivend.html#minivend_checkhtml_0">CheckHTML</A>
- 
+<p>To check a page for validity, set the global directive <EM>CheckHTML</EM> 
 to the name of the program (don't do any output redirection). A good
 choice is the freely available program <EM>weblint</EM> -- it would be
 set in 
@@ -2890,7 +3307,7 @@ set in
  with:
 <p>
 <XMP>
-        CheckHTML  /usr/local/bin/weblint -s -
+    CheckHTML  /usr/local/bin/weblint -s -
 
 </XMP>
 <p>Of course you must restart the server for it to be recognized.
@@ -2906,7 +3323,7 @@ if you view the page or frame source.
  setting:
 <p>
 <XMP>
-        Variable  CHECK_HTML    [tag flag checkhtml][/tag]
+    Variable  CHECK_HTML    [tag flag checkhtml][/tag]
 
 </XMP>
 <p>and place __CHECK_HTML__ in your pages.  You can then set
@@ -2970,7 +3387,9 @@ table, database</A>
 A table in the database. Because of the evolution of MiniVend from a
 single-table database to an access method for an unlimited number of
 tables (and databases, for that matter), we will sometimes refer to a
-table as a database.  The only time <STRONG>database</STRONG> refers to something
+table as a database.  The only time 
+<A HREF="minivend.html#minivend_database_1">database</A>
+ refers to something
 different is when describing that concept as it relates to SQL --
 where a database contains a series of tables.  MiniVend cannot create
 SQL databases, but given the proper permissions it may drop and create
@@ -3021,7 +3440,7 @@ PIPE</A>
 
 </STRONG>
 <DD>
-Fields separated by <EM>|</EM> characters. No whitespace should be at the
+Fields separated by <CODE>|</CODE> characters. No whitespace should be at the
 beginning of the line.
 <p>
 <XMP>
@@ -3064,7 +3483,7 @@ file
 <A HREF="minivend.html#minivend_products_asc_0">products.asc</A>
  in the products directory.  This file is also the
 default file for searching with the 
-<A HREF="minivend.html#minivend_the_2">THE SEARCH ENGINE</A>
+<A HREF="minivend.html#minivend_the_3">THE SEARCH ENGINE</A>
 .
 <p>MiniVend also has a number of standard but optional databases, some
 of which are in fixed special formats:
@@ -3142,7 +3561,7 @@ format, and an appropriate key.
 .
 <p>
 <H2> 
-<A NAME="minivend_the_1">
+<A NAME="minivend_the_2">
 The Product Database</A>
 </H2>
 Each product you are selling should be given a product code: A short
@@ -3153,7 +3572,9 @@ periods, hash signs, or underscores for the product code. The
 <A HREF="minivend.html#minivend_products_asc_0">products.asc</A>
  file is a ASCII-delimited list of all the product codes,
 along with an arbitrary number of fields which must contain at least the
-fields 'description' and 'price' (or whatever you set the PriceField and
+fields 
+<A HREF="minivend.html#minivend_description_2">description</A>
+ and <CODE>price</CODE> (or whatever you set the PriceField and
 DescriptionField directives to). Any additional information you want in
 the catalog can be placed in any arbitrary field.
 See <EM>MiniVend Database Capability</EM>for details on the format.
@@ -3167,8 +3588,8 @@ See <EM>MiniVend Database Capability</EM>for details on the format.
 and [item-description] tags.
 <p>The product code must be the first field in the line, and must be
 unique. Product codes can contain the characters <STRONG>A-Za-z0-9</STRONG>, along with
-hyphen (<EM>-</EM>), underscore (<EM>_</EM>), pound sign/hash mark (<EM>#</EM>), slash (<EM>/</EM>),
-and period (<EM>.</EM>).
+hyphen (<CODE>-</CODE>), underscore (<CODE>_</CODE>), pound sign/hash mark (<CODE>#</CODE>), slash (<CODE>/</CODE>),
+and period (<CODE>.</CODE>).
 <p>The words should be separated by one of the approved delimiting schemes
 (TAB, PIPE, or CSV, set with the 
 <A HREF="minivend.html#minivend_delimiter_1">Delimiter</A>
@@ -3261,7 +3682,7 @@ This uses the Perl GDBM_File module to build a GDBM database. You can
 see if GDBM is in your perl with the command:
 <p>
 <XMP>
-        perl -e 'require GDBM_File and print "I have GDBM.\n"'
+    perl -e 'require GDBM_File and print "I have GDBM.\n"'
 
 </XMP>
 <p>Installing GDBM_File requires rebuilding Perl after obtaining the
@@ -3280,7 +3701,7 @@ This uses the DB_File module to build a Berkely DB (hash) database. You can
 see if DB_File is in your perl with the command:
 <p>
 <XMP>
-        perl -e 'require DB_File and print "I have Berkeley DB.\n"'
+    perl -e 'require DB_File and print "I have Berkeley DB.\n"'
 
 </XMP>
 <p>Installing DB_File requires rebuilding Perl after obtaining the
@@ -3292,10 +3713,10 @@ Perl, you must set the environment variable MINIVEND_DBFILE to
 a true (non-zero, non-blank) value:
 <p>
 <XMP>
-        # csh or tcsh
-        setenv MINIVEND_DBFILE 1
-        # sh, bash, or ksh
-        MINIVEND_DBFILE=1 ; export MINIVEND_DBFILE
+    # csh or tcsh
+    setenv MINIVEND_DBFILE 1
+    # sh, bash, or ksh
+    MINIVEND_DBFILE=1 ; export MINIVEND_DBFILE
 
 </XMP>
 <p>Then re-start the server.
@@ -3360,8 +3781,8 @@ Msql support</A>
 The first minimal SQL support provided by MiniVend was for the Msql.pm module.
 This is now deprecated in favor of the DBI support. In most cases, existing
 Msql users should be able to install and test DBD::mSQL, then change the
-database directive to the type of 'dbi:mSQL:minivend' and go from there.  You
-may have to set your directive to 'dbi:mSQL:minivend:localhost:1114' or some
+database directive to the type of <CODE>dbi:mSQL:minivend</CODE> and go from there.  You
+may have to set your directive to <CODE>dbi:mSQL:minivend:localhost:1114</CODE> or some
 other value corresponding to host and TCP port.
 <p>
 <H2> 
@@ -3385,17 +3806,17 @@ additional
  directives <STRONG>after</STRONG> the initial defining line as
 described above. For example, the following defines the database <STRONG>arbitrary</STRONG>
 as a DBI database, sets the data source (DSN) to an appropriate value for an
-mSQL database named <EM>minivend</EM> on port 1114 of the local machine:
+mSQL database named <CODE>minivend</CODE> on port 1114 of the local machine:
 <p>
 <XMP>
-        Database arbitrary arbitrary.asc SQL
-        Database arbitrary DSN           dbi:mSQL:minivend:localhost:1114
+    Database arbitrary arbitrary.asc SQL
+    Database arbitrary DSN           dbi:mSQL:minivend:localhost:1114
 
 </XMP>
 <p>As a shorthand method, you can instead include the DSN as the type:
 <p>
 <XMP>
-        Database arbitrary arbitrary.asc dbi:mSQL:minivend:localhost:1114
+    Database arbitrary arbitrary.asc dbi:mSQL:minivend:localhost:1114
 
 </XMP>
 <p>Supported configuration attributes include (but are not limited to):
@@ -3415,9 +3836,9 @@ DBD::mSQL driver for DBI, you would typically use:
     dbi:mSQL:minivend:othermachine.my.com:1112
 
 </XMP>
-<p>where mSQL selects the driver (case IS important), <EM>minivend</EM> selects the
-database, <EM>othermachine.my.com</EM> selects the host, and 1112 is the port.
-On many systems, 'dbi:mSQL:minivend' will work just fine. (The <EM>minivend</EM>
+<p>where mSQL selects the driver (case IS important), <CODE>minivend</CODE> selects the
+database, <CODE>othermachine.my.com</CODE> selects the host, and 1112 is the port.
+On many systems, <CODE>dbi:mSQL:minivend</CODE> will work just fine. (The <CODE>minivend</CODE>
 database must already exist, of course.)
 <p>This is the same as the <STRONG>DBI_DSN</STRONG> environment variable -- if you don't set
 the DSN parameter, then the value of <STRONG>DBI_DSN</STRONG> will be used to
@@ -3425,7 +3846,7 @@ try and find the proper database to connect to.
 <p>
 <DT><STRONG>
 
-<A NAME="minivend_user_0">
+<A NAME="minivend_user_1">
 USER</A>
 
 </STRONG>
@@ -3477,6 +3898,18 @@ position in the table.
 <p>
 <DT><STRONG>
 
+<A NAME="minivend_numeric_0">
+NUMERIC</A>
+
+</STRONG>
+<DD>
+Tells MiniVend to not quote values for this field; allows numeric data
+types for SQL databases. Placed as a space-separated field of column names
+for a table, in no particular order. This must be defined if you are to
+use an numeric value, as DBI does not yet have standard type queries.
+<p>
+<DT><STRONG>
+
 <A NAME="minivend_delimiter_0">
 DELIMITER</A>
 
@@ -3499,7 +3932,9 @@ KEY</A>
 
 </STRONG>
 <DD>
-You can change the keying default of 'code' in the first column of the
+You can change the keying default of 
+<A HREF="minivend.html#minivend_code_0">code</A>
+ in the first column of the
 database with the KEY directive. <STRONG>Don't use this unless you know exactly</STRONG>
 <STRONG>what you are doing and are prepared to alter all searches, imports, and</STRONG>
 <STRONG>exports accordingly.</STRONG>  It is best to just accept the default and 
@@ -3527,7 +3962,7 @@ character fields (Solid is an example).
   Warn
 
 </XMP>
-<p>Issue the shell command 'perldoc DBI' for more information.
+<p>Issue the shell command <CODE>perldoc DBI</CODE> for more information.
 <p>
 </DL>
 Here is an example of a completely set up DBI database on mySQL, using.a comma-separated value input, setting the DBI attribute LongReadLen to
@@ -3545,22 +3980,25 @@ default char(128):
  
   # change some fields from the default field type of char(128)
   # Only applies if Minivend is importing from ASCII file
-  Database   products  COLUMN_DEF    price=char(20), code=char(20)
+  # If you set a field to a numeric type, you must set the
+  # NUMERIC attribute
+  Database   products  COLUMN_DEF    price=float, code=char(20)
   Database   products  COLUMN_DEF    author=char(40), title=char(64)
   Database   products  COLUMN_DEF    nontaxable=char(3)
+  Database   products  NUMERIC       price
 
 </XMP>
 <p>You must have mySQL, DBI, and DBD::mysql completely installed and
-tested, and have created the database <EM>minivend</EM> for this to work.
+tested, and have created the database <CODE>minivend</CODE> for this to work.
 Permissions are difficult on mySQL -- if you have trouble, try starting
-the mySQL daemon with 'safe_mysqld --skip-grant-tables &amp;' for testing
+the mySQL daemon with <CODE>safe_mysqld --skip-grant-tables &amp;</CODE> for testing
 purposes.
 <p>To change to ODBC, the only changes required might
 be:
 <p>
 <XMP>
-        Database products  DSN         dbi:ODBC:TCP/IP localhost 1313
-        Database products  ChopBlanks  1
+    Database products  DSN         dbi:ODBC:TCP/IP localhost 1313
+    Database products  ChopBlanks  1
 
 </XMP>
 <p>The DSN setting is specific to your ODBC setup.  The <STRONG>ChopBlanks</STRONG> setting takes
@@ -3746,7 +4184,7 @@ a three-column list in an HTML table:
 
 </XMP>
 <p>It uses the same tags as in the [loop_list], except prefixed
-with <EM>sql</EM>. Available are the following, in order of interpolation:
+with <CODE>sql</CODE>. Available are the following, in order of interpolation:
 <p>
 <XMP>
   [sql_param n]        Field n of the returned query (in the row)
@@ -3772,8 +4210,8 @@ with <EM>sql</EM>. Available are the following, in order of interpolation:
 Importing from an ASCII file</A>
 </H2>
 When importing a file for SQL, MiniVend by default uses the
-first column of the ASCII file as the primary key, with a <EM>char(16)</EM>
-type, and assigns all other columns a <EM>char (128)</EM> definition. These
+first column of the ASCII file as the primary key, with a <CODE>char(16)</CODE>
+type, and assigns all other columns a <CODE>char (128)</CODE> definition. These
 definitions can be changed by placing the proper definitions in COLUMN_DEF
 
 <A HREF="minivend.html#minivend_database_0">Database</A>
@@ -3815,7 +4253,7 @@ page
 never wish to import:
 <p>
 <XMP>
-        NoImport  products inventory
+    NoImport  products inventory
 
 </XMP>
 <p><STRONG>WARNING:</STRONG> If MiniVend has write permission on the products database,
@@ -3842,42 +4280,42 @@ file
 :
 <p>
 <XMP>
-        #!/bin/sh
-        # Set the catalog directory.  If you put this file in a
-        # catalog template (like simple or sample), it should be set
-        # up correctly.
-        #
-        # Example: 
-        #  
-        #  CATDIR=/home/me/catalogs/simple
-        #
-        CATDIR=__MVC_CATROOT__
-        cd $CATDIR
-        # make a directory
-        mkdir pages/admin
-        # protect it. If you have trouble with "VIOLATION", you can
-        # remove the file temporarily.
-        echo "protected" > pages/admin/.access
+    #!/bin/sh
+    # Set the catalog directory.  If you put this file in a
+    # catalog template (like simple or sample), it should be set
+    # up correctly.
+    #
+    # Example: 
+    #  
+    #  CATDIR=/home/me/catalogs/simple
+    #
+    CATDIR=__MVC_CATROOT__
+    cd $CATDIR
+    # make a directory
+    mkdir pages/admin
+    # protect it. If you have trouble with "VIOLATION", you can
+    # remove the file temporarily.
+    echo "protected" > pages/admin/.access
 
 </XMP>
 <PRE>
-        # create the page.
-        cat &lt;&lt;EOF &gt; pages/admin/export.html
-        &lt;HTML&gt;&lt;HEAD&gt;
-        &lt;TITLE&gt;Export products.asc&lt;/TITLE&gt;
-        &lt;/HEAD&gt;
-        &lt;BODY>
-        [if explicit ``[tag export products products.asc TAB][/tag]'']
-        Exported OK!
-        [else]
-        &lt;FONT COLOR=RED&gt;Error on export:&lt;/FONT&gt; [data session last_error]
-        [/else]
-        [/if]
-        &lt;/BODY>&lt;/HTML&gt;
-        EOF
-        # Voila! Access with something like:
-        #
-        #     http://yourcatalog.com/cgi-bin/simple/admin/export
+    # create the page.
+    cat &lt;&lt;EOF &gt; pages/admin/export.html
+    &lt;HTML&gt;&lt;HEAD&gt;
+    &lt;TITLE&gt;Export products.asc&lt;/TITLE&gt;
+    &lt;/HEAD&gt;
+    &lt;BODY>
+    [if explicit ``[tag export products products.asc TAB][/tag]'']
+    Exported OK!
+    [else]
+    &lt;FONT COLOR=RED&gt;Error on export:&lt;/FONT&gt; [data session last_error]
+    [/else]
+    [/if]
+    &lt;/BODY>&lt;/HTML&gt;
+    EOF
+    # Voila! Access with something like:
+    #
+    #     http://yourcatalog.com/cgi-bin/simple/admin/export
 
 </PRE>
 <p>Perhaps a better method is to define the same sort of tags in an
@@ -3939,7 +4377,7 @@ iterating lists.
  mv_email             O   Reply-to address for orders
  mv_errorpage         O   Sets error page if order check fails
  mv_exact_match       S   Sets word-matching mode
- mv_failpage          O   Sets page to display on failed order check
+ mv_failpage          O,S Sets page to display on failed order check/search
  mv_head_skip         S   Sets skipping of header line(s) in index
  mv_helpon            C   Turns on the help feature if defined
  mv_helpoff           C   Turns off the help feature if defined
@@ -4194,7 +4632,7 @@ input to search routines or orders.
 <p>The variable sets can contain and be generated by most MiniVend tags --
 the profile is interpolated for MiniVend tags before being used. Careful
 of interpolation order, and don't use the [post] tag -- it will not work.
-Embedded Perl <EM>will</EM> work, and is recommended for most conditional
+Embedded Perl <STRONG>will</STRONG> work, and is recommended for most conditional
 operations within the profile.
 <p>Any setting of variables already containing a value will overwrite
 the variable, so to build sets of fields (as in mv_search_field
@@ -4387,7 +4825,7 @@ checkboxes with the [checked] and [selected] tags.
 </STRONG>
 <DD>
 (new syntax [checked name=``var_name'' value=``value''])
-<p>This will output CHECKED if the variable <EM>var_name</EM> is equal to
+<p>This will output CHECKED if the variable <CODE>var_name</CODE> is equal to
 
 <A HREF="minivend.html#minivend_value_0">value</A>
 . Not case sensitive.
@@ -4400,7 +4838,7 @@ checkboxes with the [checked] and [selected] tags.
 </STRONG>
 <DD>
 (new syntax [selected name=``var_name'' value=``value'' multiple=``yes''])
-<p>This will output SELECTED if the variable <EM>var_name</EM> is equal to
+<p>This will output SELECTED if the variable <CODE>var_name</CODE> is equal to
 
 <A HREF="minivend.html#minivend_value_0">value</A>
 . If the optional MULTIPLE argument is present, it will
@@ -4440,7 +4878,7 @@ URL in the SecureURL directive, that is) by specifying your form
 input to be ACTION=``[process-target frame secure]''. If you are not
 using frames, just specify the special frame ``_self'' or ``none''.
 <p>To submit a form to the regular non-secure server, just omit the
-<EM>secure</EM> modifier.
+<CODE>secure</CODE> modifier.
 <p>
 <H2> 
 <A NAME="minivend_stacking_0">
@@ -4577,16 +5015,16 @@ the user session.
 <p><p><hr>
 
 <H1> 
-<A NAME="minivend_the_2">
+<A NAME="minivend_the_3">
 THE SEARCH ENGINE</A>
 </H1>
 MiniVend implements a search engine which will search the product
 database (or any other file) for items based on customer input. It uses
 either forms or URL-based searches (called with the special page name
-<EM>scan</EM>). The search engine uses many special MiniVend tags and variables.
+<CODE>scan</CODE>). The search engine uses many special MiniVend tags and variables.
 <p>Examples of search forms and result pages are included in the supplied
 demos.
-<p>Two search engine interfaces are provided, and four types of searching
+<p>Two search engine interfaces are provided, and five types of searching
 are available. The default is a text-based search of the
 
 <A HREF="minivend.html#minivend_products_asc_0">products.asc</A>
@@ -4595,8 +5033,9 @@ be specified. An optional Glimpse search is enabled by placing
 the command specification for Glimpse in the directive 
 <A HREF="minivend.html#minivend_glimpse_0">Glimpse</A>
 .
-The last is a range-based search, used in combination with
-one of the above.
+There is a range-based search, used in combination with
+one of the above. And finally, there is an SQL search which 
+translates the MiniVend search interface to SQL queries.
 <p>The default, a text based search, sequentially scans the lines in
 the target file. By default it returns the first field (delineated by
 the standard 
@@ -4611,7 +5050,7 @@ so AND/OR matching is not supported across multiple fields. Stay tuned
 for this in MiniVend 3.1 or later.)
 <p>
 <H2> 
-<A NAME="minivend_the_3">
+<A NAME="minivend_the_4">
 The Search Form</A>
 </H2>
 A number of variables can be set on search forms to determine which search
@@ -4678,7 +5117,7 @@ files in your
 <A HREF="minivend.html#minivend_productdir_0">ProductDir</A>
 , or wherever the files to be searched will
 be located. If you installed MiniVend in the default
-<EM>/usr/local/lib/minivend</EM>, the command line to build the index for the
+<CODE>/usr/local/lib/minivend</CODE>, the command line to build the index for the
 products file would be:
 <p>
 <XMP>
@@ -4803,11 +5242,226 @@ with another search technique (in the same query) will yield faster search
 returns.
 <p>
 <H2> 
+<A NAME="minivend_sql_9">
+SQL searches</A>
+</H2>
+MiniVend can formulate and execute SQL searches in much the same way as it does
+text or Glimpse searches. Because of the SQL language and the limitations a
+common subset places on the operation, not all parameters are supported.
+<p>The following variables are in effect for SQL searches:
+<p>
+<XMP>
+ mv_matchlimit        S   Sets match page size
+ mv_numeric           S   Determines character/numeric status of column
+ mv_orsearch          S   Selects AND/OR of search terms
+ mv_range_look        S   Sets the column to do a range check on
+ mv_range_max         S   Upper bound of range check
+ mv_range_min         S   Lower bound of range check
+ mv_return_fields     S   Columns to return from query
+ mv_search_field      S   Sets the column(s) to be searched
+ mv_search_file       S   Sets the table to be searched
+ mv_search_page       S   Sets the page for search display
+ mv_searchspec        S   Search specification(s)
+ mv_searchtype        S   Sets search type (text, glimpse, or sql)
+ mv_sort_field        S   Column(s) to sort on
+ mv_sort_option       S   Options for sort (only global reverse)
+ mv_sql_query         S   SQL query text for simple query
+ mv_substring_match   S   Turns off word-matching mode
+
+</XMP>
+<p>Their two-letter abbreviations are in effect (as below), so you may
+easily do a one-click SQL search.
+<p>If you are using SQL for the products database, and the table
+you are searching is in the same SQL database, you don't need to
+specify the table other than in the query.  If you are not using
+SQL for products, or it resides in a different database, then
+you must specify a MiniVend database identifier located in the
+same SQL database as the table you are querying.  Use the
+mv_search_file variable:
+<p>
+<XMP>
+   <INPUT TYPE=hidden NAME=mv_search_file VALUE="inventory">
+
+</XMP>
+<p>Once you have selected the database, you may query any table that
+is located within the same SQL data source.
+<p>There are two modes for SQL search:
+<p>
+<DL COMPACT>
+<DT><STRONG>
+
+<A NAME="minivend_simple_1">
+Simple query substitution</A>
+
+</STRONG>
+<DD>
+To do a simple query, define the variable mv_sql_query to be a valid
+SQL query. In its simplest form:
+<p>
+<XMP>
+    <FORM METHOD=POST ACTION="[process-search]">
+    <INPUT TYPE=hidden NAME=mv_searchtype VALUE="sql"> 
+    <INPUT TYPE=hidden NAME=mv_sql_query
+        VALUE="select code from products where category = 'Americana'">
+    <INPUT TYPE=SUBMIT VALUE="Americana">
+    </FORM>
+
+</XMP>
+<p>When the user clicks the button, the query will be done and the 
+results returned using the default search return page.  You may
+set the return page with mv_search_page as in the other searches, 
+but most other variables have no effect.
+<p>Another exception is the mv_searchspec variable, which when set with
+either user-entered text or by another method, will be inserted
+in place of a single question mark in the query:
+<p>
+<XMP>
+    <FORM METHOD=POST ACTION="[process-search]">
+    <INPUT TYPE=hidden NAME=mv_searchtype VALUE="sql"> 
+    <INPUT TYPE=hidden NAME=mv_sql_query
+        VALUE="select code from products where category = ? ">
+    <SELECT NAME=mv_searchspec>
+        <OPTION> Americana
+        <OPTION> Contemporary
+        <OPTION> Impressionists
+        <OPTION> Renaissance
+        <OPTION> Surreallists
+    </SELECT>
+    <INPUT TYPE=SUBMIT VALUE="Go">
+    </FORM>
+    
+When the user selects one of the search categories, the value of
+mv_searchspec will be substituted for the question mark, and quoted
+if the field is not numeric in nature.
+
+</XMP>
+<p>The spaces necessary in SQL queries make hand generation of one-click
+URLs pretty tedious.  You may generate one-click searches easily using
+[tag sql] SQL [/tag].  For example, the query
+<p>
+<XMP>
+    <A HREF="[tag sql]SELECT code from products where category = 'Americana'[/tag]">
+        Americana
+    </A>
+
+</XMP>
+<p>generates HTML that starts out:
+<p>
+<XMP>
+    <A HREF="http://your.com/cgi-bin/simple/scan/sq=SELECT%20code%20from%20...">
+       Americana
+    </A>
+
+</XMP>
+<p>The actual URL is a bit too long to show. The same result would be generated
+by:
+<p>
+<XMP>
+    [page scan/sf=category/se=Americana/st=sql]
+      Americana
+    [/page]
+
+</XMP>
+<p>The first example may be more intuitive for some; it is marginally faster.
+<p>
+<DT><STRONG>
+<EM>Complex form-based query</EM>
+</STRONG>
+<DD>
+Within the confines of the variables in use for SQL searches, you 
+may generate some pretty complex queries.  The principles are much
+the same as for the other searches, but the implementation differs
+a bit.
+<p>For example, if you don't specify a field or fields in the table to
+search, MiniVend will search all fields as is the default for the
+text and Glimpse searches.  This can be quite inefficient, as the
+resulting query looks something like:
+<p>
+<XMP>
+    select code from products
+        WHERE title  = 'Van Gogh'
+        OR    artist = 'Van Gogh'
+        OR    description = 'Van Gogh'
+        OR    price = 'Van Gogh'
+        etc.
+
+</XMP>
+<p>You get the picture. Each field is checked in turn. Much better is
+to set the mv_search_field variable to the field(s) you wish searched,
+skipping the ones that make no sense:
+<p>
+<XMP>
+    <INPUT TYPE=hidden NAME=mv_search_field VALUE=artist>
+    <INPUT TYPE=hidden NAME=mv_search_field VALUE=title>
+
+</XMP>
+<p>This generates a much more limited query.
+<p>If there are more mv_searchspec values than fields, then only the
+first search field is used.  The below query will fail, as the
+second and subsequent search fields are ignored.
+<p>
+<XMP>
+    <INPUT NAME=mv_searchspec VALUE="Van Gogh">
+    <INPUT NAME=mv_searchspec VALUE="Dali">
+    <INPUT TYPE=hidden NAME=mv_search_field VALUE="title">
+    <INPUT TYPE=hidden NAME=mv_search_field VALUE="artist">
+
+</XMP>
+<p>If there are more mv_search_field values than mv_searchspec values,
+then only the first search specification will be used:
+<p>
+<XMP>
+    <INPUT NAME=mv_searchspec VALUE="Van Gogh">
+    <INPUT NAME=mv_searchspec VALUE="Dali">
+    <INPUT TYPE=hidden NAME=mv_search_field VALUE="title">
+    <INPUT TYPE=hidden NAME=mv_search_field VALUE="artist">
+    <INPUT TYPE=hidden NAME=mv_search_field VALUE="museum">
+
+</XMP>
+<p>The string 'Dali' will never be looked for.
+<p>If the number of search fields and search specs are the same, a coordinated
+AND search is done, and only rows matching all searchspecs will be
+found.
+<p>The mv_range_look facility is in use for the complex form query as well,
+and operates in much the same way.  The exception is that the default
+is an alphanumeric search -- if you want to specify a numeric search,
+you must set the corresponding mv_numeric value, not mv_range_alpha as
+with the text and Glimpse searches.
+<p>The following search will find all Van Gogh paintings that are between
+<STRONG>$1</STRONG>,000,000 and <STRONG>$20</STRONG>,000,000, providing the price field is a numeric data
+type.  It also illustrates the use of some other MiniVend variables that
+are usable for SQL searches.
+<p>
+<XMP>
+    <FORM METHOD=POST ACTION="[process-search]">
+    <INPUT TYPE=hidden NAME=mv_searchtype VALUE="sql"> 
+    <INPUT NAME=mv_searchspec               VALUE="Van Gogh">
+    <INPUT TYPE=hidden NAME=mv_search_field VALUE="artist">
+    <INPUT TYPE=hidden NAME=mv_range_look   VALUE="price">
+    <INPUT TYPE=hidden NAME=mv_range_min    VALUE="1000000">
+    <INPUT TYPE=hidden NAME=mv_range_max    VALUE="20000000">
+    <INPUT TYPE=hidden NAME=mv_numeric      VALUE="yes">
+    <INPUT TYPE=hidden NAME=mv_return_fields VALUE="code,description">
+    <INPUT TYPE=hidden NAME=mv_sort_field    VALUE="price">
+    <INPUT TYPE=hidden NAME=mv_sort_option   VALUE="r">
+    </FORM>
+
+</XMP>
+<p>It will generate the query:
+<p>
+<XMP>
+    SELECT code, description FROM products WHERE artist = 'Van Gogh'
+          AND price >= 1000000 AND price <= 20000000
+          ORDER BY price DESC
+
+</XMP>
+<p>
+<H2> 
 <A NAME="minivend_one_click_1">
 One-click searches</A>
 </H2>
 MiniVend allows you to pass a search in a URL. Just specify the
-search with the special page reference <EM>scan</EM>. Here is an
+search with the special page reference <CODE>scan</CODE>. Here is an
 example:
 <p>
 <XMP>
@@ -4828,28 +5482,28 @@ the CGI path for MiniVend's vlink):
 <p>The two-letter abbreviations are mapped with these letters:
 <p>
 <XMP>
-  DL  mv_raw_dict_look         ms  mv_min_string
-  SE  mv_raw_searchspec        ne  mv_negate
-  ac  mv_all_chars             os  mv_orsearch
-  bd  mv_base_directory        ra  mv_return_all
-  co  mv_coordinate            rd  mv_return_delim
-  cs  mv_case                  rf  mv_return_fields
-  de  mv_dict_end              rg  mv_range_alpha
-  df  mv_dict_fold             rl  mv_range_look
-  di  mv_dict_limit            rm  mv_range_min
-  dl  mv_dict_look             rn  mv_return_file_name
-  do  mv_dict_order            rs  mv_return_spec
-  dr  mv_record_delim          rx  mv_range_max
-  em  mv_exact_match           se  mv_searchspec
-  er  mv_spelling_errors       sf  mv_search_field
-  fi  mv_search_file           sp  mv_search_page
-  fn  mv_field_names           st  mv_searchtype
-  hs  mv_head_skip             su  mv_substring_match
-  id  mv_index_delim           tc  mv_sort_command
-  ml  mv_matchlimit            tf  mv_sort_field
-  mm  mv_max_matches           to  mv_sort_option
-  mp  mv_profile               ty  mv_sort_crippled
-  mq  mv_sql_search
+  DL  mv_raw_dict_look         ms  mv_min_string 
+  SE  mv_raw_searchspec        ne  mv_negate         
+  ac  mv_all_chars             nu  mv_numeric            
+  bd  mv_base_directory        os  mv_orsearch       
+  co  mv_coordinate            ra  mv_return_all     
+  cs  mv_case                  rd  mv_return_delim   
+  de  mv_dict_end              rf  mv_return_fields  
+  df  mv_dict_fold             rg  mv_range_alpha    
+  di  mv_dict_limit            rl  mv_range_look     
+  dl  mv_dict_look             rm  mv_range_min      
+  do  mv_dict_order            rn  mv_return_file_name
+  dr  mv_record_delim          rs  mv_return_spec    
+  em  mv_exact_match           rx  mv_range_max      
+  er  mv_spelling_errors       se  mv_searchspec     
+  fi  mv_search_file           sf  mv_search_field   
+  fn  mv_field_names           sp  mv_search_page    
+  hs  mv_head_skip             st  mv_searchtype     
+  id  mv_index_delim           su  mv_substring_match
+  ml  mv_matchlimit            tc  mv_sort_command   
+  mm  mv_max_matches           tf  mv_sort_field     
+  mp  mv_profile               to  mv_sort_option      
+  ms  mv_min_string            ty  mv_sort_crippled   
 
 </XMP>
 <p>They can be treated just the same as form variables on the
@@ -4869,6 +5523,32 @@ you would do:
  [/page]
 
 </XMP>
+<p>
+<H2> 
+<A NAME="minivend_in_page_0">
+In-page searches</A>
+</H2>
+<STRONG>NOTE:</STRONG> New to MiniVend 3.03.
+<p>You may specify a search inside a page with the [search se=searchstring]
+tag. The parameters are the same as the the one-click search, and the
+output is always a newline-separated list of the return objects -- by
+default a series of item codes. The output of a [search ...] tag should
+almost always be passed to a [loop LIST] [/loop] tag pair for iteration.
+<p>Here is an example which will search for and show a series of products
+that match the categories <CODE>Americana</CODE> and <CODE>Contemporary</CODE> within the 
+products database field 
+<A HREF="minivend.html#minivend_category_0">category</A>
+.
+<p>
+<XMP>
+    [loop [search se=Americana/se=Contemporary/os=yes/sf=category]]
+    Artist: [loop-field artist]<BR>
+    Title: [loop-field title]<P>
+    [/loop]
+
+</XMP>
+<p>The advantage of the in-page search is that you can embed searches within
+searches, and you can have straight unchanging links from static HTML pages.
 <p>
 <H2> 
 <A NAME="minivend_search_1">
@@ -4927,13 +5607,15 @@ would be numbered 1).
 <A NAME="minivend_search_2">
 Search Reference</A>
 </H2>
-The sample <EM>srch/query.html</EM>, <EM>srch/helpquery.html</EM> and
-<EM>srch/category.html</EM> pages show example search forms. You can modify
+The sample <CODE>srch/query.html</CODE>, <CODE>srch/helpquery.html</CODE> and
+<CODE>srch/category.html</CODE> pages show example search forms. You can modify
 them to present the search in any way you like -- just be careful to use
 the proper variable names for passing to MiniVend. It is also necessary
 that you copy the hidden variables as-is -- they are required to
 interpret the request as a search. The special form variables are:
-<p>The following definitions frequently refer to <EM>field name</EM> and <EM>column</EM>
+<p>The following definitions frequently refer to 
+<A HREF="minivend.html#minivend_field_2">field name</A>
+ and <EM>column</EM>
 and <EM>column number</EM> -- all are the references to the columns of a searched
 text file as separated by delimiter characters.
 <p>The field names can be specified in several ways.
@@ -5134,7 +5816,9 @@ mv_doit</A>
 
 </STRONG>
 <DD>
-This must be set to 'search' to make this a search page.
+This must be set to 
+<A HREF="minivend.html#minivend_search_0">search</A>
+ to make this a search page.
 <p>
 <DT><STRONG>
 
@@ -5154,7 +5838,8 @@ mv_field_names</A>
 
 </STRONG>
 <DD>
-Defines the field names for the file being searched. This guarantees
+Deprecated in favor of in-list sorting.
+<p>Defines the field names for the file being searched. This guarantees
 that they will be available, and prevents a disk access if using named
 fields on a search file (that is not the product database ASCII source,
 where field names are already known). This <STRONG>must</STRONG> be exactly correct,
@@ -5398,7 +6083,9 @@ mv_search_page</A>
 <DD>
 The MiniVend-style name of the page that should display the search
 results. Overrides the FrameSearchPage directive, and the default
-value of 'search'.
+value of 
+<A HREF="minivend.html#minivend_search_0">search</A>
+.
 <p>
 <DT><STRONG>
 
@@ -5464,7 +6151,8 @@ mv_sort_field</A>
 
 </STRONG>
 <DD>
-The file field(s) the search is to be sorted on, specified in one of two
+(Most new users should ignore and use in-list sorting.)
+<p>The file field(s) the search is to be sorted on, specified in one of two
 ways. If the file(s) to be searched have a header line (the first line)
 that contains 
 <A HREF="minivend.html#minivend_delimiter_1">Delimiter</A>
@@ -5486,8 +6174,9 @@ mv_sort_option</A>
 
 </STRONG>
 <DD>
-The way that each field should be sorted. The flags are 'r', 'n', 
-and 'f' -- for reverse, numeric, and case-insensitive respectively.
+(Most new users should ignore and use in-list sorting.)
+<p>The way that each field should be sorted. The flags are <CODE>r</CODE>, <CODE>n</CODE>, 
+and <CODE>f</CODE> -- for reverse, numeric, and case-insensitive respectively.
 These can be stacked, if coming from a form, or placed in a single
 specification separated by commas. The stacked options will be 
 applied to the sort fields as they are defined, presuming those
@@ -5519,10 +6208,10 @@ and mv_coordinate is set, it will operate only for the corresponding
 field.
 <p>
 </DL>
-The sample search page also has a link to a help file <EM>(pages/help.html)</EM>.which has rudimentary end-user help for the search engine.
+The sample search page also has a link to a help file <CODE>(pages/help.html)</CODE>.which has rudimentary end-user help for the search engine.
 <p>
 <H2> 
-<A NAME="minivend_the_4">
+<A NAME="minivend_the_5">
 The Results Page</A>
 </H2>
 Once a search has been done, there needs to be a way of presenting
@@ -5573,30 +6262,46 @@ Ends the search list.
 <p>
 <DT><STRONG>
 
-<A NAME="minivend_sort_0">
-[sort frn]</A>
+<A NAME="minivend_no_match_0">
+[no_match]</A>
 
 </STRONG>
 <DD>
-Placed inside the search list. Causes sorting of the search return,
-starting from the first position on the line. The fields that are there
-to sort are set by 
-<A HREF="minivend.html#minivend_mv_return_fields_0">mv_return_fields</A>
-. Accepts none, any, or combinations
-of the flags:
+Starts the region of the search results page that should be returned
+if there is no match (and no error) for the search. If this is not
+on the page, the special page 
+<A HREF="minivend.html#minivend_nomatch_0">nomatch</A>
+ will be displayed instead.
 <p>
-<XMP>
-  f   case-insensitive sort (folded) (mutually exclusive of n)
-  n   numeric order (mutually exclusive of f)
-  r   reverse sort
+<DT><STRONG>
 
-</XMP>
+<A NAME="minivend_no_match_1">
+[/no_match]</A>
+
+</STRONG>
+<DD>
+Ends the no match region.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_sort_0">
+[sort database:field:option* database:field:option*]</A>
+
+</STRONG>
+<DD>
+Sorts the search list return based on database fields. If no
+options are supplied, sorts according to the return code. See
+
+<A HREF="minivend.html#minivend_sorting_0">SORTING</A>
+.
 <p>
 <DT><STRONG>
 <EM>[sort]&lt;options&gt;[/sort]</EM>
 </STRONG>
 <DD>
-Placed inside the search list. Causes sorting of the search return
+(This form of sort is deprecated, as it is difficult to use.
+Use the above method.)
+<p>Placed inside the search list. Causes sorting of the search return
 based on the passed options. The fields that are there
 to sort are set by 
 <A HREF="minivend.html#minivend_mv_return_fields_0">mv_return_fields</A>
@@ -5644,8 +6349,10 @@ to sort by either title or artist.
 <B&gt;[item-field title]&lt;/B&gt;, by [item-field artist]&lt;BR&gt;
 [/search-list]
    
-The [value...] lines will end up looking like 'artist:r' or 'title:'. This
-could also be specified with <EM>2r</EM> or &lt;1&gt;.
+The [value...] lines will end up looking like <CODE>artist:r</CODE> or <CODE>title:</CODE>. This
+could also be specified with <CODE>2r</CODE> or 
+<A HREF="minivend.html#minivend__1">1</A>
+.
 <p>PERFORMANCE TIP: on heavily trafficed systems, it will pay to use only
 column numbers rather than named fields, as it reduces processing and may
 obviate an access to the searched file to find the field names.
@@ -5657,11 +6364,93 @@ obviate an access to the searched file to find the field names.
 
 </STRONG>
 <DD>
-Placed <EM>immediately</EM> after the [search_list] tag. If specified on a
-sorted return list, causes only the first line containing an [item-code]
-to be returned -- all subsequent lines will not be interpreted on the
-list. Note that [matches] and [more-list] may not operate as you
-wish in this case.
+Placed <STRONG>immediately</STRONG> after the <CODE>[sort]</CODE> tag (after <CODE>[search-list]</CODE>
+if doing sorts via mv_sort_field). If specified on a sorted return list,
+causes only the first line containing an [item-code] to be returned --
+all subsequent lines will not be interpreted on the list. Note that
+
+<A HREF="minivend.html#minivend_matches_0">[matches]</A>
+ and <CODE>[more-list]</CODE> may not operate as you wish in this case.
+<STRONG>Note</STRONG> that <CODE>[on-change]</CODE> is more likely useful.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_on_change_0">
+[on_change marker]</A>
+
+</STRONG>
+<DD>
+Active only within [search-list][/search-list].
+<p>Along with the companion 
+<A HREF="minivend.html#minivend_on_change_1">[/on_change marker]</A>
+, surrounds a region which
+should only be output when a field (or other repeating value) changes its
+value. This allows indented lists similar to database reports to be easily
+formatted.  The repeating value must be a tag interpolated in the search
+process, such as <CODE>[item-field field]</CODE> or <CODE>[item-data database field]</CODE>.
+<p>Of course, this will only work as you expect when the search results
+are properly sorted.
+<p>The <CODE>marker</CODE> field is mandatory, and is also arbitrary, meaning that
+you can select any marker you wish as long as it matches the marker
+associated with 
+<A HREF="minivend.html#minivend_on_change_1">[/on_change marker]</A>
+. The value to be tested is contained
+within a [condition]value[/condition] tag pair. The 
+<A HREF="minivend.html#minivend_on_change_0">[on_change marker]</A>
+ tag
+also processes an [else] [/else] pair for output when the value does
+not change. The tags may be nested as long as the markers are different.
+<p>Here is a simple example for a search list that has a field 
+<A HREF="minivend.html#minivend_category_0">category</A>
+ and
+<CODE>subcategory</CODE> associated with each item:
+<p>
+<XMP>
+ <TABLE>
+ <TR><TH>Category</TH><TH>Subcategory</TH><TH>Product</TH></TR>
+ [search-list]
+ <TR>
+    <TD>
+         [on-change cat]
+ 
+         [condition][item-field category][/condition]
+ 
+                 [item-field category]
+         [else]
+                 &nbsp;
+         [/else]
+         [/on-change cat]
+    </TD>
+    <TD>
+         [on-change subcat]
+ 
+         [condition][item-field subcategory][/condition]
+ 
+                 [item-field subcategory]
+         [else]
+                 &nbsp;
+         [/else]
+         [/on-change subcat]
+    </TD>
+    <TD> [item-field name] </TD>
+ [/search-list]
+ </TABLE>
+
+</XMP>
+<p>The above should put out a table that only shows the category and
+subcategory once, while showing the name for every product. (The <CODE>&amp;nbsp;</CODE>
+will prevent blanked table cells if you use a border.)
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_on_change_1">
+[/on_change marker]</A>
+
+</STRONG>
+<DD>
+Companion to 
+<A HREF="minivend.html#minivend_on_change_0">[on_change marker]</A>
+.
 <p>
 <DT><STRONG>
 
@@ -5678,7 +6467,7 @@ element pair.
 <DT><STRONG>
 
 <A NAME="minivend_more_list_0">
-[more_list next_img* prev_img* page_img*]</A>
+[more_list next_img* prev_img* page_img* border]</A>
 
 </STRONG>
 <DD>
@@ -5691,16 +6480,16 @@ text/html between the [more_list] and [/more_list] elements is
 stripped.
 <p>Use in conjunction with the [more] element to place pointers to
 additional pages of matches.
-<p>If the optional arguments <EM>next_img</EM>, <EM>prev_img</EM>, and/or <EM>page_img</EM>
+<p>If the optional arguments <CODE>next_img</CODE>, <CODE>prev_img</CODE>, and/or <CODE>page_img</CODE>
 are present, they represent image files that will be inserted instead
-of the standard 'Next', 'Previous', and page number. If <EM>prev_img</EM>
-is <STRONG>none</STRONG>, then no previous link will be output. If <EM>page_img</EM> is
-<STRONG>none</STRONG>, then no links to pages of matches will be output. These are
+of the standard 'Next', 'Previous', and page number. If <CODE>prev_img</CODE>
+is <CODE>none</CODE>, then no previous link will be output. If <CODE>page_img</CODE> is
+<CODE>none</CODE>, then no links to pages of matches will be output. These are
 URLs, are substituted for with 
 <A HREF="minivend.html#minivend_imagedir_0">ImageDir</A>
 , and will be encased in
-IMG tags.
-<p>In addition, if <EM>page_img</EM> is used, it will be passed an argument of
+IMG tags. Lastly, <CODE>border</CODE> is the border number to put.
+<p>In addition, if <CODE>page_img</CODE> is used, it will be passed an argument of
 the digit that is to be represented. This would allow an image generator
 program to be used, generating page numbers on the fly.
 <p>As an example, if you use [more-list next.gif prev.gif page_num.cgi], the
@@ -5739,9 +6528,9 @@ in a series. They look like this:
 </XMP>
 <p>The current page will not be a hyperlink. Every time the new
 link is pressed, the list is re-built to correspond to the current
-page. If there is no <EM>Next</EM> or <EM>Previous</EM> page, that link
+page. If there is no <CODE>Next</CODE> or <CODE>Previous</CODE> page, that link
 will not be shown.
-<p>See the <EM>fr_resul.html</EM> or 
+<p>See the <CODE>fr_resul.html</CODE> or 
 <A HREF="minivend.html#minivend_search_0">search.html</A>
  files for examples. Make sure
 you insert this item between a [more_list] and [/more_list] element pair.
@@ -5862,7 +6651,7 @@ session numbers would be incorrect otherwise.
 <p><p><hr>
 
 <H1> 
-<A NAME="minivend_the_5">
+<A NAME="minivend_the_6">
 THE ORDER PROCESS</A>
 </H1>
 The order page(s) are where the items are tracked and adjusted by the
@@ -5873,20 +6662,37 @@ order pages for items which have many accessories.
 <p>The name of the page to display can be configured in several
 ways:
 <p>
-<OL>
-<LI>Set the SpecialPage 'order' to the page to display
+<DT><STRONG>
+<EM>1.</EM>
+</STRONG>
+<DD>
+Set the SpecialPage 
+<A HREF="minivend.html#minivend_order_3">order</A>
+ to the page to display
 when an item is ordered.
 <p>
-<LI>Set the FrameOrderPage directive to the page to use
+<DT><STRONG>
+<EM>2.</EM>
+</STRONG>
+<DD>
+Set the FrameOrderPage directive to the page to use
 when frames are enabled. This overrides option 1.
 <p>
-<LI>Use the [order item cart/page] Order it! [/order] form of
+<DT><STRONG>
+<EM>3.</EM>
+</STRONG>
+<DD>
+Use the [order item cart/page] Order it! [/order] form of
 order tag to specify an arbitrary order page for an item.
 <p>
-<LI>If already on an order page, set the mv_checkout, mv_orderpage,
+<DT><STRONG>
+<EM>4.</EM>
+</STRONG>
+<DD>
+If already on an order page, set the mv_checkout, mv_orderpage,
 mv_nextpage, mv_successpage, or mv_failpage variables.
 <p>
-</OL>
+</DL>
 The variables mentioned above modify the page display in the.following ways:
 <p>
 <DL COMPACT>
@@ -6105,7 +6911,9 @@ Evaluates to the product code for the current item.
 </STRONG>
 <DD>
 Evaluates to the field name <EM>fieldname</EM> in the arbitrary database
-table <EM>database</EM>, for the current item.
+table 
+<A HREF="minivend.html#minivend_database_1">database</A>
+, for the current item.
 <p>
 <DT><STRONG>
 
@@ -6144,7 +6952,7 @@ for numbering search matches or order items in the list.
 
 </STRONG>
 <DD>
-Evaluates to the modifier value of <EM>attribute</EM> for the current item.
+Evaluates to the modifier value of <CODE>attribute</CODE> for the current item.
 <p>
 <DT><STRONG>
 
@@ -6235,6 +7043,15 @@ the item.
 <p>
 <DT><STRONG>
 
+<A NAME="minivend_loop_change_0">
+[loop_change marker]</A>
+
+</STRONG>
+<DD>
+Same as <EM>[on_change]</EM> but within loop lists.
+<p>
+<DT><STRONG>
+
 <A NAME="minivend_loop_code_0">
 [loop_code]</A>
 
@@ -6250,7 +7067,9 @@ Evaluates to the product code for the current item.
 </STRONG>
 <DD>
 Evaluates to the field name <EM>fieldname</EM> in the arbitrary database
-table <EM>database</EM>, for the current item.
+table 
+<A HREF="minivend.html#minivend_database_1">database</A>
+, for the current item.
 <p>
 <DT><STRONG>
 
@@ -6432,7 +7251,9 @@ true</A>
 
 </STRONG>
 <DD>
-Field begins with <STRONG>y</STRONG>, <STRONG>1</STRONG>, or <STRONG>t</STRONG> (Yes, 1, or True) - not case sensitive
+Field begins with <STRONG>y</STRONG>, 
+<A HREF="minivend.html#minivend__1">1</A>
+, or <STRONG>t</STRONG> (Yes, 1, or True) - not case sensitive
 <p>
 <DT><STRONG>
 
@@ -6515,7 +7336,7 @@ the second file name not necessarily being the second profile.
 it is clear to a programmer.)
 <p>
 <H2> 
-<A NAME="minivend_simple_1">
+<A NAME="minivend_simple_2">
 Simple Order Report File</A>
 </H2>
 The simple order report file, ``report'', defines the layout of the order
@@ -6537,7 +7358,7 @@ to the
 <A HREF="minivend.html#minivend_reportignore_0">ReportIgnore</A>
  configuration directive. 
 <p>MiniVend defines some values for use in the search form -- they begin
-with 'mv_' and are automatically ignored.
+with <CODE>mv_</CODE> and are automatically ignored.
 <p>
 <H2> 
 <A NAME="minivend_fully_configurable_0">
@@ -6553,7 +7374,7 @@ by many mailers, but you can choose to use standard ASCII format.
 An example report is provided in the demo file &lt;pages/ord/report.html&gt;.
 <p>
 <H2> 
-<A NAME="minivend_order_3">
+<A NAME="minivend_order_4">
 Order Receipts</A>
 </H2>
 If you specify a legal MiniVend page name in the ReceiptPage directive,
@@ -6564,7 +7385,7 @@ the user record. If you want to have a different receipt for different
 carts, set the <EM>mv_order_receipt</EM> variable in the form.
 <p>
 <H2> 
-<A NAME="minivend_the_6">
+<A NAME="minivend_the_7">
 The Order Counter</A>
 </H2>
 An order counter can be enabled if the 
@@ -6650,7 +7471,7 @@ placing the following directive in
  and
 
 <A HREF="minivend.html#minivend_mixmatch_0">MixMatch</A>
- directives. They require a field named specifically 'price'
+ directives. They require a field named specifically <CODE>price</CODE>
 in the pricing database. The <STRONG>price</STRONG> field contains a space-separated
 list of prices that correspond to the quantity levels defined in the
 
@@ -6667,7 +7488,7 @@ their attributes. See
  and 
 <A HREF="minivend.html#minivend_commonadjust_0">CommonAdjust</A>
 . The
-pricing database <EM>must</EM> be defined unless you define the 
+pricing database <STRONG>must</STRONG> be defined unless you define the 
 <A HREF="minivend.html#minivend_commonadjust_0">CommonAdjust</A>
 
 behavior.
@@ -6969,7 +7790,7 @@ database which indicates that. You then place the <STRONG>name</STRONG> of that 
 in the 
 <A HREF="minivend.html#minivend_nontaxablefield_0">NonTaxableField</A>
  directive. If the field for that item
-evaluates true on a yes-no basis (i.e. is set to 'yes', 'y', 1, or the
+evaluates true on a yes-no basis (i.e. is set to <CODE>yes</CODE>, <CODE>y</CODE>, 1, or the
 like), sales tax will not be applied to the item. If it evaluates false,
 it will be taxed.
 <p>If your state taxes shipping, use the 
@@ -6987,7 +7808,7 @@ order is placed.
 <p>To use CyberCash, you must first have a CyberCash Secure Merchant Payment
 Server (SMPS) running on your system.  It must be fully enabled, and
 should be tested OK with the CyberCash test suite.  This capability has
-been tested to work with SMPS-2.1.x in 'mauthcapture' mode.
+been tested to work with SMPS-2.1.x in <CODE>mauthcapture</CODE> mode.
 <p>The CCLib.pm file must be available to MiniVend -- if you cannot
 install it in the main Perl library then the Minivend software
 directory <EM>lib/</EM> will suffice.
@@ -7116,6 +7937,203 @@ will contain the message returned from CyberCash.
 <p><p><hr>
 
 <H1> 
+<A NAME="minivend_sorting_0">
+SORTING</A>
+</H1>
+MiniVend 3.03 regularizes the sorting options for sorting the search
+lists, loop lists, and item lists based on the contents of database
+fields.  All accept a standard format sort tag which must be direcly
+after the list call:
+<p>
+<XMP>
+    [loop 3 2 1]
+    [sort]
+        [loop-code]
+    [/loop]
+ 
+    [search-list]
+    [sort products:category:f]
+        [item-price] [item-description]<BR>
+    [/search-list]
+ 
+    [item-list]
+    [sort products:price:rn]
+        [item-price] [item-code]<BR>
+    [/item-list]
+ 
+    [tag each products]
+    [sort products:category products:title]
+    [loop-field category] [loop-field title] <BR>
+    [/tag]
+
+</XMP>
+<p>All sort options take a single tag of the form:
+<p>
+<XMP>
+  [sort database:field:option* ... ]
+
+</XMP>
+<p>
+<DL COMPACT>
+<DT><STRONG>
+
+<A NAME="minivend_database_1">
+database</A>
+
+</STRONG>
+<DD>
+The MiniVend database identifier.  This must be supplied, and should
+normally be 'products' if you are using the default name for the database.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_field_2">
+field</A>
+
+</STRONG>
+<DD>
+The field (column) of the database to be sorted on.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_option_0">
+option</A>
+
+</STRONG>
+<DD>
+None, any, or combinations of the options:
+<p>
+<XMP>
+  f   case-insensitive sort (folded) (mutually exclusive of n)
+  n   numeric order (mutually exclusive of f)
+  r   reverse sort
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="minivend__3">
+...</A>
+
+</STRONG>
+<DD>
+Don't really put 
+<A HREF="minivend.html#minivend__3">...</A>
+ in. This just means that you may specify as
+many sort levels as you wish. Lots of sort levels with large databases
+will be quite slow.
+<p>
+</DL>
+Multiple levels of sort are supported, and you can cross database.boundaries on different sort levels. Cross-database sorts on the same
+level are not supported, so if you use multiple product databases you
+will have to sort with embedded Perl. This is actually a feature in
+some cases, since you can then display all items in a <CODE>used</CODE> database
+before or after your new ones in 
+<A HREF="minivend.html#minivend_products_0">products</A>
+.
+<p>Examples, all based on the 
+<A HREF="minivend.html#minivend_simple_0">simple</A>
+ demo:
+<p>
+<DL COMPACT>
+<DT><STRONG>
+
+<A NAME="minivend_loop_1">
+Loop list</A>
+
+</STRONG>
+<DD>
+
+<XMP>
+    [loop 19-202 34-101 99-102]
+    [sort products:title]
+        [loop-code] [loop-field title]<BR>
+    [/loop]
+ 
+Will display:
+    34-101 Family Portrait
+    19-202 Vertigo, Magic Staircase
+    99-102 The Art Store T-Shirt
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_search_3">
+Search list</A>
+
+</STRONG>
+<DD>
+A search of all products (i.e. <A HREF="http://yoursystem.com/cgi-bin/simple/scan/ra=yes):">http://yoursystem.com/cgi-bin/simple/scan/ra=yes):</A>
+<p>
+<XMP>
+    [search-list]
+    [sort products:artist products:title:rf]
+        [item-field artist] [item-field title]<BR>
+    [/search-list]
+ 
+will display:
+    Gilded Frame
+    Grant Wood American Gothic
+    Jean Langan Family Portrait
+    Leonardo Da Vinci Mona Lisa
+    Salvador Dali Persistence of Memory
+    Leon Spilliaert Vertigo, Magic Staircase
+    The Art Store The Art Store T-Shirt
+    Vincent Van Gogh The Starry Night
+    Vincent Van Gogh Sunflowers
+
+</XMP>
+<p>Note the reversed order of the title for <EM>Van Gogh</EM>, and the presence of
+the accessory item <EM>Gilded Frame</EM> at the front of the list (it has no
+artist field, and as such sorts first).
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_shopping_0">
+Shopping cart</A>
+
+</STRONG>
+<DD>
+
+<XMP>
+    [item-list]
+    [sort products:price:rn]
+        [item-price] [item-code]<BR>
+    [/item-list]
+ 
+will display the items in your shopping cart sorted on their price, with
+the most expensive shown first. (Note that this is based on the database field,
+and doesn't take quantity price breaks or discounts into effect.) B<NOTE:> You 
+cannot sort on modifier values or quantities.
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_complete_0">
+Complete database contents</A>
+
+</STRONG>
+<DD>
+
+<XMP>
+    [tag each products]
+    [sort products:category products:title]
+    [loop-field category] [loop-field title] <BR>
+    [/tag]
+
+</XMP>
+<p>A two level sort, that will sort products based first on their category
+then on their title within the category.
+<p>
+</DL>
+Note that large lists may take some time to sort -- if you have a product.database with many thousands of items, it is not recommended that you
+use the [tag each products] sort unless you are planning on cacheing or
+statically building your pages.
+<p><p><hr>
+
+<H1> 
 <A NAME="minivend_shipping_1">
 SHIPPING</A>
 </H1>
@@ -7144,14 +8162,14 @@ This allows
 <A HREF="minivend.html#minivend_weight_0">weight</A>
  to be used for one mode, while <EM>price</EM> or
 <EM>quantity</EM> is used for another. The CustomShipping directive only
-sets the <EM>default</EM> field to be used if none is present in the 
+sets the <STRONG>default</STRONG> field to be used if none is present in the 
 mode specification.
 <p>
 <H2> 
 <A NAME="minivend_default_0">
 Default Shipping Mode</A>
 </H2>
-If a default shipping mode other than 'default' is desired, enter
+If a default shipping mode other than <CODE>default</CODE> is desired, enter
 it into the 
 <A HREF="minivend.html#minivend_defaultshipping_0">DefaultShipping</A>
  directive:
@@ -7295,10 +8313,10 @@ cost</A>
 
 </STRONG>
 <DD>
-The total cost, determined by formula if it begins with 'f',
-by multiplier if it begins with 'x', by UPS-style lookup if 
-it begins with 'u', by named subroutine if it begins with an 's', and
-a straight cost otherwise. If it begins with an 'e', a zero cost
+The total cost, determined by formula if it begins with <CODE>f</CODE>,
+by multiplier if it begins with <CODE>x</CODE>, by UPS-style lookup if 
+it begins with <CODE>u</CODE>, by named subroutine if it begins with an <CODE>s</CODE>, and
+a straight cost otherwise. If it begins with an <CODE>e</CODE>, a zero cost
 is returned with the following string as the error message.
 <p>
 </DL>
@@ -7310,7 +8328,7 @@ in the user session. If it has not been explicitly set, either
 by means of the 
 <A HREF="minivend.html#minivend_defaultshipping_0">DefaultShipping</A>
  directive or by setting the
-variable on a form (or in an order profile), it will be 'default'.
+variable on a form (or in an order profile), it will be <CODE>default</CODE>.
 <p>
 <LI>The criterion field is found -- if it is quantity, then it is the total
 quantity of items on the order form. If it is any other name, then the
@@ -7331,17 +8349,17 @@ minimum and maximum, the cost is then applied.
 <p>
 <LI>If the cost is fixed, it is simply added.
 <p>
-<LI>If the cost field begins with an 'x', the cost is multiplied
+<LI>If the cost field begins with an <CODE>x</CODE>, the cost is multiplied
 by the accumulated criterion -- price, weight, etc.
 <p>
-<LI>If the cost field begins with 'f', the formula following
+<LI>If the cost field begins with <CODE>f</CODE>, the formula following
 is applied. Use <STRONG>@@</STRONG>TOTAL@<STRONG>@ </STRONG>as the value of the accumulated criterion.
 <p>
-<LI>If the cost field begins with 'u', a UPS lookup is done.
+<LI>If the cost field begins with <CODE>u</CODE>, a UPS lookup is done.
 <p>
-<LI>If the cost field begins with 's', a Perl subroutine call is made.
+<LI>If the cost field begins with <CODE>s</CODE>, a Perl subroutine call is made.
 <p>
-<LI>If the cost field begins with 'e', zero cost is returned and an 
+<LI>If the cost field begins with <CODE>e</CODE>, zero cost is returned and an 
 error placed in the session <STRONG>ship_message</STRONG> field, available as
 [data session ship_message].  (If using the standard tag syntax,
 you should surround it with [post] [/post] to ensure you get the
@@ -7378,7 +8396,7 @@ quantity were 7, the next entry from <EM>rpsg2</EM> would be selected, for a
 cost of 10.00. If the quantity were 15, <EM>rpsg3</EM> would be selected, and
 the quantity of 15 multiplied by 0.95, for a total cost of 14.25.
 <p>
-<LI>The second one, <EM>usps</EM>, is a more complicated formula -- using price as the
+<LI>The second one, <CODE>usps</CODE>, is a more complicated formula -- using price as the
 criteria. If the total price of all items in the shopping cart (same as
 [subtotal] without quantity price breaks in place) is from 1 to 50, the
 cost will be 7.00 plus 10<STRONG>% </STRONG>of the order. If the total is from 50.01
@@ -7386,7 +8404,7 @@ to 100, the cost will be 12.00 plus 9<STRONG>% </STRONG>of the order total. If t
 cost is 100.01 or greater, then 5<STRONG>% </STRONG>of the order total will be used
 as the shipping cost.
 <p>
-<LI>The third, <EM>upsg</EM>, is a special case. It specifies a UPS lookup based on your
+<LI>The third, <CODE>upsg</CODE>, is a special case. It specifies a UPS lookup based on your
 UPS zone and two required values (and two optional arguments):
 <p>
 <XMP>
@@ -7411,7 +8429,7 @@ can use the standard .csv file distributed by UPS on their web site at
 www.ups.com.) You specify it with the 
 <A HREF="minivend.html#minivend_upszonefile_0">UpsZoneFile</A>
  directive -- it is
-usually named something like <EM>NNN.csv</EM>, where NNN is the first three
+usually named something like <CODE>NNN.csv</CODE>, where NNN is the first three
 digits of the originating zip code.
 <p>Second, you must obtain the cost tables from UPS (again, you can get them from
 www.ups.com) and place them into a MiniVend database. That database, its
@@ -7438,7 +8456,7 @@ Alaska and Hawaii, a <STRONG>$10</STRONG>.00 additional charge (over and above t
 handling charge) is made.  This can also be used to select on country, product
 type, or any other qualification that can be encoded in the file.
 <p>
-<LI>The last entry, <EM>fedex</EM>, uses a named subroutine. The example is
+<LI>The last entry, <CODE>fedex</CODE>, uses a named subroutine. The example is
 designed to work with this subroutine defined in catalog.cfg:
 <p>
 <PRE>
@@ -7477,7 +8495,7 @@ either fixed values or as database fields to be sent to the subroutine
 in an anonymous hash keyed on the item code (for each item in the
 *current* shopping cart).
 <p>If a database other than the products database is to be used, the database
-name should be prepended with a colon (<EM>:</EM>) separator. If a key other
+name should be prepended with a colon (<CODE>:</CODE>) separator. If a key other
 than the item code is to be used, it should be appended with a semi-colon
 separator.
 <p>To send fixed value to the subroutine (appended to the call reference
@@ -7530,11 +8548,11 @@ Here is a complete example:
   UK        0    0     0       1            1 
 
 </XMP>
-<p>will call the subroutine <EM>item_cost</EM>, and will send the weight of each
+<p>will call the subroutine <CODE>item_cost</CODE>, and will send the weight of each
 item, along with the value of the modes database column corresponding to
-the shipping mode the user has selected, keyed with the value of <EM>country</EM>
+the shipping mode the user has selected, keyed with the value of <CODE>country</CODE>
 on their order form. If the user has selected mode postal_air, and is
-in the country coded as <EM>UK</EM>, the subroutine will be called as if it
+in the country coded as <CODE>UK</CODE>, the subroutine will be called as if it
 was:
 <p>
 <XMP>
@@ -7633,7 +8651,7 @@ a program will be run and the output ``piped'' to that program. This
 allows easy backend entry of orders with an external program.
 <p>
 <H2> 
-<A NAME="minivend_sql_9">
+<A NAME="minivend_sql_10">
 SQL Tracking</A>
 </H2>
 See the <EM>[sql set]</EM> tag for an example of entering orders in
@@ -7654,7 +8672,7 @@ URL protocol specification instead of the usual http: designation.
 but no guarantees or warranties of any kind are made! Since MiniVend
 comes with Perl source, it is possible to modify the program to create
 bad security problems. One way to minimize this possibility is to record
-digital signatures, using MD5 or PGP, of <EM>minivend</EM>, 
+digital signatures, using MD5 or PGP, of <CODE>minivend</CODE>, 
 <A HREF="minivend.html#minivend_minivend_cfg_0">minivend.cfg</A>
 ,
 and all modules included in minivend. Check them on a regular basis to
@@ -7736,7 +8754,7 @@ send target tags if frames are enabled (by a [frames_on] element.
 Any frame name can be used, including the special frames of _top, _blank,
 _parent, and _self.
 <p>As shown in the demo pages, the best way to accommodate both types of
-browsers is by having an <EM>index.html</EM> page that sets the beginning
+browsers is by having an <CODE>index.html</CODE> page that sets the beginning
 frame set. The &lt;FRAMESET&gt; and &lt;FRAME&gt; tags will be ignored by standard
 browsers, which will read the HTML between the &lt;NOFRAMES&gt; and &lt;/NOFRAMES&gt;
 tags below.
@@ -7790,9 +8808,13 @@ wish.
 
 </XMP>
 <p>The above snippet will, when placed in a MiniVend form, send the output
-of a <STRONG>Search</STRONG> submission to the current default frame, but when
+of a 
+<A HREF="minivend.html#minivend_search_3">Search</A>
+ submission to the current default frame, but when
 <STRONG>Continue Shopping</STRONG> is selected the output will will go to the page
-<EM>browse.html</EM> with the page routed to the top level frame for the
+
+<A HREF="minivend.html#minivend_browse_0">browse.html</A>
+ with the page routed to the top level frame for the
 current browser window.
 <p>If you are setting a target with the <EM>[process_target target]</EM> tag, you
 will either have to make that target <EM>none</EM> or set the 
@@ -7824,12 +8846,12 @@ parameters, after an opening BEGIN. Here is an example:
 </XMP>
 <p>The above sequence set in the catalog.cfg file, defines three color
 schemes, accessed with [body 1], [body 2], and [body 3] elements in
-MiniVend pages. The first scheme uses the file <EM>/images/blue_pap.gif</EM>
+MiniVend pages. The first scheme uses the file <CODE>/images/blue_pap.gif</CODE>
 as the background pattern, and keeps the user's default colors for
 everything else. It is called by a [body 1] element, which when
 expanded becomes &lt;BODY BACKGROUND="/images/blue_pap.gif&gt;.
 <p>The second scheme defines no background pattern (there is only one file
-in the Mv_Background directive), but defines a background color of 'steelblue',
+in the Mv_Background directive), but defines a background color of <CODE>steelblue</CODE>,
 with a text color of white, a link color of light green, and a visited link
 color of orange. It is accessed by the [body 2] element, which when expanded
 becomes &lt;BODY BGCOLOR=``steelblue'' TEXT=``white'' LINK=``ltgreen'' VLINK=``orange''&gt;.
@@ -7954,7 +8976,7 @@ a form -- see the
 
 <H1> 
 <A NAME="minivend_static_1">
-Static Page Building</A>
+STATIC PAGE BUILDING</A>
 </H1>
 MiniVend now has a complete implementation of a static page building
 facilty. It allows you to build a parallel page tree <EM>completely in HTML</EM>,
@@ -7966,8 +8988,13 @@ structure, for any statically built pages never have to call MiniVend.
 This improves performance and decreases server load.
 <p>You can also use it to build page trees that are scannable by a search
 engine spider.
+<p>As of MiniVend 3.03, to make static page building active, you must set
+the 
+<A HREF="minivend.html#minivend_static_2">Static</A>
+ directive to <CODE>Yes</CODE>. This allows you to turn it on or off
+with a single directive, and is a change from MiniVend 3.02 and below.
 <p>It is invoked when starting the MiniVend server by passing the extra parameters
-<EM>-build shop</EM> to the <EM>start</EM> or <EM>restart</EM> command. MiniVend will scan
+<CODE>-build shop</CODE> to the minivend program. MiniVend will scan
 the entire page structure, testing each page to see if it has any
 <EM>dynamic elements</EM>. Dynamic elements are those MiniVend tags which
 depend on user session status, like the contents of the shopping cart,
@@ -7999,11 +9026,23 @@ also prevent a search from being cached or built statically.
 <p>Pages are also searched for static [page scan/...] searches, and
 those searches are built statically if appropriate. They are placed
 in the pages scan1.html on up, so don't name any of your pages scan
-and then digits if you want to avoid clashing.
+and then digits if you want to avoid clashing.  Search builds recurse
+one level down, meaning that if you have a category search that yields
+more category searches, they will also be built.  You can set the 
+recursion with 
+<A HREF="minivend.html#minivend_staticdepth_0">StaticDepth</A>
+ -- the default is two.
 <p>A page marked as an 
 <A HREF="minivend.html#minivend_adminpage_0">AdminPage</A>
- will not be statically built or cached.
-<p>Pages are marked for static build in one of two ways:
+ or 
+<A HREF="minivend.html#minivend_nocache_0">NoCache</A>
+ will not be statically
+built or cached.
+<p>If you wish a page to build statically anyway, despite the presence
+of dynamic elements, you can insert <CODE>[tag flag build][/tag]</CODE> at the top
+of the page. This tells the builder to ignore dynamic elements and build
+the page anyway -- it will not override NoCache or AdminPage.
+<p>Pages are marked for static build in one of three ways:
 <p>
 <UL>
 <LI>If you want all pages to be statically built when possible, set the
@@ -8025,10 +9064,14 @@ set a
 <A HREF="minivend.html#minivend_staticpattern_0">StaticPattern</A>
  which encompasses pages to be built statically.
 <p>
+<LI>You can place a list of pages in the file <CODE>.build</CODE> in the root of the
+pages directory. MiniVend will use that as the list of pages to be
+built on this run.
+<p>
 </UL>
 In addition, you can build all possible on-the-fly pages out of the.database if the 
 <A HREF="minivend.html#minivend_staticfly_0">StaticFly</A>
- directive is set. This <EM>is</EM> subject to
+ directive is set. This <STRONG>is</STRONG> subject to
 the 
 <A HREF="minivend.html#minivend_staticpattern_0">StaticPattern</A>
  as well, so you could build only a portion of the
@@ -8037,19 +9080,22 @@ items should be careful about use of
 <A HREF="minivend.html#minivend_staticfly_0">StaticFly</A>
 .
 <p>The names of pages that are statically built are maintained in the file
-<EM>.static</EM>, located in the MiniVend 
+<CODE>.static</CODE>, located in the MiniVend 
 <A HREF="minivend.html#minivend_pagedir_0">PageDir</A>
 . This is how MiniVend
 knows which pages should be referenced with static URLs.
+<p>Any pages included in the list(s) that fail due to dynamic elements
+have their names placed in the file <CODE>.unbuilt</CODE> after the build process.
 <p>The 
 <A HREF="minivend.html#minivend_staticdir_0">StaticDir</A>
  directive defines the 
-<A HREF="minivend.html#minivend_file_1">file path</A>
+<A HREF="minivend.html#minivend_file_2">file path</A>
  to the root
 of the page structure that will be built. If blank, it will use
-the directory <EM>static</EM> in the catalog root, which can then be copied
+the directory <CODE>static</CODE> in the catalog root, which can then be copied
 to the appropriate place in HTML document space.
-<p><STRONG>WARNING:</STRONG> Any existing pages that are present will be overwritten!
+<p><STRONG>WARNING:</STRONG> Any existing files that are present may be removed
+from this directory! Do not place normal pages there!
 <p>The 
 <A HREF="minivend.html#minivend_staticpath_0">StaticPath</A>
  directive defines the <STRONG>URL path</STRONG> to the root
@@ -8061,9 +9107,9 @@ Default is /, or DocumentRoot.
 <p>The 
 <A HREF="minivend.html#minivend_staticsuffix_0">StaticSuffix</A>
  directive defines the suffix of the files that
-will be built. The default is <EM>.html</EM>. DOSites might want to make
-it <EM>.htm</EM>, and if you wished to have the files parsed for server
-side includes you might use <EM>.shtml</EM>.
+will be built. The default is <CODE>.html</CODE>. DOSites might want to make
+it <CODE>.htm</CODE>, and if you wished to have the files parsed for server
+side includes you might use <CODE>.shtml</CODE>.
 <p>If you wish to build the catalog pages offline (recommended on servers
 that are used by multiple catalogs), you can use the command:
 <p>
@@ -8071,12 +9117,8 @@ that are used by multiple catalogs), you can use the command:
    start -test -build shop
 
 </XMP>
-<p>where <EM>shop</EM> is the name of the catalog to be built. (Multiple <EM>-build name</EM>
+<p>where <CODE>shop</CODE> is the name of the catalog to be built. (Multiple <CODE>-build name</CODE>
 directives can be used to build more than one catalog.)
-<p><STRONG>TIP:</STRONG> StaticFly only builds products from the first products database.
-If you are using multiple <EM>ProductFiles</EM>, you can build for all in turn by
-selectively changing the <EM>ProductFiles</EM> directive temporarily while building
-off line.
 <p><p><hr>
 
 <H1> 
@@ -8113,9 +9155,9 @@ marker.
 <A NAME="minivend_server_0">
 Server Configuration File</A>
 </H2>
-The VendRoot directory, specified in the main program <EM>minivend</EM>, is
+The VendRoot directory, specified in the main program <CODE>minivend</CODE>, is
 the default location of all of the MiniVend program, configuration,
-special, and library files. Unless changed in <EM>minivend</EM>, the main
+special, and library files. Unless changed in <CODE>minivend</CODE>, the main
 MiniVend server configuration file will be minivend.cfg in the VendRoot
 directory.
 <p>If no 
@@ -8133,6 +9175,45 @@ single catalog that will be served by MiniVend.
 <DL COMPACT>
 <DT><STRONG>
 
+<A NAME="minivend_adminsub_0">
+AdminSub</A>
+
+</STRONG>
+<DD>
+Specifies subroutine names that may not be run unless the user
+is the administrative user for the catalog. (See 
+<A HREF="minivend.html#minivend_masterhost_0">MasterHost</A>
+, 
+
+<A HREF="minivend.html#minivend_password_0">Password</A>
+, and 
+<A HREF="minivend.html#minivend_remoteuser_0">RemoteUser</A>
+).
+<p>
+<XMP>
+    AdminSub  export_database
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_allowglobal_0">
+AllowGlobal</A>
+
+</STRONG>
+<DD>
+Specifies catalog identifiers that may define subroutines and UserTag
+entries that can operate with the full permissions of the
+server. <STRONG>DON'T USE THIS UNLESS YOU TRUST THE CATALOG USER IMPLICITLY.</STRONG>
+Default is blank.
+<p>
+<XMP>
+    AllowGlobal  simple
+
+</XMP>
+<p>
+<DT><STRONG>
+
 <A NAME="minivend_catalog_2">
 Catalog</A>
 
@@ -8142,6 +9223,7 @@ Specifies a catalog that can run using this MiniVend server.
 There are three required parameters, separated by spaces and/or tabs.
 <p>The first is the name of the catalog -- it will be referred
 to as that name in error, warning, and informational messages.
+It must contain only alphanumeric characters, hyphens, and underscores.
 <p>The second is the base directory of the catalog. If the directory
 does not contain a 
 <A HREF="minivend.html#minivend_catalog_cfg_0">catalog.cfg</A>
@@ -8178,7 +9260,8 @@ DisplayErrors</A>
 <DD>
 While all errors are reported in the error log file, you can also have
 errors displayed by the browser. This is convenient while you are
-testing your configuration. Default is <EM>No</EM>.
+testing your configuration. Unless this is set, the DisplayErrors
+setting in the user catalogs will have no effect. Default is <EM>No</EM>.
 <p>
 <XMP>
     DisplayErrors       Yes
@@ -8321,11 +9404,46 @@ non-cookie-accepting browsers like AOL's V2.0 to use multiple
 proxy servers. 
 <p>DomainTail is preferable unless one of your HTTP servers does
 not do host name lookups.
-<p>Default is no, and DomainTail must be set to 'no' for it to
+<p>Default is <CODE>No</CODE>, and DomainTail must be set to <CODE>No</CODE> for it to
 operate.
 <p>
 <XMP>
     IpHead Yes
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_lockoutcommand_0">
+LockoutCommand</A>
+
+</STRONG>
+<DD>
+The name of a command (as you would enter it from the shell)
+that will lock out the host IP of an offending system. The 
+IP address will be substituted for the first occurrence of the
+string <STRONG>%s</STRONG>.
+<p>This will be executed with the user ID that MiniVend runs
+under, so any commands that require root access will have
+to be wrapped with an SUID program.
+<p>On Linux, you might lock out a host with:
+<p>
+<XMP>
+    ipfwadm -I -i deny -S %s
+
+</XMP>
+<p>This would require root permissions, however, under normal 
+circumstances.  You can use <CODE>sudo</CODE> or another method to 
+wrap and allow the command.
+<p>You can write a script which modifies an appropriate access
+control file, such as .htaccess for your CGI directory, to
+do another level of lockout.  A simple command line containing
+<CODE>perl -0777 -npi -e 's/deny/deny from <STRONG>%s</STRONG>\ndeny/' /home/me/cgi-bin/.htaccess</CODE>
+would work as well (remember, the <STRONG>%s</STRONG> will become the IP
+address of the offending user).
+<p>
+<XMP>
+    LockoutCommand   lockout %s
 
 </XMP>
 <p>
@@ -8344,22 +9462,6 @@ below that value.
 <p>
 <XMP>
     MaxServers     4
-
-</XMP>
-<p>
-<DT><STRONG>
-
-<A NAME="minivend_mailerrorto_0">
-MailErrorTo</A>
-
-</STRONG>
-<DD>
-The email address that server errors should be sent to. No secure
-information will normally be forwarded, so any email address is
-fine. If none is specified, no errors will be mailed.
-<p>
-<XMP>
-    MailErrorTo     webmaster
 
 </XMP>
 <p>
@@ -8387,11 +9489,11 @@ NoAbsolute</A>
 <DD>
 Whether MiniVend [file ...] and other tags can read any file on the system
 (that is readable by the user id running the MiniVend daemon).  The default is
-<STRONG>Yes</STRONG>, which allows any file to be read -- this should be changed in a
+<STRONG>No</STRONG>, which allows any file to be read -- this should be changed in a
 multi-user environment to minimize security problems.
 <p>
 <XMP>
-    NoAbsolute     No
+    NoAbsolute     Yes
 
 </XMP>
 <p>
@@ -8424,8 +9526,8 @@ SafeUntrap</A>
 <DD>
 Sets the codes that will be untrapped in the Safe.pm module, used
 for embedded Perl and conditional operations. You can see the Safe.pm
-documentation by typing 'perldoc Safe' at the command prompt. The default
-is <EM>249 148</EM> for Perl 5.003, and <EM>ftfile sort</EM> for Perl 5.003_20 and
+documentation by typing <CODE>perldoc Safe</CODE> at the command prompt. The default
+is <CODE>249 148</CODE> for Perl 5.003, and <CODE>ftfile sort</CODE> for Perl 5.003_20 and
 above, which untraps the file existence test operator and the sort
 operator. Define it as blank to not allow any besides the default
 restrictive operators.
@@ -8479,7 +9581,7 @@ TcpHost</A>
 
 </STRONG>
 <DD>
-When running in INET mode, using <EM>tlink</EM>, specifies the hosts that are
+When running in INET mode, using <CODE>tlink</CODE>, specifies the hosts that are
 allowed to send/receive transactions from any catalog on this MiniVend
 server. Can be either an name or IP number, and multiple hosts can be
 specified in a space-separated list. Default is localhost.
@@ -8496,7 +9598,7 @@ TcpPort</A>
 
 </STRONG>
 <DD>
-When running in INET mode, using <EM>tlink</EM>, specifies the port
+When running in INET mode, using <CODE>tlink</CODE>, specifies the port
 that will be monitored by the MiniVend server. Default is 7786.
 <p>
 <XMP>
@@ -8647,7 +9749,9 @@ the user the catalog operator -- i.e. is authenticated by one of
 <A HREF="minivend.html#minivend_masterhost_0">MasterHost</A>
 , or 
 <A HREF="minivend.html#minivend_remoteuser_0">RemoteUser</A>
-. The special page 'violation' will be displayed
+. The special page 
+<A HREF="minivend.html#minivend_violation_0">violation</A>
+ will be displayed
 if another user attempts to access a page containing elements from the
 database(s).
 <p>
@@ -8672,7 +9776,9 @@ authenticated by one of
 , or 
 <A HREF="minivend.html#minivend_remoteuser_0">RemoteUser</A>
 . The
-special page 'violation' will be displayed if another user attempts to
+special page 
+<A HREF="minivend.html#minivend_violation_0">violation</A>
+ will be displayed if another user attempts to
 access the page(s).
 <p>
 <XMP>
@@ -8760,7 +9866,7 @@ equivalent HTML, and is designed to make it easy to change the look of
 your pages with the change of one file. If the file does not exist at
 program configuration time, the tag is simply stripped. The line in the
 
-<A HREF="minivend.html#minivend_minivend_cfg_0">minivend.cfg</A>
+<A HREF="minivend.html#minivend_catalog_cfg_0">catalog.cfg</A>
  file takes the form of the directive, followed by any
 number of vend-style file names (relative to the PageDir, with no .html
 suffix).
@@ -8769,24 +9875,10 @@ suffix).
     ButtonBars  bars/button0 bars/button1 bars/button2 bars/button3
 
 </XMP>
-<p>
-<DT><STRONG>
-
-<A NAME="minivend_checkhtml_0">
-CheckHTML</A>
-
-</STRONG>
-<DD>
-The name and arguments of an external program for 
-<A HREF="minivend.html#minivend_checking_0">Checking Page HTML</A>
-.
-<p>
-<XMP>
-        CheckHTML  /usr/local/bin/weblint -s -
-
-</XMP>
-<p>Do not use redirection of I/O in this call. You will always receive
-stderr output.
+<p>The ButtonBars directive is depracated in favor of 
+<A HREF="minivend.html#minivend_variable_0">Variable</A>
+ and
+<EM>UserTag</EM>.
 <p>
 <DT><STRONG>
 
@@ -8909,7 +10001,9 @@ ConfigDir</A>
 </STRONG>
 <DD>
 The default directory where directive values will be read from
-when using the &lt;file notation. Default is 'config'. The name is
+when using the &lt;file notation. Default is 
+<A HREF="minivend.html#minivend_config_1">config</A>
+. The name is
 relative to the catalog directory unless preceded by a /.
 <p>
 <XMP>
@@ -9006,6 +10100,12 @@ processing forms:
                                if the card does not validate properly.
                                The error message is not too enlightening
                                if validation is the problem.
+    mv_credit_card_force       Set this value to 1 to force MiniVend
+                               to encrypt the card despite its idea
+                               of validity. Will still set the flag
+                               for validity to 0 if the number/date
+                               does not validate. Still won't accept
+                               badly formatted expiration dates.
     mv_credit_card_info        Set by MiniVend to the encrypted card
                                information if the card validates
                                properly. If PGP is used in ASCII armor
@@ -9046,6 +10146,23 @@ quantity or weight of items ordered. See
 <p>
 <DT><STRONG>
 
+<A NAME="minivend_cybercash_0">
+CyberCash</A>
+
+</STRONG>
+<DD>
+A yes/no directive, default no. Enables CyberCash payment protocols --
+see 
+<A HREF="minivend.html#minivend_using_1">Using CyberCash</A>
+.
+<p>
+<XMP>
+    CyberCash           Yes
+
+</XMP>
+<p>
+<DT><STRONG>
+
 <A NAME="minivend_datadir_0">
 DataDir</A>
 
@@ -9074,25 +10191,15 @@ the products database. The file is relative to VendRoot, and is put in
 
 <A HREF="minivend.html#minivend_datadir_0">DataDir</A>
  if no path is provided. Records can be accessed with the
-[data database field key] tag. The type is an integer from one to six,
-and specifies the format. There can be an unlimited number of
-databases defined. Database names are restricted to the
-alphanumeric characters (including the underscore).
-See 
-<A HREF="minivend.html#minivend_arbitrary_0">Arbitrary Databases</A>
+[data database field key] tag.  Database names are restricted to the
+alphanumeric characters (including the underscore). See 
+<A HREF="minivend.html#minivend_databases_0">DATABASES</A>
 .
 <p>
 <XMP>
     Database      BookReviews  reviews.txt   3
 
 </XMP>
-<p>As of MiniVend 3.0, the products databases are the same as arbitrary
-databases, differing only by their identification in the <EM>ProductFiles</EM>
-directive.  The default value is ``products products.asc 1'', which sets
-up the products database by default.  The location of the products file
-may be changed by re-defining the database identifier 
-<A HREF="minivend.html#minivend_products_0">products</A>
-.
 <p>
 <DT><STRONG>
 
@@ -9103,7 +10210,7 @@ DefaultShipping</A>
 <DD>
 This sets the default shipping mode by initializing the variable
 <EM>mv_ship_mode</EM>. If not set in 
-<A HREF="minivend.html#minivend_minivend_cfg_0">minivend.cfg</A>
+<A HREF="minivend.html#minivend_catalog_cfg_0">catalog.cfg</A>
 , it is <EM>default</EM>.
 <p>
 <XMP>
@@ -9141,8 +10248,30 @@ The field that will be accessed with the [item-description] element.
     DescriptionField    ProductDescription
 
 </XMP>
-<p>Default is 'description'.  It is no longer a fatal error if this field
+<p>Default is 
+<A HREF="minivend.html#minivend_description_2">description</A>
+.  It is no longer a fatal error if this field
 does not exist.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_displayerrors_0">
+DisplayErrors</A>
+
+</STRONG>
+<DD>
+If the administrator has enabled 
+<A HREF="minivend.html#minivend_displayerrors_0">DisplayErrors</A>
+ globally, then setting
+this to ``Yes'' will display the error returned from MiniVend in case something
+is wrong with embedded Perl programs, tags, or (horrors!) MiniVend itself.
+Usually you will only want to use this during development or debugging --
+default is <STRONG>no</STRONG>.
+<p>
+<XMP>
+    DisplayErrors       Yes
+
+</XMP>
 <p>
 <DT><STRONG>
 
@@ -9174,13 +10303,15 @@ EncryptProgram</A>
 Contains a program command line specification that indicates how an
 external encryption program will work. Two placeholders, <CODE><STRONG>%p</STRONG></CODE> and
 <CODE><STRONG>%f</STRONG></CODE>, are defined, which are replaced at encryption time with the
-password and temporary file name respectively. See <EM>Order Security</EM>.
+password and temporary file name respectively. See 
+<A HREF="minivend.html#minivend_order_2">Order Security</A>
+.
 <p>This is separate from the 
 <A HREF="minivend.html#minivend_pgp_0">PGP</A>
  directive, which enables PGP encryption
 of the entire order.
 <p>If PGP is the encryption program (MiniVend determines this by searching
-for the string <EM>pgp</EM> in the command string), no password field or file
+for the string <CODE>pgp</CODE> in the command string), no password field or file
 field need be used -- the field mv_credit_card_number will never be
 written to disk in that case.
 <p>
@@ -9256,6 +10387,7 @@ for the <EM>[finish_order]</EM> tag.
     FinishOrder <IMG SRC="/icons/fin_ord.gif" ALT="Check Basket">
 
 </XMP>
+<p>This is deprecated, and may be removed from future versions of MiniVend.
 <p>
 <DT><STRONG>
 
@@ -9355,13 +10487,28 @@ set with the
 <p>
 <DT><STRONG>
 
+<A NAME="minivend_framesdefault_0">
+FramesDefault</A>
+
+</STRONG>
+<DD>
+Whether the first access by a user will place them in frames mode.
+Default is <STRONG>no</STRONG>.
+<p>
+<XMP>
+    FramesDefault       Yes
+
+</XMP>
+<p>
+<DT><STRONG>
+
 <A NAME="minivend_glimpse_0">
 Glimpse</A>
 
 </STRONG>
 <DD>
 The pathname for the glimpse command, used if glimpse searches
-are to be enabled. If you wish to use <EM>glimpseserver</EM>, you
+are to be enabled. If you wish to use <CODE>glimpseserver</CODE>, you
 must include the -C, -J,  and -K tags if they are needed.
 <p>
 <XMP>
@@ -9393,7 +10540,7 @@ of a help file entry which looks like:
 </XMP>
 <p>If the file (or the entry) does not exist at program configuration time,
 the tag is simply stripped. The line in the 
-<A HREF="minivend.html#minivend_minivend_cfg_0">minivend.cfg</A>
+<A HREF="minivend.html#minivend_catalog_cfg_0">catalog.cfg</A>
  file takes
 the form of the directive, followed by any number of vend-style file
 names (relative to the PageDir, with no .html suffix). See the demo
@@ -9401,6 +10548,27 @@ for an example of how it is used.
 <p>
 <XMP>
     Help  help/hintfile
+
+</XMP>
+<p>The Help directive is vaguely deprecated in favor of arbitrary databases
+and 
+<A HREF="minivend.html#minivend_variable_0">Variable</A>
+.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_imagealias_0">
+ImageAlias</A>
+
+</STRONG>
+<DD>
+Aliases for images, ala Apache/NCSA ScriptAlias and Alias directives.
+Relocates images based in a particular directory to another for MiniVend
+use -- operates <EM>after</EM> ImageDir. Useful for editing MiniVend pages
+with an HTML editor. Default is blank.
+<p>
+<XMP>
+    ImageAlias  /images/  /thiscatalog/images/
 
 </XMP>
 <p>
@@ -9470,7 +10638,7 @@ Locale</A>
 <XMP>
     
 Sets the special locale array. Tries to use POSIX setlocale based
-on the value of itself, then tries to accept a 'custom' setting with
+on the value of itself, then tries to accept a C<custom> setting with
 the proper definitions of mon_decimal_point and mon_thousands_sep, which
 are the the only international settings required. Default if not
 set is to use US-English settings. 
@@ -9500,7 +10668,9 @@ LogFile</A>
 </STRONG>
 <DD>
 A file where user pages accesses and search specifications will
-be logged if CollectData is set. Defaults to 'etc/log'.
+be logged if CollectData is set. Defaults to 
+<A HREF="minivend.html#minivend_etc_0">etc/log</A>
+.
 <p>
 <XMP>
     LogFile        etc/log
@@ -9562,7 +10732,7 @@ must begin with 'BEGIN', then is followed by up to 15 RGB color
 specifications for visited link color. The specification can be in
 #RRGGBB color format, or can be one of the colors that will be
 recognized (steelblue, white, etc.) Each color should be separated by
-one or more spaces. Set to 'none' to disable a color (use the browser
+one or more spaces. Set to <CODE>none</CODE> to disable a color (use the browser
 default) for a particular scheme. Remember, the schemes are numbered in
 the order that they occur.
 <p>
@@ -9602,7 +10772,7 @@ must begin with 'BEGIN', then is followed by up to 15 RGB color
 specifications for background color. The specification can be in #RRGGBB
 color format, or can be one of the colors that will be recognized
 (steelblue, white, etc.) Each color should be separated by one or more
-spaces. Set to 'none' to disable a color (use the browser default) for
+spaces. Set to <CODE>none</CODE> to disable a color (use the browser default) for
 a particular scheme. Remember, the schemes are numbered in the order
 that they occur.
 <p>
@@ -9623,7 +10793,7 @@ must begin with 'BEGIN', then is followed by up to 15 RGB color
 specifications for link color. The specification can be in #RRGGBB
 color format, or can be one of the colors that will be recognized
 (steelblue, white, etc.) Each color should be separated by one or more
-spaces. Set to 'none' to disable a color (use the browser default) for
+spaces. Set to <CODE>none</CODE> to disable a color (use the browser default) for
 a particular scheme. Remember, the schemes are numbered in the order
 that they occur.
 <p>
@@ -9645,7 +10815,7 @@ line must begin with 'BEGIN', then is followed by up to 15 RGB color
 specifications for text color. The specification can be in #RRGGBB color
 format, or can be one of the colors that will be recognized (steelblue,
 white, etc.) Each color should be separated by one or more spaces. Set
-to 'none' to disable a color (use the browser default) for a particular
+to <CODE>none</CODE> to disable a color (use the browser default) for a particular
 scheme. Remember, the schemes are numbered in the order that they
 occur, beginning with 1.
 <p>
@@ -9663,7 +10833,7 @@ must begin with 'BEGIN', then is followed by up to 15 RGB color
 specifications for visited link color. The specification can be in
 #RRGGBB color format, or can be one of the colors that will be
 recognized (steelblue, white, etc.) Each color should be separated by
-one or more spaces. Set to 'none' to disable a color (use the browser
+one or more spaces. Set to <CODE>none</CODE> to disable a color (use the browser
 default) for a particular scheme. Remember, the schemes are numbered in
 the order that they occur.
 <p>
@@ -9697,10 +10867,10 @@ NewTags</A>
 
 </STRONG>
 <DD>
-A yes/no attribute. When set to <STRONG>Yes</STRONG>, it defaults all pages to
-using the new (and still experimental!) page syntax. This can be
-counteracted with an [old] tag at the very top of the page.
-Default is <STRONG>No</STRONG>.
+A yes/no attribute. When set to <STRONG>Yes</STRONG>, it defaults all pages to using
+the new page syntax. This can be counteracted with an [old] tag at the
+very top of the page, or by surrounding older sections of code with the
+[compat][/compat] tag pair. Default is <STRONG>No</STRONG>.
 <p>
 <XMP>
     NewTags    No
@@ -9716,7 +10886,7 @@ NoCache</A>
 <DD>
 The names of MiniVend pages that are not to be cached (if <EM>Page Cache</EM>
 is being used) or built statically (if 
-<A HREF="minivend.html#minivend_static_1">Static Page Building</A>
+<A HREF="minivend.html#minivend_static_1">STATIC PAGE BUILDING</A>
  is in use).
 If the name is a directory, then no pages in that directory (or any below
 it) be cached or built statically.
@@ -9784,8 +10954,9 @@ OldShipping</A>
 </STRONG>
 <DD>
 Defines compatibility with older MiniVend shipping files -- they will
-break if using formulas where 'x' is used as the substituted-for string
+break if using formulas where <CODE>x</CODE> is used as the substituted-for string
 for the accumulated total. A yes/no directive -- default is No.
+This will disappear soon.
 <p>
 <XMP>
     OldShipping  Yes
@@ -9827,6 +10998,31 @@ is '_top', which fills the browser window with the page.
 <p>
 <DT><STRONG>
 
+<A NAME="minivend_orderlinelimit_0">
+OrderLineLimit</A>
+
+</STRONG>
+<DD>
+The number of items that the user is allowed to place in the shopping
+cart.  Some poorly-mannered robots may ``attack'' your site by following
+all links one after another. Some even ignore any <CODE>robots.txt</CODE> file you
+may have created.  If one of these bad robots orders several dozen or more
+items, then the time required to save and restore the shopping cart from
+the user session may become excessive.
+<p>If the limit is exceeded, then the command defined in the Global directive
+
+<A HREF="minivend.html#minivend_lockoutcommand_0">LockoutCommand</A>
+ will be executed and the shopping cart will be emptied.
+The default is 0, disabling the check.  Set it to a number greater than
+the number of line items you ever expect a user to order.
+<p>
+<XMP>
+    OrderLineLimit   50
+
+</XMP>
+<p>
+<DT><STRONG>
+
 <A NAME="minivend_orderprofile_0">
 OrderProfile</A>
 
@@ -9858,6 +11054,8 @@ pragma:
 and then the name. The search profile can then be accessed by
 
 <A HREF="minivend.html#minivend_mv_order_profile_0">mv_order_profile=``billing''</A>
+. See 
+<A HREF="minivend.html#minivend_advanced_0">Advanced Multi-level Order Pages</A>
 .
 <p>
 <DT><STRONG>
@@ -9937,7 +11135,9 @@ to encrypt the <EM>entire order</EM> -- in addition to any encryption done as a
 result if 
 <A HREF="minivend.html#minivend_creditcardauto_0">CreditCardAuto</A>
 , If for some reason an error comes from PGP, the
-customer will be given the special page 'failed'.
+customer will be given the special page 
+<A HREF="minivend.html#minivend_failed_0">failed</A>
+.
 <p>
 <DT><STRONG>
 
@@ -9987,7 +11187,9 @@ The encrypted password that, when entered and sent as
 RECONFIGURE_MINIVEND by the reconfigure program, will be checked
 against the user entry to enable reconfiguration.
 <p>If you use MiniVend's htpasswd.pl (from 2.03 or higher) it will write
-the catalog configuration file if given 'catalog.cfg' as the file
+the catalog configuration file if given 
+<A HREF="minivend.html#minivend_catalog_cfg_0">catalog.cfg</A>
+ as the file
 name. The demo starts with an encrypted blank password, allowing you
 to just hit enter.
 <p>
@@ -10009,7 +11211,7 @@ A MiniVend item attribute (see
 value upon which a price adjustment to the item may be made.
 <p>A common case would be size. For shirts that are size <EM>XXL</EM>, you
 might wish to add a dollar to the price for an item. In that case, you
-can define a column in the standard pricing database 'pricing' which
+can define a column in the standard pricing database <CODE>pricing</CODE> which
 is named ``XXL''. If a value is found in that column it will be added
 to the price for the item. Negative numbers result in subtraction if
 you wish to reduce the price based on an attribute.
@@ -10050,7 +11252,8 @@ PriceCommas</A>
 </STRONG>
 <DD>
 If you desire no commas in your price numbers (for the [item_price] tag)
-set this to 'no'. The default is to put commas in.
+set this to <CODE>no</CODE>. The default is to use commas (or whatever is
+the thousands separator for your locale).
 <p>
 <XMP>
     PriceCommas         no
@@ -10135,7 +11338,7 @@ ReadPermission and WritePermission</A>
 <DD>
 By default, only the user account that MiniVend runs under (as set by the
 setuid permission on vlink) can read and write files created by MiniVend.
-WritePermission and ReadPermission can be set to 'user', 'group', or
+WritePermission and ReadPermission can be set to <CODE>user</CODE>, <CODE>group</CODE>, or
 'world'.
 <p>
 <XMP>
@@ -10152,7 +11355,9 @@ ReceiptPage</A>
 </STRONG>
 <DD>
 The page to be displayed as a receipt after the user has submitted
-an order. Replaces the standard 'confirmation' page. Blank by
+an order. Replaces the standard 
+<A HREF="minivend.html#minivend_confirmation_0">confirmation</A>
+ page. Blank by
 default, showing no receipt page to the user. Overridden by the
 value of <EM>mv_order_receipt</EM>.
 <p>
@@ -10234,6 +11439,25 @@ placement of the order.
 <p>
 <XMP>
     RequiredFields      name,company,email,address,city,state,zip
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_robotlimit_0">
+RobotLimit</A>
+
+</STRONG>
+<DD>
+The RobotLimit directive defines the number of consecutive pages a user
+session may access without a 30 second pause.  If the limit is exceeded,
+then the command defined in the Global directive 
+<A HREF="minivend.html#minivend_lockoutcommand_0">LockoutCommand</A>
+
+will be executed. The default is 0, disabling the check.
+<p>
+<XMP>
+    RobotLimit  200
 
 </XMP>
 <p>
@@ -10323,7 +11547,7 @@ cached pages are stored in the directory
 /SearchCache.
 <p>
 <XMP>
-    SearchCache         etc/search_cache
+    SearchCache         Yes
 
 </XMP>
 <p>
@@ -10340,24 +11564,6 @@ is '_self'.
 <p>
 <XMP>
     SearchFrame         main
-
-</XMP>
-<p>
-<DT><STRONG>
-
-<A NAME="minivend_searchovermsg_0">
-SearchOverMsg</A>
-
-</STRONG>
-<DD>
-A string that is substituted for a [search_over_msg] tag, used to
-indicate that the search engine returned more than the number
-of items it was limited to.  This is deprecated for the match
-paging capability, and may disappear from future versions of
-MiniVend.
-<p>
-<XMP>
-    SearchOverMsg       You had more than
 
 </XMP>
 <p>
@@ -10414,7 +11620,7 @@ SecureURL</A>
 The base URL for secure forms/page transmissions. Normally it is
 the same as 
 <A HREF="minivend.html#minivend_vendurl_0">VendURL</A>
- except for the <EM>https:</EM> protocol definition.
+ except for the <CODE>https:</CODE> protocol definition.
 Default is blank, disabling secure access.
 <p>
 <XMP>
@@ -10446,9 +11652,9 @@ SeparateItems</A>
 </STRONG>
 <DD>
 Changes the default when ordering an item via MiniVend to allowing multiple
-lines on the order form for each item. The default, <EM>No</EM>, puts all
+lines on the order form for each item. The default, <CODE>No</CODE>, puts all
 orders with the same part number on the same line. 
-<p>Setting SeparateItems to <EM>Yes</EM> allows the item attributes to be
+<p>Setting SeparateItems to <CODE>Yes</CODE> allows the item attributes to be
 easily set for different instances of the same part number, allowing
 easy setting of things such as size or color.
 <p>
@@ -10481,7 +11687,9 @@ and shipping database if that is the case. You will also need to set
 
 <A HREF="minivend.html#minivend_sessionlockfile_0">SessionLockFile</A>
  appropriately if the database is to be shared. Defaults
-to 'session', which is appropriate for separate session files (and
+to 
+<A HREF="minivend.html#minivend_session_1">session</A>
+, which is appropriate for separate session files (and
 therefore standalone catalogs). Can be an absolute path name if desired.
 <p>
 <DT><STRONG>
@@ -10521,7 +11729,9 @@ The file to use for locking coordination of the sessions.
 You will also need to set 
 <A HREF="minivend.html#minivend_sessiondatabase_0">SessionDatabase</A>
  appropriately if the
-database is to be shared. Defaults to 'session.lock', which is
+database is to be shared. Defaults to 
+<A HREF="minivend.html#minivend_session_1">session.lock</A>
+, which is
 appropriate for separate session files (and therefore standalone
 catalogs). Can be an absolute path name if desired.
 <p>
@@ -10565,6 +11775,21 @@ MiniVend
     SpecialPage         noproduct special/no_product_found
     SpecialPage         order  ord/basket
     SpecialPage         search srch/results
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_static_2">
+Static</A>
+
+</STRONG>
+<DD>
+A yes/no directive.
+Enables static page building and display features. Default is <CODE>no</CODE>.
+<p>
+<XMP>
+     Static   Yes
 
 </XMP>
 <p>
@@ -10634,10 +11859,10 @@ StaticFly</A>
 
 </STRONG>
 <DD>
-A yes/no directive. If set to <EM>yes</EM>, static builds will attempt to generate
+A yes/no directive. If set to <CODE>Yes</CODE>, static builds will attempt to generate
 a page for every part number in the database using the on-the-fly page build
 capability. If pages are already present with those names, they will be 
-overwritten. The default is <EM>no</EM>.
+overwritten. The default is <CODE>No</CODE>.
 <p>
 <XMP>
      StaticFly   Yes
@@ -10698,7 +11923,7 @@ StaticSuffix</A>
 </STRONG>
 <DD>
 The extension to be appended to a normal MiniVend page name when building
-statically. Default is <EM>.html</EM>.  Also affects the name of pages in the
+statically. Default is <CODE>.html</CODE>.  Also affects the name of pages in the
 MiniVend page directory -- if set to .htm the pages must be named with that
 extension.
 <p>
@@ -10902,7 +12127,7 @@ Determines whether any attributes, the modifiers specified in the
 directive, can be attached to the item. See 
 <A HREF="minivend.html#minivend_item_1">Item Attributes</A>
 . The
-default is no modifier. Don't use a value of 'quantity' -- it will not
+default is no modifier. Don't use a value of <CODE>quantity</CODE> -- it will not
 do what you want.
 <p>
 <XMP>
@@ -11047,7 +12272,7 @@ server used for encryption.
 </XMP>
 <p>
 <H2> 
-<A NAME="minivend_user_1">
+<A NAME="minivend_user_2">
 User reconfiguration</A>
 </H2>
 The individual catalogs can be reconfigured by the user by running
@@ -11082,14 +12307,14 @@ authentication methods.
 <A NAME="minivend_making_0">
 Making the Product Database</A>
 </H2>
-The DBM product databases can be built offline with the <EM>offline</EM>
+The DBM product databases can be built offline with the <CODE>offline</CODE>
 command. The directory to be used for output is specified either on
 the command line with the -d option, or is taken from the 
 <A HREF="minivend.html#minivend_catalog_cfg_0">catalog.cfg</A>
 
 directive 
 <A HREF="minivend.html#minivend_offlinedir_0">OfflineDir</A>
- -- <EM>offline</EM> in the catalog directory by default.
+ -- <CODE>offline</CODE> in the catalog directory by default.
 The directory must exist. The source ASCII files should be present in
 that directory, and the DBM files are created there. Existing files
 will be overwritten.
@@ -11104,9 +12329,9 @@ will be overwritten.
 Updating Individual Records</A>
 </H2>
 If you have a very large DBM database that takes a long time to build,
-you may want to use the <EM>bin/update</EM> script to change just one field
+you may want to use the <CODE>bin/update</CODE> script to change just one field
 in a record, or to add from a corrections list.
-<p>The following updates the products database <EM>price</EM> field for
+<p>The following updates the products database <CODE>price</CODE> field for
 item 19-202 with the new value 25.00
 <p>
 <XMP>
@@ -11120,7 +12345,7 @@ item 19-202 with the new value 25.00
 
 </XMP>
 <p>The following takes input from 
-<A HREF="minivend.html#minivend_file_1">file</A>
+<A HREF="minivend.html#minivend_file_2">file</A>
 , which must be
 <STRONG>formatted exactly like the original database</STRONG>
 and adds/corrects any records contained therein.
@@ -11198,7 +12423,7 @@ absolute path in front of all relative IMG and INPUT SRC specifications.
 <p>You will need a cgi-bin directory in which to put the vlink or tlink program.
 <p>
 <H2> 
-<A NAME="minivend_the_7">
+<A NAME="minivend_the_8">
 The Demo Systems</A>
 </H2>
 The products directory contains a sample product file and the file
@@ -11229,12 +12454,8 @@ complete fully-qualified file path names.
 <A NAME="minivend_setting_4">
 Setting up VLINK and TLINK</A>
 </H2>
-The 
-<A HREF="minivend.html#minivend_vlink_0">vlink</A>
- and <EM>tlink</EM> programs, compiled from 
-<A HREF="minivend.html#minivend_vlink_0">vlink.c</A>
- and
-<EM>tlink.c</EM>, are small C programs which contact and interface to a running
+The <CODE>vlink</CODE> and <CODE>tlink</CODE> programs, compiled from <CODE>vlink.c</CODE> and
+<CODE>tlink.c</CODE>, are small C programs which contact and interface to a running
 MiniVend daemon. The vlink executable is normally made setuid to the
 user account which runs MiniVend, so that the UNIX-domain socket file
 can be set to secure permissions (user read-write only). It is normally
@@ -11297,7 +12518,7 @@ is probably a reasonable value.
 <A NAME="minivend_compiling_0">
 Compiling VLINK and TLINK</A>
 </H2>
-Change directories to the <EM>src</EM> directory, then run the GNU
+Change directories to the <CODE>src</CODE> directory, then run the GNU
 configure script:
 <p>
 <XMP>
@@ -11313,6 +12534,14 @@ Then compile the programs:
     cc tlink.c -o tlink
 
 </XMP>
+<p>You can ensure your C compiler will be invoked properly with this
+little ditty:
+<p>
+<XMP>
+    perl -e 'do "syscfg"; system("$CC $LIBS $CFLAGS $DEFS -o tlink tlink.c");'
+    perl -e 'do "syscfg"; system("$CC $LIBS $CFLAGS $DEFS -o vlink vlink.c");'
+
+</XMP>
 <p>On some systems you can make the executable smaller with the strip
 program. But don't worry about it if strip is not on your system.
 <p>
@@ -11324,11 +12553,11 @@ program. But don't worry about it if strip is not on your system.
 <p>If you want MiniVend to run under a different user account than your own,
 make that user the owner of vlink. (You probably need to be root to do
 this). Do not make vlink owned by root, because making vlink setuid
-root is an unnecessary security risk. It should also <STRONG>not</STRONG> normally
-run as the default WWW user (often <STRONG>nobody</STRONG>)).
+root is an huge and unnecessary security risk. It should also <STRONG>not</STRONG>
+normally run as the default WWW user (often <CODE>nobody</CODE> or <CODE>http</CODE>)).
 <p>
 <XMP>
-    chown vendacct vlink
+    chown minivend vlink
 
 </XMP>
 <p>Move the vlink executable to your cgi-bin directory:

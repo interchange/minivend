@@ -57,7 +57,28 @@ if($Config{osname} eq 'solaris') {
 				$Lock_troubles = 1;
 			}
 }
-	
+
+sub copyright_prompt {
+
+	print <<'EOF';
+
+ MiniVend V3.02
+ 
+ Copyright 1996,1997 by Michael J. Heins <mikeh@minivend.com>
+
+ MiniVend is free as long as the organization or individual
+ using it does not employ uninvited commercial email
+ solicitations, commonly known as SPAM. Any organization
+ sending SPAM (or causing it to be sent) may not use MiniVend
+ for a period of one year after any SPAM incident. If use
+ is not discontinued immediately upon written notice to the
+ organization, a $10,000 per day license fee will be charged
+ until such time as MiniVend use is discontinued. The author
+ of MiniVend, Michael J. Heins, shall be the sole judge of
+ what constitutes a SPAM incident.
+
+EOF
+}
 
 sub my_prompt {
     return &$Prompt_sub(@_)
@@ -121,6 +142,9 @@ sub initialize {
 	}
 
 	unless ($install) {
+
+		&copyright_prompt();
+
 		my @mvdir = (
 						"$ENV{HOME}/mvend",
 						"$ENV{HOME}/minivend",
@@ -233,10 +257,11 @@ EOF
 
 		print <<EOF;
 
-You may wish to inspect minivend.cfg.dist for new values.  The
-major change that might be necessary is setting NoAbsolute to "No"
-if you have directories or files with absolute pathnames
-defined in tags or the catalog.cfg file.
+You may wish to inspect minivend.cfg.dist for new values.
+
+If you have used static page building, you must now 
+define "Static Yes" in all of your catalog.cfg files
+or the catalog will not run with static pages.
 
 Check the README file for changes you might have to make if
 updating from an earlier version of MiniVend.

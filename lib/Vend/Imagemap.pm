@@ -2,6 +2,8 @@
 #
 # Imagemap.pm -- interpret NCSA imagemap in CGI program
 #
+# $Id: Imagemap.pm,v 1.4 1997/11/03 11:31:21 mike Exp mike $
+#
 # This module adapted from the Perl imagemap program by:
 #
 # V. Khera <khera@kciLink.com>  7-MAR-1995
@@ -62,6 +64,8 @@ require Exporter;
 @EXPORT = qw(action_map);
 use Carp;
 use strict;
+use vars qw($VERSION);
+$VERSION = substr(q$Revision: 1.4 $, 10);
 
 # NOAUTO
 my $Action = "";

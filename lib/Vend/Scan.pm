@@ -1,6 +1,6 @@
 # Vend/Scan.pm:  Prepare searches for MiniVend
 #
-# $Id: Scan.pm,v 1.12 1997/06/27 11:32:10 mike Exp mike $
+# $Id: Scan.pm,v 1.17 1997/11/03 11:11:01 mike Exp $
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ require Exporter;
 			perform_search
 			);
 
-$VERSION = substr(q$Revision: 1.12 $, 10);
+$VERSION = substr(q$Revision: 1.17 $, 10);
 
 use strict;
 use Vend::Util;
@@ -36,19 +36,22 @@ use Vend::Data qw(product_code_exists_ref column_exists);
 my @Sql = ( qw(
 					mv_searchspec
 					mv_search_file
+					mv_sql_query
 					mv_range_look
 					mv_cache_key
 					mv_matchlimit
 					mv_orsearch
+					mv_list_only
 					mv_range_min
 					mv_range_max
-					mv_range_alpha
+					mv_numeric
 					mv_return_fields
 					mv_substring_match
 					mv_search_field
 					mv_search_page
 					mv_sort_field
 					mv_sort_option
+
 ));
 
 my @Order = ( qw(
@@ -67,11 +70,13 @@ my @Order = ( qw(
 					mv_dict_fold
 					mv_dict_limit
 					mv_dict_order
+					mv_failpage
 					mv_all_chars
 					mv_return_all
 					mv_exact_match
 					mv_head_skip
 					mv_index_delim
+					mv_list_only
 					mv_matchlimit
 					mv_min_string
 					mv_max_matches
@@ -106,12 +111,14 @@ my %Map = ( qw(
 					mv_dict_look		dict_look
 					mv_dict_limit		dict_limit
 					mv_dict_order		dict_order
+					mv_failpage			error_page
 					mv_exact_match		exact_match
 					mv_field_names      field_names
 					mv_all_chars		all_chars
 					mv_return_all		return_all
 					mv_head_skip		head_skip
 					mv_index_delim		index_delim
+					mv_list_only        list_only
 					mv_matchlimit		match_limit
 					mv_min_string		min_string
 					mv_max_matches		max_matches
@@ -136,6 +143,7 @@ my %Map = ( qw(
 					mv_sort_command		sort_command
 					mv_sort_crippled	sort_crippled
 					mv_spelling_errors	spelling_errors
+					mv_sql_query     	sql_query
 					mv_searchspec		search_spec
 					mv_substring_match	substring_match
 
@@ -161,10 +169,11 @@ my %Scan = ( qw(
                     id  mv_index_delim
                     ml  mv_matchlimit
                     mm  mv_max_matches
-                    mq  mv_sql_search
+                    sq  mv_sql_query
                     mp  mv_profile
                     ms  mv_min_string
                     ne  mv_negate
+					nu  mv_numeric
                     os  mv_orsearch
                     ra  mv_return_all
                     rd  mv_return_delim
@@ -206,13 +215,13 @@ my %Parse = (
 	range_min	        =>	\&_array,
 	range_max	        =>	\&_array,
 	range_alpha	        =>	\&_array,
+	numeric				=>	\&_array,
 	search_spec       	=>	\&_scalar_or_array,
 	return_file_name    =>	\&_yes,
 	all_chars		    =>	\&_yes,
 	return_all		    =>	\&_yes,
 	save_context        =>	\&_array,
 	search_field		=>	\&_column,
-	sql_search			=>	\&_database,
 	sort_command		=>	\&_command,
 	sort_field			=>	\&_column,
 	sort_option			=>	\&_array,
@@ -332,11 +341,11 @@ sub do_more {
 sub sql_search {
 	my($c,$options,$second) = @_;
 	my ($out, $table, @fields);
-	my ($op, @out);
+	my ($i, $op, @out);
 	my (@range);
 	my (@range_min);
 	my (@range_max);
-	my (@range_op);
+	my (@numeric);
 
 	unless(defined $second) {
 		for( @Sql ) {
@@ -350,17 +359,49 @@ sub sql_search {
 		}
 	}
 
+	my @specs = split /\000/, $options->{search_spec};
+
     if (defined $options->{'search_page'} or $options->{session_key}) {
 		$options->{'save_context'} = [	'session_key', 'search_page',
 										'search_spec', 'dict_look' ];
 	}
 
-	if($options->{range_look}) {
+	@numeric	= _yes_array(split /[,\000]/, $options->{numeric});
+
+	my(@tables) = split /[\s,\000]+/, ($options->{search_file} || 'products');
+
+	my $db = Vend::Data::database_exists_ref($tables[0])
+				or do {
+					logError("non-existent database '$tables[0]'");
+					return undef;
+				};
+	$db = $db->ref();
+
+FORMULATE: {
+	# See if we have the simple query. If sql_query is set,
+	# then we will just do it by skipping the rest
+	# of the parse. If fi=table is not set, we
+	# will use 'products' and hope for the best.
+	# 
+	# We substitute search specs for ? if appropriate.
+	#
+
+	if($options->{sql_query}) {
+		$i = 0;
+		for(@specs) {
+			$specs[$i] = "'$specs[$i]'" unless $numeric[$i];
+			$options->{sql_query} =~ s/([\s=%])\?([\s%]|$)/$1$specs[$i]$2/;
+			$i++;
+		}
+print("mv_sql_query: $options->{sql_query}\n") if $Global::DEBUG;
+		$out = $db->array_query ($options->{sql_query},$tables[0])
+					or return 0;
+		last FORMULATE;
+	}
+	elsif($options->{range_look}) {
 		@range			= split /[,\000]/, $options->{range_look};
 		@range_min		= split /[,\000]/, $options->{range_min};
 		@range_max		= split /[,\000]/, $options->{range_max};
-		@range_op		= split /[,\000]/, $options->{range_alpha}
-			if defined $options->{range_alpha};
 	}
 
 	if($options->{sort_field}) {
@@ -374,15 +415,6 @@ sub sql_search {
 		$options->{return_fields} = 'code';
 	}
 
-
-	my(@tables) = split /[\s,\000]+/, $options->{search_file};
-
-	my $db = Vend::Data::database_exists_ref($tables[0])
-				or do {
-					logError("non-existent database '$tables[0]'");
-					return undef;
-				};
-	$db = $db->ref();
 
 	if($options->{return_fields} eq '*') {
 		$options->{field_names} = $db->columns();
@@ -400,54 +432,99 @@ sub sql_search {
 	$query .= join ",", @tables;
 
 
-	$options->{search_spec} = '*' unless $options->{search_spec};
+	$query .= " where ";
 
-	unless($options->{search_spec} eq '*') {
-		$query .= " where ";
-		$op     = $options->{all_chars} ? 'like' : '=';
+	my ($range,$val,$spec,$qb,$qe,@query);
 
-		for(@fields) {
-			$_ .= " $op '$options->{search_spec}'";
+	my $coord = scalar @specs <=> scalar @fields;
+
+	my $joiner = ' AND ';
+
+	$joiner = ' OR ' if _yes($options->{or_search});
+
+	if($coord == 0) {
+		$i = 0;
+		$op = '=';
+		$qb = $qe = "'";
+		for (@specs) {
+
+			if( _yes($options->{substring_match} and ! $numeric[$i]) ) {
+					$op  = 'like';
+					$qb = "'%";
+					$qe = "%'";
+			}
+
+			push(@query, "$fields[$i] $op $qb$specs[$i]$qe");
+			$i++;
 		}
-
-		my $joiner = ' OR ';
-
-		$query .= join $joiner, @fields;
+	}
+	elsif ($coord == -1) {
+		$joiner = ' OR ';
+		$i = 0;
+		for(@fields) {
+			if( _yes($options->{substring_match} and ! $numeric[0]) ) {
+					$op  = 'like';
+					$qb = "'%";
+					$qe = "%'";
+			}
+			push(@query, "$fields[$i] $op $qb$specs[0]$qe");
+		}
+	}
+	else {
+		$joiner = ' OR ';
+		$i = 0;
+		for(@specs) {
+			if( _yes($options->{substring_match} and ! $numeric[$i]) ) {
+				unless ($numeric[$i]) {
+					$op  = 'like';
+					$qb = "'%";
+					$qe = "%'";
+				}
+			}
+			push(@query, "$fields[0] $op $qb$specs[$i]$qe");
+		}
 	}
 
-	my $i = 0;
-	my ($range,@query);
+
+
+	$query .= join $joiner, @query;
+
+	@query = ();
+
+	$i = 0;
 	foreach $range (@range) {
+		$qe = $qb = "'";
+		if ($numeric[$i]) {
+			$qe = $qb = "";
+		}
 		if(length $range_min[$i]) {
-			$op = $range_op[$i] ? '' : '>=';
-			push @query, "$range $op $range_min[$i]";
+			$op = '>=';
+			push @query, "$range $op $qb$range_min[$i]$qe";
 		}
 		if(length $range_max[$i]) {
-			$op = $range_op[$i] ? '' : '<=';
-			push @query, "$range $op $range_max[$i]";
+			$op = '<=';
+			push @query, "$range $op $qb$range_max[$i]$qe";
 		}
 		$i++;
 	}
-	
+
 	if(@query) {
-		$query .= $options->{search_spec} ne '*' ? ' AND ' : ' WHERE ';
+		$query .= scalar(@specs) ? ' AND ' : '';
 		$query .= join ' AND ', @query;
 	}
 
-	$query .= " ORDER by $options->{sort_field}"
-		if $options->{sort_field};
+	if ($options->{sort_field}) {
+		$query .= " ORDER by $options->{sort_field}";
+		if($options->{sort_option} =~ /r/i) {
+			$query .= ' DESC';
+		}
+	}
 
-#print("query: $query\n") if $Global::DEBUG;
-	if(1 or ref $db =~ /msql/i) {
-		$out = Vend::Table::Msql::array_query ($query,
-										{Catalog => $Vend::Cfg->{MsqlDB}})
+print("complex query: $query\n") if $Global::DEBUG;
+	$out = $db->array_query ($query,$tables[0])
 			or return 0;
-	}
-	else {
-		$out = Vend::Table::DBI::array_query ($query,
-										{Catalog => $Vend::Cfg->{SqlDB}})
-			or return 0;
-	}
+
+  } # last FORMULATE
 
 	for(@$out) {
 		push @out, join "\t", @{$_};
@@ -478,11 +555,6 @@ sub finish_up {
 	$v->{'mv_dict_look'}			= $c->{'mv_dict_look'}
 									|| $q->{global}->{dict_look} || '';
 
-	unless (defined $v->{'mv_search_over_msg'}) {
-		$v->{'mv_search_over_msg'} =
-			$Vend::Cfg->{'SearchOverMsg'};
-	}
-
 	my $msg;
 	if ( $matches > 0 ) {
 		if (defined $Vend::Cfg->{'CollectData'}->{'matched'}) {
@@ -500,9 +572,6 @@ sub finish_up {
 		if (defined $Vend::Cfg->{'CollectData'}->{'nomatch'}) {
 			logData($Vend::Cfg->{'LogFile'}, format_log_msg('no match: ' . $msg));
 		}
-		::display_special_page($Vend::Cfg->{'Special'}->{'nomatch'}, $msg)
-			unless defined $Vend::BuildingPages;
-		return 0;
 	}
 	else {
 		# Got an error handled by search module
@@ -510,7 +579,12 @@ sub finish_up {
 	}
 
 	if($Vend::Cfg->{'Delimiter'} ne "\t") {
-		for(@$out) { s/^"//; s/[",|].*$//; }
+		if($Vend::Cfg->{'Delimiter'} eq 'CSV') {
+			for(@$out) { s/^"//; s/[",|].*$//; }
+		}
+		else {
+			for(@$out) { s/$q->{global}->{return_delim}/\t/g; }
+		}
 	}
 
 	undef $v->{'mv_search_over_msg'}
@@ -620,6 +694,10 @@ sub perform_search {
 		$out = $q->search();
   } # last SEARCH
 
+	if($q->{global}->{list_only}) {
+		return $out;
+	}
+
 	finish_up($c,$q,$out) or return 0;
 	search_page($q,$out);
 
@@ -707,7 +785,7 @@ sub _scalar {
 
 sub _scalar_or_array {
 	my(@fields) = split /\s*[,\0]\s*/, $_[1], -1;
-	scalar @fields > 1 ? [@fields] : $fields[0];
+	scalar @fields > 1 ? [@fields] : (defined $fields[0] ? $fields[0] : '');
 }
 
 sub _yes_array {

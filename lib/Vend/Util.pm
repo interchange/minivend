@@ -1,4 +1,23 @@
-# $Id: Util.pm,v 1.13 1997/09/05 07:37:04 mike Exp mike $
+# Util.pm - Minivend utility functions
+#
+# $Id: Util.pm,v 1.15 1997/11/03 11:31:48 mike Exp mike $
+# 
+# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+# Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Util;
 require Exporter;
@@ -16,8 +35,10 @@ require Exporter;
 @EXPORT = qw(
 
 blank
+copyref
 currency
 check_security
+dump_structure
 file_modification_time
 format_log_msg
 international_number
@@ -56,6 +77,8 @@ use Config;
 use Fcntl;
 use POSIX 'strftime';
 use subs qw(logError logGlobal);
+use vars qw($VERSION);
+$VERSION = substr(q$Revision: 1.15 $, 10);
 
 BEGIN {
 	eval {
@@ -424,7 +447,39 @@ push(@fields, $+) while $text =~ m{
 }
 
 
+# Modified from old, old module called Ref.pm
+sub copyref {
+    my($x,$r) = @_; 
 
+    my($z, $y);
+
+    my $rt = ref $x;
+
+    if ($rt =~ /SCALAR/) {
+        # Would \$$x work?
+        $z = $$x;
+        return \$z;
+    } elsif ($rt =~ /HASH/) {
+        $r = {} unless defined $r;
+        for $y (sort keys %$x) {
+            $r->{$y} = &copyref($x->{$y}, $r->{$y});
+        }
+        return $r;
+    } elsif ($rt =~ /ARRAY/) {
+        $r = [] unless defined $r;
+        for ($y = 0; $y <= $#{$x}; $y++) {
+            $r->[$y] = &copyref($x->[$y]);
+        }
+        return $r;
+    } elsif ($rt =~ /REF/) {
+        $z = &copyref($x);
+        return \$z;
+    } elsif (! $rt) {
+        return $x;
+    } else {
+        die "do not know how to copy $x";
+    }
+}
 
 ## READIN
 
@@ -680,6 +735,21 @@ sub tag_nitems {
 #1;
 #__END__
 # END AUTOLOAD
+
+sub dump_structure {
+	my ($ref, $name) = @_;
+	my $save;
+	$name =~ s/\.cfg$//;
+	$name .= '.structure';
+	open(UNEV, ">$name") or die "Couldn't write structure $name: $!\n";
+	if(defined $Data::Dumper::Indent) {
+		$save = $Data::Dumper::Indent;
+		$Data::Dumper::Indent = 2;
+	}
+	print UNEV uneval $ref;
+	close UNEV;
+	$Data::Dumper::Indent = $save if defined $save;
+}
 
 # Check that the user is authorized by one or all of the
 # configured security checks

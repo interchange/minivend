@@ -1,10 +1,8 @@
-Changes
 Copying
 MANIFEST
 Makefile.PL
 README
 configure
-dist/LOW_MEMORY
 dist/README
 dist/bin/autosplit
 dist/bin/buildtree
@@ -44,7 +42,6 @@ dist/sample/html/minivend.html
 dist/sample/html/special1.html
 dist/sample/html/special2.html
 dist/sample/html/special3.html
-dist/sample/html/tags.html
 dist/sample/html/toc.html
 dist/sample/images/00-0011.jpg
 dist/sample/images/00-341.jpg
@@ -169,7 +166,6 @@ dist/simple/etc/report
 dist/simple/etc/search.profiles
 dist/simple/html/index.html
 dist/simple/html/minivend.html
-dist/simple/html/tags.html
 dist/simple/html/toc.html
 dist/simple/images/00-0011.jpg
 dist/simple/images/00-341.jpg
@@ -275,7 +271,6 @@ dist/src/vlink.c
 dist/src/vlink.pl
 doc/intro.html
 doc/minivend.html
-doc/tags.html
 doc/toc.html
 lib/Carp.pm
 lib/File/Basename.pm

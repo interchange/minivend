@@ -1,6 +1,6 @@
 # Http.pm:  interface to cgi protocol
 #
-# $Id: Http.pm,v 1.6 1997/06/17 04:22:52 mike Exp $
+# $Id: Http.pm,v 1.9 1997/11/03 11:31:17 mike Exp mike $
 #
 package Vend::Http;
 
@@ -24,11 +24,13 @@ package Vend::Http::Base;
 # abstract class
 
 use strict;
+use vars qw($VERSION);
+$VERSION = substr(q$Revision: 1.9 $, 10);
 
 #sub Server                    { $_[0]->{'Server'} }
-#sub Content_Encoding          { $_[0]->{'Content_Encoding'} }
+sub Content_Encoding          { $_[0]->{'Content_Encoding'} }
 #sub Content_Language          { $_[0]->{'Content_Language'} }
-#sub Content_Transfer_Encoding { $_[0]->{'Content_Transfer_Encoding'} }
+sub Content_Transfer_Encoding { $_[0]->{'Content_Transfer_Encoding'} }
 #sub Server_Software           { $_[0]->{'Server_Software'} }
 #sub URI                      { $_[0]->{'URI'} }
 sub Accept                    { $_[0]->{'Accept'} }
@@ -136,9 +138,9 @@ my @Map =
      'Server_Host' => 'SERVER_NAME',
      'Server_Port' => 'SERVER_PORT',
      'User_Agent' => 'HTTP_USER_AGENT',
-#     'Content_Encoding' => 'HTTP_CONTENT_ENCODING',
+     'Content_Encoding' => 'HTTP_CONTENT_ENCODING',
 #     'Content_Language' => 'HTTP_CONTENT_LANGUAGE',
-#     'Content_Transfer_Encoding' => 'HTTP_CONTENT_TRANSFER_ENCODING',
+     'Content_Transfer_Encoding' => 'HTTP_CONTENT_TRANSFER_ENCODING',
 #     'Server_Software' => 'SERVER_SOFTWARE',
 # Accept
 # Accept_Charset
@@ -216,7 +218,6 @@ sub read_entity_body {
 package Vend::form;
 
 use strict;
-#use Vend::Uneval;
 
 sub unhexify {
     my($s) = @_;

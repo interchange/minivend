@@ -1,9 +1,9 @@
 # SessionFile.pm:  stores session information in files
 #
-# $Id: SessionFile.pm,v 1.3 1997/08/26 20:45:39 mike Exp mike $
+# $Id: SessionFile.pm,v 1.4 1997/11/03 11:31:43 mike Exp mike $
 #
 # Copyright 1996 by Andrew M. Wilcox <awilcox@world.std.com>
-# Copyright 1996 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
-# $Id: SessionFile.pm,v 1.3 1997/08/26 20:45:39 mike Exp mike $
+# $Id: SessionFile.pm,v 1.4 1997/11/03 11:31:43 mike Exp mike $
 
 package Vend::SessionFile;
 require Tie::Hash;
@@ -28,6 +28,9 @@ require Tie::Hash;
 
 use strict;
 use Vend::Util;
+
+use vars qw($VERSION);
+$VERSION = substr(q$Revision: 1.4 $, 10);
 
 my $SessionDir;
 my $SessionFile;

@@ -1,6 +1,6 @@
 package Vend::Parser;
 
-# $Id: Parser.pm,v 1.5 1997/06/17 04:22:52 mike Exp $
+# $Id: Parser.pm,v 1.6 1997/11/01 20:11:06 mike Exp $
 
 =head1 NAME
 
@@ -50,7 +50,6 @@ third argument is a reference to an array with the lower case
 attribute keys in the original order.  The fourth argument is the
 original MiniVend page.
 
-
 =item $self->end($tag)
 
 This method is called when an end tag has been recognized.  The
@@ -91,7 +90,7 @@ Copyright 1996 Gisle Aas. All rights reserved.
 This library is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
 
-Modified for use by MiniVend
+Modified for use by MiniVend.
 
 Copyright 1997 Mike Heins.  
 
@@ -107,7 +106,7 @@ use strict;
 
 use HTML::Entities ();
 use vars qw($VERSION);
-$VERSION = sprintf("%d.%02d", q$Revision: 1.5 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.6 $ =~ /(\d+)\.(\d+)/);
 
 
 sub new
@@ -245,12 +244,11 @@ sub parse
 				# Arrgh!! Since stupid Netscape violates RCF1866 by
 				# using "_" in attribute names (like "ADD_DATE") of
 				# their bookmarks.html, we allow this too.
-				my $old = 0;
 				while ($$buf =~ s|^(([a-zA-Z][-a-zA-Z0-9._]*)\s*)||) {
 					$eaten .= $1;
 					my $attr = lc $2;
 					my $val;
-					$old = 0;
+					my $old = 0;
 					# The attribute might take an optional value (first we
 					# check for an unquoted value)
 					if ($$buf =~ s|(^=\s*([^\"\'\]\s][^\]\s]*)\s*)||) {
@@ -307,14 +305,6 @@ sub parse
 		}
 	}
 	$self;
-}
-
-sub netscape_buggy_comment
-{
-	my $self = shift;
-	my $old = $self->{'_netscape_comment'};
-	$self->{'_netscape_comment'} = shift if @_;
-	return $old;
 }
 
 sub parse_file

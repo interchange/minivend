@@ -1,7 +1,29 @@
-# $Id: Session.pm,v 1.13 1997/08/26 20:45:39 mike Exp mike $
+# Session.pm - Minivend Sessions
+#
+# $Id: Session.pm,v 1.15 1997/11/03 11:31:39 mike Exp mike $
+# 
+# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+# Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Session;
 require Exporter;
+
+use vars qw($VERSION);
+$VERSION = substr(q$Revision: 1.15 $, 10);
 
 # AUTOLOAD
 #use AutoLoader;
@@ -161,6 +183,16 @@ sub new_session {
 	close_session();
 }
 
+sub check_override {
+	return 1 unless defined $CGI::values{mv_override_domain};
+	return 1 if $CGI::values{mv_override_check} eq $Vend::Session->{override_check};
+	logError "Override check '" .
+		$Vend::Session->{override_check} . "' not good from $CGI::original_host.\n";
+	logGlobal "Override check '" .
+		$Vend::Session->{override_check} . "' not good from $CGI::original_host.\n";
+	die "Security violation. Check error log $Global::ErrorFile\n";
+}
+
 sub save_session {
 	my($source,$dest,$name) = @_;
 	my($s,$d,$found);
@@ -307,6 +339,15 @@ sub read_session {
 	return new_session($Vend::SessionID) unless $s;
     $Vend::Session = eval($s);
     die "Could not eval '$s' from session dbm: $@\n" if $@;
+
+	$Vend::Session->{host} = $CGI::host;
+
+	# The below can die if there is an override and the hosts/checks
+	# don't match
+	check_override();
+
+	$Vend::Session->{override_check} = $Vend::Session->{'time'};
+
     $Vend::Items	= $Vend::Session->{'items'}
 					= $Vend::Session->{'carts'}->{'main'};
 }
@@ -338,7 +379,7 @@ sub init_session {
 #print("init session id=$Vend::SessionID  name=$Vend::SessionName\n") if $Global::DEBUG;
     $Vend::Session = {
 	'version' => 1,
-	'frames' => 0,
+	'frames' => $Vend::Cfg::FramesDefault,
 	'login' => '',
 	'browser' => $CGI::useragent,
 	'referer' => $CGI::referer,

@@ -1,6 +1,6 @@
 # Parse.pm - Parse MiniVend tags
 # 
-# $Id: Parse.pm,v 1.9 1997/09/05 07:30:18 mike Exp mike $
+# $Id: Parse.pm,v 1.11 1997/11/03 11:10:44 mike Exp $
 #
 # Copyright 1997 by Michael J. Heins <mikeh@iac.net>
 #
@@ -20,12 +20,12 @@
 
 package Vend::Parse;
 
-# $Id: Parse.pm,v 1.9 1997/09/05 07:30:18 mike Exp mike $
+# $Id: Parse.pm,v 1.11 1997/11/03 11:10:44 mike Exp $
 
 require Vend::Parser;
 
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.9 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.11 $ =~ /(\d+)\.(\d+)/);
 
 use Safe;
 use Vend::Util;
@@ -46,7 +46,7 @@ require Exporter;
 @ISA = qw(Exporter Vend::Parser);
 # END NOAUTO
 
-$VERSION = substr(q$Revision: 1.9 $, 10);
+$VERSION = substr(q$Revision: 1.11 $, 10);
 @EXPORT = ();
 @EXPORT_OK = qw(find_matching_end find_end);
 
@@ -68,6 +68,8 @@ use vars qw($VERSION);
 #%Required
 #%Routine
 #%canNest
+#%Interpolate
+#%Alias
 #%Default
 #%hasEndTag
 #%isEndAnchor
@@ -88,7 +90,7 @@ my %PosNumber =	(
 
 				accessories		=> 2,
 				area			=> 3,
-				areatarget		=> 3,
+				areatarget		=> 4,
 				body			=> 1,
 				buttonbar		=> 1,
 				cart			=> 1,
@@ -120,6 +122,7 @@ my %PosNumber =	(
 				row				=> 1,
 				salestax		=> 1,
 				scratch			=> 1,
+				search			=> 1,
 				selected		=> 3,
 				set				=> 1,
 				shipping		=> 1,
@@ -142,12 +145,13 @@ my %Order =	(
 # END NOAUTO
 
 				accessories		=> [qw( code false arg )],
-				area			=> [qw( href target base )],
-				areatarget		=> [qw( href target base )],
+				area			=> [qw( href arg )],
+				areatarget		=> [qw( href target arg )],
 				body			=> [qw( type  )],
 				buttonbar		=> [qw( type  )],
 				calc			=> [],
 				cart			=> [qw( name  )],
+				compat			=> [],
 				'currency'		=> [],
 				checked			=> [qw( name value multiple)],
 				data			=> [qw( base name code value increment)],
@@ -172,6 +176,7 @@ my %Order =	(
 				page			=> [qw( href target base )],
 				pagetarget		=> [qw( href target base )],
 				perl			=> [qw( arg )],
+				post			=> [],
 				price			=> [qw( code quantity base )],
 				process_order	=> [qw( target secure )],
 				process_search	=> [qw( target )],
@@ -181,6 +186,7 @@ my %Order =	(
 				row				=> [qw( width )],
 				salestax		=> [qw( name  )],
 				scratch			=> [qw( name  )],
+				search			=> [qw( arg   )],
 				selected		=> [qw( name value multiple )],
 				set				=> [qw( name  )],
 				shipping		=> [qw( name  )],
@@ -222,6 +228,7 @@ my %Required = (
 				page		=> [ qw( href )],
 				pagetarget	=> [ qw( href )],
 				scratch		=> [ qw( name )],
+				search		=> [ qw( arg  )],
 				selected	=> [ qw( name value )],
 				set			=> [ qw( name )],
 				value		=> [ qw( name )],
@@ -330,6 +337,9 @@ my %Routine = (
 				cart			=> \&Vend::Interpolate::tag_cart,
 				checked			=> \&Vend::Interpolate::tag_selected,
 				'currency'		=> \&Vend::Interpolate::currency,
+				compat			=> sub {
+										&Vend::Interpolate::interpolate_html('[old]' . $_[0]),
+									},
 				data			=> \&Vend::Interpolate::tag_data,
 				default			=> \&Vend::Interpolate::tag_default,
 				description		=> \&Vend::Data::product_description,
@@ -352,6 +362,7 @@ my %Routine = (
 				page			=> \&Vend::Interpolate::tag_pagetarget,
 				pagetarget		=> \&Vend::Interpolate::tag_pagetarget,
 				perl			=> \&Vend::Interpolate::tag_perl,
+				post			=> sub { return $_[0] },
 				price        	=> \&Vend::Data::product_price,
 				process_order	=> \&Vend::Interpolate::tag_process_order,
 				process_search	=> \&Vend::Interpolate::tag_process_search,
@@ -359,9 +370,9 @@ my %Routine = (
 				random			=> \&Vend::Interpolate::tag_random,
 				rotate			=> \&Vend::Interpolate::tag_rotate,
 				row				=> \&Vend::Interpolate::tag_row,
-				row				=> \&Vend::Interpolate::tag_row,
 				salestax		=> \&Vend::Interpolate::tag_salestax,
 				scratch			=> \&Vend::Interpolate::tag_scratch,
+				search			=> \&Vend::Interpolate::tag_search,
 				selected		=> \&Vend::Interpolate::tag_selected,
 				set				=> \&Vend::Interpolate::set_scratch,
 				shipping		=> \&Vend::Interpolate::tag_shipping,
@@ -373,6 +384,19 @@ my %Routine = (
 				total_cost	=> \&Vend::Interpolate::tag_total_cost,
 				value		=> \&Vend::Interpolate::tag_value,
 
+			);
+
+# AUTOLOAD
+#%Alias = (
+# END AUTOLOAD
+
+# NOAUTO
+my %Alias = (
+# END NOAUTO
+
+				qw(
+						href		area
+				)
 			);
 
 # AUTOLOAD
@@ -413,6 +437,7 @@ my %hasEndTag = (
 
 				qw(
 						calc		1
+						compat		1
 						currency	1
 						discount	1
 						if			1
@@ -420,10 +445,25 @@ my %hasEndTag = (
 						loop		1
 						msql		1
 						perl		1
+						post		1
 						row			1
 						set			1
 						tag			1
 
+				)
+			);
+
+# AUTOLOAD
+#%Interpolate = (
+# END AUTOLOAD
+
+# NOAUTO
+my %Interpolate = (
+# END NOAUTO
+
+				qw(
+						buttonbar	1
+						row			1
 				)
 			);
 
@@ -450,15 +490,61 @@ my %isEndAnchor = (
 #__END__
 # END AUTOLOAD
 
+my $Initialized = 0;
+
 sub new
 {
     my $class = shift;
     my $self = new Vend::Parser;
-	$self->{OUT} = '';
 	$self->{INVALID} = 0;
 	$self->{INTERPOLATE} = shift || 0;
 	$self->{WAIT_BRACKET} = 0;
+
+	if(!$Initialized) {
+print("Adding tags\n") if $Global::DEBUG;
+		add_tags($Vend::Cfg->{UserTag});
+#		tie $self->{OUT}, 'Vend::Response';
+#	}
+#	else {
+#		$self->{OUT} = '';
+	}
+
+	$self->{OUT} = '';
+	$Initialized = 1;
     bless $self, $class;
+}
+
+my %myRefs = (
+	 Alias          => \%Alias,
+	 Implicit       => \%Implicit,
+	 Order          => \%Order,
+	 PosNumber      => \%PosNumber,
+	 PosRoutine     => \%PosRoutine,
+	 Required       => \%Required,
+	 Routine        => \%Routine,
+	 canNest        => \%canNest,
+	 Default        => \%Default,
+	 hasEndTag      => \%hasEndTag,
+	 isEndAnchor    => \%isEndAnchor,
+	 isOperator     => \%isOperator,
+	 InvalidateCache => \%InvalidateCache,
+);
+
+sub add_tags {
+	return unless @_;
+	my $ref = shift;
+	my $area;
+	no strict 'refs';
+	foreach $area (keys %myRefs) {
+		next unless $ref->{$area};
+		if($area eq 'Routine') {
+			for (keys %{$ref->{$area}}) {
+				$myRefs{$area}->{$_} = $ref->{$area}->{$_};
+			}
+			next;
+		}
+		Vend::Util::copyref $ref->{$area}, $myRefs{$area};
+	}
 }
 
 sub eof
@@ -477,22 +563,38 @@ sub comment
     # my($self, $comment) = @_;
 }
 
+my %Monitor = ( qw(
+					loop 1
+					sort 1
+					) );
+
 sub start
 {
     my($self, $tag, $attr, $attrseq, $origtext) = @_;
 	$tag =~ tr/-/_/;   # canonical
-#print("called start @_\n") if $Global::DEBUG;
+	local($Global::DEBUG) = defined $Monitor{$tag} ? 1 : 0;
+print("called start $tag with attributes" . @$attrseq . "\n") if $Global::DEBUG;
 	my($tmpbuf);
     # $attr is reference to a HASH, $attrseq is reference to an ARRAY
 	unless (defined $Routine{$tag}) {
-#print("Returning text, tag $tag not found\n$origtext\n") if $Global::DEBUG;
-		$self->{OUT} .= $origtext;
-		return 1;
-	}
-	if($InvalidateCache{$tag}) {
-		$self->{INVALID} = 1;
+		if(defined $Alias{$tag}) {
+			my ($rest, $text);
+			($tag, $rest) = split /\s+/, $Alias{$tag}, 2;
+print("Calling alias, tag $tag rest $rest, orig=$origtext\n") if $Global::DEBUG;
+			$text = _find_tag (\$rest, $attr, $attrseq);
+			$text = " $text" if $text;
+			$origtext =~ s:^(\[\S+):[$tag$text:;
+		}
+		else {
+print("Returning text, tag $tag not found\n$origtext\n") if $Global::DEBUG;
+			$self->{OUT} .= $origtext;
+			return 1;
+		}
 	}
 
+	if(defined $InvalidateCache{$tag}) {
+		$self->{INVALID} = 1;
+	}
 
 	if(0) {
 	#unless (!$Vend::Cfg->{AllowMixed}) {
@@ -517,9 +619,10 @@ sub start
 		
 		# Parse tags within tags, only works if the [ is the
 		# first character.
-		next unless $attr->{$_} =~ /\[[\000-\377]+\]/;
+print("Parsing attribute $_ $attr->{$_}\n") if $Global::DEBUG;
+		next unless $attr->{$_} =~ /\[\w+[-\w]*\s+[\000-\377]+\]/;
 		my $t = $_;
-#print("Parsing attribute $t\n$attr->{$t}") if $Global::DEBUG;
+print("Re-parsing attribute $t $attr->{$t}\n") if $Global::DEBUG;
 
 		my $p = new Vend::Parse $self->{WAIT_BRACKET};
 		$p->parse($attr->{$t});
@@ -543,7 +646,8 @@ sub start
 	{
 #print("called old $tag with args $origtext\n") if $Global::DEBUG;
 			$origtext =~ s/\]$//;
-			$attr->{interpolate} = 1 if $hasEndTag{$tag};
+			$attr->{interpolate} = 0 if $hasEndTag{$tag} and $canNest{$tag};
+			$attr->{interpolate} = 1 if defined $Interpolate{$tag};
 			@args = ($origtext);
 			if(defined $PosNumber{$tag} and $PosNumber{$tag} > 1) {
 				@args = split /\s+/, $origtext, $PosNumber{$tag};
@@ -569,7 +673,7 @@ sub start
 		# Handle embedded tags, but only if interpolate is 
 		# defined (always if using old tags)
 		if($attr->{interpolate}) {
-#print("...interpolating...") if $Global::DEBUG;
+print("...interpolating with end tag...") if $Global::DEBUG;
 			my $p = new Vend::Parse $self->{WAIT_BRACKET};
 			$p->parse($tmpbuf);
 			$tmpbuf = $p->{OUT};
@@ -587,7 +691,7 @@ sub start
 				. $self->{'_buf'};
 	}
 	elsif($attr->{interpolate}) {
-#print("...interpolating...") if $Global::DEBUG;
+print("...interpolating...") if $Global::DEBUG;
 			my $p = new Vend::Parse $self->{WAIT_BRACKET};
 			$p->parse(&$routine( @args ));
 			$self->{INVALID} += $p->{INVALID};
@@ -641,18 +745,18 @@ sub find_matching_end {
 			$tmpbuf = $1;
 			$eaten = $2;
 			if($self->{WAIT_BRACKET} and $$buf =~ s/\s*\d?\s*\]// ) {
-#print("...removed bracket (4)...") if $Global::DEBUG;
+print("...removed bracket (4)...") if $Global::DEBUG;
 					$self->{WAIT_BRACKET}--;
 			}
 			$found++;
 			push(@out, $tmpbuf);
 			$more++ while ($tmpbuf =~ m!\[$tag[\]\s]!g);
-#print("---found=$found more=$more") if $Global::DEBUG;
+print("---found=$found more=$more") if $Global::DEBUG;
 			push(@out, $eaten);
 			last if $found > $more;
 		}
 		else {
-#print("---eof found.") if $Global::DEBUG;
+print("---eof found.") if $Global::DEBUG;
 			last;
 		}
 	}
@@ -673,9 +777,52 @@ sub find_end {
 		return $1;
 	}
 	else {
-#print("Found no match for $tag.\n") if $Global::DEBUG;
+print("Found no match for $tag.\n") if $Global::DEBUG;
 		return undef;
 	}
+}
+
+# Passed some string that might be HTML-style attributes
+# or might be positional parameters, does the right thing
+sub _find_tag {
+	my ($buf, $attrhash, $attrseq) = (@_);
+	my $old = 0;
+	my $eaten = '';
+	my %attr;
+	my @attrseq;
+	while ($$buf =~ s|^(([a-zA-Z][-a-zA-Z0-9._]*)\s*)||) {
+		$eaten .= $1;
+		my $attr = lc $2;
+		my $val;
+		$old = 0;
+		# The attribute might take an optional value (first we
+		# check for an unquoted value)
+		if ($$buf =~ s|(^=\s*([^\"\'\]\s][^\]\s]*)\s*)||) {
+			$eaten .= $1;
+			$val = $2;
+			HTML::Entities::decode($val);
+		# or quoted by " or '
+		} elsif ($$buf =~ s|(^=\s*([\"\'])(.*?)\2\s*)||s) {
+			$eaten .= $1;
+			$val = $3;
+			HTML::Entities::decode($val);
+		# truncated just after the '=' or inside the attribute
+		} elsif ($$buf =~ m|^(=\s*)$| or
+				 $$buf =~ m|^(=\s*[\"\'].*)|s) {
+			$eaten = "$eaten$1";
+			last;
+		} else {
+			# assume attribute with implicit value, which 
+			# means in MiniVend no value is set and the
+			# eaten value is grown
+			$old = 1;
+		}
+		next if $old;
+		$attrhash->{$attr} = $val;
+		push(@attrseq, $attr);
+	}
+	unshift(@$attrseq, @attrseq);
+	return ($eaten);
 }
 
 1;

@@ -1,8 +1,9 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.17 1997/06/27 11:32:10 mike Exp mike $
-
+# $Id: Server.pm,v 1.27 1997/11/03 11:31:36 mike Exp mike $
+#
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+# Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +22,9 @@
 package Vend::Http::Server;
 require Vend::Http;
 @ISA = qw(Vend::Http::CGI);
+
+use vars qw($VERSION);
+$VERSION = substr(q$Revision: 1.27 $, 10);
 
 use POSIX 'strftime';
 use strict;
@@ -42,6 +46,7 @@ sub read_entity_body {
 }
 
 sub respond {
+
     my ($s, $content_type, $body) = @_;
     my $fh = $s->{fh};
 
@@ -56,16 +61,16 @@ sub respond {
 	}
 
 	if ($CGI::script_name =~ m:/nph-[^/]+$:) {
-		print $fh "HTTP/1.0 200 OK\r\n";
+		if(defined $Vend::StatusLine) {
+			print $fh $Vend::StatusLine;
+			undef $Vend::StatusLine;
+		}
+		else { print $fh "HTTP/1.0 200 OK\r\n"; }
 	}
-	if ($Vend::Session->{frames} and $CGI::values{mv_change_frame}) {
-print "Changed Frame: Window-target: " . $CGI::values{mv_change_frame} . "\r\n" if $Global::DEBUG;
-		print $fh "Window-target: " . $CGI::values{mv_change_frame} . "\r\n";
-    }
 
 	if ((defined $Vend::Expire or ! $CGI::cookie) and $Vend::Cfg->{'Cookies'}) {
 		print $fh "Set-Cookie: MV_SESSION_ID=" . $Vend::SessionName . ";";
-		print $fh "domain=" . $Vend::Cfg->{CookieDomain} . ";"
+		print $fh " domain=" . $Vend::Cfg->{CookieDomain} . ";"
 			if $Vend::Cfg->{CookieDomain};
 		if($Global::Mall) {
 			print $fh " path=$CGI::script_path;";
@@ -78,12 +83,19 @@ print "Changed Frame: Window-target: " . $CGI::values{mv_change_frame} . "\r\n" 
 			if defined $Vend::Expire and $Vend::Expire;
 		print $fh "\r\n";
     }
+
     if (defined $Vend::StatusLine) {
 		print $fh "$Vend::StatusLine\r\n";
 	}
 	else {
 		print $fh "Content-type: $content_type\r\n";
 	}
+
+	if ($Vend::Session->{frames} and $CGI::values{mv_change_frame}) {
+print "Changed Frame: Window-target: " . $CGI::values{mv_change_frame} . "\r\n" if $Global::DEBUG;
+		print $fh "Window-target: " . $CGI::values{mv_change_frame} . "\r\n";
+    }
+
     print $fh "\r\n";
     print $fh $body;
     $s->{'response_made'} = 1;
@@ -258,26 +270,48 @@ sub housekeeping {
 		closedir(Vend::Server::CHECKRUN)
 			or die "closedir $Global::ConfDir: $!\n";
 		($reconfig) = grep $_ eq 'reconfig', @files;
-		($restart) = grep $_ eq '.restart', @files;
+		($restart) = grep $_ eq 'restart', @files;
 		if (defined $restart) {
-			open(Vend::Server::RECONFIG, "+<$Global::ConfDir/.restart")
-				or die "open $Global::ConfDir/.restart: $!\n";
-			lockfile(\*Vend::Server::RECONFIG, 1, 1)
-				or die "lock $Global::ConfDir/reconfig: $!\n";
-			my $options = <Vend::Server::RECONFIG>;
-			chomp $options;
-			$Signal_Restart = $options;
-			unlockfile(\*Vend::Server::RECONFIG)
-				or die "unlock $Global::ConfDir/.restart: $!\n";
-			close(Vend::Server::RECONFIG)
-				or die "close $Global::ConfDir/.restart: $!\n";
-			unlink "$Global::ConfDir/.restart"
-				or die "unlink $Global::ConfDir/.restart: $!\n";
-			unlink "$Global::ConfDir/reconfig";
-			logGlobal "Restarting server at admin request.\n\nOptions: $options.\n";
-			$Signal_Terminate = 1;
+			open(Vend::Server::RESTART, "+<$Global::ConfDir/restart")
+				or die "open $Global::ConfDir/restart: $!\n";
+			lockfile(\*Vend::Server::RESTART, 1, 1)
+				or die "lock $Global::ConfDir/restart: $!\n";
+			while(<Vend::Server::RESTART>) {
+				chomp;
+				my ($directive,$value) = split /\s+/, $_, 2;
+				if($value =~ /<<(.*)/) {
+					my $mark = $1;
+					$value = Vend::Config::read_here(\*Vend::Server::RESTART, $mark);
+					unless (defined $value) {
+						logGlobal(<<EOF);
+Global reconfig ERROR
+Can't find string terminator "$mark" anywhere before EOF.
+EOF
+						last;
+					}
+					chomp $value;
+				}
+				eval {
+					if($directive =~ /^\s*(sub)?catalog$/i) {
+						::add_catalog("$directive $value");
+					}
+					else {
+						::change_global_directive($directive, $value);
+					}
+				};
+				if($@) {
+					logGlobal(@_);
+					last;
+				}
+			}
+			unlockfile(\*Vend::Server::RESTART)
+				or die "unlock $Global::ConfDir/restart: $!\n";
+			close(Vend::Server::RESTART)
+				or die "close $Global::ConfDir/restart: $!\n";
+			unlink "$Global::ConfDir/restart"
+				or die "unlink $Global::ConfDir/restart: $!\n";
 		}
-		elsif (defined $reconfig) {
+		if (defined $reconfig) {
 			open(Vend::Server::RECONFIG, "+<$Global::ConfDir/reconfig")
 				or die "open $Global::ConfDir/reconfig: $!\n";
 			lockfile(\*Vend::Server::RECONFIG, 1, 1)
@@ -347,7 +381,7 @@ sub server_both {
 		$so_max = SOMAXCONN;
 	}
 	else {
-		$so_max = 10;
+		$so_max = 128;
 	}
 
 	if($Global::Unix_Mode) {
@@ -372,17 +406,36 @@ sub server_both {
 	}
 
 	if($Global::Inet_Mode) {
-		socket(Vend::Server::ISOCKET, PF_INET, SOCK_STREAM, $proto)
-				|| die "socket: $!";
-		setsockopt(Vend::Server::ISOCKET, SOL_SOCKET, SO_REUSEADDR, pack("l", 1))
-				|| die "setsockopt: $!";
-		bind(Vend::Server::ISOCKET, sockaddr_in($port, INADDR_ANY))
-				|| die "bind: $!";
-		listen(Vend::Server::ISOCKET,$so_max)
-				|| die "listen: $!";
-		$rin = '';
-		vec($rin, fileno(Vend::Server::ISOCKET), 1) = 1;
-		$vector |= $rin;
+		eval {
+			socket(Vend::Server::ISOCKET, PF_INET, SOCK_STREAM, $proto)
+					|| die "socket: $!";
+			setsockopt(Vend::Server::ISOCKET, SOL_SOCKET, SO_REUSEADDR, pack("l", 1))
+					|| die "setsockopt: $!";
+			bind(Vend::Server::ISOCKET, sockaddr_in($port, INADDR_ANY))
+					|| die "bind: $!";
+			listen(Vend::Server::ISOCKET,$so_max)
+					|| die "listen: $!";
+		};
+
+		if (! $@) {
+			$rin = '';
+			vec($rin, fileno(Vend::Server::ISOCKET), 1) = 1;
+			$vector |= $rin;
+		}
+		elsif ($Global::Unix_Mode) {
+			logGlobal "INET mode error: $@\n\nContinuing in UNIX MODE ONLY\n";
+		}
+		else {
+			logGlobal "INET mode server failed to start: $@\n";
+			logGlobal "SERVER TERMINATING";
+			exit 1;
+		}
+	}
+
+	my $no_fork;
+
+	if($Global::DEBUG or $Config{osname} =~ /win32/i) {
+		$no_fork = 1;
 	}
 
     for (;;) {
@@ -434,7 +487,10 @@ sub server_both {
 	  eval {
 		SPAWN: {
 			last SPAWN unless defined $spawn;
-			if(! defined ($pid = fork) ) {
+			if(defined $no_fork) {
+				connection($debug);
+			}
+			elsif(! defined ($pid = fork) ) {
 				logGlobal ("Can't fork: $!");
 				die ("Can't fork: $!");
 			}

@@ -1,6 +1,6 @@
 # Table/Import.pm: import a table
 #
-# $Id: Import.pm,v 1.9 1997/09/07 07:15:24 mike Exp mike $
+# $Id: Import.pm,v 1.9 1997/09/07 07:15:24 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #

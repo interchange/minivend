@@ -1,6 +1,6 @@
 # Table/DBI.pm: access a table stored in an DBI/DBD Database
 #
-# $Id: DBI.pm,v 1.7 1997/09/07 07:15:24 mike Exp mike $
+# $Id: DBI.pm,v 1.9 1997/11/01 12:19:39 mike Exp mike $
 #
 # Copyright 1997 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -19,7 +19,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::DBI;
-$VERSION = substr(q$Revision: 1.7 $, 10);
+$VERSION = substr(q$Revision: 1.9 $, 10);
 
 use Carp;
 use strict;
@@ -178,7 +178,9 @@ sub create {
 		or ::logError("table $tablename index failed: $DBI::errstr");
 #print("Created table, I think.\n") if $Global::DEBUG;
 
-    my $self = [$tablename, $key, $db, $columns];
+	$config->{NAME} = $columns;
+
+    my $self = [$tablename, $key, $db, $columns, $config];
     bless $self, $class;
 }
 
@@ -242,13 +244,18 @@ sub test_column {
 
 sub inc_field {
     my ($s, $key, $column, $value) = @_;
-    my $sth = $s->[$DBI]->prepare("select $column from $s->[$TABLE] where $s->[$KEY] = '$key'");
+	$key = $s->[$DBI]->quote($key)
+		unless defined $s->[$CONFIG]->{NUMERIC}->{$key};
+	$value = $s->[$DBI]->quote($value)
+		unless defined $s->[$CONFIG]->{NUMERIC}->{$column};
+    my $sth = $s->[$DBI]->prepare(
+		"select $column from $s->[$TABLE] where $s->[$KEY] = $key");
     croak "inc_field: $DBI::errstr\n" unless defined $sth;
     $sth->execute();
     $value += ($sth->fetchrow_array)[0];
     undef $sth;
 	$value =~ s/\s+$//;
-    $sth = $s->[$DBI]->do("update $s->[$TABLE] SET $column='$value' where $s->[$KEY] = '$key'");
+    $sth = $s->[$DBI]->do("update $s->[$TABLE] SET $column=$value where $s->[$KEY] = $key");
     $value;
 }
 
@@ -275,8 +282,10 @@ sub field_accessor {
     my ($s, $column) = @_;
     return sub {
         my ($key) = @_;
+		$key = $s->[$DBI]->quote($key)
+			unless defined $s->[$CONFIG]->{NUMERIC}->{$key};
         my $sth = $s->[$DBI]->prepare
-			("select $column from $s->[$TABLE] where $s->[$KEY] = '$key'")
+			("select $column from $s->[$TABLE] where $s->[$KEY] = $key")
 				or croak $DBI::errstr;
 		($sth->fetchrow)[0];
     };
@@ -333,7 +342,7 @@ sub html_query {
 	my(@row);
     $sth->execute() or croak $DBI::errstr;
 	my $r = '<TR>';
-	for(@{$s->[$NAME]}) {
+	for(@{$sth->{NAME}}) {
 		$r .= "<TH><B>$_</B></TH>";
 	}
 	$r .= '</TR>';
@@ -378,17 +387,32 @@ sub field_settor {
     my ($s, $column) = @_;
     return sub {
         my ($key, $value) = @_;
-		$value = DBI::neat $value;
-		$value = DBI::neat $key;
+		$value = $s->[$DBI]->quote($value)
+			unless defined $s->[$CONFIG]->{NUMERIC}->{$column};
+		$key = $s->[$DBI]->quote($key)
+			unless defined $s->[$CONFIG]->{NUMERIC}->{$key};
         $s->[$DBI]->do("update $s->[$TABLE] SET $column=$value where $s->[$KEY] = $key");
     };
 }
 
 sub set_row {
     my ($s, @fields) = @_;
+	my @cols = @{$s->[$CONFIG]->{NAME}};
 	
+	my $i = 0;
 	for(@fields) {
-		$_ = $s->[$DBI]->quote($_);
+		$_ = $s->[$DBI]->quote($_)
+			unless defined $s->[$CONFIG]->{NUMERIC}->{$cols[$i++]};
+	}
+
+	while(scalar @cols < scalar @fields) {
+		my $val = pop @fields;
+		my $t = $s->[$TABLE]; my $f = $fields[0];
+		::logError("set_row $t: field with value '$val' removed from record '$f'");
+	}
+
+	while(scalar @cols > scalar @fields) {
+		push @fields, '';
 	}
 
 	my $values = join ',', @fields;
@@ -400,7 +424,10 @@ sub set_row {
 
 sub field {
     my ($s, $key, $column) = @_;
-    my $sth = $s->[$DBI]->prepare("select $column from $s->[$TABLE] where $s->[$KEY] = '$key'");
+	$key = $s->[$DBI]->quote($key) 
+			unless defined $s->[$CONFIG]->{NUMERIC}->{$key};
+    my $sth = $s->[$DBI]->prepare(
+		"select $column from $s->[$TABLE] where $s->[$KEY] = $key");
     $sth->execute()
 		or croak("execute error: $DBI::errstr");
 	my $data = ($sth->fetchrow_array())[0];
@@ -411,8 +438,10 @@ sub field {
 
 sub set_field {
     my ($s, $key, $column, $value) = @_;
-	$key = DBI::neat($key);
-	$value = DBI::neat($value);
+	$key = $s->[$DBI]->quote($key)
+		unless defined $s->[$CONFIG]->{NUMERIC}->{$key};
+	$value = $s->[$DBI]->quote($value)
+		unless defined $s->[$CONFIG]->{NUMERIC}->{$column};
     $s->[$DBI]->do("update $s->[$TABLE] SET $column = $value where $s->[$KEY] = $key")
 		or croak "$DBI::errstr\n";
 	$value;

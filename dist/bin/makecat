@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 #
 # makecat = MiniVend catalog configurator
 #
@@ -29,7 +29,7 @@ BEGIN {
     };
 	($VendRoot = $ENV{MINIVEND_ROOT})
 		if defined $ENV{MINIVEND_ROOT};
-	$VendRoot = $VendRoot || '/home/minivend';
+$VendRoot = $VendRoot || '/home/minivend';
 }
 
 ## END CONFIGURABLE VARIABLES
@@ -580,10 +580,15 @@ $Cfg->WriteConfig("$Configfile.new")
 # Try and get the URL we will use to access the catalog
 GUESS: {
 
+ 	if( $Conf{samplehtml} =~ /^\s*none\s*$/i ) {
+		$Conf{sampleurl} = 'NONE';
+		last GUESS;
+	}
+
 	my $tempurl;
     $guessdir = $Conf{samplehtml};
 
-    unless($guessdir =~ s/^$Conf{documentroot}//) {
+    unless( $guessdir =~ s/^$Conf{documentroot}// ) {
         print <<EOF;
 \a
 The specified HTML directory, $Conf{samplehtml},
@@ -677,10 +682,14 @@ print <<EOF;
 MiniVend can use either UNIX- or internet-domain sockets.
 Most ISPs would prefer UNIX mode, and it is more secure.
 
+If you already have a program there, or use a common program
+and the FullURL directive, select NONE. You will then need
+to copy the program by hand or otherwise ensure its presence.
+
 EOF
 print "(You can use the up/down arrows to toggle).\n" if $Vend::MakeCat::Prompt_sub;
 
-sethistory("UNIX", "INET");
+sethistory("NONE", "UNIX", "INET");
 $default = ($Config{osname} =~ /bsd/i and $Config{osvers} gt '3') ? 'INET' : 'UNIX';
 $ask = prompt("INET or UNIX mode? ", $default);
 
@@ -689,8 +698,12 @@ my $prog = "$VendRoot/bin/vlink";
 if($ask =~ /^\s*i/i) {
 	$prog = "$VendRoot/bin/tlink";
 }
+elsif($ask =~ /^\s*n/i) {
+	$prog = "NONE";
+}
 
 FINDPROG: {
+	last FINDPROG if $prog eq 'NONE';
 	unless (-x "$prog" and -f _) {
 		my @history = ();
 		$prog =~ s:.*bin/::;
@@ -732,11 +745,13 @@ if($warn) {
 
 $warn = 0;
 for($Conf{documentroot}, $Conf{basedir}) {
+	next if /^\s*none\s*$/i;
 	next if -d $_;
 	$warn++;
 }
 
 for($Conf{catroot}, $Conf{samplehtml}, $Conf{imagedir}) {
+	next if /^\s*none\s*$/i;
 	next if -d $_;
 	$warn++;
 }
@@ -744,6 +759,10 @@ for($Conf{catroot}, $Conf{samplehtml}, $Conf{imagedir}) {
 if($warn) {
 	for(qw(catroot samplehtml imagedir)) {
 		$dir = $Conf{$_};
+
+		# Allow nocopy
+		next if $dir =~ /^\s*none\s*$/i;
+
 		(warn "\n$_ is empty, skipping.\n", next)
 			unless $dir =~ /\S/;
 		unless(-d $dir) {
@@ -759,8 +778,12 @@ if($warn) {
 
 for(qw(catroot samplehtml imagedir)) {
 		$dir = $Conf{$_};
+
+		# Allow nocopy
+		next if $dir =~ /^\s*none\s*$/i;
+
 		die "Directory $dir not writable, can't continue.\n"
-			unless -w $dir;
+			unless -w $dir or $dir =~ /^\s*none\s*$/i;
 }
 print "done.\n";
 
@@ -790,8 +813,10 @@ that the 'tar' program is available.
 EOF
 }
 
+unless($prog eq 'NONE') {
 File::Copy::copy( $prog, "$Conf{catroot}/executable")
 	or die "Couldn't copy link program from $prog: $!\n";
+}
 
 print "done.\n";
 
@@ -903,20 +928,23 @@ sub wanted {
 	$cginame =~ s:.*/::;
 	$cginame = "$Conf{cgidir}/$cginame";
 
-	print do_msg("Moving link program to $cginame");
 	
-	system "mv $Conf{catroot}/executable $cginame";
-	if($?) {
-		die "Couldn't move link executable from $prog to $cginame: $!\n";
-	}
+	unless ($prog eq 'NONE') {
 
-	if($isroot) {
-		chown ($mvuid, $mvgid, $cginame)
-			or die "\nCouldn't set ownership of $cginame: $!\n";
-	}
+		print do_msg("Moving link program to $cginame");
 
-	unless ($isroot or can_do_suid()) {
-		print <<EOF;
+		system "mv $Conf{catroot}/executable $cginame";
+		if($?) {
+			die "Couldn't move link executable from $prog to $cginame: $!\n";
+		}
+
+		if($isroot) {
+			chown ($mvuid, $mvgid, $cginame)
+				or die "\nCouldn't set ownership of $cginame: $!\n";
+		}
+
+		unless ($isroot or can_do_suid()) {
+			print <<EOF;
 
 My test indicates you can't change vlink to SUID mode.
 This will cause big problems -- you can make MiniVend work anyway
@@ -924,50 +952,57 @@ by changing the ReadPermission and WritePermission directives in
 all of your catalogs to 'world', but this is not secure. If you can,
 you should run this as root, or su to root and do:
 
-    chmod 4755 $cginame
+	chmod 4755 $cginame
 
 EOF
-		$ask = prompt("Continue? ", 'n');
-		exit 2 unless is_yes($ask);
-	}
-	chmod 04755, $cginame
-		or warn "\nCouldn't set permissions on $cginame: $!\n";
+			$ask = prompt("Continue? ", 'n');
+			exit 2 unless is_yes($ask);
+		}
+		chmod 04755, $cginame
+			or warn "\nCouldn't set permissions on $cginame: $!\n";
 
-	print "done.\n";
+		print "done.\n";
+	}
 
 	
-	print do_msg("Moving HTML files to $Conf{samplehtml}");
-	system "mv html/* $Conf{samplehtml}";
-	if($?) {
-		die "Couldn't move HTML files $Conf{samplehtml}: $!\n";
-	}
-	rmdir 'html'
-		or die "Couldn't remove HTML directory: $!\n";
-	print "done.\n";
-
-	print do_msg("Moving image files to $Conf{imagedir}");
-	system "mv images/* $Conf{imagedir}";
-	if($?) {
-		die "Couldn't move image files to $Conf{imagedir}: $!\n";
-	}
-	if($isroot) {
-		opendir(CHGIT,$Conf{imagedir})
-			or die "couldn't open $Conf{imagedir}: $!\n";
-        my (@files) = grep !/^\./, readdir CHGIT;
-		closedir CHGIT;
-		for(@files) {
-			chown ($catuid, $catgid, "$Conf{imagedir}/$_")
-				or die "Couldn't chown image files in $Conf{imagedir}: $!\n";
+	unless($Conf{samplehtml} eq 'NONE') {
+		print do_msg("Moving HTML files to $Conf{samplehtml}");
+		system "mv html/* $Conf{samplehtml}";
+		if($?) {
+			die "Couldn't move HTML files $Conf{samplehtml}: $!\n";
 		}
+		rmdir 'html'
+			or die "Couldn't remove HTML directory: $!\n";
+		print "done.\n";
 	}
-	rmdir 'images'
-		or die "Couldn't remove image directory: $!\n";
-	print "done.\n";
+
+	unless($Conf{imagedir} eq 'NONE') {
+		print do_msg("Moving image files to $Conf{imagedir}");
+		system "mv images/* $Conf{imagedir}";
+		if($?) {
+			die "Couldn't move image files to $Conf{imagedir}: $!\n";
+		}
+		if($isroot) {
+			opendir(CHGIT,$Conf{imagedir})
+				or die "couldn't open $Conf{imagedir}: $!\n";
+			my (@files) = grep !/^\./, readdir CHGIT;
+			closedir CHGIT;
+			for(@files) {
+				chown ($catuid, $catgid, "$Conf{imagedir}/$_")
+					or die "Couldn't chown image files in $Conf{imagedir}: $!\n";
+			}
+		}
+		rmdir 'images'
+			or die "Couldn't remove image directory: $!\n";
+		print "done.\n";
+	}
 
 	chdir $Conf{vendroot}
 		or die "Couldn't change directory to $VendRoot: $!\n";
 
 	$yes = prompt "Add catalog to minivend.cfg? ", 'y';
+
+	my $full = '';
 
 	if( is_yes($yes) ) {
 		my ($newcfgline, $mark, @out);
@@ -981,17 +1016,24 @@ EOF
 		}
 		open(CFG, $tmpfile)
 			or die "Couldn't open $tmpfile: $!\n";
-		$newcfgline = sprintf "%-19s %s %s %s\n", 'Catalog',
-				$catalog_name, $Conf{catroot}, $Conf{cgiurl};
 		while(<CFG>) {
 			$mark = $. if /^#?\s*catalog\s+/i;
 			warn "\nDeleting old configuration $catalog_name.\n"
 				if s/^(\s*catalog\s+$catalog_name\s+)/#$1/io;
+			$full = is_yes($1)
+				if /^\s*fullurl\s+(.*)/i;
 			push @out, $_;
 		}
 		close CFG;
+
+		if($full) {
+			$full = $Conf{servername};
+		}
 		open(NEWCFG, ">minivend.cfg")
 			or die "\nCouldn't write minivend.cfg: $!\n";
+
+		$newcfgline = sprintf "%-19s %s %s %s\n", 'Catalog',
+				$catalog_name, $Conf{catroot}, $full . $Conf{cgiurl};
 		if (defined $mark) {
 			print NEWCFG @out[0..$mark-1];
 			print NEWCFG $newcfgline;

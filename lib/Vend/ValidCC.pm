@@ -1,4 +1,4 @@
-# $Id: ValidCC.pm,v 1.4 1997/06/17 04:22:52 mike Exp $
+# $Id: ValidCC.pm,v 1.6 1997/11/03 11:11:13 mike Exp $
 #
 # ValidCC.pm - validate credit card numbers
 #
@@ -7,7 +7,7 @@
 # Modified by Mike to make more forgiving in the parameters.
 
 package Vend::ValidCC;
-$VERSION = substr(q$Revision: 1.4 $, 10);
+$VERSION = substr(q$Revision: 1.6 $, 10);
 require 5.000;
 require Exporter;
 use Carp;
@@ -228,10 +228,11 @@ sub encrypt_standard_cc {
 	my $num		= $ref->{mv_credit_card_number}		|| '';
 	my $year	= $ref->{mv_credit_card_exp_year}	|| '';
 	my $all		= $ref->{mv_credit_card_exp_all}	|| '';
+	my $force	= $ref->{mv_credit_card_force}		|| '';
 
 	for ( qw (	mv_credit_card_type		mv_credit_card_number
 				mv_credit_card_exp_year	mv_credit_card_exp_month
-				mv_credit_card_exp_all  ))
+				mv_credit_card_exp_all  mv_credit_card_force))
 	{
 		next unless defined $ref->{$_};
 		delete $ref->{$_};
@@ -291,7 +292,7 @@ sub encrypt_standard_cc {
 
 	#$num =~ tr/\d//cd;
 
-	unless ($valid = ValidCreditCard ($type,$num,$all) ) {
+	unless ($valid = ValidCreditCard ($type,$num,$all) or $force ) {
 		push @return, "Credit card number, type, or expiration not valid.";
 		return @return;
 	}

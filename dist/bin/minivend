@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 #
-# MiniVend version 3.00
+# MiniVend version 3.03
 #
-# $Id: minivend,v 1.8 1997/09/03 05:55:05 mike Exp mike $
+# $Id: minivend,v 1.11 1997/11/03 13:16:04 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -15,10 +15,18 @@
 #
 # See the file 'Changes' for information.
 #
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
+# This program is free software; most users can redistribute it
+# and/or modify it under the terms of the GNU General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later
+# version. The only exception is that any organization employing
+# uninvited commercial email solicitations, commonly known as
+# SPAM, may not use MiniVend for a period of one year after any
+# SPAM incident. Failure to discontinue use immediately upon
+# written notice will cause the charge of a $10,000 per day license
+# fee until such time as MiniVend use is discontinued. The author
+# of MiniVend, Michael J. Heins, shall be the sole judge of what
+# constitutes a SPAM incident.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -69,7 +77,7 @@ $Global::SendMailLocation = '/usr/lib/sendmail';
 use lib "$Global::VendRoot/lib";
 use vars qw($VERSION);
 
-$VERSION = '3.02';
+$VERSION = '3.03';
 use strict;
 use Fcntl;
 use Config;
@@ -122,9 +130,11 @@ use Vend::Server;
 use Vend::Session;
 use Vend::Config;
 use Vend::Imagemap;
+
 # GLIMPSE
 use Vend::Glimpse;
 # END GLIMPSE
+
 use Vend::Scan;
 use Vend::TextSearch;
 use Vend::Order;
@@ -135,6 +145,10 @@ use Vend::ValidCC;
 use Vend::Cart;
 use File::CounterFile;
 use File::Path;
+
+# OPTION_EXTENSION
+#use Getopt::Long;
+# END OPTION_EXTENSION
 
 # STATICPAGE
 use Vend::PageBuild;
@@ -204,12 +218,12 @@ sub interaction_error {
 # Check that a form is being submitted.
 
 sub expect_form {
-    if ($CGI::request_method ne 'POST') {
+    if ( uc($CGI::request_method) ne 'POST') {
 		interaction_error("Request method for form submission is not POST\n");
 		return 0;
     }
 
-    if ($CGI::content_type ne 'application/x-www-form-urlencoded') {
+    if ( lc($CGI::content_type) ne 'application/x-www-form-urlencoded') {
 		interaction_error("Content type for form submission is not\n" .
 				  "application/x-www-form-urlencoded\n");
 		return 0;
@@ -405,6 +419,26 @@ sub do_order
 		}
 		push @$cart, $item;
     }
+
+	my $limit;
+	if($limit = $Vend::Cfg->{OrderLineLimit} and $#$cart >= $limit ) {
+		@$cart = ();
+		my $msg = <<EOF;
+WARNING:
+Possible bad robot. Cart limit of $limit exceeded.  Cart emptied.
+EOF
+		my $cmd;
+		if($cmd = $Vend::Cfg->{LockoutCommand}) {
+			my $host = http()->Client_IP_Address;
+			$cmd =~ s/%s/$host/ or $cmd .= " $host";
+			$msg .= "Performing lockout command '$cmd'.";
+			system $cmd;
+			$msg .= "Bad status $? from '$cmd': $!\n"
+				if $?;
+		}
+		logError $msg;
+		logGlobal $msg;
+	}
 
     order_page($page);		# display the order page
     put_session();
@@ -852,6 +886,8 @@ sub update_user {
 		# Find arguments to subroutines
 		next unless index($key, 'mv_arg') == 0;
 
+        delete $Vend::Session->{'values'}->{$key};
+
 		$key =~ s/^mv_arg(.*)/$1/;
 		next if $key =~ /\D/;
 
@@ -887,6 +923,29 @@ sub update_user {
 
 	check_save if defined $CGI::values{'mv_save_session'};
 
+}
+
+sub do_sub {
+	my($args, $path) = @_;
+	my($routine, @args) = split /\//, $args;
+
+	for(@args) {
+		s/\%([0-9a-fA-F][0-9a-fA-F])/chr( hex ($1) )/ge;
+	}
+	my $arg = $Vend::Cfg->{SubArgs}->{$routine} || '';
+
+	# Check security of admin routines
+	unless ($Global::AdminSub->{$routine} and ! check_security($routine,3) ) {
+		
+		$Vend::Session->{return_value} = tag_perl
+										(
+											'sub ' . $arg,
+											$routine,
+											@args,
+										);
+	}
+
+	return do_page($path);
 }
 
 ## DO PROCESS
@@ -1070,7 +1129,7 @@ sub do_process {
 			return;
 		}
 		my $next = $CGI::values{'mv_checkout'} || $orderpage;
-		order_page($next);
+		display_page($next);
 	}
 	elsif ($todo eq 'control') {
 		update_user();
@@ -1124,38 +1183,100 @@ sub do_msg {
     return $msg;
 }
 
-# Modified from old, old module called Ref.pm
-sub copyref {
-    my($x,$r) = @_; 
+sub change_catalog_directive {
+	my($cat, $line) = @_;
+	$line =~ s/^\s+//;
+	my($dir,$val) = split /\s+/, $line;
+	my $ref = Vend::Config::set_directive($dir,$val);
+	die "Bad directive '$line'.\n" unless defined $ref;
+	$cat->{$ref->[0]} = $ref->[1];
+	return 1;
+}
 
-    my($z, $y);
+sub change_global_directive {
+	my($line) = @_;
+	$line =~ s/^\s+//;
+	my($dir,$val) = split /\s+/, $line;
+	my $ref = Vend::Config::set_directive($dir,$val);
+	die "Bad directive '$line'.\n" unless defined $ref;
+	no strict 'refs';
+	${"Global::" . $ref->[0]} = $ref->[1];
+	$Global::Structure{$ref->[0]} = $ref->[1];
 
-    my $rt = ref $x;
+	dump_structure($Global::Structure, $Global::ConfigFile)
+		if $Global::DumpStructure;
+	return 1;
+}
 
-    if ($rt =~ /SCALAR/) {
-        # Would \$$x work?
-        $z = $$x;
-        return \$z;
-    } elsif ($rt =~ /HASH/) {
-        $r = {} unless defined $r;
-        for $y (sort keys %$x) {
-            $r->{$y} = &copyref($x->{$y}, $r->{$y});
-        }
-        return $r;
-    } elsif ($rt =~ /ARRAY/) {
-        $r = [] unless defined $r;
-        for ($y = 0; $y <= $#{$x}; $y++) {
-            $r->[$y] = &copyref($x->[$y]);
-        }
-        return $r;
-    } elsif ($rt =~ /REF/) {
-        $z = &copyref($x);
-        return \$z;
-    } elsif (! $rt) {
-        return $x;
-    } else {
-        die "do not know how to copy $x";
-    }
+sub add_catalog {
+	my($line) = @_;
+	$line =~ s/^\s+//;
+	my ($var, $name, $val) = split /\s+/, $line, 3;
+	Vend::Config::parse_catalog($var,"$name $val")
+		or die "Bad catalog line '$line'\n";
+
+	my $g = $Global::Catalog{$name}
+				or die "Catalog '$name' not parsed.\n";
+
+	my $c = $Global::Selector{$g->{script}} || {};
+
+	$c->{CatalogName} = $name;
+
+	my $dir = $g->{'dir'};
+	my $script = $g->{'script'};
+
+	if(defined $g->{'alias'}) {
+		for(@{$g->{alias}}) {
+			if (exists $Global::Selector{$_}
+				and $Global::SelectorAlias{$_} ne $g->{'script'}) {
+				logGlobal "Alias $_ used a second time, skipping.\n";
+				next;
+			}
+			elsif (m![^\w-_:#/.]!) {
+				logGlobal "Bad alias $_, skipping.\n";
+			}
+			$Global::Selector{$_} = $c;
+			$Global::SelectorAlias{$_} = $g->{'script'};
+		}
+	}
+
+	my $msg = <<EOF;
+Added/changed catalog $name:
+
+ Directory: $dir
+ Script:    $script
+EOF
+	$msg .= " Base:      $g->{'base'}\n" if $g->{'base'};
+	$msg .= " Aliases:   @{$g->{'alias'}}\n" if $g->{'alias'};
+	
+print("$msg\n") if $Global::DEBUG;
+	logGlobal $msg;
+
+	$Global::Selector{$g->{script}} = $c;
+}
+
+sub remove_catalog {
+	my($name) = @_;
+	my $g = $Global::Catalog{$name};
+	my @aliases;
+
+	unless(defined $g) {
+		logGlobal "Attempt to remove non-existant catalog $name.\n";
+		return undef;
+	}
+
+	if($g->{alias}) {
+		@aliases = @{$g->{alias}};
+	}
+
+	for(@aliases) {
+		delete $Global::Selector{$_};
+		delete $Global::SelectorAlias{$_};
+	}
+	
+	delete $Global::Selector{$g->{script}};
+	delete $Global::Catalog{$name};
+
 }
 
 sub config_named_catalog {
@@ -1172,7 +1293,14 @@ sub config_named_catalog {
             or die "Couldn't change to $g->{'dir'}: $!\n";
     $conf = $g->{'dir'} . '/etc';
     eval {
-        $c = config($g->{'name'}, $g->{'dir'}, $conf, $g->{'base'} || undef);
+        $c = config($g->{'name'},
+					$g->{'dir'},
+					$conf,
+					$g->{'base'} || undef,
+# OPTION_EXTENSION
+#					$Vend::CommandLine->{$g->{'name'}} || undef
+# END OPTION_EXTENSION
+					);
     };
     if($@) {
 		my $msg = $@;
@@ -1183,7 +1311,8 @@ sub config_named_catalog {
 	return $c if defined $g->{'base'};
 
 	eval {
-		if ($c->{StaticPath}) {
+# STATICPAGE
+		if ($c->{Static}) {
 			print "loading static page names...";
 			my $basedir = $c->{PageDir};
 			open STATICPAGE, "$basedir/.static"
@@ -1196,6 +1325,7 @@ EOF
 			}
 			close STATICPAGE;
 		}
+# END STATICPAGE
 		if($c->{ClearCache}) {
 			for('PageCache', 'SearchCache') {
 				next unless $c->{$_};
@@ -1215,6 +1345,7 @@ EOF
 			$Vend::Cfg->{ItemPriceRoutine},
 			$Vend::Cfg->{QuantityPriceRoutine}
 		)	= read_pricing();
+# STATICPAGE
 		if($build) {
 			$Vend::BuildingPages = 1;
 			# Depends on whether user builds are enabled globally
@@ -1222,6 +1353,7 @@ EOF
 				if $Global::UserBuild;
 			undef $Vend::BuildingPages;
 		}
+# END STATICPAGE
 		close_database();
 	};
 	undef $Vend::Cfg;
@@ -1233,10 +1365,13 @@ EOF
      	return undef;
     }
 
+	dump_structure($c, $g->{name}) if $Global::DumpStructure;
+
 	return $c;
 
 }
 
+# STATICPAGE
 sub build_page {
     my($name,$dir,$check,$scan) = @_;
     my($base,$page);
@@ -1364,8 +1499,34 @@ sub build_all {
 	my $all = $Vend::Cfg->{StaticAll};
 	$build_list = 0 if $all;
 
-	return unless ($all or scalar keys %{$Vend::Cfg->{StaticPage}});
 	my $basedir = $Vend::Cfg->{'PageDir'};
+
+	my $build_file;
+
+	if(-f "$basedir/.build" and -s _) {
+		print "Building from files listed in .build file.\n";
+		$build_list = 1;
+		$build_file = 1;
+		$all = 0;
+		open(BUILD, "$basedir/.build")
+			or die "Couldn't open build spec $basedir/.build: $!\n";
+		my $suf = $Vend::Cfg->{StaticSuffix};
+		while(<BUILD>) {
+			print;
+			next if /^\s*#/;
+			chomp;
+			unless (-f "$basedir/$_") {
+				warn "Scheduled page $_ not found.\n";
+				next;
+			}
+			s/($suf)?\s*$//o;
+			$build{$_} = 1;
+			print "...accepted.\n";
+		}
+		close BUILD;
+	}
+
+	return unless ($all or $build_list or scalar keys %{$Vend::Cfg->{StaticPage}});
 
 print "Really building pages...\n" if $Global::DEBUG;
 
@@ -1468,7 +1629,7 @@ print "Really building pages...\n" if $Global::DEBUG;
 		$Vend::Cfg->{StaticPage}->{$key} = 1 if $all;
 		$static = build_page($key,$outdir, 1);
 		unless ($static) {
-			delete $Vend::Cfg->{StaticPage}->{$key};
+			$build{$key} = delete $Vend::Cfg->{StaticPage}->{$key};
 			$key = '';
 			next;
 		}
@@ -1507,7 +1668,8 @@ print "Really building pages...\n" if $Global::DEBUG;
 		next unless $key;
 		print do_msg("Building page $key ...");
 		build_page($key,$outdir)
-			or (delete($Vend::Cfg->{StaticPage}->{$key}), next);
+			or ( delete($Vend::Cfg->{StaticPage}->{$key}), next);
+		delete $build{$key} if defined $build{$key};
 		$Vend::Session->{'pageCount'} = -1;
 		print "done.\n";
 	}
@@ -1546,6 +1708,14 @@ print "Really building pages...\n" if $Global::DEBUG;
 	}
 	close STATICPAGE;
 
+	open UNBUILT, ">$basedir/.unbuilt"
+		or die "Couldn't write build exception file: $!\n";
+	for(sort keys %build) {
+		print UNBUILT "$_\n";
+	}
+	close UNBUILT;
+	unlink "$basedir/.build" if $build_file;
+
 	# Second level of search, no more than 1 is recommended, but
 	# can be set by StaticDepth
 	my $i;
@@ -1564,16 +1734,17 @@ print "Really building pages...\n" if $Global::DEBUG;
 
 	$ = $save;
 }
+# END STATICPAGE
 
 
 sub map_cgi {
 
     my($host, $ip, $user);
 
-    $CGI::request_method = ::http()->Method;
+    $CGI::request_method = http()->Method;
     die "REQUEST_METHOD is not defined" unless defined $CGI::request_method;
 
-    $CGI::path_info = ::http()->Path_Info;
+    $CGI::path_info = http()->Path_Info;
 
 	# The great and final AOL fix
 	#
@@ -1620,7 +1791,7 @@ sub map_cgi {
 		$CGI::script_path = http()->Script;
 	}
 
-	$CGI::post_input = http()->read_entity_body(http());
+	$CGI::post_input = http()->read_entity_body();
 	parse_post();
 }
 
@@ -1652,7 +1823,12 @@ sub dispatch {
 			my $ref = $Global::Catalog{$name};
 			my $c = $Vend::Cfg;
 			$Vend::Cfg = $Global::Selector{$ref->{'script'}};
+            for(keys %{$c->{Replace}}) {
+                undef $Vend::Cfg->{$_};
+            }
 			copyref $c, $Vend::Cfg;
+			$Vend::Cfg->{StaticPage} = {}
+				unless $Vend::Cfg->{Static};
 		}
 
 		if (defined $Global::SelectorAlias{$CGI::script_name}) {
@@ -1666,13 +1842,29 @@ sub dispatch {
 	}
 
 	if ($Vend::Cfg->{SetGroup}) {
-		eval {$( = $Vend::Cfg->{SetGroup}};
+		eval {$) = "$Vend::Cfg->{SetGroup} $Vend::Cfg->{SetGroup}"};
 		if ($@) {
 			my $msg = $@;
 			logGlobal("Can't set group to GID $Vend::Cfg->{SetGroup}: $msg");
 			logError("Can't set group to GID $Vend::Cfg->{SetGroup}: $msg");
 		}
 	}
+
+	if($Vend::Cfg->{DisplayErrors} and $Global::DisplayErrors) {
+		$SIG{__DIE__} = sub {
+							my $msg = shift;
+							response('html', <<EOF);
+<HTML><HEAD><TITLE>Fatal MiniVend Error</TITLE></HEAD><BODY>
+<H1>FATAL error</H1>
+<PRE>$msg</PRE>
+</BODY></HTML>
+EOF
+							exit 0;
+						};
+	}
+
+
+
 
 	if (defined $CGI::reconfigure_catalog) {
 		my $build = $CGI::values{mv_build_static} ? 1 : '';
@@ -1729,9 +1921,35 @@ sub dispatch {
 		$Vend::SessionID = $sessionid;
     	$Vend::SessionName = session_name();
 		get_session();
-		if (time - $Vend::Session->{'time'} > $Vend::Cfg->{'SessionExpire'}) {
+		my $now = time;
+		if ($now - $Vend::Session->{'time'} > $Vend::Cfg->{'SessionExpire'}) {
 	    	init_session();
 		}
+		elsif($Vend::Cfg->{RobotLimit}) {
+			if ($now - $Vend::Session->{'time'} > 30) {
+				$Vend::Session->{'accesses'} = 0;
+			}
+			else {
+				$Vend::Session->{'accesses'}++;
+				if($Vend::Session->{'accesses'} > $Vend::Cfg->{RobotLimit}) {
+					my $msg = <<EOF;
+WARNING: POSSIBLE BAD ROBOT.  $Vend::Session->{'accesses'} accesses with
+no 30 second pause.
+EOF
+					my $cmd;
+					if ($cmd = $Vend::Cfg->{LockoutCommand}) {
+						my $host = http()->Client_IP_Address;
+						$cmd =~ s/%s/$host/ or $cmd .= " $host";
+						$msg .= "Performing lockout command '$cmd'.";
+						system $cmd;
+						$msg .= "Bad status $?: $!\n" if $?;
+					}
+					logError $msg;
+					logGlobal $msg;
+				}
+			}
+		}
+
     }
 	else {
 		new_session();
@@ -1771,6 +1989,7 @@ sub dispatch {
 									my($catalog,$page) = split '/', $path[0], 2;
 									do_order($argument,$page,$catalog);
 								  } 
+    elsif ($action eq 'subroutine')    { do_sub($argument,@path); }
     else {
 		# will try the on-the-fly page if it fails
 		do_page($path, $argument);
@@ -1788,16 +2007,20 @@ sub dispatch {
 ## DEBUG
 
 sub dontwarn {
-	$Global::IpHead +
-	$Vend::CheckHTML +
-	$Global::DomainTail +
-	$Global::FullUrl +
-	$Global::UserBuild +
-	$Vend::ContentType +
-	$Global::MailErrorTo +
-	$FindBin::RealBin +
+
+# STATICPAGE
 	$File::Find::name +
 	$File::Find::prune +
+	$Global::UserBuild +
+# END STATICPAGE
+	$FindBin::RealBin +
+	$Global::AdminSub +
+	$Global::DomainTail +
+	$Global::FullUrl +
+	$Global::IpHead +
+	$Global::MailErrorTo +
+	$Vend::CheckHTML +
+	$Vend::ContentType +
 
 	1;
 }
@@ -1851,6 +2074,7 @@ sub parse_post {
 
 sub parse_options {
 	while ($_ = shift @ARGV) {
+		last if $_ eq '--';
 		if (m/^-c(onfig)?$/i) {
 			$Global::ConfigFile = shift @ARGV;
 			die "Missing file argument for -config option\n"
@@ -1890,16 +2114,89 @@ sub parse_options {
 		} elsif (m/^-t(est)$/i) {
 			$Vend::mode = 'test';
 		} elsif (m:^[^-]: and $Vend::mode eq 'build') {
-			@Vend::BuildSpec = @ARGV;
-			unshift @Vend::BuildSpec, $_;
-			@ARGV = ();
+			@Vend::BuildSpec = ($_);
+			while(defined $ARGV[0]) {
+				last if $ARGV[0] eq '--';
+				push @Vend::BuildSpec, shift @ARGV;
+			}
 		} else {
 		    $? = 2;
 			die "Unknown command line option: $_\n" .
 				"(Use -help for a list).\n";
 		}
 	}
+
+# OPTION_EXTENSION
+#		while(@ARGV) {
+#			parse_extended_options();
+#			last;
+#		}
+# END OPTION_EXTENSION
 }
+
+# OPTION_EXTENSION
+#%Global::Name = (
+#					catalog => '[-\w]+',
+#				);
+#
+#sub parse_stdin {
+#	local ($/) = "\n.\n";
+#	my ($location, $value);
+#	while(<STDIN>) {
+#		chomp;
+#		($location, $value) = split /\n/, $_, 2;
+#		unless($location =~ /($Global::Name{catalog}):(after|before)/o) {
+#			warn "Bad input stream $location, skipping\n";
+#			next;
+#		}
+#		print "Trying $location.\n";
+#		$Vend::CommandLine->{$1}->{$2}->{'stream'} = $value;
+#	}
+#}
+#
+#sub parse_extended_options {
+#	my $initial = shift @ARGV;
+#	my $catalog;
+#	unless ($initial =~ /^(-c|--?catalog)/) {
+#		die "Must specify catalog as first item of extended options.\n";
+#	}
+#	$initial =~ /^--?catalog=(.+)/ and $catalog = $1;
+#	$catalog = shift @ARGV unless defined $catalog;
+#
+#	my $target = 'after';
+#
+#	if($ARGV[0] =~ /^--?before$/) {
+#		shift @ARGV;
+#		$target = 'before';
+#	}
+#	elsif($ARGV[0] =~ /^--?after$/) {
+#		shift @ARGV;
+#	}
+#
+#	$Vend::CommandLine->{$catalog} = {}
+#		unless defined $Vend::CommandLine->{$catalog};
+#
+#	my $file = {};
+#	my $stream = {};
+#	my $ref;
+#	$Vend::CommandLine->{$catalog}->{$target} = $ref = {};
+#
+#	print do_msg("Parsing extended options target=$target $catalog");
+#
+#	my %options = (
+#		"replace=s%"				=> $ref->{replace} ||= {},	
+#		"file=s"				=> $ref->{file} ||= '',
+#		"structure|define=s%"	=> $ref->{structure} ||= {},	
+#	);
+#
+#	print "done.\n";
+#
+#	GetOptions($Vend::CommandLine->{$catalog}->{$target}, %options);
+#
+#}
+# END OPTION_EXTENSION
+		
+		
 
 sub version {
 	print "MiniVend version $VERSION Copyright 1995 Andrew M. Wilcox\n";
@@ -2015,7 +2312,7 @@ EOF
 
 ## MAIN
 
-sub main {
+sub main_loop {
 	# Setup
 	$ENV{'PATH'} = '/bin:/usr/bin';
 	$ENV{'SHELL'} = '/bin/sh';
@@ -2026,6 +2323,10 @@ sub main {
 
 	undef $Vend::mode;      # mode will be set by options
 	parse_options();
+# OPTION_EXTENSION
+#	parse_stdin() unless eof();
+# END OPTION_EXTENSION
+
 	if (!defined $Vend::mode) {
 			usage();
 			exit 0;
@@ -2054,7 +2355,7 @@ sub main {
 			}
 			
 			eval {
-			$c = config_named_catalog($name, "at server startup");
+				$c = config_named_catalog($name, "at server startup");
 			};
 
 			if ($@ or ! defined $c) {
@@ -2083,7 +2384,7 @@ sub main {
 					$Global::SelectorAlias{$_} = $g->{'script'};
 				}
 			}
-			
+# STATICPAGE
 			if ($Vend::CatalogToBuild{$g->{name}}) {
 				print <<EOF unless $c->{StaticDir};
 
@@ -2109,6 +2410,7 @@ $msg
 EOF
 				}
 			}
+# END STATICPAGE
 			print "done.\n";
 		}
 	}
@@ -2146,11 +2448,11 @@ EOF
 	
 }
 
-eval { main(); };
+eval { main_loop(); };
 if ($@) {
 	my($msg) = ($@);
 	logGlobal( $msg );
-	if (!defined $Global::DisplayError || $Global::DisplayError) {
+	if ($Global::DisplayErrors) {
 		print "$msg\n";
 	}
 }

@@ -2,7 +2,7 @@
 #
 # MiniVend version 1.04
 #
-# $Id: Order.pm,v 1.5 1997/05/22 07:00:05 mike Exp $
+# $Id: Order.pm,v 1.10 1997/11/03 11:10:25 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -30,7 +30,7 @@
 package Vend::Order;
 require Exporter;
 
-$VERSION = substr(q$Revision: 1.5 $, 10);
+$VERSION = substr(q$Revision: 1.10 $, 10);
 $DEBUG = 0;
 
 # AUTOLOAD
@@ -172,7 +172,7 @@ sub cyber_charge {
 		b_country                   b_country
 		mv_credit_card_exp_month    mv_credit_card_exp_month
 		mv_credit_card_exp_year     mv_credit_card_exp_year
-		mode                        mv_cyber_type
+		cyber_mode                  mv_cyber_mode
 		amount                      amount
     );
 
@@ -282,6 +282,7 @@ sub cyber_charge {
 	}
 	$Vend::Session->{cybercash_id} = $result{'order-id'};
 	if($Vend::Cfg->{EncryptProgram} =~ /pgp/i) {
+		$CGI::values{mv_credit_card_force} = 1;
 		(
 			$val->{mv_credit_card_valid},
 			$val->{mv_credit_card_info},

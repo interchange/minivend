@@ -1,6 +1,6 @@
 # Vend/Glimpse.pm:  Search indexes with Glimpse
 #
-# $Id: Glimpse.pm,v 1.6 1997/06/17 04:22:52 mike Exp $
+# $Id: Glimpse.pm,v 1.9 1997/09/30 18:16:07 mike Exp $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::Glimpse
 #
@@ -28,7 +28,7 @@ package Vend::Glimpse;
 require Vend::Search;
 @ISA = qw(Vend::Search);
 
-$VERSION = substr(q$Revision: 1.6 $, 10);
+$VERSION = substr(q$Revision: 1.9 $, 10);
 use Text::ParseWords;
 use strict;
 
@@ -157,7 +157,8 @@ sub search {
     # Build glimpse line
     push @cmd, $g->{glimpse_cmd};
     unless (defined $g->{search_server}) {
-    	push @cmd, "-H $g->{base_directory}";
+    	push @cmd, "-H $g->{base_directory}"
+			unless $g->{glimpse_cmd} =~ /\s+-H/;
 	}
 	else {
     	push @cmd, "-C $g->{search_server}";

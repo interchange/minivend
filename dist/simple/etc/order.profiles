@@ -35,6 +35,7 @@ __NAME__                            credit_card
 __END__
 
 __NAME__                            alt_card
+[old]
 valid_cc	= yes
 cc_no		= required
 cc_exp_m	= required
@@ -63,7 +64,7 @@ __NAME__                            address
 __END__
 
 __NAME__                            all_in_one
-
+[old]
 name=required
 address=required
 city=required
@@ -94,8 +95,8 @@ email=email
 [if value fax_order]
 &set = mv_payment Call Us
 [else]
-&set = mv_payment Credit Card ([help [value mv_credit_card_type]])
-mv_credit_card_valid=required
+&set = mv_payment Credit Card ([help [default mv_credit_card_type]])
+mv_credit_card_info=required
 [/else]
 [/if]
 &final = yes

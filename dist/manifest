@@ -2,7 +2,7 @@
 ###                        ###
 ###   DON'T edit this !!!  ###
 ###                        ###
-### $Revision: 1.5 $
+### $Revision: 1.6 $
 ##############################
 
 bin/autosplit script 0755 shbang

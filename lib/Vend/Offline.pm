@@ -1,9 +1,25 @@
-# $Id: Offline.pm,v 1.3 1997/06/17 04:22:52 mike Exp $
 #
-# Offline.pm - Offline database build module for Vend
-#              Also builds product indices and the other
-#              appropriate databases defined in catalog.cfg.
+# Offline.pm - Offline database build module for MiniVend
 #
+# $Id: Offline.pm,v 1.4 1997/11/03 11:31:32 mike Exp mike $
+# 
+# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+# Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
 package Vend::Offline;
 require Exporter;
 @ISA = qw(Exporter);
@@ -30,6 +46,9 @@ use Carp;
 use File::Basename;
 use Vend::Util;
 use Vend::Table::Import qw(import_ascii_delimited import_quoted);
+
+use vars qw($VERSION);
+$VERSION = substr(q$Revision: 1.4 $, 10);
 
 
 BEGIN {

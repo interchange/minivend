@@ -2,6 +2,8 @@
 #
 # MakeCat.pm - routines for catalog configurator
 #
+# $Id $
+#
 # Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -49,7 +51,8 @@ sethistory
 
 use strict;
 
-use vars qw($Force $Error $History);
+use vars qw($Force $Error $History $VERSION);
+$VERSION = substr(q$Revision: 1.5 $, 10);
 
 $Force = 0;
 $History = 0;

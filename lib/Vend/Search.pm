@@ -27,7 +27,7 @@
 #
 package Vend::Search;
 
-$VERSION = substr(q$Revision: 1.9 $, 10);
+$VERSION = substr(q$Revision: 1.10 $, 10);
 $DEBUG = 0;
 
 =head1 NAME
@@ -527,10 +527,13 @@ Mike Heins, <mikeh@iac.net>
 
 use Carp;
 use strict;
+use vars qw($DEBUG $VERSION);
 
 sub new {
 	my ($class, %options) = @_;
 	my $s = {};
+
+	$DEBUG = $Global::DEBUG;
 
 	$s->{global} = {
 		all_chars			=> 1,
