@@ -51,8 +51,13 @@ use lib '/usr/local/interchange/lib';
 use lib '/usr/local/interchange';
 #use lib '~_~INSTALLARCHLIB~_~';
 
-use Getopt::Long;
+use strict;
 use Config;
+use Getopt::Long;
+
+Getopt::Long::config(qw/permute/);
+
+### END CONFIGURATION VARIABLES
 
 my $prog = $0;
 $prog =~ s:.*/::;
@@ -84,8 +89,6 @@ my $Self = {
 	INSTALLBIN => '/usr/local/interchange/bin',
 #	INSTALLBIN => '~_~INSTALLBIN~_~',
 };
-
-Getopt::Long::config(qw/permute/);
 
 my $Output;
 my $Force;
