@@ -989,7 +989,7 @@ sub tag_shipping {
 		}
 		@out = grep /=.+/, @out;
 
-		if(! @out) {
+		if(! @out and ! $opt->{hide_error}) {
 			my $message = $loc->{no_modes_message} || 'Not enough information';
 			@out = "=" . errmsg($message);
 		}
