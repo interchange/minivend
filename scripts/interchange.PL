@@ -457,7 +457,7 @@ sub update_quantity {
 
 	# If the user has put in "0" for any quantity, delete that item
     # from the order list. Handles sub-items.
-    Vend::Cart::toss_cart($cart);
+    Vend::Cart::toss_cart($cart, $CGI::values{mv_cartname});
 
 #::logDebug("after toss, cart is: " . ::uneval($cart));
 

@@ -1986,7 +1986,7 @@ sub add_items {
 		);
 		do_lockout($msg);
 	}
-	Vend::Cart::toss_cart($cart);
+	Vend::Cart::toss_cart($cart, $CGI::values{mv_cartname});
 }
 
 

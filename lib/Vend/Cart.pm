@@ -135,7 +135,7 @@ sub DESTROY { }
 # If the user has put in "0" for any quantity, delete that item
 # from the order list.
 sub toss_cart {
-	my($s) = @_;
+	my($s, $cartname) = @_;
 	my $i;
 	my $sub;
 	my (@master);
@@ -238,7 +238,7 @@ sub toss_cart {
 			@{$s} = @items[sort {$a <=> $b} keys %save];
 		}
 	}
-	Vend::Interpolate::levies();
+	Vend::Interpolate::levies(1, $cartname);
 	return 1;
 }
 
