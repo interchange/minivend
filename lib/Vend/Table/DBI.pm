@@ -251,7 +251,7 @@ sub open_table {
     my $db;
 
 	unless($config->{dsn_id}) {
-		$config->{dsn_id} = join "_", @call;
+		$config->{dsn_id} = join "_", grep ! ref($_), @call;
     	if($Global::HotDBI->{$Vend::Cfg->{CatalogName}}) {
 			$config->{hot_dbi} = 1;
 			$DBI_connect_count{$config->{dsn_id}}++;
