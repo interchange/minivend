@@ -2865,6 +2865,8 @@ print errmsg("\n##### DEBUG MODE, running in foreground #####\n") if $Global::DE
 
 	# Read interchange.cfg (or whatever its name is set to be)
 	global_config();
+	# Select locking mode
+	set_lock_type();
 
 	@action{keys %{$Global::ActionMap}} = (values %{$Global::ActionMap})
 		if $Global::ActionMap;
