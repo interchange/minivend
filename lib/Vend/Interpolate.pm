@@ -4033,6 +4033,9 @@ sub tag_attr_list {
 		return undef if ! ref $hash;
 	}
 	$body =~ s!\{($Codere)\}!$hash->{$1}!g;
+	$body =~ s!\{($Codere)\?($Codere)\:($Codere)\}!
+				length($hash->{$1}) ? $hash->{$2} : $hash->{$3}
+			  !eg;
 	$body =~ s!\{($Codere)\|($Some)\}!$hash->{$1} || $2!eg;
 	$body =~ s!\{($Codere)\s+($Some)\}! $hash->{$1} ? $2 : ''!eg;
 	$body =~ s!\{($Codere)\?\}($Some){/\1\?\}! $hash->{$1} ? $2 : ''!eg;
