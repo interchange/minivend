@@ -130,7 +130,7 @@ my %PosNumber =	( qw!
 				total_cost       2
 				try              1
 				userdb           1
-				value            2
+				value            1
 				value_extended   1
 
 			! );
@@ -1206,8 +1206,9 @@ sub html_start {
 		return 1;
 	}
 
-	$attr->{'decode'} = 1 unless defined $attr->{'decode'};
-	$attr->{'reparse'} = 1 unless	defined $NoReparse{$tag}
+	$attr->{enable_html} = 1 if $Vend::Cfg->{Promiscuous};
+	$attr->{decode} = 1 unless defined $attr->{'decode'};
+	$attr->{reparse} = 1 unless	defined $NoReparse{$tag}
 								||	defined $attr->{'reparse'};
 	$attr->{'undef'} = undef;
 
@@ -1509,7 +1510,8 @@ sub start {
 		$self->{INVALID} += $p->{INVALID};
 	}
 
-	$attr->{'reparse'} = 1
+	$attr->{enable_html} = 1 if $Vend::Cfg->{Promiscuous};
+	$attr->{reparse} = 1
 		unless (defined $NoReparse{$tag} || defined $attr->{'reparse'});
 
 	my ($routine,@args);
