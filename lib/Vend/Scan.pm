@@ -622,7 +622,7 @@ sub sql_statement {
 		if($db) {
 			$codename = $db->config('KEY') || 'code';
 			$nuhash = $db->config('NUMERIC') || undef;
-			push_spec( 'fi', $Vend::Cfg->{Database}{$t}{'file'}, $ary, $hash);
+			push_spec( 'fi', $Vend::Cfg->{Database}{$t}{file}, $ary, $hash);
 		}
 # GLIMPSE
 		elsif ("\L$t" eq 'glimpse') {
@@ -893,8 +893,8 @@ sub _file_security {
 			$ok = 1 if $::Scratch->{$_};
 		}
 		if($_ !~ /\./) {
-			$_ = $Vend::Cfg->{Database}{$_}{'file'}
-				if defined $Vend::Cfg->{Database}{$_}{'file'};
+			$_ = $Vend::Cfg->{Database}{$_}{file}
+				if defined $Vend::Cfg->{Database}{$_};
 		}
 		if ($ok and $Vend::Cfg->{NoSearch}) {
 			if (/$Vend::Cfg->{NoSearch}/) {
