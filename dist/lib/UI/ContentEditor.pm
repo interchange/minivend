@@ -1421,9 +1421,8 @@ sub format_page {
 	my @header;
 
 	my $slots = delete $ref->{ui_slots} || [];
-	push @header, "ui_$type: $name";
-	push @header, "ui_type: $type";
 	push @header, "ui_name: $name";
+	push @header, "ui_type: $type";
 	push @header, "ui_page_template: $ref->{ui_page_template}";
 	push @header, "ui_version: " . $Tag->version();
 	delete $ref->{ui_name};
@@ -1432,6 +1431,7 @@ sub format_page {
 	delete $ref->{ui_slots};
 	delete $ref->{ui_version};
 	delete $ref->{ui_page_template};
+	delete $ref->{ui_page_picture};
 	my $body = delete $ref->{CONTENT};
 	$body =~ s/\r\n/\n/g;
 	$body =~ s/\r/\n/g;
