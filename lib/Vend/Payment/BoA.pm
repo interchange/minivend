@@ -368,7 +368,7 @@ sub boa {
     $opt->{script} = '/payment.mart';
 	 
     # Phone less than 17 chars, and country must be US, not USA.
-    $actual->{ 'phone_day' } = $Tag->filter( { op => '16' }, $actual->{ 'phone_day' } );
+    $actual->{ 'phone_day' } = substr( $actual->{ 'phone_day' }, 0, 16 );
     $actual->{ 'b_country' } = 'US' if $actual->{ 'b_country' } eq 'USA';
 
     $actual->{mv_credit_card_exp_month} =~ s/\D//g;
