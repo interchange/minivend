@@ -76,6 +76,7 @@ my %transform = (
 		return 1 if ref($fields) ne 'ARRAY';
 		my $status = 1;
 		for(@$fields) {
+			next if ! length($row->{$_});
 			$status = $status && Vend::Tags->if_mm('advanced', $row->{$_});
 		}
 		return $status;
