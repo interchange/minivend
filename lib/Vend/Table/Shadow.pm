@@ -508,7 +508,8 @@ sub _map_column {
 
 	my $locale = $::Scratch->{mv_locale} || 'default';
 
-	if (! $mapentry && exists $s->[$CONFIG]->{MAP}->{$column}->{$locale}) {
+	if (! $mapentry && ! $::Scratch->{mv_shadowpass}
+		&& exists $s->[$CONFIG]->{MAP}->{$column}->{$locale}) {
 		$mapentry = $s->[$CONFIG]->{MAP}->{$column};
 	}
 
