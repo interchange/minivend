@@ -548,8 +548,26 @@ sub movecombo {
 
 sub combo {
 	my ($opt, $opts) = @_;
-	my $addl = qq|<INPUT TYPE=text NAME="$opt->{name}"|;
-	$addl   .= qq| SIZE="$opt->{cols}" VALUE="">|;
+	my $addl;
+	if($opt->{textarea}) {
+		my $template = $opt->{o_template};
+		if(! $template) {
+			$template = '<br>';
+			if(! $opt->{rows} or $opt->{rows} > 1) {
+				$template .= q(<textarea rows="{ROWS|2}" wrap="{WRAP|virtual}");
+				$template .= q( cols="{COLS|60}" name="{NAME}">{ENCODED}</textarea>);
+			}
+			else {
+				$template .= qq(<input TYPE="text" size="{COLS|40}");
+				$template .= qq( name="{NAME}" value="{ENCODED}">);
+			}
+		}
+		$addl = attr_list($template, $opt);
+	}
+	else {
+		$addl = qq|<INPUT TYPE=text NAME="$opt->{name}"|;
+		$addl   .= qq| SIZE="$opt->{cols}" VALUE="">|;
+	}
 	if($opt->{reverse}) {
 		$opt->{append} = length($opt->{append}) ? "$addl$opt->{append}" : $addl;
 	}
@@ -1205,6 +1223,13 @@ sub parse_type {
 		$opt->{rows} = $opt->{rows} || $1 || 1;
 		$opt->{cols} = $opt->{cols} || $2 || 16;
 		$opt->{type} = 'combo';
+	}
+	elsif($type =~ /^fillin_combo[ _]*(?:(\d+)(?:[ _]+(\d+))?)?/i) {
+		$opt->{rows} ||= $1;
+		$opt->{cols} ||= $2;
+		$opt->{type} = 'combo';
+		$opt->{textarea} = 1;
+		$opt->{reverse} = 1;
 	}
 	elsif($type =~ /^reverse_combo[ _]*(?:(\d+)(?:[ _]+(\d+))?)?/i) {
 		$opt->{rows} = $opt->{rows} || $1 || 1;
