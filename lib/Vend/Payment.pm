@@ -313,7 +313,9 @@ sub charge {
 
 	# Default to the gateway same as charge type if no gateway specified,
 	# and set the gateway in the session for logging on completion
-	$pay_opt->{gateway} = $charge_type if ! $opt->{gateway};
+	if(! $opt->{gateway}) {
+		$pay_opt->{gateway} = charge_param('gateway') || $charge_type;
+	}
 	$Vend::Session->{payment_mode} = $pay_opt->{gateway};
 
 	# See if we are in test mode
