@@ -15,6 +15,7 @@
 	delete $CGI->{order};
 	$Scratch->{order_list} = $orders;
 [/calc]
+[flag type=write value=1 tables="orderline transactions"]
 [loop list="[scratch order_list]"]
 	[update-order-status
 			order_number="[loop-code]"
