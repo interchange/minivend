@@ -162,7 +162,7 @@ No documentation planned.
 =head1 SEE ALSO
 
 mvdocs(8), compile_link(1), config_prog(1), configdump(1), dump(1), expire(1),
-expireall(1), localize(1), makecat(1), minivend(1), offline(1),
+expireall(1), localize(1), makecat(1), interchange(1), offline(1),
 restart(1), update(1)
 
 =cut

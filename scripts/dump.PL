@@ -243,7 +243,7 @@ $Id$
 
 =head1 SEE ALSO
 
-mvdocs(8), configdump(1), makecat(1), minivend(1)
+mvdocs(8), configdump(1), makecat(1), interchange(1)
 
 
 =head1 DESCRIPTION

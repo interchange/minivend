@@ -320,7 +320,7 @@ C<update> program will terminate with an error.
 
 =head1 SEE ALSO
 
-http://www.minivend.com
+http://www.akopia.com/
 
 =head1 AUTHOR
 

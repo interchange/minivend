@@ -271,7 +271,7 @@ Skeleton POD to avoid make errors.
 
 =head1 SEE ALSO
 
-mvdocs(8), minivend(1), http://www.minivend.com
+mvdocs(8), interchange(1), http://www.akopia.com/
 
 =cut
 _EoP_

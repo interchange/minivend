@@ -381,7 +381,7 @@ sending its timeout page.
 
 =head1 SEE ALSO
 
-makecat(1), http://www.minivend.com
+makecat(1), http://www.akopia.com/
 
 =head1 AUTHOR
 

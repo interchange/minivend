@@ -308,7 +308,7 @@ temporary files.
 
 =head1 SEE ALSO
 
-mvdocs(8), expireall(1), http://www.minivend.com
+mvdocs(8), expireall(1), http://www.akopia.com/
 
 =head1 AUTHOR
 

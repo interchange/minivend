@@ -418,7 +418,7 @@ one level. Subsequent .bak files will be overwritten.
 
 =head1 SEE ALSO
 
-mvdocs(8), http://www.minivend.com
+mvdocs(8), http://www.akopia.com/
 
 =head1 AUTHOR
 
