@@ -1838,7 +1838,18 @@ my $pretty_vector = unpack('b*', $s_vector);
 					->handle;
 			}
 
+			unless ($Vend::StatusLine =~ m{^HTTP/}) {
+				my $status = $Vend::StatusLine =~ /(?:^|\n)Status:\s+(.*)/i
+					? "$1" : "200 OK";
+				$Vend::StatusLine = "HTTP/1.0 $status\r\n" . $Vend::StatusLine;
+			}
+			$Vend::StatusLine .= "\r\nContent-Type: text/xml\r\n"
+				unless $Vend::StatusLine =~ /^Content-Type:/im;
+
+			print MESSAGE canon_status($Vend::StatusLine);
 			print MESSAGE $result;
+			undef $Vend::StatusLine;
+			$Vend::ResponseMade = 1;
 			close MESSAGE;
 #::logDebug("SOAP port=$p n=$n unix=$unix_socket{$p} pid=$$ c=$c time=" . join '|', times);
 		}
