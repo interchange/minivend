@@ -538,7 +538,7 @@ sub meta_display {
 			}
 		}
 		elsif ($record->{type} eq 'imagedir') {
-			my $dir = $record->{'db'} || 'images';
+			my $dir = $record->{'outboard'} || $column;
 			my @files = list_images($dir);
 			$record->{type} = 'combo';
 			$record->{passed} = join ",",
