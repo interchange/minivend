@@ -776,6 +776,16 @@ sub tag_data {
 					$val =~ s/\0+/,/g;
 					return $val;
 				},
+	'null_to_colons' =>		sub {
+					my $val = shift;
+					$val =~ s/\0+/::/g;
+					return $val;
+				},
+	'colons_to_null' =>		sub {
+					my $val = shift;
+					$val =~ s/::/\0/g;
+					return $val;
+				},
 	'last_non_null' =>		sub {
 					my @some = reverse split /\0+/, shift;
 					for(@some) {
