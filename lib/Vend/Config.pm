@@ -2565,6 +2565,22 @@ sub parse_database {
 			}
 		}
 # END LDAP
+		elsif(	$type =~ /^ic:(\w*)(:(.*))?/ ) {
+			my $class = $1;
+			my $dir = $3;
+			$d->{DIR} = $dir if $dir;
+			if($class =~ /^default$/i) {
+				# Do nothing
+			}
+			elsif($class) {
+				$class = uc $class;
+				if(! $Vend::Data::db_config{$class}) {
+					config_error("unrecognized IC database class: %s (from %s)", $class, $type);
+				}
+				$d->{Class} = $class;
+			}
+			$d->{'type'} = 6;
+		}
 		elsif(	"\U$type" eq 'TAB'	) {
 			$d->{'type'} = 6;
 		}
