@@ -54,19 +54,19 @@ Major files/directories in the distribution:
                 minivend.cfg.dist   Distribution minivend.cfg
                 checkout/           Checkout-only demo application.
                 simple/             The not so aptly named "simple" demo
-				                    application.
+                                    application.
                 src/                C and Perl code for CGI links
-				compat/             Some Minivend-3 compatibility tags
-				usertag/            Some fairly-standard usertags
+                compat/             Some Minivend-3 compatibility tags
+                usertag/            Some fairly-standard usertags
 
-	extra/      Some not-always-needed Perl libraries.
+    extra/      Some not-always-needed Perl libraries.
 
     lib/        The library modules needed to run Minivend.
                  
-	scripts/    The executable files, relocated to bin in the run
-	            directory.
+    scripts/    The executable files, relocated to bin in the run
+                directory.
 
-	test.pl     The installation test script.
+    test.pl     The installation test script.
 
     win/        Windows-specific files
             
@@ -97,17 +97,17 @@ Major files/directories in the distribution:
          sufficient memory
        * Cookie support allows browsers to leave catalog and come
          back without losing session state
-	   * Minimate web administration interface (separate package)
-	   * Complete user authentication and database with address
-	     books and stored shopping carts
+       * Minimate web administration interface (separate package)
+       * Complete user authentication and database with address
+         books and stored shopping carts
        * Many, many, other features
 
     Powerful search capability
 
        * One-click scan and search -- build a whole search in a single HREF
-	   * Pageable results, configurable in many ways
+       * Pageable results, configurable in many ways
        * Versatile built-in text search
-	   * Complete Glimpse support
+       * Complete Glimpse support
        * Fast binary search
        * Independent field search selection and return
        * Range searching, numeric and alphanumeric
@@ -116,13 +116,13 @@ Major files/directories in the distribution:
 
     Complete control of appearance
 
-	   * Over 90 predefined tag functions
-	   * Powerful user-definable tags
-	   * Catalog pages automatically selected -- either built
-	     "on the fly" from the database or pre-made for popular items
-	   * Embedded Perl and conditional HTML allow complex and
-	     flexible catalog pages to be completely built from the database
-	   * ASP-like syntax available
+       * Over 90 predefined tag functions
+       * Powerful user-definable tags
+       * Catalog pages automatically selected -- either built
+         "on the fly" from the database or pre-made for popular items
+       * Embedded Perl and conditional HTML allow complex and
+         flexible catalog pages to be completely built from the database
+       * ASP-like syntax available
 
     Flexible Ordering Process
 
@@ -134,7 +134,7 @@ Major files/directories in the distribution:
         * Sales tax calculation, with fully independent non-taxable
           item and taxed shipping
         * Route orders to multiple fulfillment houses with
-		  complete configurability
+          complete configurability
         * PGP encryption of credit card information or
           the entire emailed order
         * Fully-configurable discounts with coupons or
@@ -173,7 +173,7 @@ Here is the short version:
     gzip -dc minivend-4.xxx.tar.gz | tar xvf -
     cd minivend-4*
     perl Makefile.PL
-	make test && make install
+    make test && make install
 
 -- WHEN IN DOUBT, RE-START THE SERVER.  It won't take but a few
    seconds, and changes in configurable options don't take effect
@@ -183,10 +183,10 @@ Here is the short version:
 WINDOWS INSTALLATION
 --------------------
 
-	Not yet. You can manually create a software directory and
-	get things going if you know your way around Perl. But I 
-	don't recommend trying unless you are prepared for some
-	serious work.
+    Not yet. You can manually create a software directory and
+    get things going if you know your way around Perl. But I 
+    don't recommend trying unless you are prepared for some
+    serious work.
 
 -------------------------------------------------------------------
 
@@ -202,9 +202,9 @@ for root installations) and run:
 
     bin/makecat basic
 
-	 or 
+     or 
 
-	bin/makecat simple
+    bin/makecat simple
 
 Follow the prompts and after restarting the Minivend server you
 should be able to access the demo catalog.
@@ -226,7 +226,7 @@ at www.minivend.com.
 BSDI, FreeBSD:
        If installing as root, you should use this procedure:
 
-	   	   perl Makefile.PL PREFIX=/usr/local/minivend
+           perl Makefile.PL PREFIX=/usr/local/minivend
 
 Windows:
        Just a few things don't work the same as UNIX. See the

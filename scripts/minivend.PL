@@ -8,6 +8,11 @@ require 'scripts/initp.pl';
 
 sub doit {
 	my ($key) = @_;
+	my $val;
+	if ($MV::Self->{RPMBUILDDIR} and $val = $MV::Self->{$key}) {
+		$val =~ s!^$MV::Self->{RPMBUILDDIR}/!/!; 
+		return $val;
+	}
 	return $MV::Self->{$key} unless $key =~ /[a-z]/;
 	return $Config{$key};
 }
@@ -20,7 +25,7 @@ DOIT: {
 #
 # MiniVend version 4.0xxx
 #
-# $Id: minivend,v 1.4 2000/02/06 01:53:29 mike Exp mike $
+# $Id: minivend,v 1.5 2000/03/02 10:34:48 mike Exp mike $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -119,7 +124,7 @@ use vars qw($VERSION);
 require Exporter;
 
 BEGIN {
-	$VERSION = '4.00';
+	$VERSION = '4.01';
 }
 
 
@@ -2228,6 +2233,12 @@ if ($@) {
 	}
 	die "$msg\n" if $Vend::ForeGround;
 }
+
+=head1 SEE ALSO
+
+mvdocs(8), compile_link(1), config_prog(1), configdump(1), dump(1), expire(1),
+expireall(1), localize(1), makecat(1), offline(1), restart(1), update(1),
+http://www.minivend.com
 
 =head1 LICENSE
 

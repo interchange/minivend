@@ -105,6 +105,8 @@ dist/basic/special_pages/security.html
 dist/basic/special_pages/violation.html
 dist/basic/tmp/.empty
 dist/basic/upload/.empty
+dist/build/makecat.redhat
+dist/build/makedirs.redhat
 dist/compat/body
 dist/compat/buttonbar
 dist/compat/form_mail.cfg

@@ -1,6 +1,6 @@
 # Tagref.pm - Document MiniVend tags
 # 
-# $Id: Tagref.pm,v 1.4 2000/02/25 20:13:03 mike Exp mike $
+# $Id: Tagref.pm,v 1.5 2000/03/02 10:33:33 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -23,11 +23,11 @@ package Vend::Tagref;
 use lib "$Global::VendRoot/lib";
 use lib '../lib';
 
-# $Id: Tagref.pm,v 1.4 2000/02/25 20:13:03 mike Exp mike $
+# $Id: Tagref.pm,v 1.5 2000/03/02 10:33:33 mike Exp $
 
 use Vend::Parse;
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.4 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.5 $ =~ /(\d+)\.(\d+)/);
 
 use vars '%myRefs';
 
@@ -814,7 +814,7 @@ Includes any CGI environment passed from the server.
 %%
 either
 %%
-The C<[either]this[or]that[/either] implements a check for the first
+The C<[either]this[or]that[/either]> implements a check for the first
 non-zero, non-blank value. It splits on [or], and then parses each
 piece in turn. If a value returns true (in the Perl sense -- non-zero, non-blank)
 then subsequent pieces will be discarded without interpolation.

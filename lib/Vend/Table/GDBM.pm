@@ -1,6 +1,6 @@
 # Table/GDBM.pm: access a table stored in a GDBM file
 #
-# $Id: GDBM.pm,v 1.3 2000/02/06 01:51:57 mike Exp $
+# $Id: GDBM.pm,v 1.4 2000/03/02 10:33:59 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -32,7 +32,7 @@ use GDBM_File;
 use Vend::Table::Common;
 
 @ISA = qw(Vend::Table::Common);
-$VERSION = substr(q$Revision: 1.3 $, 10);
+$VERSION = substr(q$Revision: 1.4 $, 10);
 
 sub new {
 	my ($class, $obj) = @_;

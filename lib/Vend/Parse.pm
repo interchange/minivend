@@ -1,6 +1,6 @@
 # Parse.pm - Parse MiniVend tags
 # 
-# $Id: Parse.pm,v 1.12 2000/02/25 20:12:11 mike Exp mike $
+# $Id: Parse.pm,v 1.13 2000/03/02 10:33:03 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -27,12 +27,12 @@
 
 package Vend::Parse;
 
-# $Id: Parse.pm,v 1.12 2000/02/25 20:12:11 mike Exp mike $
+# $Id: Parse.pm,v 1.13 2000/03/02 10:33:03 mike Exp $
 
 require Vend::Parser;
 
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.12 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.13 $ =~ /(\d+)\.(\d+)/);
 
 use Safe;
 use Vend::Util;
@@ -44,7 +44,7 @@ require Exporter;
 
 @ISA = qw(Exporter Vend::Parser);
 
-$VERSION = substr(q$Revision: 1.12 $, 10);
+$VERSION = substr(q$Revision: 1.13 $, 10);
 @EXPORT = ();
 @EXPORT_OK = qw(find_matching_end);
 

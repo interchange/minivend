@@ -1,6 +1,6 @@
 # Data.pm - Minivend databases
 #
-# $Id: Data.pm,v 1.8 2000/02/25 20:11:24 mike Exp mike $
+# $Id: Data.pm,v 1.9 2000/03/02 10:32:14 mike Exp $
 # 
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #

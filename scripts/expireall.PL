@@ -8,6 +8,11 @@ require 'scripts/initp.pl';
 
 sub doit {
 	my ($key) = @_;
+	my $val;
+	if ($MV::Self->{RPMBUILDDIR} and $val = $MV::Self->{$key}) {
+		$val =~ s!^$MV::Self->{RPMBUILDDIR}/!/!; 
+		return $val;
+	}
 	return $MV::Self->{$key} unless $key =~ /[a-z]/;
 	return $Config{$key};
 }
@@ -102,11 +107,16 @@ expireall -- Run Minivend expire on all catalogs
 
 =head1 VERSION
 
-$Id: expireall,v 1.2 2000/01/03 18:31:40 mike Exp $
+$Id: expireall,v 1.3 2000/03/02 10:34:30 mike Exp mike $
 
 =head1 DESCRIPTION
 
 Skeleton POD to avoid make errors.
+
+=head1 SEE ALSO
+
+mvdocs(8), expire(1), http://www.minivend.com
+
 
 =cut
 _EoP_

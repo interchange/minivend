@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # Document.pm - Document object for embedded Perl/ASP
 # 
-# $Id: Document.pm,v 1.2 2000/02/06 01:49:29 mike Exp $
+# $Id: Document.pm,v 1.3 2000/03/02 10:32:17 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #

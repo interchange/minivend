@@ -8,6 +8,11 @@ require 'scripts/initp.pl';
 
 sub doit {
 	my ($key) = @_;
+	my $val;
+	if ($MV::Self->{RPMBUILDDIR} and $val = $MV::Self->{$key}) {
+		$val =~ s!^$MV::Self->{RPMBUILDDIR}/!/!; 
+		return $val;
+	}
 	return $MV::Self->{$key} unless $key =~ /[a-z]/;
 	return $Config{$key};
 }
@@ -20,7 +25,7 @@ DOIT: {
 #
 # MiniVend session dumper
 #
-# $Id: dump,v 1.3 2000/02/06 01:52:54 mike Exp mike $
+# $Id: dump,v 1.4 2000/03/02 10:34:28 mike Exp mike $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -234,7 +239,12 @@ dump -- MiniVend session dumper
 
 =head1 VERSION
 
-$Id: dump,v 1.3 2000/02/06 01:52:54 mike Exp mike $
+$Id: dump,v 1.4 2000/03/02 10:34:28 mike Exp mike $
+
+=head1 SEE ALSO
+
+mvdocs(8), configdump(1), makecat(1), minivend(1)
+
 
 =head1 DESCRIPTION
 

@@ -4,7 +4,7 @@ MiniVend Documentation Project: MiniVend Frequently-asked Questions
 
 Document version: $Id: faq.pod,v 1.3 1999/08/14 07:39:23 mike Exp mike $
 
-This document describes MiniVend 3.14 and earlier.
+This document describes MiniVend 4.0 and later.
 
 =head1 MiniVend General Information
 
@@ -53,7 +53,7 @@ Public License.  Basically, any individual or company can use MiniVend
 free of charge -- you have certain responsibilities if you modify
 your copy then redistribute it. See the GPL at:
 
-	http://www.gnu.org/copyleft/gpl.txt
+    http://www.gnu.org/copyleft/gpl.txt
 
 =head2 What else do I need to run MiniVend?
 
@@ -75,41 +75,41 @@ MiniVend I<will> run with a stock Perl, but to use some features
 of MiniVend (like the MiniMate interface) you will need some extra
 modules. If you are on UNIX you can use the CPAN module and run:
 
-	perl -MCPAN -e 'install Bundle::Minivend'
+    perl -MCPAN -e 'install Bundle::Minivend'
 
 and it should install all of the modules necessary except the DBM/DBI
 ones.
 
 These modules are strongly recommended:
 
-	MD5
-	MIME::Base64
-	SQL::Statement
-	URI::URL
-	Safe::Hole
-	GDBM or DB_File (comes with most i386 Perls)
+    MD5
+    MIME::Base64
+    SQL::Statement
+    URI::URL
+    Safe::Hole
+    GDBM or DB_File (comes with most i386 Perls)
 
 These are definitely recommended:
 
-	Storable
-	Bundle::LWP (contains MIME::Base64 and URI::URL)
+    Storable
+    Bundle::LWP (contains MIME::Base64 and URI::URL)
 
 These are nice to have but are not essential:
 
-	Business::UPS (comes with MiniVend)
-	Term::ReadLine::Perl
-	Term::ReadKey
+    Business::UPS (comes with MiniVend)
+    Term::ReadLine::Perl
+    Term::ReadKey
 
 You will need the B<DBI> module if using SQL, along with the
 appropriate DBD module for your database.
 
 The recommended packages for ActiveState Perl for Windows are:
 
-	MD5
-	MIME::Base64
-	LWP
-	SQL_Statement
-	DB_File
+    MD5
+    MIME::Base64
+    LWP
+    SQL_Statement
+    DB_File
 
 FUTURE: The MiniVend setup program will attempt to use C<ppm.pl>, the ActivePerl
 package manager, to install them at installation time.
@@ -194,13 +194,13 @@ If your provider uses CGI-WRAP or SUEXEC, it will probably error out if you
 selected UNIX mode and didn't reply "Yes" to the question I<Do you use CGIWRAP?>.
 To unset the setuid bit for another try, telnet in and do
 
-	chmod u-s cgi-bin/simple
+    chmod u-s cgi-bin/simple
 
 where C<cgi-bin> is the directory that the program is located.
 
 To reenable it:
 
-	chmod u-s cgi-bin/simple
+    chmod u-s cgi-bin/simple
 
 If that doesn't work, it usually means you are on a virtual host with limited
 command set.
@@ -209,7 +209,7 @@ To verify that this is the problem, try temporarily changing the
 permission of the MINIVEND_ROOT/etc/socket file to be read/write by
 setting in C<minivend.cfg>:
 
-	SocketPerms 0666
+    SocketPerms 0666
 
 If MiniVend then works you will have to make sure the user that the VLINK
 program runs as matches the user who is running the MiniVend daemon.
@@ -618,7 +618,7 @@ for MiniVend and disclaims all responsibility.
 None, really, though by accepting a performance penalty you can embed
 many MiniVend tags inside of regular HTML with things like:
 
-	[pragma no_html_parse 0]
+    [pragma no_html_parse 0]
     <A HREF="[href minivend_page]">Link</A>
     <SCRIPT LANGUAGE=MV MV="set Action">
         mv_todo=return
@@ -815,19 +815,19 @@ Subjectively, people have both good and bad experiences with MiniVend.
         MiniVend is too difficult for the user to configure. There
         are too many things that must be gotten just so.
         -- Small internet service provider
-
+  
     I really like the new site, its laid out well and the
     documentation is so good I've decided to use it even though
     I'm not a programmer.
     -- happy prospective user
-
+  
         Your documentation is awful.
         -- not-so-happy prospective user
-
+  
     Your documentation is some of the best and most comprehensive
     we have seen for a freeware program.
     -- happy user
-
+  
         And the your pages don't have the right information in
         them and that's MY FAULT? How about the fact that your
         configure script acts differently every time it gets run?
@@ -838,8 +838,8 @@ Subjectively, people have both good and bad experiences with MiniVend.
 
 One user says:
 
-	-- MiniVend is an electronic commerce development environment; 
-	   *not* a shopping cart.
+    -- MiniVend is an electronic commerce development environment; 
+       *not* a shopping cart.
 
 This is not far from the truth, though modifying the "simple" or "basic"
 demo seems to work for many users.
@@ -893,7 +893,7 @@ This means Perl is not in your PATH or is not installed.
 
 You might try:
 
-	c:\full\path\to\perl setup.pl
+    c:\full\path\to\perl setup.pl
 
 If you still have problems, it probably means Perl is not installed
 properly. You need the ActiveState 5.005 version, i.e. build 5xx.
@@ -1185,8 +1185,8 @@ If you still are having problems,
 try this combination in catalog.cfg, the catalog configuration
 file:
 
-	SessionExpire  10 minutes
-	WideOpen       Yes
+    SessionExpire  10 minutes
+    WideOpen       Yes
 
 The above setting will typically make MiniVend work when it is possible
 to work.
@@ -1526,9 +1526,188 @@ to MiniVend, but maintaining them can be a nightmare.
 That being said, all you usually have to do to place an order
 link on a page is:
 
-	<A HREF="/cgi-bin/simple/order?mv_order_item=SKU_OF_ITEM">Order!</A>
+    <A HREF="/cgi-bin/simple/order?mv_order_item=SKU_OF_ITEM">Order!</A>
 
 Replace C</cgi-bin/simple> with the path to your MiniVend link.
+
+=head1 SQL Questions
+
+=head2 Does Minivend require SQL?
+
+No.
+
+Minivend does not require SQL. If you have a small database
+with no particular desire to integrate your own toolset, you may be 
+more comfortable using Minivend's internal database.
+
+=head2 I can't get SQL to work -- Undefined subroutine &Vend::Table::DBI::create ...
+
+This probably means one of:
+
+=over4
+
+=item No SQL database
+
+Minivend doesn't include a SQL database. You must select one and
+install it.
+
+=item no DBI
+
+You must install Perl's DBI module before using Minivend with SQL. You
+can see where to get it at http://www.cpan.org, or try:
+
+    perl -MCPAN -e 'install DBI'
+
+=item no DBD
+
+You must install the specific Perl DBD module for your database
+before using Minivend with SQL. You can see where to get it at
+http://www.cpan.org, or try:
+
+    perl -MCPAN -e 'install DBD::XXXXX'
+
+where XXXX is the name of your module. Some of them are:
+
+    Adabas
+    DB2
+    Informix
+    Ingres
+    ODBC
+    Oracle
+    Pg
+    Solid
+    Sybase
+    Unify
+    XBase
+    mSQL
+    mysql
+
+=back
+
+If you can't make this script run without error:
+
+    use DBI;
+    use DBD::XXXXX;
+
+then you don't have one of the above, and Minivend will never run
+a SQL type.
+
+=item I don't like the column types that Minivend defines!
+
+Then change them. See the simple/mysql directory for some examples
+under MySQL.
+
+=item I change the ASCII file, but the table is not updated. Why?
+
+
+
+=item Why do I even need an ASCII file?
+
+Minivend wants some source for column names initially. If you don't
+want to have one, just create a TABLENAME.sql file in the C<products>
+directory. For example, if you have this:
+
+    Database products products.txt dbi:mysql:test_minivend
+
+then create a file C<products/products.sql>. For
+
+    Database pricing pricing.txt dbi:mysql:test_minivend
+
+create a file C<products/pricing.sql>. Etc.
+
+=item Minivend overwrites my predefined table!
+
+Yes, it will if you don't create a file called TABLENAME.sql, where
+C<TABLENAME> is the name of the Minivend table. If you want this to
+happen by default, then set C<NoImport TABLENAME>.
+
+=head2 How can I use MiniVend with Microsoft Access?
+
+Though MiniVend has ODBC capability, the Microsoft Access
+ODBC driver is not a network driver.  You cannot access it
+on a PC from your ISP or UNIX system.
+
+However, you can turn it around.  Once you have created a MySQL or
+other SQL database on the UNIX machine, you may then obtain the Windows
+ODBC driver for the database (mySQL has a package called myODBC) and
+use the UNIX database as a data source for your PC-based database
+program.
+
+Here is a quick procedure that might get you started:
+
+=over 4
+
+
+=item *
+
+Get and mySQL from:
+
+    http://www.mysql.com
+
+Install it on your UNIX box. On Linux it is as easy as getting the RPM distribution:
+
+
+    http://www.mysql.com/rpm/
+
+You install it by typing, as root, C<rpm -i mysql-3.XX.XX.rpm>. If you are not
+root, you will have to build the source distribution.
+
+=item *
+
+To avoid permissions problems for your testing, stop
+the mysql daemon and allow global read-write access with:
+
+    mysqladmin shutdown
+    safe_mysqld --skip-grant-tables &
+
+Obviously, you will want to study mySQL permissions and set
+up some security pretty quickly.  It has excellent capability in
+that area, and the FAQ will help you get over the hurdles.
+
+
+=item *
+
+Set up a database for testing on the UNIX machine:
+
+    mysqladmin create test_odbc
+    mysql test_odbc
+
+Make an SQL query to set up a table, for example:
+
+
+    mysql> create table test_me ( code char(20), testdata char(20) );
+    Query OK, 0 rows affected (0.29 sec)
+
+    mysql> insert into test_me VALUES ('key1', 'data1');
+    Query OK, 1 rows affected (0.00 sec)
+
+    mysql> insert into test_me VALUES ('key2', 'data2');
+    Query OK, 1 rows affected (0.00 sec)
+
+    mysql>
+
+
+=item *
+
+Get and install myODBC, also from the MySQL site (use a mirror):
+
+    http://www.mysql.com
+
+You install this package on your Windows 95 or NT box.  It is a simple
+setup.exe process which leads you to the control panel for setting up an
+ODBC data source.  Set up a data source named C<test_odbc> that points
+to the database C<test_odbc> on the UNIX box. You will need to know the
+host name and the port (usually 3306).
+
+=item *
+
+With MS-Access, you can then open a blank database and select
+File/Get External Data/Link Tables. Select File Type of 'ODBC databases',
+and the proper data source, and voila! You should have access to
+the database residing on the UNIX side.
+
+=back
+
 
 =head1 Setup Questions
 
@@ -1688,7 +1867,7 @@ in catalog.cfg:
 For GNU Privacy Guard, GPG, you would use something like:
 
  EncryptProgram /usr/local/bin/gpg -fa --always-trust -r sales@your.com
-	
+    
 On Windows or other operating systems, the only fix is to sign the
 key or otherwise prevent the error from occurring.
 
@@ -1757,13 +1936,13 @@ If it is simply the I<total> number, extended according
 to quantity, then you can use the [nitems] tag. If you need this
 number for use in an embedded Perl script, you can use
 
-	$number = $Tag->nitems();
+    $number = $Tag->nitems();
 
 If it is the number of line items you need, then you can
 use a Perl script:
 
     [perl]
-    	return scalar @{$Carts->{main}};
+        return scalar @{$Carts->{main}};
     [/perl]
 
 (The 'main' refers to the main shopping cart.)
@@ -1772,8 +1951,8 @@ If you have SeparateItems in effect, and need the number of
 I<unique> items, you could use:
 
     [perl]
-    	my $cart = $Carts->{main};
-		foreach my $item (@$cart) {
+        my $cart = $Carts->{main};
+        foreach my $item (@$cart) {
     @items = split /\|/, $items;
     $count = 0;
     for (@items) {
@@ -1791,93 +1970,6 @@ be a finished catalog, just a starting point.
 Though the author likes to get reports of malfunctions in
 the demo, he feels absolutely no urgency about fixing or responding
 to such reports.
-
-=head2 How can I use MiniVend with Microsoft Access?
-
-Though MiniVend has ODBC capability, the Microsoft Access
-ODBC driver is not a network driver.  You cannot access it
-on a PC from your ISP or UNIX system.
-
-However, you can turn it around.  Once you have created a MySQL or
-other SQL database on the UNIX machine, you may then obtain the Windows
-ODBC driver for the database (mySQL has a package called myODBC) and
-use the UNIX database as a data source for your PC-based database
-program.
-
-Here is a quick procedure that might get you started:
-
-=over 4
-
-
-=item *
-
-Get and mySQL from:
-
-    http://www.mysql.com
-
-Install it on your UNIX box. On Linux it is as easy as getting the RPM distribution:
-
-
-    http://www.mysql.com/rpm/
-
-You install it by typing, as root, C<rpm -i mysql-3.XX.XX.rpm>. If you are not
-root, you will have to build the source distribution.
-
-=item *
-
-To avoid permissions problems for your testing, stop
-the mysql daemon and allow global read-write access with:
-
-    mysqladmin shutdown
-    safe_mysqld --skip-grant-tables &
-
-Obviously, you will want to study mySQL permissions and set
-up some security pretty quickly.  It has excellent capability in
-that area, and the FAQ will help you get over the hurdles.
-
-
-=item *
-
-Set up a database for testing on the UNIX machine:
-
-    mysqladmin create test_odbc
-    mysql test_odbc
-
-Make an SQL query to set up a table, for example:
-
-
-    mysql> create table test_me ( code char(20), testdata char(20) );
-    Query OK, 0 rows affected (0.29 sec)
-
-    mysql> insert into test_me VALUES ('key1', 'data1');
-    Query OK, 1 rows affected (0.00 sec)
-
-    mysql> insert into test_me VALUES ('key2', 'data2');
-    Query OK, 1 rows affected (0.00 sec)
-
-    mysql>
-
-
-=item *
-
-Get and install myODBC, also from the MySQL site (use a mirror):
-
-    http://www.mysql.com
-
-You install this package on your Windows 95 or NT box.  It is a simple
-setup.exe process which leads you to the control panel for setting up an
-ODBC data source.  Set up a data source named C<test_odbc> that points
-to the database C<test_odbc> on the UNIX box. You will need to know the
-host name and the port (usually 3306).
-
-=item *
-
-With MS-Access, you can then open a blank database and select
-File/Get External Data/Link Tables. Select File Type of 'ODBC databases',
-and the proper data source, and voila! You should have access to
-the database residing on the UNIX side.
-
-=back
 
 =head2 Difficulty interacting with browser: Request method for form submission is not POST
 
@@ -1916,15 +2008,12 @@ bug, so if you use Stronghold you should update.
 =back
 
 
-MiniVend 3.05 and later has a new TolerateGet directive which allows
-you to have forms with METHOD=GET.  To use, set the session ID in your
-form
+MiniVend also allows you to have forms with METHOD=GET.  To use, set
+the session ID in your form
 
     <INPUT TYPE=hidden NAME=mv_session_id VALUE="[data session id]">
 
-then set C<TolerateGet Yes> in minivend.cfg (the main
-configuration file) and use METHOD=GET on forms that have problems.
-
+You might then try METHOD=GET on forms that have problems.
 This may prevent errors due to one of the causes above.
 
 =head2 How can I trace the source of a purchase and run a partners program?
@@ -1934,19 +2023,22 @@ to the session database for that user.
 
 You should give your partners a source code, which must contain
 at least one letter character (A-Za-z only). It is placed in the
-sourcing URL after two semicolons as a query string of:
+sourcing URL as a query string of:
 
-    ;;Source1
+    mv_pc=Source1
 
 If this is appended to the URL with which the user B<calls MiniVend>
 it will then be placed in the session identifier C<source>.
 
 This URL:
 
-    C<<>A HREF="http://yourcatalog.com/cgi-bin/yourcat/sp_offer?;;Source1">
+    C<<>A HREF="http://yourcatalog.com/cgi-bin/yourcat/sp_offer?mv_pc=Source1">
         Special offer!&lt;/A>
 
 Will yield C<Source1> from the MiniVend tag [data session source].
+
+The Minivend 3 idiom ?;;Source1 continues to be supported, so existing partner
+sites should work without change.
 
 =head2 How can I send an email copy of the receipt to a user?
 
@@ -1960,80 +2052,8 @@ have not taken the proper security measures (by enabling PGP
 credit card encryption or using CyberCash) you might just
 mail them their own unencrypted credit card number!
 
-If you still decide to do this, then I will show what I consider
-to be the best method -- and Caveat Emptor.
-
-B<Use a GlobalSub>
-
-This is the best way, as it is fairly secure.  (In case you are one of
-those people who go light on the documentation 8-(, you will need to read
-it in this case.)
-
-  GlobalSub <<EOF
-  sub form_mail {
-      my($to, $subject, $reply, $body) = @_;
-      my($ok);
-  
-      return '' unless $to;
-  
-      $subject = 'Copy of your order' unless $subject;
-  
-      $reply = '' unless defined $reply;
-      $reply = "Reply-to: $reply\n" if $reply;
-  
-      $ok = 0;
-      SEND: {
-          open(Vend::FORMMAIL,"|$Vend::Cfg->{SendMailProgram} -t") or last SEND;
-          print Vend::FORMMAIL "To: $to\n", $reply, "Subject: $subject\n\n", $body
-              or last SEND;
-          close Vend::FORMMAIL or last SEND;
-          $ok = ($? == 0);
-      }
-  
-      if (!$ok) {
-          logError("Unable to send mail using $Vend::Cfg->{SendMailProgram}\n" .
-              "To '$to'\n" .
-              "With subject '$subject'\n" .
-              "With reply-to '$reply'\n" .
-              "And body:\n$body");
-      }
-  
-      return $ok ? 'Copy mailed to user.' : 'EMAIL COPY FAILED.';
-  }
-  EOF
-
-The above routine can be called on the report.html page with:
-
-
-  [perl arg=sub interpolate=1] form_mail (
-                      q{[value email]},
-                      'Your order from mycompany.com',
-                      'sales@mycompany.com',
-                      <<'EndOfOrder' )
-  
-     NAME: [value name]
-  ADDRESS: [value address]
-           [value city] [value state] [value zip] [value country]
-  
-  [item-list]
-  [item-quantity] [item-code] [item-description] [item-price]
-  [/item-list]
-  SUBTOTAL: [subtotal]
-  SALESTAX: [salestax]
-  SHIPPING: [shipping]
-  TOTAL:    [total-cost]
-  
-  EndOfOrder
-  [/perl]
-  
-
-(With the old parser, you use [perl sub] ... [/perl] with double brackets
-around some of the inside MiniVend tags.)
-
-Of course you can place any valid tags in the body -- which is that area before
-the EndOfOrder "here document" marker. The usual here document caveats apply --
-must be by itself at the beginning of a line, with no trailing whitespace,
-and B<watch those carriage returns if you use a Wintel machine.>
+This is supported in Minivend via a UserTag, [email ...]. See
+the "simple" and "basic" demos.
 
 =head2 Configuring catalog whatever...Use of uninitialized value at Config.pm line 1614, <CONFIG> chunk 322.
 
@@ -2237,8 +2257,8 @@ example of which is given in the demo.
 
 You could also try something like:
 
-    [perl arg=scratch]
-            $start = tag_data('session', 'arg') || 1;
+    [perl]
+            $start = $Session->{arg} || 1;
             $chunk = 1;
             if($start =~ /(\d+):(\d*)/) {
                     $start = $1;
@@ -2248,13 +2268,13 @@ You could also try something like:
             if($prev < 1) {
                     $prev = 0;
             }
-            $Safe{'scratch'}{'start'} = $start;
-            $Safe{'scratch'}{'chunk'} = $chunk;
-            $Safe{'scratch'}{'next'} = $start + $chunk;
-            $Safe{'scratch'}{'prev'} = $prev;
-            $Safe{'scratch'}{'not_shown'} = 1;        return '';
+            $Scratch->{'start'} = $start;
+            $Scratch->{'chunk'} = $chunk;
+            $Scratch->{'next'} = $start + $chunk;
+            $Scratch->{'prev'} = $prev;
+            $Scratch->{'not_shown'} = 1;        return '';
     [/perl]
-
+  
     [search-region arg="
                         ra=yes
                         fm=[scratch first]
@@ -2264,18 +2284,18 @@ You could also try something like:
                         to=f         "]
     [search-list]
     
-    [on-change 1]
+    [item-change 1]
     [condition][item-field category][/condition]
     <TABLE WIDTH="80%"><TR BGCOLOR="#cccccc" TEXT="WHITE"><TD ALIGN=CENTER>
         <BR><H1>[item-field category]</H1>
     </TD></TR></TABLE>
-    [/on-change 1]
+    [/item-change 1]
     <P>
-    [if-field image]
+    [if-item-field image]
     <IMG SRC="[item-field image]">
     <P>
-    [/if-field]
-
+    [/if-item-field]
+  
     <H2>[item-description]</H2>
     <P>
     [L]Catalog[/L] [L]Number[/L]: [item-code]
@@ -2464,7 +2484,7 @@ The solution is simple -- put C<[subtotal]> instead of C<price> in the
 criterion field. MiniVend will interpret MML tags normally in that position,
 as it will in the C<cost> field.
 
-=head2 I can't get shipping subroutines to work
+=head2 I can't get shipping subroutines to work (Minivend 3)
 
 I don't blame you. The interface is terrible and has gone away in MiniVend 4.
 
@@ -2517,6 +2537,5 @@ of passing a parameter).
 $Log: faq.pod,v $
 Revision 1.3  1999/08/14 07:39:23  mike
 Added static build stuff
-
 
 

@@ -1,6 +1,6 @@
 # Config.pm - Configure Minivend
 #
-# $Id: Config.pm,v 1.11 2000/02/25 20:11:10 mike Exp mike $
+# $Id: Config.pm,v 1.12 2000/03/02 10:32:12 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -101,7 +101,7 @@ BEGIN {
 	};
 }
 
-$VERSION = substr(q$Revision: 1.11 $, 10);
+$VERSION = substr(q$Revision: 1.12 $, 10);
 
 for( qw(search refresh cancel return secure unsecure submit control checkout) ) {
 	$Global::LegalAction{$_} = 1;

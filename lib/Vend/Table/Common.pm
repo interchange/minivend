@@ -1,6 +1,6 @@
 # Table/Common.pm: Common access methods for MiniVend Databases
 #
-# $Id: Common.pm,v 1.6 2000/02/06 01:51:49 mike Exp $
+# $Id: Common.pm,v 1.7 2000/03/02 10:33:51 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -25,7 +25,7 @@
 # Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
 # MA  02111-1307  USA.
 
-$VERSION = substr(q$Revision: 1.6 $, 10);
+$VERSION = substr(q$Revision: 1.7 $, 10);
 use strict;
 
 package Vend::Table::Common;

@@ -1,6 +1,6 @@
 # Table/DBI.pm: access a table stored in an DBI/DBD Database
 #
-# $Id: DBI.pm,v 1.6 2000/02/06 01:51:51 mike Exp $
+# $Id: DBI.pm,v 1.7 2000/03/02 10:33:53 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -20,7 +20,7 @@
 # MA  02111-1307  USA.
 
 package Vend::Table::DBI;
-$VERSION = substr(q$Revision: 1.6 $, 10);
+$VERSION = substr(q$Revision: 1.7 $, 10);
 
 use strict;
 
@@ -815,7 +815,7 @@ eval {
 #::logDebug("finished query, rc=$rc ref=$ref arrayref=$opt->{arrayref} Tmp=$Vend::Interpolate::Tmp->{$opt->{arrayref}}");
 	return $rc
 		if $opt->{row_count};
-	return Vend::Interpolate::tag_sql_list($text, $ref, \%nh)
+	return Vend::Interpolate::tag_sql_list($text, $ref, \%nh, $opt)
 		if $opt->{list};
 	return Vend::Interpolate::html_table($opt, $ref, \@na)
 		if $opt->{html};

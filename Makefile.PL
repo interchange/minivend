@@ -26,7 +26,7 @@ my $Prompt_sub;
 my @mods_to_get;
 my $Lock_troubles;
 
-$VERSION = '4.00';
+$VERSION = '4.01';
 
 # See if we have the CPAN module
 my $Cpan = 0;
@@ -264,6 +264,10 @@ sub initialize {
 			$MV::Default{PREFIX} = "$ENV{HOME}/mvend";
 		}
 	}
+	if($MV::Default{rpmbuilddir} or $MV::Default{RPMBUILDDIR}) {
+		$X{RPMBUILDDIR} = $MV::Default{rpmbuilddir} || $MV::Default{RPMBUILDDIR};
+		$MV::Default{RPMBUILDDIR} = $X{RPMBUILDDIR};
+	}
 	my $uid;
 	if($> == 0 and ! $MV::Default{MINIVEND_USER}) {
 		$uid = my_prompt(
@@ -323,8 +327,12 @@ sub initialize {
 	$X{INSTALLBIN}		= "$realdir/bin";
 	$X{INSTALLARCHLIB}	= "$realdir";
 	$X{INSTALLPRIVLIB}	= "$realdir/lib";
-	$X{INSTALLMAN1DIR}	= "$realdir/doc";
-	$X{INSTALLMAN3DIR}	= "$realdir/doc";
+	if(! $MV::Default{final}) {
+		$X{INSTALLMAN1DIR}	= "$realdir/doc"
+			if ! $MV::Default{INSTALLMAN1DIR};
+		$X{INSTALLMAN3DIR}	= "$realdir/doc"
+			if ! $MV::Default{INSTALLMAN3DIR};
+	}
 
 	my @re_dir  = qw( simple/download );
 	my @re_copy = qw(	
@@ -371,6 +379,15 @@ sub initialize {
 						$MV::Default{MINIVEND_GID},
 						"$realdir/$_";
 			}
+		}
+		chdir '..';
+		my (@minimate) = sort grep -d $_, glob '../MiniMate-4*';
+		if(my $minimate = pop @minimate) {
+			my $dir = $realdir;
+			$dir = "$X{RPMBUILDDIR}/$dir"
+				if $X{RPMBUILDDIR};
+			chdir $minimate;
+			system "$^X install $dir 1"
 		}
 		exit;
 	}
@@ -522,6 +539,7 @@ EOF
 	print INITP Dumper(\%X);
 	print INITP ";\n1;";
 	close INITP;
+	delete $X{RPMBUILDDIR};
     return \%X;
 }
 
@@ -544,9 +562,16 @@ sub MY::install {
 
 	my $new = <<'EOF';
 mv_install ::
-			$(PERL) Makefile.PL force=1 final=$(INSTALLARCHLIB)
+			$(PERL) Makefile.PL force final=$(INSTALLARCHLIB)
 
 install :: all pure_install doc_install mv_install
+
+EOF
+	$new .= <<EOF;
+rpm_move ::
+		\$(PERL) Makefile.PL force=1 rpmbuilddir=$MV::Default{RPMBUILDDIR} final=\$(INSTALLARCHLIB)
+
+rpm_build :: all pure_install doc_install rpm_move
 
 EOF
 	$_ = $self->MM::install;
@@ -554,23 +579,30 @@ EOF
 	$_;
 }
 
+	my %mv_specific = qw/
+							PREFIX 1 FORCE 1 FINAL 1 RPMBUILDDIR 1 MINIVEND_USER 1
+					  /;
+	my %delete;
 	use Getopt::Long;
 	my @saveargs = @ARGV;
 	my %optctl = (
 		'junk'			=> sub { 1 },
 		'<>'			=> sub {
-							my ($arg) = @_;
-#warn "checking option $arg\n";
-							my ($opt, $val);
-							if($arg !~ /=/) {
-								$opt = $arg;
-								$val = 1;
-							}
-							else {
-								($opt, $val) = split /=/, $arg, 2;
-							}
-							$MV::Default{$opt} = $val;
-							return;
+								my ($arg) = @_;
+	#warn "checking option $arg\n";
+								my ($opt, $val);
+								if($arg !~ /=/) {
+									$opt = $arg;
+									$val = 1;
+								}
+								else {
+									($opt, $val) = split /=/, $arg, 2;
+								}
+
+								$delete{$arg} = 1 if $mv_specific{uc $opt};
+									
+								$MV::Default{$opt} = $val;
+								return;
 							},
 	);
 
@@ -586,14 +618,14 @@ EOF
 #	$Data::Dumper::Terse = $Data::Dumper::Indent = 2;
 #	print "ARGV: " . Dumper(\@ARGV);
 #	print "OPT: " . Dumper(\%MV::Default);
-#	@ARGV = @saveargs;
+	@ARGV = grep ! $delete{$_}, @saveargs;
 
 WriteMakefile(
 	NAME       => "MiniVend",
 	MAN3PODS => { 'pod/mvdocs.pod' => 'blib/man3/mvdocs.8' },
 	DISTNAME => "minivend",
 	clean    => {
-	            FILES=> "lib/IniConf.pm _db_storable _session_storable lib/File/CounterFile.pm scripts/initp.pl scripts/compile_link scripts/config_prog scripts/configdump scripts/dump scripts/expire scripts/localize scripts/expireall scripts/makecat scripts/minivend scripts/offline scripts/restart scripts/update",
+	            FILES=> "lib/IniConf.pm _uid _db_storable _session_storable lib/File/CounterFile.pm scripts/initp.pl scripts/compile_link scripts/config_prog scripts/configdump scripts/dump scripts/expire scripts/localize scripts/expireall scripts/makecat scripts/minivend scripts/offline scripts/restart scripts/update dist/simple/download/mvdocs.pod dist/simple/download/mvfaq.pod",
 	           },
 
 	dist     => {

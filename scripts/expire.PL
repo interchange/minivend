@@ -8,6 +8,11 @@ require 'scripts/initp.pl';
 
 sub doit {
 	my ($key) = @_;
+	my $val;
+	if ($MV::Self->{RPMBUILDDIR} and $val = $MV::Self->{$key}) {
+		$val =~ s!^$MV::Self->{RPMBUILDDIR}/!/!; 
+		return $val;
+	}
 	return $MV::Self->{$key} unless $key =~ /[a-z]/;
 	return $Config{$key};
 }
@@ -20,7 +25,7 @@ DOIT: {
 #
 # MiniVend session expiration
 #
-# $Id: expire,v 1.3 2000/02/06 01:53:00 mike Exp mike $
+# $Id: expire,v 1.4 2000/03/02 10:34:29 mike Exp mike $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -277,7 +282,7 @@ temporary files.
 
 =head1 SEE ALSO
 
-http://www.minivend.com
+mvdocs(8), expireall(1), http://www.minivend.com
 
 =head1 AUTHOR
 

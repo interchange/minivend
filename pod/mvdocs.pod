@@ -334,7 +334,9 @@ You will be asked for the directory where you want to install MiniVend --
 any directory will do. The defaults are:
 
     Installed as root: /usr/local/minivend
-    Installad as user: ~/mvend
+    Installed as user: ~/mvend
+
+NOTE: ~ is shorthand for your home directory.
 
 You must of course have write permission there. This
 directory is referred to later in the documentation as B<VendRoot>
@@ -433,7 +435,7 @@ page in the file C<pages/products/gold.html>.
 =item products
 
 Directory containing database source files, including the special MiniVend
-databases shipping.asc, accessories.asc, pricing.asc (and other shipping
+databases shipping.asc, pricing.asc (and other shipping
 database files)
 
 =item session
@@ -1343,10 +1345,6 @@ B<*> I<indicates an optional argument>
 
 =head2 Inserting hyperlinks
 
-=over 4
-
-=head2 [area ...]
-
 named: [area href="dir/page" secure=1* arg="argument"* form="form string"*]
 
 positional: [area pg arg*]
@@ -1373,6 +1371,8 @@ The optional C<form> argument allows you to encode a form in the link.
 
 See above for more information.
 
+=over 4
+
 =item [/page], [/order]
 
 Expands into </a>. Used with the page element, such as:
@@ -1381,24 +1381,6 @@ Expands into </a>. Used with the page element, such as:
 
 TIP: A small efficiency boost in large pages is to just use the </A>
 tag.
-
-
-=item [value name=field set="new value" filter="filter" hide=1]
-
-positional:  C<[value varname]>
-
-The C<[value ...]> MML tag expands into the current value of the customer/form
-input field named by field. If the C<set> value is present, the form variable
-value will be set to it and the new value returned. Use this to "uncheck" a
-checkbox or set other form variable values to defaults. If HIDE is set, the
-value will be set but not returned to the page.
-
-The C<filter="filter1 filter1"> parameter applies any of the standard
-MiniVend filter types to the value. See I<Filters>.
-
-When the value is returned, any MiniVend tags present in the value will be
-escaped. This prevents users from entering MiniVend tags in form values, which
-could be a serious security risk.
 
 =item [page ...]
 
@@ -1566,6 +1548,49 @@ items with a positive quantity will be placed in the basket.
 You may also specify attributes like size or color at time of order.
 Order the T-shirt from the more details page of the C<simple> demo
 to see how it is done.
+
+=head2 Accessing form values
+
+When you send a form to Minivend, it reads the values and places
+them in the user session. The following form:
+
+    <FORM ACTION="[area index]" METHOD=POST>
+    <INPUT TYPE=hidden NAME=mv_action VALUE=return>
+    <INPUT TYPE=hidden NAME=foo VALUE=bar>
+    <INPUT TYPE=submit NAME="Make foo=bar">
+    </FORM>
+
+will make the C<[value foo]> tag equal to C<bar> on the next page
+then send you to the page C<index>(.html).
+Same for this link:
+
+    <A HREF="[area  href=index
+                    form='
+                      foo=bar
+                      mv_action=return
+                    ']">Make foo=bar</A>
+
+
+=over 4
+
+=item [value name=field set="new value" filter="filter" hide=1]
+
+positional:  C<[value varname]>
+
+The C<[value ...]> MML tag expands into the current value of the customer/form
+input field named by field. If the C<set> value is present, the form variable
+value will be set to it and the new value returned. Use this to "uncheck" a
+checkbox or set other form variable values to defaults. If HIDE is set, the
+value will be set but not returned to the page.
+
+The C<filter="filter1 filter1"> parameter applies any of the standard
+MiniVend filter types to the value. See I<Filters>.
+
+When the value is returned, any MiniVend tags present in the value will be
+escaped. This prevents users from entering MiniVend tags in form values, which
+could be a serious security risk.
+
+=back
 
 =head2 Where do I go from here?
 
@@ -1793,8 +1818,8 @@ the ASCII source is kept in the file C<products.txt> in the products
 directory. This file is also the default file for searching with the
 I<THE SEARCH ENGINE>.
 
-MiniVend also has a number of standard but optional databases, some
-of which are in fixed special formats:
+MiniVend also has a two of standard but optional databases,
+which are in fixed special formats:
 
 =over 4
 
@@ -1810,27 +1835,6 @@ The database of sales tax information if the C<[salestax]> tag is to
 be used. A default is supplied -- caution, these things change!
 This is a fixed-format database, and must be created as specified.
 See I<Sales Tax>.
-
-=item accessories.asc
-
-A simple auxiliary database keyed on the product code. It's value
-is available via the C<[item-accessories]> or C<[accessories code]> tags.
-This is a fixed-format database, and must be created as specified.
-See I<Accessories>. The big advantage of this database is speed --
-it is always retained in memory. If you have a large number (many
-thousands) of items, use an I<Arbitrary Database> instead.
-
-=item pricing.asc
-
-The database of quantity pricing information. It must be defined as
-the regular MiniVend database B<pricing>, with the product code as
-the first field, and a field named B<price> (all lower case) that holds
-space-separated price information in the order defined by I<PriceBreaks>.
-Also subject to I<MixMatch>. In addition, this database F<may> hold
-information about price adjustments -- see I<PriceAdjustment>.  This is
-a database that can be in any form, including SQL/DBI if desired.  The
-only requirement is the presence of the B<price> field in the proper
-format, and an appropriate key.
 
 =back
 

@@ -1,6 +1,6 @@
 # Error.pm - Handle MiniVend error pages and messages
 # 
-# $Id: Error.pm,v 1.2 2000/02/06 01:49:31 mike Exp $
+# $Id: Error.pm,v 1.3 2000/03/02 10:32:18 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -37,7 +37,7 @@ use strict;
 
 use vars qw/$VERSION/;
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.2 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.3 $ =~ /(\d+)\.(\d+)/);
 
 my $wantref = 1;
 

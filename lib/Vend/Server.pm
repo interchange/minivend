@@ -1,6 +1,6 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.7 2000/02/25 20:12:46 mike Exp mike $
+# $Id: Server.pm,v 1.8 2000/03/02 10:33:24 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -28,7 +28,7 @@
 package Vend::Server;
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.7 $, 10);
+$VERSION = substr(q$Revision: 1.8 $, 10);
 
 use POSIX qw(setsid strftime);
 use Vend::Util;

@@ -2,7 +2,7 @@
 #
 # MiniVend version 4.0
 #
-# $Id: Order.pm,v 1.10 2000/02/25 20:11:52 mike Exp mike $
+# $Id: Order.pm,v 1.11 2000/03/02 10:33:01 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -33,7 +33,7 @@
 package Vend::Order;
 require Exporter;
 
-$VERSION = substr(q$Revision: 1.10 $, 10);
+$VERSION = substr(q$Revision: 1.11 $, 10);
 
 @ISA = qw(Exporter);
 

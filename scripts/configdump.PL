@@ -8,6 +8,11 @@ require 'scripts/initp.pl';
 
 sub doit {
 	my ($key) = @_;
+	my $val;
+	if ($MV::Self->{RPMBUILDDIR} and $val = $MV::Self->{$key}) {
+		$val =~ s!^$MV::Self->{RPMBUILDDIR}/!/!; 
+		return $val;
+	}
 	return $MV::Self->{$key} unless $key =~ /[a-z]/;
 	return $Config{$key};
 }
@@ -163,6 +168,10 @@ configdump catalog
 
 C<configdump> writes the configuration directives for the given catalog
 to standard output. This includes the default settings too.
+
+=head1 SEE ALSO
+
+mvdocs(8), dump(1), makecat(1), minivend(1)
 
 =head1 LICENSE
 

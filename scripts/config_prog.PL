@@ -8,6 +8,11 @@ require 'scripts/initp.pl';
 
 sub doit {
 	my ($key) = @_;
+	my $val;
+	if ($MV::Self->{RPMBUILDDIR} and $val = $MV::Self->{$key}) {
+		$val =~ s!^$MV::Self->{RPMBUILDDIR}/!/!; 
+		return $val;
+	}
 	return $MV::Self->{$key} unless $key =~ /[a-z]/;
 	return $Config{$key};
 }
@@ -20,7 +25,7 @@ DOIT: {
 #
 # MiniVend program configurator
 #
-# $Id: config_prog,v 1.3 2000/02/06 01:52:29 mike Exp mike $
+# $Id: config_prog,v 1.4 2000/03/02 10:34:24 mike Exp mike $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -148,11 +153,17 @@ config_prog -- Configure MiniVend programs with MakeMaker variables
 
 =head1 VERSION
 
-$Id: config_prog,v 1.3 2000/02/06 01:52:29 mike Exp mike $
+$Id: config_prog,v 1.4 2000/03/02 10:34:24 mike Exp mike $
 
 =head1 DESCRIPTION
 
 No documentation planned.
+
+=head1 SEE ALSO
+
+mvdocs(8), compile_link(1), config_prog(1), configdump(1), dump(1), expire(1),
+expireall(1), localize(1), makecat(1), minivend(1), offline(1),
+restart(1), update(1)
 
 =cut
 _EoP_

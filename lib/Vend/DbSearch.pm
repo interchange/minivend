@@ -1,6 +1,6 @@
 # Vend/DbSearch.pm:  Search indexes with Perl
 #
-# $Id: DbSearch.pm,v 1.4 2000/02/07 10:36:00 mike Exp $
+# $Id: DbSearch.pm,v 1.5 2000/03/02 10:32:15 mike Exp $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::TextSearch
 #
@@ -26,7 +26,7 @@ require Vend::Search;
 
 @ISA = qw(Vend::Search);
 
-$VERSION = substr(q$Revision: 1.4 $, 10);
+$VERSION = substr(q$Revision: 1.5 $, 10);
 
 use Search::Dict;
 use strict;

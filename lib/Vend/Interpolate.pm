@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # Interpolate.pm - Interpret MiniVend tags
 # 
-# $Id: Interpolate.pm,v 1.11 2000/02/25 20:11:32 mike Exp mike $
+# $Id: Interpolate.pm,v 1.12 2000/03/02 10:32:26 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -32,7 +32,7 @@ package Vend::Interpolate;
 require Exporter;
 @ISA = qw(Exporter);
 
-$VERSION = substr(q$Revision: 1.11 $, 10);
+$VERSION = substr(q$Revision: 1.12 $, 10);
 
 @EXPORT = qw (
 
@@ -2749,6 +2749,7 @@ sub tag_search_list {
 		$total,
 		$current,
 		$page,
+		$prefix,
 		$session,
 		);
 
@@ -2757,6 +2758,8 @@ sub more_link {
 	my ($next, $last, $arg);
 	my $list = '';
 	$pa =~ s/__PAGE__/$inc/g;
+	my $form_arg = "mv_nextpage=$page";
+	$form_arg .= "\npf=$prefix" if $prefix;
 	$next = ($inc-1) * $chunk;
 #::logDebug("more_link: inc=$inc current=$current");
 	$last = $next + $chunk - 1;
@@ -2804,6 +2807,7 @@ sub tag_more_list {
 				? $q->{mv_next_pointer}
 				: $first + $chunk;
 	$page = $q->{mv_search_page} || $Global::Variable->{MV_PAGE};
+	$prefix = $q->{prefix} || '';
 
 	if($r =~ s:\[border\]($All)\[/border\]::i) {
 		$border = $1;
@@ -2848,7 +2852,9 @@ sub tag_more_list {
 			$arg .= ":$chunk";
 			$list .= '<A HREF="';
 			#$list .= vendUrl("scan/MM=$arg/np=$page");
-			$list .= tag_area( "scan/MM=$arg", '', { form => "mv_nextpage=$page" });
+			my $form_arg = "mv_nextpage=$page";
+			$form_arg .= "\npf=$prefix" if $prefix;
+			$list .= tag_area( "scan/MM=$arg", '', { form => $form_arg });
 			$list .= '">';
 			$list .= $prev_anchor;
 			$list .= '</A> ';
@@ -2874,10 +2880,11 @@ sub tag_more_list {
 		$last = $last > ($total - 1) ? $total - 1 : $last;
 		$arg = "$session:$next:$last:$chunk";
 		$next_tag .= '<A HREF="';
-		#$next_tag .= vendUrl("scan/MM=$arg/np=$page");
+		#$next_tag .= vendUrl("scan/MM=$arg$pfu/np=$page");
 		$next_tag .= tag_area("scan/MM=$arg");
 		$next_tag .= $next_tag =~ /\?.+=/ ? '&' : '?';
 		$next_tag .= "mv_nextpage=$page";
+		$next_tag .= "&pf=$prefix" if $prefix;
 		$next_tag .= '">';
 		$next_tag .= $next_anchor;
 		$next_tag .= '</A>';
@@ -3557,6 +3564,20 @@ sub region {
 	my $prefix = defined $opt->{list_prefix} ? $opt->{list_prefix} : 'list';
 
 #::logDebug("region: opt:\n" . ::uneval($opt) . "\npage:" . substr($page,0,100));
+
+	if($opt->{ml} and ! defined $obj->{mv_matchlimit}) {
+		$obj->{mv_matchlimit} = $opt->{ml};
+		$obj->{matches} = scalar @{$obj->{mv_results}};
+		$obj->{mv_cache_key} = generate_key(substr($page,0,100));
+		$obj->{mv_first_match} = $opt->{fm} if $opt->{fm};
+		$obj->{mv_search_page} = $opt->{sp} if $opt->{sp};
+		$obj->{prefix} = $opt->{prefix} if $opt->{prefix};
+		my $out = delete $obj->{mv_results};
+		Vend::Search::save_more($obj, $out);
+		$obj->{mv_results} = $out;
+	}
+
+	$opt->{prefix} = $obj->{prefix} if $obj->{prefix};
 
 	$page =~ s!$QR{more_list}! tag_more_list($1,$2,$3,$4,$5,$opt,$6)!ge;
 	$page =~ s!$QR{no_match}!

@@ -1,6 +1,6 @@
 # Util.pm - Minivend utility functions
 #
-# $Id: Util.pm,v 1.8 2000/02/25 20:13:32 mike Exp mike $
+# $Id: Util.pm,v 1.9 2000/03/02 10:33:45 mike Exp $
 # 
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -73,7 +73,7 @@ use Config;
 use Fcntl;
 use subs qw(logError logGlobal);
 use vars qw($VERSION @EXPORT @EXPORT_OK);
-$VERSION = substr(q$Revision: 1.8 $, 10);
+$VERSION = substr(q$Revision: 1.9 $, 10);
 
 BEGIN {
 	eval {

@@ -1,6 +1,6 @@
 # Rare.pm - MiniVend routines rarely used or not requiring much performance
 # 
-# $Id: Control.pm,v 1.2 2000/02/06 01:48:47 mike Exp $
+# $Id: Control.pm,v 1.3 2000/03/02 10:32:13 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #

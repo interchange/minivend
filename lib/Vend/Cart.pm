@@ -2,7 +2,7 @@
 #
 # MiniVend version 3.12
 #
-# $Id: Cart.pm,v 1.2 2000/02/06 01:48:00 mike Exp $
+# $Id: Cart.pm,v 1.3 2000/03/02 10:32:06 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -29,7 +29,7 @@
 
 package Vend::Cart;
 
-$VERSION = substr(q$Revision: 1.2 $, 10);
+$VERSION = substr(q$Revision: 1.3 $, 10);
 
 use strict;
 

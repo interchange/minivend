@@ -1,6 +1,6 @@
 # Session.pm - Minivend Sessions
 #
-# $Id: Session.pm,v 1.3 2000/02/16 03:13:32 mike Exp $
+# $Id: Session.pm,v 1.4 2000/03/02 10:33:25 mike Exp $
 # 
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -30,7 +30,7 @@ package Vend::Session;
 require Exporter;
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.3 $, 10);
+$VERSION = substr(q$Revision: 1.4 $, 10);
 
 @ISA = qw(Exporter);
 

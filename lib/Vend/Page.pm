@@ -1,6 +1,6 @@
 # Page.pm - Handle MiniVend page routing
 # 
-# $Id: Page.pm,v 1.2 2000/02/06 01:50:30 mike Exp $
+# $Id: Page.pm,v 1.3 2000/03/02 10:33:02 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -48,7 +48,7 @@ use strict;
 
 use vars qw/$VERSION/;
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.2 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.3 $ =~ /(\d+)\.(\d+)/);
 
 my $wantref = 1;
 

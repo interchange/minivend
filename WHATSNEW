@@ -5,13 +5,45 @@
 Everything. Well, not completely -- many MiniVend 3.x catalogs can
 run with few changes, but there will be changes.
 
-MiniVend 4.0 is a major rewrite that restructures many things.
+MiniVend 4.x is a major rewrite that restructures many things.
+
+Minivend-4.01 introduces the following:
+
+* Linux binaries will be tracked with all releases. The RPM spec
+  files have been published, so it should be possible for users
+  on other processors/operating systems to build binaries for those
+  systems.
+
+  Some things that are present in the Linux binary:
+
+    -- Log files are kept in /var/log/minivend
+    -- Demo catalogs are pre-built and placed in
+       /var/lib/minivend/basic and /var/lib/minivend/simple.
+    -- PID and socket files go in /var/run/minivend
+    -- Main config file is /etc/minivend.cfg
+    -- /etc/rc.d/init.d/minivend script added, adds
+       starts for runlevels 3, 4, 5, stops for rest
+       of the levels.
+    -- /etc/logrotate.d/minivend log rotation added.
+
+  MiniMate and minivend-docs RPMs are also provided.
+
+  They are not relocatable yet, sorry. I think I may be able
+  to figure that one out eventually....
+
+* Bug in [query ...] and other tags fixed. It prevented 
+  [more-list] ... [/more-list] from working properly.
+
+* Bug in build procedure found, should prevent binaries and man
+  pages ending up in strange places.
+
+Minivend-4.00 is the initial release version.
 
 Minivend-4.0alpha12: 
 
-		-- added [banner ...]  tag to replace random/rotate,
-		   includes complete documentation
-		-- Glimpse works again.
+        -- added [banner ...]  tag to replace random/rotate,
+           includes complete documentation
+        -- Glimpse works again.
 
 Major new features are almost too many to mention, read the documentation
 for the most complete description. Some highlights:
@@ -22,79 +54,79 @@ for the most complete description. Some highlights:
 
 * All lists can have any prefix. This means that you can do:
 
-	[loop prefix=item list="99-102 00-0011a"]
-	[item-code] [item-field price]
-	[/loop]
+    [loop prefix=item list="99-102 00-0011a"]
+    [item-code] [item-field price]
+    [/loop]
 
-		or 
+        or 
 
-	[loop prefix=color list="[item-accessories options, color"]
-	[color-code] [color-data colors name]
-	[/loop]
-	
+    [loop prefix=color list="[item-accessories options, color"]
+    [color-code] [color-data colors name]
+    [/loop]
+    
 * All databases can do basic SQL queries, even MiniVend ones. These
   three will/should work much the same on any MiniVend database type:
 
-  	[query sql="delete from inventory where code = '[item-code]'"]
-  	[/query]
+    [query sql="delete from inventory where code = '[item-code]'"]
+    [/query]
 
-	[query sql="insert into inventory ('[item-code]', '[value new_number]'"]
-	[/query]
+    [query sql="insert into inventory ('[item-code]', '[value new_number]'"]
+    [/query]
 
-	[query sql="update inventory set qty = '[value new_number]'
-				where code = '[item-code]']
-	[/query]
+    [query sql="update inventory set qty = '[value new_number]'
+                where code = '[item-code]']
+    [/query]
 
-	[query sql="select * from products"]
-	[/query]
+    [query sql="select * from products"]
+    [/query]
 
   All lists can have a [more-list], can be limited by mv_matchlimit, etc.
 
 * You can save queries to a variable space and then call them in code:
 
-	[query sql="select * from products" hashref=prod_table][/query]
-	[perl]
-		$products = $Query->{prod_table};
-		$mona_code = '00-0001';
-		foreach $ref (@$products) {
-			$artist = $ref->{artist}, last
-				if $ref->{code} eq $mona_code;
-		}
-		return "The Mona Lisa's artist is: " . $artist;
-	[/perl]
+    [query sql="select * from products" hashref=prod_table][/query]
+    [perl]
+        $products = $Query->{prod_table};
+        $mona_code = '00-0001';
+        foreach $ref (@$products) {
+            $artist = $ref->{artist}, last
+                if $ref->{code} eq $mona_code;
+        }
+        return "The Mona Lisa's artist is: " . $artist;
+    [/perl]
 
 * All databases and session-variable setting/reading parameters have a
 powerful cascading filter capability.
 
-	[data	table=products
-			col=artist
-			key=00-341] returns:      VAN GOGH, Vincent
+    [data   table=products
+            col=artist
+            key=00-341] returns:      VAN GOGH, Vincent
 
-	[data	table=products
-			col=artist
-			key=00-341
-			filter="name namecase"
-			] returns:      Vincent Van Gogh
+    [data   table=products
+            col=artist
+            key=00-341
+            filter="name namecase"
+            ] returns:      Vincent Van Gogh
 
-	[data   table=products
-	        col=artist_formatted
-			key=00-341
-			filter="name namecase"
-			value"VAN GOGH, Vincent"
-			] stores:      Vincent Van Gogh
+    [data   table=products
+            col=artist_formatted
+            key=00-341
+            filter="name namecase"
+            value"VAN GOGH, Vincent"
+            ] stores:      Vincent Van Gogh
 
 The same thing works for [value ...], [cgi ...], etc. As well as
 for certain SQL query situations.
-	
+    
 * Many new configuration prodedure capabilities:
-	
-	- #ifdef and #ifndef on Variable values
-	- #include files now included at point of entry instead of at
-	  end of process
-	- attach subroutines to configuration settings with Tie::Watch
-	- Set directives with code, also using Tie::Watch
-	- Require directive ensures that GlobalSub and global UserTag entries
-	  are present when moving a catalog
+    
+    - #ifdef and #ifndef on Variable values
+    - #include files now included at point of entry instead of at
+      end of process
+    - attach subroutines to configuration settings with Tie::Watch
+    - Set directives with code, also using Tie::Watch
+    - Require directive ensures that GlobalSub and global UserTag entries
+      are present when moving a catalog
 
 * A new ASP-style syntax is supported:
 
@@ -109,49 +141,49 @@ for certain SQL query situations.
 
 * A new Perl object set is consistent in all areas.
 
-	[perl]
-		$Document->write("Your name is $Values->{name}");
-	[/perl]
+    [perl]
+        $Document->write("Your name is $Values->{name}");
+    [/perl]
 
-	and 
+    and 
 
-	[calc]
-		$Document->write("Your name is $Values->{name}");
-	[/calc]
+    [calc]
+        $Document->write("Your name is $Values->{name}");
+    [/calc]
 
 
   are the same, as is:
 
   ActionMap  your_name <<EOR
   sub {
-		$Document->write("Your name is $Values->{name}");
-		return;
+        $Document->write("Your name is $Values->{name}");
+        return;
   }
   EOR
 
   Objects supported are:
 
-		$CGI->{key}              Hash reference to raw submitted values
-		$CGI_array->{key}        Hash reference to array submitted values
-		%Db                      Hash of available database tables
-		$DbSearch->method({})    Do searches in your code
-		$Document->write()       Writes to page
-		$Carts->{cartname}       Direct reference to shopping carts
-		$Config->{key}           Direct reference to $Vend::Cfg
-		$Scratch->{key}          Direct reference to scratch area
-		$Session->{key}          Direct reference to session area
-		%SQL                     Hash of available DBI database handles
-		$Tag->tagname(@args)     Call a tag as a routine (UserTag too!)
-		$Tag->tagname({ %args }) Call with hash-style naming too!
-		$TextSearch->method({})  Do searches in your code
-		$Values->{key}           Direct reference to user form values
-		&Log($msg)               Log to the error log
-		HTML $msg                Synonym for $Document->write($msg)
+        $CGI->{key}              Hash reference to raw submitted values
+        $CGI_array->{key}        Hash reference to array submitted values
+        %Db                      Hash of available database tables
+        $DbSearch->method({})    Do searches in your code
+        $Document->write()       Writes to page
+        $Carts->{cartname}       Direct reference to shopping carts
+        $Config->{key}           Direct reference to $Vend::Cfg
+        $Scratch->{key}          Direct reference to scratch area
+        $Session->{key}          Direct reference to session area
+        %SQL                     Hash of available DBI database handles
+        $Tag->tagname(@args)     Call a tag as a routine (UserTag too!)
+        $Tag->tagname({ %args }) Call with hash-style naming too!
+        $TextSearch->method({})  Do searches in your code
+        $Values->{key}           Direct reference to user form values
+        &Log($msg)               Log to the error log
+        HTML $msg                Synonym for $Document->write($msg)
 
 * The search engine has been extensively reworked.
 
-	-- Word matching should be much more predictable
-	-- You can do grouping of search specifications
+    -- Word matching should be much more predictable
+    -- You can do grouping of search specifications
 
   Glimpse is not yet integrated.
 
@@ -160,35 +192,35 @@ for certain SQL query situations.
 
 * Tag parameters can be quoted with | to strip whitespace:
 
-	[page  href=|
-				[value name="whatever"]
-				|]
+    [page  href=|
+                [value name="whatever"]
+                |]
 
-	is equivalent to 
+    is equivalent to 
 
-	[page  href="[value name="whatever"]"]
+    [page  href="[value name="whatever"]"]
 
 *  Filters can be created with Filter directive
    and/or [input-filter name=var op="uc"][/input-filter]
 
-	  uc          UPPER CASE 
-	  lc          lower case 
-	  digits      only digits
-	  word        only A-Z a-z _ 0-9
-	  urlencode   space becomes %20
-	  entities    < becomes &lt;
-	  strip       strip leading/trailing whitespace
-	  no_white    strip all whitespace
-	  gate        set to blank unless scratch variable
-				   with same name is non-blank
-	  n           (where n is an integer) length limit
-	  remove      delete existing filter (if any)
+      uc          UPPER CASE 
+      lc          lower case 
+      digits      only digits
+      word        only A-Z a-z _ 0-9
+      urlencode   space becomes %20
+      entities    < becomes &lt;
+      strip       strip leading/trailing whitespace
+      no_white    strip all whitespace
+      gate        set to blank unless scratch variable
+                   with same name is non-blank
+      n           (where n is an integer) length limit
+      remove      delete existing filter (if any)
 
 * Filter directive allows filtering of certain CGI variables
   for input conditioning; this is not session dependent and
   automatically operates on any iteration of the variable...
 
-	Filter  phone  digits 10
+    Filter  phone  digits 10
 
   That removes all non-digit values from the variable "phone",
   then limits length to 10. Any session-based filters are applied
@@ -201,11 +233,11 @@ for certain SQL query situations.
   and the name is set to "$mv_filter_name". It is possible to
   do something like:
 
-	  [input-filter name=country tables=country]
-		my $val = $mv_filter_value;
-		my $prospect = &tag_data('country', 'name', $val);
-		return $prospect || $val;
-	  [/input-filter]
+      [input-filter name=country tables=country]
+        my $val = $mv_filter_value;
+        my $prospect = &tag_data('country', 'name', $val);
+        return $prospect || $val;
+      [/input-filter]
 
   That will return the name of a country if it is found as a key
   in the database (assuming the simple demo country definitions).
@@ -219,27 +251,27 @@ for certain SQL query situations.
   checkout form values from MiniVend UserDB names, with an [ecml ...]
   tag:
 
-		[ecml state]
+        [ecml state]
 
   is equivalent to:
 
-		<INPUT TYPE=text
-			   VALUE="[value state]"
-			   NAME=Ecom_ShipTo_Postal_StateProv
-			   SIZE=2>
+        <INPUT TYPE=text
+               VALUE="[value state]"
+               NAME=Ecom_ShipTo_Postal_StateProv
+               SIZE=2>
 
 * The [price] tag now supports pricing with attributes (size/color etc.).
   If you do
 
-		[price code=99-102 size=XL color=RED]
-		[price code=99-102 size=L color=RED]
-		[price code=99-102 size=L color=BLUE]
+        [price code=99-102 size=XL color=RED]
+        [price code=99-102 size=L color=RED]
+        [price code=99-102 size=L color=BLUE]
 
   in the demo, this will demonstrate it.
 
 * The idiom:
-	
-	 #include directory/*
+    
+     #include directory/*
 
   now is supported (and used in the demo minivend.cfg file). This
   includes all files in that directory (but not subdirectories)
@@ -252,8 +284,8 @@ for certain SQL query situations.
 * Added form-remap based on catalog script-name (too early for
   other methods). In minivend.cfg:
 
-		FormRemap  /cgi-bin/simple  code mv_order_item
-		FormRemap  /cgi-bin/simple  item mv_order_fly 
+        FormRemap  /cgi-bin/simple  code mv_order_item
+        FormRemap  /cgi-bin/simple  item mv_order_fly 
 
 * Made some major changes in the demo. Notably, MySQL should install
   out of the box.
@@ -265,21 +297,21 @@ for certain SQL query situations.
   of even UserTags. Add this to minivend.cfg to print one
   to a MiniVend page:
 
-	UserTag tag-reference Routine <<EOR
-	sub {
-		require Vend::Tagref;
-		open (TAGREF, ">mv_tagref.pod");
-		my $reference = Vend::Tagref::tag_reference();
-		print TAGREF $reference;
-		close TAGREF;
-		my $out =  `pod2html mv_tagref.pod`;
-		if(! $out) {
-			 $Vend::StatusLine = "Content-Type: text/plain\r\n";
-			$out = $reference;
-		}
-		return $out;
-	}
-	EOR
+    UserTag tag-reference Routine <<EOR
+    sub {
+        require Vend::Tagref;
+        open (TAGREF, ">mv_tagref.pod");
+        my $reference = Vend::Tagref::tag_reference();
+        print TAGREF $reference;
+        close TAGREF;
+        my $out =  `pod2html mv_tagref.pod`;
+        if(! $out) {
+             $Vend::StatusLine = "Content-Type: text/plain\r\n";
+            $out = $reference;
+        }
+        return $out;
+    }
+    EOR
 
 * Removed all dependencies on ProductsFiles containing 'products'.
 
@@ -291,16 +323,16 @@ for certain SQL query situations.
 
 * Catalog directive can now be specfied as:
 
-	Catalog simple
-	Catalog simple dir    /home/minivend/simple
-	Catalog simple script /cgi-bin/simple
-	Catalog simple alias  /secure-bin/simple
-	Catalog simple alias  /simple
-	
+    Catalog simple
+    Catalog simple dir    /home/minivend/simple
+    Catalog simple script /cgi-bin/simple
+    Catalog simple alias  /secure-bin/simple
+    Catalog simple alias  /simple
+    
   Most importantly, certain global directives can be 
   set on a catalog basis:
 
-  	Catalog simple directive ErrorFile /var/log/minivend/simple.log
+    Catalog simple directive ErrorFile /var/log/minivend/simple.log
 
 * The [more-list] tag now accepts a [decade-next][/decade-next] and
   [decade-prev][/decade-prev] setting to break match lists into groups
@@ -319,7 +351,7 @@ This is useful when doing shipping calculations or other embedded Perl
 that is based on item attributes. To set whether an item is defined as
 "heavy" and requires truck shipment, you can do:
 
-	AutoModifier  heavy
+    AutoModifier  heavy
 
 When an item is added to the shopping cart using MiniVend's routines, the
 C<heavy> attribute will be set to the value of the C<heavy> field in
@@ -329,23 +361,23 @@ changes to C<ProductFiles> would affect that, of course.
 * Syslog error logging (global only) is supported via the
   global SysLog directive.
 
-  	Syslog  command  /usr/bin/logger
-  	Syslog  tag      mv1
-  	Syslog  alert    local3.warn
-  	Syslog  warn     local3.info
-  	Syslog  info     local3.info
+    Syslog  command  /usr/bin/logger
+    Syslog  tag      mv1
+    Syslog  alert    local3.warn
+    Syslog  warn     local3.info
+    Syslog  info     local3.info
 
   This would cause global errors to be logged with the command:
 
-		/usr/bin/logger -t mv1 -p local3.alert
+        /usr/bin/logger -t mv1 -p local3.alert
 
   and cause system log entries something like:
 
-	Oct 26 17:30:11 bill mv1: Config 'co' at server startup 
-	Oct 26 17:30:11 bill mv1: Config 'homefn' at server startup 
-	Oct 26 17:30:11 bill mv1: Config 'simple' at server startup 
-	Oct 26 17:30:11 bill mv1: Config 'test' at server startup 
-	Oct 26 17:30:13 bill mv1: START server (2345) (INET and UNIX) 
+    Oct 26 17:30:11 bill mv1: Config 'co' at server startup 
+    Oct 26 17:30:11 bill mv1: Config 'homefn' at server startup 
+    Oct 26 17:30:11 bill mv1: Config 'simple' at server startup 
+    Oct 26 17:30:11 bill mv1: Config 'test' at server startup 
+    Oct 26 17:30:13 bill mv1: START server (2345) (INET and UNIX) 
 
   This facility is alpha and is subject to change. Of course you can
   wrap your own wrapper around it to get it to behave how you want.
@@ -384,85 +416,85 @@ accessories     Replace with normal data functions
 * Compatibility routines for many popular tags like [random], [rotate], etc.
 are provided in the compat/ directory.  To use, include the files in minivend.cfg:
 
-	#include compat/*
+    #include compat/*
 
 * Directives removed:
 
-	ActionMap
-	AdminDatabase
-	AdminPage
-	AsciiBackend
-	BackendOrder
-	ButtonBars
-	CheckoutFrame
-	CheckoutPage
-	CollectData
-	DataDir
-	Delimiter
-	DescriptionTrim
-	FieldDelimiter
-	FrameFlyPage
-	FrameLinkDir
-	FrameOrderPage
-	FrameSearchPage
-	ItemLinkDir
-	ItemLinkValue
-	MsqlDB
-	MsqlProducts
-	Mv_AlinkColor
-	Mv_Background
-	Mv_BgColor
-	Mv_LinkColor
-	Mv_TextColor
-	Mv_VlinkColor
-	NewReport
-	NewTags
-	OldShipping
-	OrderFrame
-	PageCache
-	PriceDatabase
-	Random
-	ReceiptPage
-	RecordDelimiter
-	ReportIgnore
-	Rotate
-	SearchFrame
-	SearchOverMsg
-	SecureOrderMsg
-	SpecialFile
-	SubArgs
-	Tracking
+    ActionMap
+    AdminDatabase
+    AdminPage
+    AsciiBackend
+    BackendOrder
+    ButtonBars
+    CheckoutFrame
+    CheckoutPage
+    CollectData
+    DataDir
+    Delimiter
+    DescriptionTrim
+    FieldDelimiter
+    FrameFlyPage
+    FrameLinkDir
+    FrameOrderPage
+    FrameSearchPage
+    ItemLinkDir
+    ItemLinkValue
+    MsqlDB
+    MsqlProducts
+    Mv_AlinkColor
+    Mv_Background
+    Mv_BgColor
+    Mv_LinkColor
+    Mv_TextColor
+    Mv_VlinkColor
+    NewReport
+    NewTags
+    OldShipping
+    OrderFrame
+    PageCache
+    PriceDatabase
+    Random
+    ReceiptPage
+    RecordDelimiter
+    ReportIgnore
+    Rotate
+    SearchFrame
+    SearchOverMsg
+    SecureOrderMsg
+    SpecialFile
+    SubArgs
+    Tracking
 
 * Minor operations removed:
 
-	- auto-substitution of mp= on [loop search=profile],
-	  [search-region arg=profile]
-	- [tag scan]...
-	- [tag sql]...
+    - auto-substitution of mp= on [loop search=profile],
+      [search-region arg=profile]
+    - [tag scan]...
+    - [tag sql]...
 
 Many of these are related to one of:
 
-	* Removal of frames logic
-	* Removed tags
-	* Obsolete methods
-	* Old routines for 2.0x compatibility
+    * Removal of frames logic
+    * Removed tags
+    * Obsolete methods
+    * Old routines for 2.0x compatibility
 
 ----------------------------
 UPGRADING from MiniVend 3
 
 Form Data updates:
 
-	* Added Scratch variable mv_data_enable to gate the update_data 
-	  function; prior to this it was possible to update a database
-	  willy-nilly. Do:
+    * Added Scratch variable mv_data_enable to gate the update_data 
+      function; prior to this it was possible to update a database
+      willy-nilly. Do:
 
-			[set update_database]
-			[if type=data term="userdb::trusted::[data session username]"]
-				[set mv_data_enable]1[/set]
-			[else]
-				[set mv_data_enable]0[/set]
-			[/else]
-			[/if]
-			[/set]
-			<INPUT TYPE=hidden NAME=mv_click VALUE=update_database>
+            [set update_database]
+            [if type=data term="userdb::trusted::[data session username]"]
+                [set mv_data_enable]1[/set]
+            [else]
+                [set mv_data_enable]0[/set]
+            [/else]
+            [/if]
+            [/set]
+            <INPUT TYPE=hidden NAME=mv_click VALUE=update_database>
 

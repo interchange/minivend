@@ -1,6 +1,6 @@
 # Static.pm - MiniVend static page routines
 # 
-# $Id: Static.pm,v 1.2 2000/02/06 01:51:47 mike Exp $
+# $Id: Static.pm,v 1.3 2000/03/02 10:33:47 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #

@@ -8,6 +8,11 @@ require 'scripts/initp.pl';
 
 sub doit {
 	my ($key) = @_;
+	my $val;
+	if ($MV::Self->{RPMBUILDDIR} and $val = $MV::Self->{$key}) {
+		$val =~ s!^$MV::Self->{RPMBUILDDIR}/!/!; 
+		return $val;
+	}
 	return $MV::Self->{$key} unless $key =~ /[a-z]/;
 	return $Config{$key};
 }
@@ -19,7 +24,7 @@ DOIT: {
 #
 # MiniVend localizer
 #
-# $Id: localize,v 1.2 2000/02/06 01:53:02 mike Exp mike $
+# $Id: localize,v 1.3 2000/03/02 10:34:31 mike Exp mike $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -348,7 +353,7 @@ localize -- produce MiniVend localization file from set of pages
 
 =head1 VERSION
 
-$Id: localize,v 1.2 2000/02/06 01:53:02 mike Exp mike $
+$Id: localize,v 1.3 2000/03/02 10:34:31 mike Exp mike $
 
 =head1 SYNOPSIS
 
@@ -411,7 +416,9 @@ with the default text for reference.
 A backup file (filename.html.bak) is saved if C<-o> is used, but only
 one level. Subsequent .bak files will be overwritten.
 
+=head1 SEE ALSO
 
+mvdocs(8), http://www.minivend.com
 
 =head1 AUTHOR
 

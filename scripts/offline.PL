@@ -8,6 +8,11 @@ require 'scripts/initp.pl';
 
 sub doit {
 	my ($key) = @_;
+	my $val;
+	if ($MV::Self->{RPMBUILDDIR} and $val = $MV::Self->{$key}) {
+		$val =~ s!^$MV::Self->{RPMBUILDDIR}/!/!; 
+		return $val;
+	}
 	return $MV::Self->{$key} unless $key =~ /[a-z]/;
 	return $Config{$key};
 }
@@ -20,7 +25,7 @@ DOIT: {
 #
 # offline - MiniVend database builder and indexer
 #
-# $Id: offline,v 1.3 2000/02/06 01:53:33 mike Exp mike $
+# $Id: offline,v 1.4 2000/03/02 10:35:06 mike Exp mike $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -258,11 +263,15 @@ offline -- Minivend offline database builder
 
 =head1 VERSION
 
-$Id: offline,v 1.3 2000/02/06 01:53:33 mike Exp mike $
+$Id: offline,v 1.4 2000/03/02 10:35:06 mike Exp mike $
 
 =head1 DESCRIPTION
 
 Skeleton POD to avoid make errors.
+
+=head1 SEE ALSO
+
+mvdocs(8), minivend(1), http://www.minivend.com
 
 =cut
 _EoP_

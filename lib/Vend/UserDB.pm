@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# $Id: UserDB.pm,v 1.6 2000/02/25 20:13:07 mike Exp mike $
+# $Id: UserDB.pm,v 1.6 2000/02/25 20:13:07 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #

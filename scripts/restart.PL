@@ -8,6 +8,11 @@ require 'scripts/initp.pl';
 
 sub doit {
 	my ($key) = @_;
+	my $val;
+	if ($MV::Self->{RPMBUILDDIR} and $val = $MV::Self->{$key}) {
+		$val =~ s!^$MV::Self->{RPMBUILDDIR}/!/!; 
+		return $val;
+	}
 	return $MV::Self->{$key} unless $key =~ /[a-z]/;
 	return $Config{$key};
 }
@@ -20,7 +25,7 @@ DOIT: {
 #
 # MiniVend restarter
 #
-# $Id: restart,v 1.1 2000/02/06 01:53:36 mike Exp mike $
+# $Id: restart,v 1.2 2000/03/02 10:35:08 mike Exp mike $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -164,7 +169,7 @@ a system startup script.
 
 =head1 SEE ALSO
 
-minivend(8), http://www.minivend.com
+minivend(1), mvdocs(8), http://www.minivend.com
 
 =head1 AUTHOR
 

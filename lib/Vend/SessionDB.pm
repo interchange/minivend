@@ -1,6 +1,6 @@
 # SessionDB.pm:  stores session information in files
 #
-# $Id: SessionDB.pm,v 1.2 2000/02/06 01:51:27 mike Exp $
+# $Id: SessionDB.pm,v 1.3 2000/03/02 10:33:27 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -20,7 +20,7 @@
 # MA  02111-1307  USA.
 
 
-# $Id: SessionDB.pm,v 1.2 2000/02/06 01:51:27 mike Exp $
+# $Id: SessionDB.pm,v 1.3 2000/03/02 10:33:27 mike Exp $
 
 package Vend::SessionDB;
 require Tie::Hash;
@@ -30,7 +30,7 @@ use strict;
 use Vend::Util;
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.2 $, 10);
+$VERSION = substr(q$Revision: 1.3 $, 10);
 
 my $SessionDB;
 my $SessionLock;
