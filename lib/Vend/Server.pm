@@ -206,6 +206,29 @@ EOF
 			die($msg);
 		};
 
+	if($Global::DNSBL) {
+		my @quads = split /\./, $CGI::remote_addr;
+		my $intro = join ".", reverse(@quads), '';
+		my $blocked;
+		for(@{$Global::DNSBL}) {
+			my $addr = gethostbyname($intro . $_)
+			 or next;
+			$blocked = 1;
+		}
+		if($blocked) {
+			my $msg = ::get_locale_message( 403, "Listed on avoid list.",);
+			my $content_type = $msg =~ /<html/i ? 'text/html' : 'text/plain';
+			my $len = length($msg);
+			$Vend::StatusLine = <<EOF;
+Status: 403 Forbidden
+Content-Type: $content_type
+Content-Length: $len
+EOF
+			respond('', \$msg);
+			die($msg);
+		}
+	}
+
 	($::IV, $::VN, $::SV) = $g->{VarName}
 			? ($g->{IV}, $g->{VN}, $g->{IgnoreMultiple})
 			: ($Global::IV, $Global::VN, $Global::IgnoreMultiple);

@@ -54,6 +54,8 @@ sub display_special_page {
 	my($name, $subject) = @_;
 	my($page);
 
+	undef $Vend::write_redirect;
+
 	$name =~ m/[\[<]+/g
 		and do {
 			::logGlobal(
