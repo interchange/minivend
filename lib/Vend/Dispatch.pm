@@ -1130,6 +1130,9 @@ sub dispatch {
 		$Vend::Cfg->{ScratchDefault}{mv_no_count} = 1;
 		$Vend::Cfg->{ScratchDefault}{mv_no_session_id} = 1;
 	}
+	elsif ($sessionid and $CGI::values{mv_force_session}) {
+		# do nothing
+	}
 	elsif ($::Instance->{CookieName} and defined $CGI::cookie) {
 		$CGI::cookie =~ m{$::Instance->{CookieName}=($Vend::Cfg->{CookiePattern})};
 		$seed = $sessionid = $1;
