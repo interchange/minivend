@@ -84,10 +84,6 @@ sub init {
 	$s->{mv_numeric}            = [];
 	$s->{mv_orsearch}           = [];
 	$s->{mv_search_field}       = [];
-	$s->{mv_search_file}        =	[ @{
-										$::Variable->{MV_DEFAULT_SEARCH_TABLE}
-										||	$Vend::Cfg->{ProductFiles}
-										} ];
 	$s->{mv_search_group}       = [];
 	$s->{mv_searchspec}         = [];
 	$s->{mv_sort_option}        = [];
@@ -96,6 +92,11 @@ sub init {
 	for(keys %$options) {
 		$s->{$_} = $options->{$_};
 	}
+	$s->{mv_search_file}        =	[ @{
+										$::Variable->{MV_DEFAULT_SEARCH_TABLE}
+										||	$Vend::Cfg->{ProductFiles}
+										} ]
+		unless ref($s->{mv_search_file}) and scalar(@{$s->{mv_search_file}});
 
 	return;
 }
@@ -104,7 +105,9 @@ sub new {
 	my ($class, %options) = @_;
 	my $s = new Vend::Search;
 	bless $s, $class;
+#::logDebug("mv_search_file initted=" . ::uneval($options{mv_search_file}));
 	$s->init(\%options);
+#::logDebug("mv_search_file now=" . ::uneval($s->{mv_search_file}));
 	return $s;
 }
 
