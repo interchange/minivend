@@ -1089,18 +1089,13 @@ my %Sorter = (
 	rn	=> sub { $_[1] <=> $_[0]			},
 );
 
-	my $last = 'none';
 	my $i;
 	my $max = 0;
 	for($i = 0; $i < @Flds; $i++) {
 		$max = $Flds[$i] if $Flds[$i] > $max;
-		if (! $Opts[$i]) {
-			$Opts[$i] = $last;
-			next;
-		}
+		$Opts[$i] = 'none', next unless $Opts[$i];
 		$Opts[$i] = lc $Opts[$i];
 		$Opts[$i] = 'none' unless defined $Sort_field{$Opts[$i]};
-		$last = $Opts[$i];
 	}
 #::logDebug("sort_search_return: flds='@Flds' opts='@Opts'");
 
