@@ -180,7 +180,7 @@ my %InitializeEmpty = (qw(
 					FileControl			1
 				));
 
-my %AllowMappedAction = (qw(
+my %AllowScalarAction = (qw(
 					FileControl			1
 				));
 
@@ -1673,19 +1673,27 @@ sub parse_action {
 				$c->{$name} = $Global::GlobalSub->{$sub};
 			}
 		}
-		if(! $c->{$name}) {
+		if(! $c->{$name} and $AllowScalarAction{$var}) {
+			$c->{$name} = $sub;
+		}
+		elsif(! $c->{$name}) {
 			$@ = errmsg("Mapped %s action routine '%s' is non-existant.", $var, $sub);
 		}
 	}
 	elsif ( ! $mapped and $sub !~ /^sub\b/) {
-		my $code = <<EOF;
+		if($AllowScalarAction{$var}) {
+			$c->{$name} = $sub;
+		}
+		else {
+			my $code = <<EOF;
 sub {
 				return Vend::Interpolate::interpolate_html(<<EndOfThisHaiRYTHING);
 $sub
 EndOfThisHaiRYTHING
 }
 EOF
-		$c->{$name} = eval $code;
+			$c->{$name} = eval $code;
+		}
 	}
 	elsif (! $C or $Global::AllowGlobal->{$C->{CatalogName}}) {
 		package Vend::Interpolate;
