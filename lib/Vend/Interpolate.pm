@@ -4862,8 +4862,6 @@ sub region {
     return $page;
 }
 
-my $List_it = 1;
-
 sub tag_loop_list {
 	my ($list, $opt, $text) = @_;
 
@@ -4871,7 +4869,7 @@ sub tag_loop_list {
 	my @rows;
 
 	$opt->{prefix} = 'loop' unless defined $opt->{prefix};
-	$opt->{label}  =  "loop" . $List_it++ . $Global::Variable->{MV_PAGE}
+	$opt->{label}  =  "loop" . ++$::Instance->{List_it} . $Global::Variable->{MV_PAGE}
 						unless defined $opt->{label};
 
 #::logDebug("list is: " . uneval($list) );
