@@ -240,7 +240,7 @@ sub database_field {
 }
 
 sub database_row {
-    my ($db, $key, $field_name) = @_;
+    my ($db, $key) = @_;
     $db = database_exists_ref($db) or return undef;
 return undef unless defined $db;
     return '' unless $db->test_record($key);
