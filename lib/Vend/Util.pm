@@ -1098,10 +1098,6 @@ sub readin {
 
 		if( defined $level and ! check_security($file, $level, $gate) ){
 			my $realm = $::Variable->{COMPANY} || $Vend::Cat;
-			$Vend::StatusLine = <<EOF if $Vend::InternalHTTP;
-HTTP/1.0 401 Unauthorized
-WWW-Authenticate: Basic realm="$realm"
-EOF
 			if(-f "$try/violation$suffix") {
 				$fn = "$try/violation$suffix";
 			}

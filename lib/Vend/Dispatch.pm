@@ -1018,9 +1018,7 @@ EOF
 		return;
 	}
 
-	if (defined $Global::SelectorAlias{$CGI::script_name}
-		and ! defined $Vend::InternalHTTP                 )
-	{
+	if (defined $Global::SelectorAlias{$CGI::script_name}) {
 		my $real = $Global::SelectorAlias{$CGI::script_name};
 		unless (	$CGI::secure                                        or
 					$Vend::Cfg->{SecureURL} =~ m{$CGI::script_name$}     and
@@ -1030,13 +1028,6 @@ EOF
 			$Vend::Cfg->{VendURL}   =~ s!$real!$CGI::script_name!;
 			$Vend::Cfg->{SecureURL} =~ s!$real!$CGI::script_name!;
 		}
-	}
-	elsif ($Vend::InternalHTTP) {
-		$Vend::Cfg->{VendURL} = "http://" .
-								$CGI::http_host .
-								$CGI::script_path;
-		$Vend::Cfg->{ImageDir} = $Vend::Cfg->{ImageDirInternal}
-			if  $Vend::Cfg->{ImageDirInternal};
 	}
 
 	if($Global::HitCount and ! $cat) {
