@@ -4208,7 +4208,6 @@ my $once = 0;
 	if($text =~ m/^$B$QR{_line}\s*$/is) {
 		my $i = $1 || 0;
 		my $fa = $opt->{mv_return_fields};
-		my $end = 
 		$r .= join "\t", @$fa[$i .. $#$fa];
 		$r .= "\n";
 	}
