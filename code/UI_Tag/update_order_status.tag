@@ -307,6 +307,21 @@ sub {
 		$::Scratch->{ship_notice_username} = $user;
 		$::Scratch->{ship_notice_email} = $trec->{email}
 			or delete $::Scratch->{ship_notice_username};
+		if($opt->{send_email}) {
+			my $filename = $opt->{ship_notice_template} || 'etc/ship_notice';
+			my $contents = $Tag->file($filename);
+			if($contents) {
+				$contents = interpolate_html($contents);
+				$contents =~ s/^\s+//;
+				$contents =~ s/\s*$/\n/;
+				$Tag->email_raw({}, $contents);
+			}
+			else {
+				$Tag->warnings(
+						errmsg("No ship_notice_template '%s' found", $filename),
+					);
+			}
+		}
 	}
 	return;
 }

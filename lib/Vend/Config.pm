@@ -2437,7 +2437,10 @@ my %Default = (
 			my %seen;
 			my @types = grep !$seen{$_}++, keys %$o, @base;
 
+			my %module_ignore = qw/resolution 1 default 1/;
+
 			for(@types) {
+				next if $module_ignore{$_};
 				my $loc = $o->{$_} ||= {};
 				eval "require Vend::Ship::$_;";
 				if($@) {
