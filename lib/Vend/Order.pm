@@ -1241,10 +1241,9 @@ sub _required {
 
 sub counter_number {
 	my $file = shift || $Vend::Cfg->{OrderCounter};
-	$Vend::CounterFile::DEFAULT_DIR = $Vend::Cfg->{VendRoot}
-		unless $file =~ m!^/!;
-	my $c = new Vend::CounterFile $file, "000000";
-	return $c->inc;
+	my $sql = shift;
+	my $start = shift || '000000';
+	return Vend::Interpolate::tag_counter($file, { sql => $sql, start => $start });
 }
 
 sub update_order_number {
@@ -1370,9 +1369,12 @@ sub route_order {
 
 	# Careful! If you set it on one order and not on another,
 	# you must delete in between.
-	if(! $check_only) {
-		$::Values->{mv_order_number} = counter_number($main->{counter})
-				unless $Vend::Session->{mv_order_number};
+	if(! $check_only and ! $Vend::Session->{mv_order_number}) {
+		$::Values->{mv_order_number} = counter_number(
+											$main->{counter},
+											$main->{sql_counter},
+											$main->{first_order_number},
+										);
 	}
 
 	my $value_save = { %{$::Values} };
@@ -1533,7 +1535,11 @@ sub route_order {
 			$::Values->{mv_order_number} = $Vend::Session->{mv_order_number};
 		}
 		elsif($route->{counter}) {
-			$::Values->{mv_order_number} = counter_number($route->{counter});
+			$::Values->{mv_order_number} = counter_number(
+												$route->{counter},
+												$route->{sql_counter},
+												$route->{first_order_number},
+											);
 		}
 		elsif($route->{increment}) {
 			$::Values->{mv_order_number} = counter_number();

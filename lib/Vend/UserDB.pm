@@ -1311,19 +1311,21 @@ sub assign_username {
 	my $start = $self->{OPTIONS}{username} || 'U00000';
 	$file = './etc/username.counter' if ! $file;
 
-	my $custno = Vend::Interpolate::tag_counter(
-						$file,
-						{ sql => $self->{OPTIONS}{sql_counter} },
-					);
+	my $o = { start => $start, sql => $self->{OPTIONS}{sql_counter} };
+
+	my $custno;
 
 	if(my $l = $Vend::Cfg->{Accounting}) {
 
 		my $class = $l->{Class};
 
+		my $assign = defined $l->{assign_username} ? $l->{assign_username} : 1;
+
+		if($assign) {
 #::logDebug("Accounting class is $class");
 		my $obj;
 		eval {
-			$obj = $class->new;;
+				$obj = $class->new;
 		};
 #::logDebug("Accounting object is $obj");
 
@@ -1334,10 +1336,11 @@ sub assign_username {
 				);
 		}
 		$custno = $obj->assign_customer_number();
+		}
 #::logDebug("assigned new customer number $custno");
 	}
 
-	return $custno;
+	return $custno || Vend::Interpolate::tag_counter($file, $o);
 }
 
 sub new_account {
