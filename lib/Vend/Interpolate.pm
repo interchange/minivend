@@ -2202,6 +2202,14 @@ sub tag_accessories {
 		$extra =~ s/\s+$//;
 		@{$opt}{qw/attribute type column table name outboard passed/} =
 			split /\s*,\s*/, $extra;
+		if($code) {
+			$opt->{type} ||= 'select';
+			if(! $opt->{table}) {
+				my $col =  $opt->{column} || $opt->{attribute};
+				$opt->{passed} ||= product_field($col, $code)
+					if $col;
+			}
+		}
 	}
 	($attribute, $type, $field, $db, $name, $outboard, $passed) = 
 		@{$opt}{qw/attribute type column table name outboard passed/};
