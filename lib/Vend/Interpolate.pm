@@ -2579,7 +2579,8 @@ sub tag_counter {
 					);
 			} 
 			elsif($dsn =~ /^dbi:mysql:/i) {
-				$dbh->do("INSERT INTO $tab VALUES (0)")		or die $diemsg;
+				$seq ||= $tab;
+				$dbh->do("INSERT INTO $seq VALUES (0)")		or die $diemsg;
 				my $sth = $dbh->prepare("select LAST_INSERT_ID()")
 					or die $diemsg;
 				$sth->execute()								or die $diemsg;
