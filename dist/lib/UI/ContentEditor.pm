@@ -1421,8 +1421,9 @@ sub format_page {
 	my @header;
 
 	my $slots = delete $ref->{ui_slots} || [];
-	push @header, "ui_name: $name";
+	push @header, "ui_$type: $name";
 	push @header, "ui_type: $type";
+	push @header, "ui_name: $name";
 	push @header, "ui_page_template: $ref->{ui_page_template}";
 	push @header, "ui_version: " . $Tag->version();
 	delete $ref->{ui_name};
