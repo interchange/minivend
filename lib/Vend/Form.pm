@@ -898,7 +898,7 @@ if($opt->{debug}) {
 	}
 
 	if($opt->{override}) {
-		$opt->{value} = $opt->{default} || $opt->{override};
+		$opt->{value} = $opt->{default};
 	}
 
 	$opt->{default} = $opt->{value}    if defined $opt->{value};

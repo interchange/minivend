@@ -354,7 +354,10 @@ sub set_slice {
 		unshift @$fary, $keyname;
 		unshift @$vary, $key;
 	}
-	my @current = $s->row($key);
+	my @current;
+
+	@current = $s->row($key)
+		if $s->record_exists($key);
 
 	@current[ map { $s->column_index($_) } @$fary ] = @$vary;
 
