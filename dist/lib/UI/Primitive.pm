@@ -568,11 +568,11 @@ sub rotate {
 
 	my $motion = $options->{Motion} || 'save';
 
+	$options->{max} = 10 if ! defined $options->{max};
 
 	$dir =~ s:/+$::;
 
 	if("\L$motion" eq 'save' and ! -f "$dir/$base+") {
-			require File::Copy;
 			File::Copy::copy("$dir/$base", "$dir/$base+")
 				or die "copy $dir/$base to $dir/$base+: $!\n";
 	}
@@ -604,6 +604,10 @@ sub rotate {
 	my $base_exists = -f $base;
 	push @forward, $base if $base_exists;
 
+	if (@forward > $options->{max}) {
+		$#forward = $options->{max};
+	}
+
 	for(reverse sort @forward) {
 		next unless -f $_;
 		rename $_, $_ . $add or die "rename $_ => $_+: $!\n";
@@ -614,6 +618,11 @@ sub rotate {
 	@backward = sort @backward;
 
 	unshift @backward, $base;
+
+	if (@backward > $options->{max}) {
+		$#backward = $options->{max};
+	}
+
 	my $i;
 	for($i = 0; $i < $#backward; $i++) {
 		rename $backward[$i+1], $backward[$i]
