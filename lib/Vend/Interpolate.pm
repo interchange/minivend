@@ -4401,11 +4401,7 @@ sub iterate_hash_list {
 		$run =~ s:$QR{modifier_name}:$1$item->{mv_ip}:g;
 		$run =~ s!$B$QR{_subtotal}!currency(item_subtotal($item),$1)!ge;
 		$run =~ s!$B$QR{_discount_subtotal}!
-						currency( discount_price(
-										$item,item_subtotal($item)
-									),
-								$1
-								)!ge;
+						currency( discount_subtotal($item), $1 )!ge;
 		$run =~ s:$B$QR{_code}:$code:g;
 		$run =~ s:$B$QR{_field}:ed($Hash_code{field}->($item, $1) || $item->{$1}):ge;
 		$run =~ s:$B$QR{_common}:ed($Hash_code{common}->($item, $1) || $item->{$1}):ge;
@@ -5030,6 +5026,22 @@ sub item_discount {
 	return ($price * $q) - discount_price($code,$price,$q) * $q;
 }
 
+sub discount_subtotal {
+	my ($item, $price) = @_;
+
+	unless (ref $item) {
+		::logError("Bad call to disount price, item is not reference: %s", $item);
+		return 0;
+	}
+
+	my $quantity = $item->{quantity} || 1;
+
+	$price ||= item_price($item);
+	my $new_price = discount_price($item, $price);
+	
+	return $new_price * $quantity;
+}
+
 sub discount_price {
 	my ($item, $price, $quantity) = @_;
 	my $extra;
@@ -5054,17 +5066,22 @@ sub discount_price {
 	$Vend::Interpolate::q = $quantity || 1;
 	$Vend::Interpolate::s = $price;
 
+	my $subtotal = $price * $quantity;
+
+#::logDebug("quantity=$q code=$item->{code} price=$s");
+
 	my ($discount, $return);
 
 	for($code, 'ALL_ITEMS') {
 		next unless $discount = $Vend::Session->{discount}->{$_};
-		$Vend::Interpolate::s = $return = $price;
+		$Vend::Interpolate::s = $return ||= $subtotal;
         $return = $ready_safe->reval($discount);
 		if($@) {
-			$return = $price;
+			::logError("Bad discount code for %s: %s", $discount);
+			$return = $subtotal;
 			next;
 		}
-        $price = $return;
+        $price = $return / $q;
     }
 
 	if($extra) {
