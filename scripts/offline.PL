@@ -23,7 +23,7 @@ DOIT: {
 #!/usr/bin/perl
 ##!~_~perlpath~_~
 #
-# offline - Interchange database builder and indexer
+# Interchange database builder and indexer
 #
 # $Id$
 #
@@ -57,13 +57,25 @@ use lib '/usr/local/interchange/lib';
 use lib '/usr/local/interchange';
 #use lib '~_~INSTALLARCHLIB~_~';
 
+use strict;
+use Fcntl;
+use Vend::Util;
+use Vend::Config;
+use Vend::Data;
+use Getopt::Long;
+use Data::Dumper;
+use File::Copy;
+
+$Data::Dumper::Terse = 1;
+$Data::Dumper::Indent = 2;
+
 BEGIN {
-    eval {
-        require 5.004;
-        require FindBin;
+	eval {
+		require 5.004;
+		require FindBin;
 		1 and $Global::VendRoot = $FindBin::RealBin;
-        1 and $Global::VendRoot =~ s/.bin$//;
-    };
+		1 and $Global::VendRoot =~ s/.bin$//;
+	};
 	($Global::VendRoot = $ENV{MINIVEND_ROOT})
 		if defined $ENV{MINIVEND_ROOT};
 
@@ -82,17 +94,12 @@ BEGIN {
 		$Global::ExeName = 'interchange';
 		$Global::ConfigFile = 'interchange.cfg';
 	}
-	
 }
 
-### END CONFIGURABLE VARIABLES
+### END CONFIGURATION VARIABLES
 
 $Global::ErrorFile = "$Global::VendRoot/error.log";
 $Vend::ExternalProgram = 1;
-
-use strict;
-use Fcntl;
-use Vend::Util;
 
 #select a DBM
 
@@ -132,9 +139,6 @@ BEGIN {
 	}
 }
 
-use Vend::Config;
-use Vend::Data;
-
 my $USAGE = <<EOF;
 usage: offline -c catalog [-d offline_dir]
 
@@ -147,12 +151,6 @@ my ($catalog,$directory,$delimiter);
 my (@Catalogs);
 my (@Directories);
 my ($Live, $NoBackup, $Verbose, $BackupExt);
-
-use Getopt::Long;
-use Data::Dumper;
-use File::Copy;
-$Data::Dumper::Terse = 1;
-$Data::Dumper::Indent = 2;
 
 my %optctl = (
 			catalog   => \@Catalogs,
