@@ -564,4 +564,6 @@ sub _shared_databases {
 	}
 }
 
+*autonumber = \&Vend::Table::Common::autonumber;
+
 1;
