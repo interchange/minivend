@@ -1230,18 +1230,6 @@ sub vendUrl {
 	push @parms, "$::VN->{mv_pc}=$ct"                 	 if $ct;
 	push @parms, "$::VN->{mv_cat}=$Vend::Cat"            if $Vend::VirtualCat;
 
-	if($Vend::AccumulatingLinks) {
-		my $key = $path;
-		$key =~ s/\.html?$//;
-		my $value = '';
-		if($arguments) {
-			$value = [ $key, $arguments ];
-			$key .= "/$arguments";
-		}
-		push(@Vend::Links, [$key, $value]) unless $Vend::LinkFound{$key}++;
-
-	}
-
     $r .= '?' . join($Global::UrlJoiner, @parms) if @parms;
 	if($opt->{anchor}) {
 		$opt->{anchor} =~ s/^#//;
