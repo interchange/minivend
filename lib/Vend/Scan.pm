@@ -261,7 +261,6 @@ sub find_search_params {
 		($var,$val) = split /=/, $_, 2;
 		next unless defined $Scan{$var};
 		$val =~ s!::!/!g;
-		$val =~ s/%([A-Fa-f0-9][A-Fa-f0-9])/chr(hex($1))/ge;
 		$c->{$Scan{$var}} = defined $c->{$Scan{$var}}
 							? ($c->{$Scan{$var}} . "\0$val" )
 							: $val;
