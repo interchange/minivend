@@ -1659,9 +1659,11 @@ my %Default = (
 										$C->{Database}{$_}{'name'};
 								}
 							}
-							return (undef, "No default search file!") 
-								unless scalar @out;
-							$C->{Variable}{MV_DEFAULT_SEARCH_FILE} = \@out;
+							unless (scalar @out) {
+								return 1 if $C->{BaseCatalog};
+								return (undef, "No default search file!") 
+									unless scalar @out;
+							}
 							return 1;
 						},
 );
