@@ -530,7 +530,7 @@ sub update_data {
 # Parse the mv_click and mv_check special variables
 sub parse_click {
 	my ($ref, $click, $extra) = @_;
-    my($codere) = '[\w-_#/.]+';
+    my($codere) = '[-\w_#/.]+';
 	my $params;
 
 #::logDebug("Looking for click $click");
