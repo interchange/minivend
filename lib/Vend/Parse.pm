@@ -251,6 +251,7 @@ my %addAttr = (
                     record          1
                     region          1
                     search_region   1
+                    search          1
 					shipping        1
 					handling        1
                     tag             1
