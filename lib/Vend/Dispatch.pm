@@ -1353,7 +1353,8 @@ EOF
     url_history($Vend::FinalPath) if $Vend::Cfg->{History};
 
 # TRACK
-    $Vend::Track = new Vend::Track;
+    $Vend::Track = new Vend::Track
+		unless $Vend::admin and ! $::Variable->{MV_TRACK_ADMIN};
 # END TRACK
 
 	if($Vend::Cfg->{DisplayErrors} and $Global::DisplayErrors) {
