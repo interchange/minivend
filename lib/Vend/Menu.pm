@@ -399,7 +399,7 @@ sub old_tree {
 	$opt->{header_template} ||= <<EOF;
 <P>
 <a href="{EXPLODE_URL}" {LINK_STYLE?} style="{LINK_STYLE}"{/LINK_STYLE?} {LINK_CLASS?} class="{LINK_CLASS}"{/LINK_CLASS?}>Explode tree</A><br>
-<a href="{COLLAPSE_URl}" {LINK_STYLE?} style="{LINK_STYLE}"{/LINK_STYLE?} {LINK_CLASS?} class="{LINK_CLASS}"{/LINK_CLASS?}">Collapse tree</A>
+<a href="{COLLAPSE_URL}" {LINK_STYLE?} style="{LINK_STYLE}"{/LINK_STYLE?} {LINK_CLASS?} class="{LINK_CLASS}"{/LINK_CLASS?}>Collapse tree</A>
 </P>
 EOF
 
@@ -858,7 +858,7 @@ sub dhtml_tree {
 	$opt->{header_template} ||= <<EOF;
 <P>
 <a href="{EXPLODE_URL}" {LINK_STYLE?} style="{LINK_STYLE}"{/LINK_STYLE?} {LINK_CLASS?} class="{LINK_CLASS}"{/LINK_CLASS?}>Explode tree</A><br>
-<a href="{COLLAPSE_URL}" {LINK_STYLE?} style="{LINK_STYLE}"{/LINK_STYLE?} {LINK_CLASS?} class="{LINK_CLASS}"{/LINK_CLASS?}">Collapse tree</A>
+<a href="{COLLAPSE_URL}" {LINK_STYLE?} style="{LINK_STYLE}"{/LINK_STYLE?} {LINK_CLASS?} class="{LINK_CLASS}"{/LINK_CLASS?}>Collapse tree</A>
 </P>
 EOF
 
