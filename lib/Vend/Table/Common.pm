@@ -516,7 +516,7 @@ sub sprintf_substitute {
 sub query {
     my($s, $opt, $text, @arg) = @_;
 
-    if(! ref $opt) {
+    if(! CORE::ref($opt)) {
         unshift @arg, $text;
         $text = $opt;
         $opt = {};
