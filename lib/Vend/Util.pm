@@ -78,6 +78,7 @@ use Config;
 use Fcntl;
 use Errno;
 use Text::ParseWords;
+require HTML::Entities;
 use Safe;
 use subs qw(logError logGlobal);
 use vars qw($VERSION @EXPORT @EXPORT_OK);
@@ -112,6 +113,15 @@ $ESCAPE_CHARS::ok_in_url =
 		'0123456789'				 .
 		'-_./~='
 	;
+
+## This is a character class for HTML::Entities
+$ESCAPE_CHARS::std = "^\n\t !\#\$%\'-;=?-Z\\\]-~";
+
+## HTML::Entities caches this, let's get it cached right away so
+## each child doesn't have to re-eval
+{
+	my $junk = HTML::Entities::encode(">>>123<<<", $ESCAPE_CHARS::std);
+}
 
 my $need_escape;
 

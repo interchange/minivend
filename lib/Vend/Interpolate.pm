@@ -260,9 +260,6 @@ my $Gvar  = qr{\@\@([A-Za-z0-9]\w+[A-Za-z0-9])\@\@};
 my $Evar  = qr{\@_([A-Za-z0-9]\w+[A-Za-z0-9])_\@};
 my $Cvar  = qr{__([A-Za-z0-9]\w*?[A-Za-z0-9])__};
 
-my %Comment_out = ( '<' => '&lt;', '[' => '&#91;', '_' => '&#95;', );
-
-
 
 my @th = (qw!
 
@@ -1088,7 +1085,7 @@ sub tag_data {
 					return scalar localtime(shift);
 				},
 	'encode_entities' => sub {
-					return HTML::Entities::encode(shift);
+					return HTML::Entities::encode(shift, $ESCAPE_CHARS::std);
 				},
 	'decode_entities' => sub {
 					return HTML::Entities::decode(shift);
