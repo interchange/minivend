@@ -2121,7 +2121,7 @@ There are just a few flag-based options:
 
 Force make of catalog with defaults supplied on command line.
 
-=item C<-f>
+=item C<-c>
 
 Configuration file -- default is makecat.cfg in Interchange Confdir (etc) directory.
 
