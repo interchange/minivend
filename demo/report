@@ -1,0 +1,10 @@
+  Order date: $date
+Order number: $sequence
+
+            Name: $name
+
+Shipping address: $addr
+Town, State, Zip: $town, $state $zip
+         Country: $country
+
+          Pay By: $payby

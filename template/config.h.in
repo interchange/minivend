@@ -1,0 +1,10 @@
+/* config.h.in.  Generated automatically from configure.in by autoheader.  */
+
+/* Define as the return type of signal handlers (int or void).  */
+#undef RETSIGTYPE
+
+/* Define if environ is declared in unistd.h */
+#undef ENVIRON_DECLARED
+
+/* Define if you have the socket library (-lsocket).  */
+#undef HAVE_LIBSOCKET

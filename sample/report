@@ -1,8 +1,0 @@
-Order Date: $date
-
-            Name: $name
-   Email address: $email
-
-Shipping address: $addr
-Town, State, Zip: $town, $state $zip
-         Country: $country

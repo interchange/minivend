@@ -1,0 +1,46 @@
+<html><head>
+<title>Order Form</title>
+</head>
+
+<body>
+<h1>Order Form</h1>
+
+<form action="[page-url "flist"]" method=post>
+
+[message]
+
+<h2>Shopping List</h2>
+
+You may change a quantity below by entering a new value.  Use '0'
+(zero) to cancel an item.
+
+<p>[ordered-items]
+
+<p>Press <input type="submit" name="refresh" value="Refresh"> after
+changing a quantity to see the new total.
+
+<p>Shipping: \$[shipping]
+<br>Total: \$[total-cost]
+
+<h2>Shipping Address</h2>
+
+<input type="text" name="name" value="[value "name"]" size=40> Your name
+<br><input type="text" name="addr" value="[value "addr"]" size=30> Street or P.O. Box
+<br><input type="text" name="town" value="[value "town"]" size=30> City or Town
+<br><input type="text" name="state" value="[value "state"]" size=12> State or Province
+<br><input type="text" name="zip" value="[value "zip"]" size=12> Zip or Postal Code
+<br><input type="text" name="country" value="[value "country"]" size=20> Country
+
+<h2>Payment Method</h2>
+
+<input type="radio" name="payby" value="Visa" [checked-if "payby" "Visa"]> Visa
+<br><input type="radio" name="payby" value="Mastercard"
+       [checked-if "payby" "Mastercard"]> Mastercard
+<br><input type="radio" name="payby" value="Check"
+       [checked-if "payby" "Check"]> Check
+
+<p><input type="submit" name="order" value="Submit Order">
+<input type="submit" name="return" value="Return to Browsing">
+</form>
+
+</body></html>
