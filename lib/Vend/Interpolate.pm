@@ -1094,6 +1094,11 @@ sub tag_data {
 					$val =~ s!\r!<BR>!g;
 					return $val;
 				},
+	'urldecode' => sub {
+					my $val = shift;
+					$val =~ s|\%([a-fA-F0-9][a-fA-F0-9])|chr(hex($1))|eg;
+					return $val;
+				},
 	'urlencode' => sub {
 					my $val = shift;
 					$val =~ s|([^\w:])|sprintf "%%%02x", ord $1|eg;
