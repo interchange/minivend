@@ -736,6 +736,16 @@ sub tag_data {
 					use locale;
 					return uc(shift);
 				},
+	'null_to_space' =>		sub {
+					my $val = shift;
+					$val =~ s/\0+/ /g;
+					return $val;
+				},
+	'null_to_comma' =>		sub {
+					my $val = shift;
+					$val =~ s/\0+/,/g;
+					return $val;
+				},
 	'nullselect' =>		sub {
 					my @some = split /\0+/, shift;
 					for(@some) {
@@ -1196,8 +1206,9 @@ sub build_accessory_select {
 		$run .= " $type ";
 	}
 	elsif ($type  =~ /^multi/i ) {
-		$run .= ' MULTIPLE';
+			$run .= ' MULTIPLE';
 	}
+
 	$run .= '>';
 	
 	for(@opts) {

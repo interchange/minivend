@@ -248,7 +248,7 @@ sub open_table {
 		}
 	}
 
-	$config->{NAME} = list_fields($db, $tablename)
+	$config->{NAME} = list_fields($db, $tablename, $config)
 		if ! $config->{NAME};
 	$config->{COLUMN_INDEX} = fields_index($config->{NAME})
 		if ! $config->{COLUMN_INDEX};
@@ -560,7 +560,7 @@ sub fields_index {
 }
 
 sub list_fields {
-	my($db, $name) = @_;
+	my($db, $name, $config) = @_;
 	my @fld;
 
 	my $sth = $db->prepare("select * from $name")
@@ -569,6 +569,9 @@ sub list_fields {
 	# Wish we didn't have to do this, but we cache the columns
 	$sth->execute()		or die "$DBI::errstr\n";
 
+	if($config and $config->{NAME_REQUIRES_FETCH}) {
+		$sth->fetch();
+	}
 	@fld = @{$sth->{NAME}};
 	return \@fld;
 }
