@@ -135,8 +135,11 @@ sub unstuff {
 sub autonumber {
 	my $s = shift;
 	my $start;
-	return $s->[$CONFIG]{SEQUENCE_VAL} if $s->[$CONFIG]{AUTO_SEQUENCE};
-	return '' if not $start = $s->[$CONFIG]->{AUTO_NUMBER};
+	my $cfg = $s->[$CONFIG];
+
+	return $s->autosequence() if $cfg->{AUTO_SEQUENCE};
+
+	return '' if not $start = $cfg->{AUTO_NUMBER};
 	local($/) = "\n";
 	my $c = $s->[$CONFIG];
 	if(! defined $c->{AutoNumberCounter}) {
