@@ -38,16 +38,6 @@ use strict;
 
 sub new {
     my ($class, $fh, $env, $entity) = @_;
-	if(@Global::argv > 1) {
-		(
-			$CGI::script_name,
-			$CGI::values{mv_session_id}, 
-			$CGI::query_string
-		) = @Global::argv;
-		map_cgi();
-		$Global::FastMode = 1;
-		return bless { fh => $fh }, $class;
-	}
     populate($env);
     my $http = {
 					fh => $fh,
