@@ -142,7 +142,7 @@ my %Order =	(
 				'if'			=> [qw( type term op compare )],
 				'or'			=> [qw( type term op compare )],
 				'and'			=> [qw( type term op compare )],
-				index  			=> [qw( table )],
+				'index'  			=> [qw( table )],
 				import 			=> [qw( table type )],
 				include			=> [qw( file )],
 				item_list		=> [qw( name )],
@@ -322,7 +322,7 @@ my %Routine = (
 				frames_off		=> \&Vend::Interpolate::tag_frames_off,
 				frames_on		=> \&Vend::Interpolate::tag_frames_on,
 				help			=> \&Vend::Interpolate::tag_help,
-				index 			=> \&Vend::Data::index_database,
+				'index' 			=> \&Vend::Data::index_database,
 				import 			=> \&Vend::Data::import_text,
 				include			=> sub {
 									&Vend::Interpolate::interpolate_html(
@@ -394,7 +394,7 @@ my %attrAlias = (
 	 						'key' => 'code',
 	 						'row' => 'code',
 						},
-	 index          	=> { 
+	 'index'          	=> { 
 	 						'database' => 'table',
 	 						'base' => 'table',
 						},

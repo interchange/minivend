@@ -1,4 +1,4 @@
-# MiniVend V3.14-2
+# MiniVend V3.14-3
 # 
 # Copyright 1996-1999 by Michael J. Heins <mikeh@minivend.com>
 #

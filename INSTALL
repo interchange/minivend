@@ -22,7 +22,7 @@ IMPORTANT NOTE: The installation procedure has changed, we hope for the
 WINDOWS INSTALLATION
 --------------------
 
-    Obtain the self-extracting executable minivend-3.14-2.exe
+    Obtain the self-extracting executable minivend-3.14-4.exe
     and double-click on it.
 
     IMPORTANT NOTE: If you get the message "Bad command or file name"
@@ -33,7 +33,7 @@ WINDOWS INSTALLATION
     appears to work well with the ActiveState 5.005 "Merge" port.
     
     If you already have the CYGWIN.DLL executable or plan on using the
-    Perl link CGI, you can download the file minivend-3.14-2-nodll.exe
+    Perl link CGI, you can download the file minivend-3.14-4-nodll.exe
     and do the same.
 
     The defaults are set for Microsoft Personal Web Server on Win95 --
@@ -60,19 +60,19 @@ UNIX INSTALLATION
 ------------------
 Here is the short version:
 
-    gzip -dc minivend-3.14-2.tar.gz | tar xvf -
-    cd minivend-3.14-2
+    gzip -dc minivend-3.14-4.tar.gz | tar xvf -
+    cd minivend-3.14-4
     ./configure
 
 Long version with comments:
 
     # Unzip and untar the file -- if you have GNU tar, you can substitute
-    # 'tar xzf minivend-3.14-2.tar.gz'
-    gzip -dc minivend-3.14-2.tar.gz | tar xvf -
+    # 'tar xzf minivend-3.14-4.tar.gz'
+    gzip -dc minivend-3.14-4.tar.gz | tar xvf -
 
     # Change directory to the one that was created 
     #
-    cd minivend-3.14-2
+    cd minivend-3.14-4
 
     # If you have trouble with picking up the wrong Perl version,
     # try  '/dir/where/perl/is/perl Makefile.PL

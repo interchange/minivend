@@ -170,6 +170,7 @@ sub new_session {
 	open_session();
     for (;;) {
 		$Vend::SessionID = random_string() unless defined $seed;
+		next if $Vend::RetireDBM{$Vend::SessionID};
 		undef $seed;
 		$name = session_name();
 		unless ($File_sessions) { 

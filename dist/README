@@ -1,4 +1,4 @@
-# MiniVend V3.14-2
+# MiniVend V3.14-4
 # 
 # Copyright 1996-1999 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -30,7 +30,7 @@ interested in problems, suggestions, or comments, but does not have time
 to offer free individual support in most cases. See the MiniVend website at
 http://www.minivend.com/minivend/ for more information.
 
-   IMPORTANT NOTE:  MiniVend 3.14-2 requires Perl 5.004 or higher. It will
+   IMPORTANT NOTE:  MiniVend 3.14-4 requires Perl 5.004 or higher. It will
                     run on no earlier version, period. 5.005 is recommended.
 
 The information you need is in the following files:
@@ -198,7 +198,7 @@ standard distribution. You can get it at http://www.perl.com/CPAN-local
 WINDOWS INSTALLATION
 --------------------
 
-    Obtain the self-extracting executable minivend-3.14-2.exe
+    Obtain the self-extracting executable minivend-3.14-4.exe
     and double-click on it. You MUST already have Perl 5.004
     INSTALLED and in your PATH.
 
@@ -209,8 +209,8 @@ UNIX INSTALLATION
 ------------------
 Here is the short version:
 
-    gzip -dc minivend-3.14-2.tar.gz | tar xvf -
-    cd minivend-3.14-2
+    gzip -dc minivend-3.14-4.tar.gz | tar xvf -
+    cd minivend-3.14-4
     ./configure
 
 More information is in the file INSTALL.

@@ -1,6 +1,16 @@
 
                   W H A T ' S   N E W 
 
+MiniVend 3.14-4 adds file globbing to #include lines.
+
+MiniVend 3.14-3 is a simple bug-fix release close on the heels
+of the short-lived 3.14-2 (session id stuff not quite fixed
+completely, forgot to transfer one line of code).
+
+    * Removes "index" warnings that appear in 5.004 perls.
+
+	* Added code to bypass retired IDs in session
+
 MiniVend 3.14-2 is a simple bug-fix release close on the heels
 of the defective 3.14-1 (session id stuff not really fixed).
 

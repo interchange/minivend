@@ -14,7 +14,7 @@ MiniVend -- multi-catalog shopping cart and mall
 <A NAME="minivend_version_0">
 Version</A>
 </H2>
-This document describes MiniVend 3.14-2, based originally on Andrew Wilcox's
+This document describes MiniVend 3.14-4, based originally on Andrew Wilcox's
 1995 <I>Vend</I>.
 <p><p><hr>
 <!-- INDEX BEGIN -->
@@ -453,7 +453,7 @@ MiniVend -- shopping cart and electronic catalog system
 <HR>
 <H2><A NAME="Version">Version</A></H2>
 <P>
-This document describes MiniVend 3.14-2, based on Andrew Wilcox's original
+This document describes MiniVend 3.14-4, based on Andrew Wilcox's original
 Vend, Version 0.2, with portions from Vend 0.3. This is the third major
 revision of MiniVend.
 
@@ -744,7 +744,7 @@ You can also go to any
 <HR>
 <H2><A NAME="Perl">Perl</A></H2>
 <P>
-You will need Perl version 5.004 or higher to run MiniVend 3.14-2. Many sites are still running lower Perl versions. In addition, on systems that do not have 
+You will need Perl version 5.004 or higher to run MiniVend 3.14-4. Many sites are still running lower Perl versions. In addition, on systems that do not have 
 <FONT SIZE=-1>GDBM</FONT> or DB_File installed, memory problems may occur. Large catalogs will use large amounts of memory if the databases must all reside there.
 
 <P>
@@ -869,7 +869,7 @@ the <EM>Catalog</EM> directive to enable access. See <EM>TcpMap</EM> for more de
 Obtain, decompress and untar the distribution:
 
 <P>
-<PRE>    gzip -dc minivend-3.14-2.tar.gz | tar xvf -
+<PRE>    gzip -dc minivend-3.14-4.tar.gz | tar xvf -
 </PRE>
 <P>
 
@@ -885,7 +885,7 @@ patches that might have been issued since the release.
 Change to the created directory, something like:
 
 <P>
-<PRE>    cd minivend-3.14-2
+<PRE>    cd minivend-3.14-4
 </PRE>
 <P>
 Run the configure script with:
@@ -7017,7 +7017,6 @@ single question mark in the query:
         VALUE=&quot;select code from products where category = ? &quot;&gt;
     &lt;SELECT NAME=mv_searchspec&gt;
         &lt;OPTION&gt; Americana
-        &lt;OPTION&gt; Contemporary
         &lt;OPTION&gt; Impressionists
         &lt;OPTION&gt; Renaissance
         &lt;OPTION&gt; Surrealists
@@ -7315,12 +7314,12 @@ default a series of item codes.
 
 <P>
 The <CODE>[loop ...]</CODE> tag directly accepts a search parameter. To search for all products in the
-categories ``Americana'' and ``Contemporary'' you can do:
+categories ``Americana'' and ``Impressionists'' you can do:
 
 <P>
 <PRE>    [loop search=&quot;
         se=Americana
-        se=Contemporary
+        se=Impressionists
         os=yes
         sf=category9
         &quot;]
@@ -7341,7 +7340,7 @@ doesn't contain an equals (<CODE>=</CODE>) sign is considered a search profile n
 <P>
 <PRE>    [set My search]
     mv_searchspec=Americana
-    mv_searchspec=Contemporary
+    mv_searchspec=Impressionists
     mv_search_field=category
     mv_orsearch=yes
     [/set]
@@ -7357,7 +7356,7 @@ special scratch variable mv_search_arg:
 <P>
 <PRE>    [set mv_search_arg]
     se=Americana
-    se=Contemporary
+    se=Impressionists
     sf=category
     os=yes
     [/set]

@@ -1,4 +1,4 @@
-# MiniVend V3.14-2
+# MiniVend V3.14-4
 # 
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
 #
@@ -116,16 +116,16 @@
   
     Installation:
 
-    1. Download the minivend-3.14-2.exe distribution file
+    1. Download the minivend-3.14-4.exe distribution file
     and run it in the normal Windows fashion.
     
     ( If you don't want to execute the self-extracting ZIP file,
-      then you can obtain the standard minivend-3.14-2.tar.gz file and
+      then you can obtain the standard minivend-3.14-4.tar.gz file and
       install that instead. )
       
       You will have to obtain the CYGWIN.DLL file if you want to
       use TLINK.EXE as your link CGI. The standard distribution .EXE
-      file has it included -- the minivend-3.14-2-nodll.exe file
+      file has it included -- the minivend-3.14-4-nodll.exe file
       eliminates it.
 
     2. Select a directory to install MiniVend in -- it defaults
@@ -173,7 +173,7 @@
       * Since the server runs in the foreground, if you change
         global variables in your embedded Perl you must be careful
         to reset them. In particular, the FRAMES version of the 
-        3.14-2 demo will not work correctly.
+        3.14-4 demo will not work correctly.
 
       * Some of the support scripts will not work, and some
         might not behave as in the documentation. In particular,

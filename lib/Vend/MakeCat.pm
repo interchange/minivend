@@ -704,6 +704,7 @@ sub conf_parse_http {
 				$servers->{$servname}->{$directive}->{$key} = $val;
 			}
 			elsif(defined $Http_scalar{$directive}) {
+				$param =~ s/^"// and $param =~ s/"$//;
 				if (defined $servers->{$servname}->{$directive}) {
 					undef $servers->{$servname};
 					$Error = "$directive defined twice in $servname, only allowed once.";

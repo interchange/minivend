@@ -594,8 +594,8 @@ CONFIGLOOP: {
 		};
     while(<Vend::CONFIG>) {
 		chomp;			# zap trailing newline,
-		if(/^\s*#include\s+(\S+)/) {
-			push @include, $1;
+		if(/^\s*#include\s+(.+)/) {
+			push @include, glob($1);
 			next;
 		}
 		s/^\s*#.*//;    # comments,
@@ -900,8 +900,8 @@ sub global_config {
                 $configfile . "':\n$!\n";
     while(<Vend::GLOBAL>) {
 		chomp;			# zap trailing newline,
-        if(/^\s*#include\s+(\S+)/) {
-            push @include, $1;
+        if(/^\s*#include\s+(.+)/) {
+            push @include, glob($1);
             next;
         }
 		s/^\s*#.*//;            # comments,

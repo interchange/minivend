@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# MiniVend version 3.14-2
+# MiniVend version 3.14-4
 #
 # $Id: minivend,v 1.38 1999/02/12 12:24:23 mike Exp $
 #
@@ -151,7 +151,7 @@ sub debug {
 }
 
 BEGIN {
-	$VERSION = '3.14-2';
+	$VERSION = '3.14-4';
 }
 use strict;
 use Fcntl;
@@ -2214,6 +2214,7 @@ sub retire_id {
 			return undef;
 		};
 	$Vend::RetireDBM{$id} = 1;
+	untie(%Vend::RetireDBM);
 	return;
 }
 
@@ -2474,13 +2475,15 @@ EOF
     	$Vend::SessionName = session_name();
 		get_session();
 		my $now = time;
-		if ($Vend::Session->{'expire'}) {
-			retire_id($sessionid), new_session() if
-				$now > $Vend::Session->{'expire'};
-				
-		}
-		elsif ($now - $Vend::Session->{'time'} > $Vend::Cfg->{'SessionExpire'}) {
-	    	retire_id($sessionid);
+		# Removed due to deadlock problems
+#		if ($Vend::Session->{'expire'}) {
+#			retire_id($sessionid), new_session() if
+#				$now > $Vend::Session->{'expire'};
+#				
+#		}
+#		elsif ($now - $Vend::Session->{'time'} > $Vend::Cfg->{'SessionExpire'}) {
+		if ($now - $Vend::Session->{'time'} > $Vend::Cfg->{'SessionExpire'}) {
+	    	#retire_id($sessionid);
 			new_session();
 		}
 		elsif($Vend::Cfg->{RobotLimit}) {
