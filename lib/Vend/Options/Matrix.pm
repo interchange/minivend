@@ -25,9 +25,9 @@ package Vend::Options::Matrix;
 
 $VERSION = substr(q$Revision$, 10);
 
-=head1 Interchange Matrix Options Support
+=head1 NAME
 
-Vend::Options::Matrix $Revision$
+Vend::Options::Matrix - Interchange Matrix Options Support
 
 =head1 SYNOPSIS
 

@@ -25,9 +25,9 @@ package Vend::Options::Old48;
 
 $VERSION = substr(q$Revision$, 10);
 
-=head1 Interchange Compatibility Options Support
+=head1 NAME
 
-Vend::Options::Old48 $Revision$
+Vend::Options::Old48 - Interchange Compatibility Options Support
 
 =head1 SYNOPSIS
 

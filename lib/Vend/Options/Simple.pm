@@ -25,9 +25,9 @@ package Vend::Options::Simple;
 
 $VERSION = substr(q$Revision$, 10);
 
-=head1 Interchange Simple Options Support
+=head1 NAME
 
-Vend::Options::Simple $Revision$
+Vend::Options::Simple - Interchange Simple Options Support
 
 =head1 SYNOPSIS
 
