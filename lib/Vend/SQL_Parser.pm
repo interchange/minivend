@@ -2,8 +2,7 @@
 #
 # $Id$
 #
-# Copyright (C) 2002-2003 Interchange Development Group
-# Copyright (C) 1997-2002 Red Hat, Inc.
+# Copyright (C) 2003-2004 Interchange Development Group
 #
 # Based on HTML::Parser
 # Copyright 1996 Gisle Aas. All rights reserved.
@@ -19,7 +18,7 @@ be evaluated for an Interchange search spec.
 
 =head1 COPYRIGHT
 
-Copyright 2002-2003 Interchange Development Group
+Copyright 2003-2004 Interchange Development Group
 Original SQL::Statement module copyright 1998 Jochen Wiedman.
 
 This library is free software; you can redistribute it and/or
