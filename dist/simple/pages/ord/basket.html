@@ -1,6 +1,6 @@
 <HTML>
 <HEAD>
-<TITLE>Shopping Cart Contents</TITLE>
+<TITLE>[L]Shopping Cart Contents[/L]</TITLE>
 </HEAD>
 [body 1]
 <CENTER>
@@ -12,23 +12,23 @@
 <input type="hidden" name="mv_nextpage" value="catalog">
 [page href=""]<IMG BORDER=0 SRC="__SMLOGO__" ALT="__COMPANY__ Logo" ALIGN="CENTER"></A>
 <TABLE BORDER=0>
-<CAPTION><FONT SIZE=7>Shopping Cart Contents</FONT><BR></CAPTION>
+<CAPTION><FONT SIZE=7>[L]Shopping Cart Contents[/L]</FONT><BR></CAPTION>
 <TR>
 <P>
 	<TH BGCOLOR="#00F0F0" WIDTH=70 VALIGN=BOTTOM>
-	SKU
+	[L]SKU[/L]
 	</TH>
 	<TH BGCOLOR="#00F0F0" VALIGN=BOTTOM ALIGN=LEFT>
-	Description
+	[L]Description[/L]
 	</TH>
 	<TH BGCOLOR="#00F0F0" WIDTH=70 VALIGN=BOTTOM ALIGN=center>
-	Quantity
+	[L]Quantity[/L]
 	</TH>
 	<TH BGCOLOR="#00F0F0" WIDTH=90 VALIGN=BOTTOM ALIGN=center>
-	Price
+	[L]Price[/L]
 	</TH>
 	<TH BGCOLOR="#00F0F0" WIDTH=90 VALIGN=BOTTOM ALIGN=center>
-	Extension
+	[L]Extension[/L]
 	</TH>
 </TR>
 [if items]
@@ -40,14 +40,14 @@
 	[item-code]<FONT SIZE="-2"><BR><INPUT TYPE=checkbox NAME="[quantity-name]"
 			   onClick="document.forms[0].action='[process-target]',
 			   			document.forms[0].submit()"
-			   VALUE=0> </FONT><FONT SIZE="-1">remove</FONT></TD>
+			   VALUE=0> </FONT><FONT SIZE="-1">[L]remove[/L]</FONT></TD>
 	<TD BGCOLOR="#FFFFFF" VALIGN=TOP MARGINWIDTH=12 MARGINHEIGHT=12>
 	[page [item-code]][item-description]</A>
 	<BR><FONT SIZE="-1">
 	[if-field related]
 	[loop arg="[item-field related]"]
 		[if !ordered [loop-code]]
-		<BR><B>Order this fine accessory:</B><BR>
+		<BR><B>[L]Order this fine accessory[/L]:</B><BR>
 		[loop-field title]
 		<INPUT TYPE="CHECKBOX" NAME="mv_order_item"
 			onClick="document.forms[0].action='[process-target]',
@@ -79,41 +79,35 @@
 [/then]
 [else]
 	<TR><TD ALIGN=CENTER COLSPAN=5 BGCOLOR="#FFFFFF">
-		<H3>No items at the moment.</H3>
+		<H3>[L]No items at the moment.[/L]</H3>
 	</TD></TR>
 [/else]
-[/if]
-[if discount ALL_ITEMS]
-<TR>
-<TD ALIGN=CENTER BGCOLOR="#00F0F0" COLSPAN=5>
-<FONT COLOR=RED>All items are discounted by 30 percent!</FONT>
-</TR>
 [/if]
 <TR>
 <TD BGCOLOR="#00F0F0" COLSPAN=4 ALIGN=RIGHT VALIGN=CENTER>
 <input type="submit"
 	onClick="document.forms[0].action='[process-target]'"
-	name="mv_submit" value="Recalculate">
+	name="mv_submit" value="[L]Recalculate[/L]">
 <IMG BORDER=0 WIDTH=50 HEIGHT=2 SRC="bg.gif" ALT=" . . ">
 <IMG BORDER=0 WIDTH=50 HEIGHT=2 SRC="bg.gif" ALT=" . . ">
-	<B>Subtotal</B>
+	<B>[L]Subtotal[/L]</B>
 <TD BGCOLOR="#FFFFFF" ALIGN=RIGHT VALIGN=CENTER>[subtotal]</TD>
 </TR>
 <TR>
 <TD BGCOLOR="#00F0F0" COLSPAN=5 ALIGN=CENTER>
-<input type="submit" name="mv_todo" value="Check out">
+<input type="submit" name="mv_click" value="[L]Check out[/L]">
 <input type="submit"
 	onClick="document.forms[0].action='[process-target]'"
-	name="mv_click" value="Search">
+	name="mv_click" value="[L]Search[/L]">
 <input type="submit"
 	onClick="document.forms[0].action='[process-target]'"
-	name="mv_click" value="Browse">
+	name="mv_click" value="[L]Browse[/L]">
 <input type="submit"
 	onClick="document.forms[0].action='[process-target]'"
-	name="mv_click" value="Home">
+	name="mv_click" value="[L]Home[/L]">
 <input type="submit"
 	onClick="document.forms[0].action='[process-target]'"
-	name="mv_click" value="Stop shopping">
+	name="mv_click" value="[L]Stop shopping[/L]">
 </TD>
 </TR>
 </TABLE>
@@ -126,7 +120,7 @@
 [then]
 <P>
     <FORM ACTION="[process-target]" METHOD=POST>
-    Hi [value name]! You are logged in as user <B>[value mv_username]</B>.
+    [L]Hi[/L] [value name]! [L]You are logged in as user[/L] <B>[value mv_username]</B>.
 	&nbsp;&nbsp;<INPUT TYPE=submit NAME="mv_click" VALUE="Log out">
 	</FORM>
 [set Log out]
@@ -147,8 +141,7 @@ mv_subroutine=userdb
 [data session failure]
 [/if]
 <P>
-If you have an account with us, please enter your user
-name and password.
+[L]If you have an account with us, please enter your user name and password[/L].
 <P>
     <FORM ACTION="[process-target]" METHOD=POST>
     <INPUT TYPE=hidden NAME=mv_click VALUE=Login>
@@ -156,38 +149,43 @@ name and password.
     <INPUT TYPE=hidden NAME=mv_nextpage VALUE="ord/basket">
 
     <TABLE CELLSPACING=0 CELLPADDING=0>
-    <TR><TD ALIGN=RIGHT>Username</TD>
+    <TR><TD ALIGN=RIGHT>[L]Username[/L]</TD>
         <TD><INPUT NAME=mv_username VALUE="[value mv_username]" SIZE=10>
-		[page new_account]Create a new account[/page]
+		[page new_account][L]Create a new account[/L][/page]
         </TD></TR>
 
-    <TR><TD ALIGN=RIGHT>Password</TD>
+    <TR><TD ALIGN=RIGHT>[L]Password[/L]</TD>
         <TD><INPUT
 				onChange="document.forms[1].submit()"
 			  TYPE=password NAME=mv_password VALUE="" SIZE=10>
-        <INPUT TYPE=submit VALUE="Log in"> &nbsp;&nbsp;
+        <INPUT TYPE=submit VALUE="[L]Log in[/L]"> &nbsp;&nbsp;
         </TD></TR>
     </TABLE>
 
     </FORM>
 [/else][/if]
 
-[set Stop shopping]
+[set [L]Stop shopping[/L]]
 mv_todo=return
 mv_nextpage=canceled
 [/set]
 
-[set Home]
+[set [L]Check out[/L]]
+mv_todo=return
+mv_nextpage=ord/checkout
+[/set]
+
+[set [L]Home[/L]]
 mv_todo=return
 mv_nextpage=catalog
 [/set]
 
-[set Search]
+[set [L]Search[/L]]
 mv_todo=return
 mv_nextpage=srchform
 [/set]
 
-[set Browse]
+[set [L]Browse[/L]]
 mv_todo=return
 mv_nextpage=browse
 [/set]

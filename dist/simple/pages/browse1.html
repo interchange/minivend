@@ -1,6 +1,6 @@
 <HTML>
 <HEAD>
-<TITLE>Browse __COMPANY__</TITLE>
+<TITLE>[L]Browse[/L] __COMPANY__</TITLE>
 </HEAD>
 [body 1]
 <CENTER>
@@ -24,7 +24,7 @@
 [/perl]
 
 <H1>
-Browse __COMPANY__
+[L]Browse[/L] __COMPANY__
 </H1>
 [tag each products]
 [sort products:category -[scratch start] +[scratch chunk]]
@@ -32,7 +32,7 @@ Browse __COMPANY__
 [loop-change 1]
 [condition][loop-field category][/condition]
 	<TABLE WIDTH="80%"><TR BGCOLOR="#cccccc" TEXT="WHITE"><TD ALIGN=CENTER>
-		<BR><H1>[loop-field category]</H1>
+		<BR><H1>[loc][loop-field category][/loc]</H1>
 	</TD></TR></TABLE>
 [/loop-change 1]
 [set not_shown][/set]
@@ -45,17 +45,17 @@ Browse __COMPANY__
 
 <H2>[loop-description]</H2>
 <P>
-Catalog No.: [loop-code]
+[L]Catalog[/L] [L]Number[/L]: [loop-code]
 <P>
-Price: $[loop-price]
+[L]Price[/L]: [loop-price]
 <P>
-[page [loop-code]]<IMG BORDER=0 SRC="details.gif">[/page]
+[page [loop-code]]<IMG BORDER=0 ALT="[L]More Info[/L]" SRC="details.gif">[/page]
 
 [if-loop-field size]
 <FORM ACTION="[process-target]" METHOD=POST>
 <TABLE BACKGROUND="__IMAGE_DIR__/blue_pap.gif">
 <TR><TD VALIGN=TOP>
-<INPUT TYPE=image BORDER=0 SRC="ordernow.gif" VALUE="(ORDER NOW)">
+<INPUT TYPE=image BORDER=0 SRC="ordernow.gif" VALUE="[L]ORDER NOW[/L]">
 <INPUT TYPE=hidden NAME=mv_todo VALUE=refresh>
 <INPUT TYPE=hidden NAME=mv_order_item VALUE="[loop-code]">
 <INPUT TYPE=hidden NAME=mv_separate_items VALUE="1">
@@ -64,7 +64,7 @@ Price: $[loop-price]
 [loop-accessories size][loop-accessories color]
 </TD></TR></TABLE></FORM>
 [else]
-[order [loop-code]]<IMG BORDER=0 SRC="ordernow.gif" ALT="(ORDER NOW)">[/order]
+[order [loop-code]]<IMG BORDER=0 SRC="ordernow.gif" ALT="[L]ORDER NOW[/L]">[/order]
 [/else]
 [/if-loop-field]
 
@@ -79,18 +79,18 @@ Location: [area href=browse1 arg="1:[scratch chunk]"]
 [/else]
 [/if]
 [if scratch prev]
-[page href=browse1 arg="[scratch prev]:[scratch chunk]"]<B>Previous</B></A>&nbsp;&nbsp;
+[page href=browse1 arg="[scratch prev]:[scratch chunk]"]<B>[L]Previous[/L]</B></A>&nbsp;&nbsp;
 [elsif scratch highest]
 <H3>(now back at beginning)</H3>
-[page href=browse1 arg="[scratch highest]:[scratch chunk]"]<B>Previous</B></A>&nbsp;&nbsp;
+[page href=browse1 arg="[scratch highest]:[scratch chunk]"]<B>[L]Previous[/L]</B></A>&nbsp;&nbsp;
 [/elsif]
 [/if]
 [if !scratch not_shown]
-[page href=browse1 arg="[scratch next]:[scratch chunk]"]<B>Next</B></A>
+[page href=browse1 arg="[scratch next]:[scratch chunk]"]<B>[L]Next[/L]</B></A>
 [/if]
 
 <HR>
-[buttonbar 0]
+[include pages/buttonbar.html]
 </CENTER>
 
 </BODY>

@@ -1,6 +1,6 @@
 # PageBuild.pm - Interpret MiniVend tags
 # 
-# $Id: PageBuild.pm,v 1.4 1998/06/01 17:03:45 mike Exp $
+# $Id: PageBuild.pm,v 1.5 1998/08/11 18:13:42 mike Exp $
 #
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
 #
@@ -22,7 +22,7 @@ package Vend::PageBuild;
 require Exporter;
 @ISA = qw(Exporter);
 
-$VERSION = substr(q$Revision: 1.4 $, 10);
+$VERSION = substr(q$Revision: 1.5 $, 10);
 
 @EXPORT = qw ( fake_html );
 
@@ -95,7 +95,7 @@ sub fake_areatarget {
 # Returns an href to call up the last page visited.
 
 sub fake_last_page {
-    fake_page($Vend::Cfg->{Special}->{'catalog'});
+    fake_page(find_special_page('catalog'));
 }
 
 # Evaluates the [...] tags.

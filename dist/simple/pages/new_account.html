@@ -1,25 +1,25 @@
 <HTML>
 <HEAD>
-<TITLE>__COMPANY__ New Account</TITLE>
+<TITLE>__COMPANY__ -- [L]Create a new account[/L]</TITLE>
 </HEAD>
 [body 1]
  
 
 [page href=""]<IMG BORDER=0 SRC="__LOGO__" ALT="__COMPANY__ Logo" ALIGN="CENTER"></A>
-<H1>Create an account at __COMPANY__</H1>
+<H1>[L]Create a new account[/L]</H1>
 <P>
 
 <P>
 
 [if session logged_in]
 [then]
-	You are logged in as user [value mv_username].
+	[L]You are logged in as user[/L] [value mv_username].
 <FORM ACTION="[process-target]" METHOD=POST>
 	<INPUT TYPE=hidden NAME=mv_click VALUE=Login>
 	<INPUT TYPE=hidden NAME=mv_doit  VALUE=return>
 	<INPUT TYPE=hidden NAME=function  VALUE=logout>
 	<INPUT TYPE=hidden NAME=mv_nextpage VALUE=ord/basket>
-	<INPUT TYPE=submit NAME=mv_Junk VALUE="Log out">
+	<INPUT TYPE=submit VALUE="[L]Log out[/L]">
 </FORM>
 [/then]
 [else]
@@ -41,11 +41,11 @@ mv_subroutine=userdb
 	<INPUT TYPE=hidden NAME=mv_nextpage VALUE=ord/basket>
 
 	<TABLE>
-	<TR><TD ALIGN=RIGHT>Username</TD>
+	<TR><TD ALIGN=RIGHT>[L]Username[/L]</TD>
 		<TD><INPUT NAME=mv_username VALUE="[value mv_username]" SIZE=10>
 		</TD></TR>
 
-	<TR><TD ALIGN=RIGHT>Password</TD>
+	<TR><TD ALIGN=RIGHT>[L]Password[/L]</TD>
 		<TD><INPUT TYPE=password NAME=mv_password VALUE="" SIZE=10>
 		</TD></TR>
 
@@ -56,20 +56,20 @@ mv_subroutine=userdb
 		</TD></TR>
 
 	<TR><TD></TD>
-		<TD><INPUT TYPE=submit NAME=mv_Junk VALUE="Log in" SIZE=10>
+		<TD><INPUT TYPE=submit VALUE="[L]Log in[/L]" SIZE=10>
 		</TD></TR>
 	</TABLE>
 
 	</FORM>
 
 	<TR><TD></TD>
-		<TD><INPUT TYPE=submit NAME=mv_Junk VALUE="Log in" SIZE=10>
+		<TD><INPUT TYPE=submit VALUE="[L]Log in[/L]" SIZE=10>
 		</TD></TR>
 	</TABLE>
 
 	</FORM>
 [/else][/if]
 <P>
-[buttonbar 0]
+[include pages/buttonbar.html]
 </BODY>
 </HTML>

@@ -1,24 +1,30 @@
-### MiniVend 3.00 Manifest ###
+### MiniVend 3.11 Manifest ###
 ###                        ###
 ###   DON'T edit this !!!  ###
 ###                        ###
-### $Revision: 1.6 $
+### $Revision: 1.8 $
 ##############################
 
-bin/autosplit script 0755 shbang
+bin/buildtree script 0755 shbang
 bin/check script 0755 shbang,vars:VendRoot
+bin/checkstat.sh
+bin/compact script 0755 shbang
 bin/dump script 0755 shbang,vars:VendRoot
 bin/expire script 0755 shbang,vars:VendRoot
+bin/expireall script 0755 shbang,vars:VendRoot
 bin/htpasswd.pl script 0755 shbang
 bin/ifdef script 0755 shbang
+bin/localize script 0755 shbang
 bin/makecat script 0755 shbang,vars:VendRoot
 bin/offline script 0755 shbang,vars:VendRoot
 bin/reconfig script 0755 shbang
 bin/restart script 0755 shbang,vars:VendRoot
+bin/restart_inet script 0755 shbang,vars:VendRoot
+bin/restart_unix script 0755 shbang,vars:VendRoot
 bin/start script 0755 shbang,vars:VendRoot:PERL
+bin/start_inet script 0755 shbang,vars:VendRoot:PERL
+bin/start_unix script 0755 shbang,vars:VendRoot:PERL
 bin/stop script 0755 shbang,vars:VendRoot
 bin/update script 0755 shbang,vars:VendRoot
-configure.pl script 0755 shbang
 bin/minivend script 0755 shbang,vars:VendRoot:SendMailLocation
 src/config.h.in csrc 0644 defs:LINK_FILE
-src/vlink.pl script 0755 vars:LINK_FILE

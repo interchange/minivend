@@ -1,6 +1,6 @@
 # Parse.pm - Parse MiniVend tags
 # 
-# $Id: Parse.pm,v 1.21 1998/01/16 07:30:42 mike Exp mike $
+# $Id: Parse.pm,v 1.42 1998/09/01 13:15:22 mike Exp mike $
 #
 # Copyright 1997-1998 by Michael J. Heins <mikeh@iac.net>
 #
@@ -20,12 +20,12 @@
 
 package Vend::Parse;
 
-# $Id: Parse.pm,v 1.21 1998/01/16 07:30:42 mike Exp mike $
+# $Id: Parse.pm,v 1.42 1998/09/01 13:15:22 mike Exp mike $
 
 require Vend::Parser;
 
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.21 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.42 $ =~ /(\d+)\.(\d+)/);
 
 use Safe;
 use Vend::Util;
@@ -40,7 +40,7 @@ require Exporter;
 
 @ISA = qw(Exporter Vend::Parser);
 
-$VERSION = substr(q$Revision: 1.21 $, 10);
+$VERSION = substr(q$Revision: 1.42 $, 10);
 @EXPORT = ();
 @EXPORT_OK = qw(find_matching_end);
 
@@ -59,6 +59,7 @@ my %PosNumber =	( qw!
 				body			 2
 				buttonbar		 1
 				cart			 1
+				cgi				 1
 				checked			 3
 				currency		 1
 				data			 5
@@ -70,9 +71,11 @@ my %PosNumber =	( qw!
 				finish_order	 1
 				fly_list		 2
 				framebase		 1
+				goto			 2
 				help			 1
 				if				 1
 				include			 1
+				label			 1
 				last_page		 2
 				lookup			 1
 				loop			 1
@@ -115,9 +118,10 @@ my %Order =	(
 				buttonbar		=> [qw( type  )],
 				calc			=> [],
 				cart			=> [qw( name  )],
+				cgi				=> [qw( name  )],
 				compat			=> [],
 				'currency'		=> [qw( convert )],
-				checked			=> [qw( name value multiple)],
+				checked			=> [qw( name value multiple default)],
 				data			=> [qw( table field key value increment)],
 				default			=> [qw( name default set)],
 				description		=> [qw( code base )],
@@ -129,12 +133,14 @@ my %Order =	(
 				framebase		=> [qw( target  )],
 				frames_off		=> [],
 				frames_on		=> [],
+				'goto'			=> [qw( name if)],
 				help			=> [qw( name  )],
 				'if'			=> [qw( type term op compare )],
 				'or'			=> [qw( type term op compare )],
 				'and'			=> [qw( type term op compare )],
 				include			=> [qw( file )],
 				item_list		=> [qw( name )],
+				label			=> [qw( name )],
 				last_page		=> [qw( target arg )],
 				lookup			=> [qw( table field key value )],
 				loop			=> [qw( with arg search option)],
@@ -164,6 +170,7 @@ my %Order =	(
 				shipping_desc	=> [qw( name  )],
 				shipping_description	=> [qw( name  )],
 				sql				=> [qw( type query list false base)],
+				strip			=> [],
 				'subtotal'		=> [qw( name noformat )],
 				tag				=> [qw( op base file type )],
 				total_cost		=> [qw( name noformat )],
@@ -179,6 +186,7 @@ my %Required = (
 				body		=> [ qw( type )],
 				buttonbar	=> [ qw( type )],
 				cart		=> [ qw( name )],
+				cgi			=> [ qw( name )],
 				checked		=> [ qw( name value )],
 				data		=> [ qw( table )],
 				default		=> [ qw( name )],
@@ -207,6 +215,7 @@ my %Required = (
 my %InvalidateCache = (
 
 			qw(
+				cgi			1
 				cart		1
 				checked		1
 				default		1
@@ -237,7 +246,7 @@ my %Implicit = (
 
 			'data' =>		{ qw( increment increment ) },
 			'value' =>		{ qw( escaped	escaped hide hide ) },
-			'checked' =>	{ qw( multiple	multiple ) },
+			'checked' =>	{ qw( multiple	multiple default	default ) },
 			'area'    =>	{ qw( secure	secure ) },
 			'page'    =>	{ qw( secure	secure ) },
 			'areatarget'    =>	{ qw( secure	secure ) },
@@ -308,6 +317,7 @@ my %Routine = (
 				buttonbar		=> \&Vend::Interpolate::tag_buttonbar,
 				calc			=> \&Vend::Interpolate::tag_calc,
 				cart			=> \&Vend::Interpolate::tag_cart,
+				cgi				=> \&Vend::Interpolate::tag_cgi,
 				checked			=> \&Vend::Interpolate::tag_checked,
 				'currency'		=> sub {
 										my($convert,$amount) = @_;
@@ -338,10 +348,11 @@ my %Routine = (
 										  );
 									},
 				item_list		=> \&Vend::Interpolate::tag_item_list,
-				value		=> \&Vend::Interpolate::tag_value,
 				'if'			=> \&Vend::Interpolate::tag_self_contained_if,
 				'or'			=> sub { return &Vend::Interpolate::tag_self_contained_if(@_, 1) },
 				'and'			=> sub { return &Vend::Interpolate::tag_self_contained_if(@_, 1) },
+				'goto'			=> sub { return '' },
+				label			=> sub { return '' },
 				last_page		=> \&Vend::Interpolate::tag_last_page,
 				lookup			=> \&Vend::Interpolate::tag_lookup,
 				loop			=> sub {
@@ -375,9 +386,16 @@ my %Routine = (
 				shipping_desc	=> \&Vend::Interpolate::tag_shipping_desc,
 				shipping_description => \&Vend::Interpolate::tag_shipping_desc,
 				sql				=> \&Vend::Data::sql_query,
-				'subtotal'	=> \&Vend::Interpolate::tag_subtotal,
-				tag			=> \&Vend::Interpolate::do_parse_tag,
-				total_cost	=> \&Vend::Interpolate::tag_total_cost,
+				'subtotal'		=> \&Vend::Interpolate::tag_subtotal,
+				strip			=> sub {
+										local($_) = shift;
+										s/^\s+//;
+										s/\s+$//;
+										return $_;
+									},
+				tag				=> \&Vend::Interpolate::do_parse_tag,
+				total_cost		=> \&Vend::Interpolate::tag_total_cost,
+				value			=> \&Vend::Interpolate::tag_value,
 
 			);
 
@@ -455,6 +473,7 @@ my %replaceHTML = (
 					del .*
 					pre .*
 					xmp .*
+					script .*
 				)
 			);
 
@@ -531,6 +550,7 @@ my %hasEndTag = (
 						row			1
 						set			1
 						search_region			1
+						strip		1
 						tag			1
 
 				)
@@ -569,19 +589,6 @@ sub global_init {
 		add_tags($Global::UserTag);
 }
 
-sub new_noinit {
-    my $class = shift;
-    my $self = new Vend::Parser;
-	$self->{INVALID} = 0;
-	$self->{INTERPOLATE} = 0;
-
-	add_tags($Vend::Cfg->{UserTag});
-	$Tags_added = 1;
-
-	$self->{OUT} = '';
-    bless $self, $class;
-}
-
 sub new
 {
     my $class = shift;
@@ -595,8 +602,8 @@ sub new
 	$self->{TOPLEVEL} = 1 if ! $Initialized;
 
 	$self->{OUT} = '';
-	$Initialized = 1;
     bless $self, $class;
+	$Initialized = $self;
 }
 
 my %myRefs = (
@@ -670,7 +677,7 @@ sub comment
     # my($self, $comment) = @_;
 }
 
-my %Monitor = ( qw(    calc  1 currency  1 ) );
+my %Monitor = ( qw( ) );
 
 sub build_html_tag {
 	my ($orig, $attr, $attrseq) = @_;
@@ -693,6 +700,29 @@ sub format_html_attribute {
 	}
 	$val =~ s/"/&quot;/g;
 	return qq{$attr="$val"};
+}
+
+sub goto_buf {
+	my ($name, $buf) = @_;
+	while($$buf =~ s!  .+?
+							(
+								(?:
+								\[ label \s+ (?:name \s* = \s* ["']?)?	|
+								<[^>]+? \s+ mv.label \s*=\s*["']?		|
+								<[^>]+? \s+
+									mv \s*=\s*["']? label
+									[^>]*? \s+ mv.name\s*=\s*["']?		|
+								<[^>]+? \s+ mv \s*=\s*["']? label  \s+  |
+								)
+								(\w+)
+							|
+								</body\s*>
+							)
+					!$1!ixs )
+	{
+			last if $name eq $2;
+	}
+	return;
 }
 
 sub html_start {
@@ -784,6 +814,14 @@ sub html_start {
 		$attr->{interpolate} = 1
 			if defined $Interpolate{$tag} and ! defined $attr->{interpolate};
 		@args = @{$attr}{ @{ $Order{$tag} } };
+	}
+
+	if($tag eq 'goto') {
+		return 1 if defined $attr->{'if'} and
+					(! $attr->{'if'} or $attr->{'if'} =~ /^\s*[\s0]\s*$/); 
+		goto_buf($args[0], \$Initialized->{_buf});
+		$self->{ABORT} = 1;
+		return 1;
 	}
 
 #::logGlobal("tag=$tag end_tag=$end_tag attributes:\n" . Vend::Util::uneval($attr)) if$Monitor{$tag};
@@ -894,7 +932,7 @@ sub html_start {
 		if ($attr->{interpolate}) {
 			my $p = new Vend::Parse;
 			$p->parse($tmpbuf);
-			$tmpbuf = $p->{OUT};
+			$tmpbuf =  $p->{OUT};
 		}
 
 		$tmpbuf =  $attr->{prepend} . $tmpbuf if defined $attr->{prepend};
@@ -1029,7 +1067,23 @@ sub start {
 
 #::logGlobal("Interpolate value now='$attr->{interpolate}'") if$Monitor{$tag};
 
-#::logGlobal("$tag, routine=$routine interpolate=" . $attr->{interpolate}) if $Monitor{$tag};
+
+#::logGlobal(<<EOF) if $Monitor{$tag};
+#tag=$tag
+#routine=$routine
+#has_end=$hasEndTag{$tag}
+#attributes=@args
+#interpolate=$attr->{interpolate}
+#EOF
+
+	if($tag eq 'goto') {
+		return 1 if defined $attr->{'if'} and
+					(! $attr->{'if'} or $attr->{'if'} =~ /^\s*[\s0]\s*$/); 
+		goto_buf($args[0], \$Initialized->{_buf});
+		$self->{ABORT} = 1;
+		return 1;
+	}
+
 	if($hasEndTag{$tag}) {
 		# Handle embedded tags, but only if interpolate is 
 		# defined (always if using old tags)
@@ -1039,9 +1093,10 @@ sub start {
 		if ($attr->{interpolate}) {
 			my $p = new Vend::Parse;
 			$p->parse($tmpbuf);
-			$tmpbuf = $p->{OUT};
+			$tmpbuf = $p->{ABORT} ? '' : $p->{OUT};
 		}
-		$$buf = &$routine(@args,$tmpbuf) . $$buf;
+		my $intermediate = &$routine(@args,$tmpbuf);
+		$$buf = $intermediate . $$buf;
 	}
 	elsif(! $attr->{interpolate}) {
 		$self->{OUT} .= &$routine( @args );

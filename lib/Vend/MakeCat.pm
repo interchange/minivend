@@ -54,12 +54,13 @@ sethistory
 use strict;
 
 use vars qw($Force $Error $History $VERSION);
-$VERSION = substr(q$Revision: 1.11 $, 10);
+$VERSION = substr(q$Revision: 1.14 $, 10);
 
 $Force = 0;
 $History = 0;
 my %Pretty = qw(
 
+	aliases         Aliases
 	basedir         BaseDir
 	catuser			CatUser
 	cgibase         CgiBase
@@ -75,7 +76,7 @@ my %Pretty = qw(
 	samplehtml      SampleHtml
 	sampledir       SampleDir
 	sampleurl       SampleUrl
-	servername      ServerConf
+	serverconf      ServerConf
 	servername      ServerName
 	catroot         CatRoot
 	vendroot        VendRoot
@@ -85,6 +86,20 @@ my %Pretty = qw(
  
 my %Desc = (
 
+	aliases    =>  <<EOF,
+#
+# Additional URL locations for the CGI program, as with CgiUrl.
+# This is used when calling the catalog from more than one place,
+# perhaps because your secure server is not the same name as the
+# non-secure one.
+#
+# http://www.secure.domain/secure-bin/prog
+#                         ^^^^^^^^^^^^^^^^
+#
+# We set it to the name of the catalog by default to enable the
+# internal HTTTP server.
+#
+EOF
 	basedir    =>  <<EOF,
 # 
 # DIRECTORY where the MiniVend catalog directories will go. These
@@ -328,7 +343,14 @@ sub compare_file {
 }
 
 sub install_file {
-    my ($srcdir, $targdir, $filename) = @_;
+    my ($srcdir, $targdir, $filename, $opt) = @_;
+	$opt = {} unless $opt;
+	if (ref $srcdir) {
+		$opt = $srcdir;
+		$srcdir  = $opt->{Source} || die "Source dir for install_file not set.\n";
+		$targdir = $opt->{Target} || die "Target dir for install_file not set.\n";
+		$filename = $opt->{Filename} || die "File name for install_file not set.\n";
+	}
     my $srcfile  = $srcdir . '/' . $filename;
     my $targfile = $targdir . '/' . $filename;
     my $mkdir = File::Basename::dirname($targfile);
@@ -343,6 +365,19 @@ sub install_file {
     if (! -f $srcfile) {
         die "Source file $srcfile missing.\n";
     }
+    elsif (
+		$opt->{Perm_hash}
+			and $opt->{Perm_hash}->{$filename}
+		)
+	{
+        $perms = $opt->{Perm_hash}->{$filename};
+	}
+    elsif ( $opt->{Perms} =~ /^(m|g)/i ) {
+        $perms = (stat(_))[2] | 0660;
+	}
+    elsif ( $opt->{Perms} =~ /^u/i ) {
+        $perms = (stat(_))[2] | 0600;
+	}
     else {
         $perms = (stat(_))[2] & 0777;
     }
@@ -366,14 +401,34 @@ sub install_file {
 
     File::Copy::copy($srcfile, $targfile)
         or die "Copy of $srcfile to $targfile failed: $!\n";
+	if($opt->{Substitute}) {
+			my $bak = "$targfile.mv";
+			rename $targfile, $bak;
+			open(SOURCE, "$bak")			or die "open $bak: $!\n";
+			open(TARGET, ">$targfile")		or die "create $targfile: $!\n";
+			local($/) = undef;
+			my $page = <SOURCE>; close SOURCE;
+			$page =~ s/__MVC_(\w+)__/$opt->{Substitute}{lc $1}/g;
+			print TARGET $page				or die "print $targfile: $!\n";
+			close TARGET					or die "close $targfile: $!\n";
+			unlink $bak						or die "unlink $bak: $!\n";
+	}
     chmod $perms, $targfile;
-
 }
-
 
 sub copy_current_to_dir {
     my($target_dir, $exclude_pattern) = @_;
-    my $orig_dir = cwd();
+	return copy_dir('.', $target_dir, $exclude_pattern);
+}
+
+sub copy_dir {
+    my($source_dir, $target_dir, $exclude_pattern) = @_;
+	return undef unless -d $source_dir;
+	my $orig_dir;
+	if($source_dir ne '.') {
+		$orig_dir = cwd();
+		chdir $source_dir or die "chdir: $!\n";
+	}
     my @files; 
     my $wanted = sub {  
         return unless -f $_;
@@ -384,9 +439,15 @@ sub copy_current_to_dir {
     };
     File::Find::find($wanted, '.');  
 
-	for(@files) {
-		install_file('.', $target_dir, $_);
-	}
+	eval {
+		for(@files) {
+			install_file('.', $target_dir, $_);
+		}
+	};
+	my $msg = $@;
+	chdir $orig_dir if $orig_dir;
+	die "$msg" if $msg;
+	return 1;
 }
 
 use vars q!$Prompt_sub!;
@@ -402,7 +463,7 @@ eval {
     $Prompt_sub = sub {
                     my ($prompt, $default) = @_;
 					if($Force) {
-						print "\n";
+						print "$prompt SET TO --> $default\n";
 						return $default;
 					}
                     $prompt =~ s/^\s*(\n+)/print $1/ge;
@@ -428,7 +489,7 @@ sub prompt {
     my($prompt) = shift || '? ';
     my($default) = shift;
 	if($Force) {
-		print "\n";
+		print "$prompt SET TO --> $default\n";
 		return $default;
 	}
     my($ans);
@@ -459,8 +520,9 @@ sub do_msg {
 	return $msg;
 }
 
+
 sub add_catalog {
-		my ($file, $directive, $configname, $value) = @_;
+		my ($file, $directive, $configname, $value, $dynamic) = @_;
 		my ($newcfgline, $mark, @out);
 		my ($tmpfile) = "$file.$$";
 		if (-f $file) {
@@ -494,6 +556,30 @@ sub add_catalog {
 		}
 		close NEWCFG || die "close: $!\n";
 		unlink $tmpfile;
+
+		if($dynamic and ! $Windows) {
+			my $pidfile = $dynamic;
+			$pidfile =~ s:/[^/]+$::;
+			$pidfile .= '/minivend.pid';
+			my $pid;
+			PID: {
+				local ($/);
+				open(PID,$pidfile) or die "open $pidfile: $!\n";
+				$pid = <PID>;
+				$pid =~ /(\d+)/;
+				$pid = $1;
+			}
+
+			open(RESTART, "<+$dynamic") or
+				open(RESTART, ">>$dynamic") or
+					die "Couldn't write $dynamic to add catalog: $!\n";
+			Vend::Util::lockfile(\*RESTART, 1, 1) 	or die "lock $dynamic: $!\n";
+			printf RESTART "%-19s %s\n", $directive, $value;
+			Vend::Util::unlockfile(\*RESTART) 		or die "unlock $dynamic: $!\n";
+			close RESTART;
+			kill 'HUP', $pid;
+		}
+		1;
 }
 
 my %Http_hash = (

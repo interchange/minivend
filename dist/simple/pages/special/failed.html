@@ -5,7 +5,7 @@
 [body 2]
 <h1>Order Failed</h1>
 
-[if explicit q{[subject]}]
+[if type=explicit term="q{[subject]}"]
 <PRE>
 [subject]
 </PRE>
@@ -16,5 +16,5 @@ We will follow up as soon as possible.
 [/else]
 [/if]
 <P>
-[buttonbar 0]
+[include pages/buttonbar.html]
 </body></html>

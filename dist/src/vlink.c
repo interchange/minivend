@@ -1,6 +1,6 @@
 /* vlink.c:  runs as a cgi program and passes request to Vend server
 
-   $Id: vlink.c,v 1.2 1997/05/22 07:02:03 mike Exp $
+   $Id: vlink.c,v 1.3 1998/08/16 10:26:14 mike Exp $
 
    Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 

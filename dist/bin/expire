@@ -2,7 +2,7 @@
 #
 # MiniVend session expiration
 #
-# $Id: expire,v 1.7 1997/11/03 13:14:28 mike Exp mike $
+# $Id: expire,v 1.11 1998/07/18 11:45:02 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>

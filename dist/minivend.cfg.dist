@@ -10,7 +10,21 @@
 # This is a multiple directive -- the number of catalogs that can be defined is
 # limited only by your machine resources.
 #
-# Catalog  simple /home/user/catalogs/simple /cgi-bin/simple /cgi-bin/alias
+#Catalog  simple /home/user/catalogs/simple /cgi-bin/simple /cgi-bin/alias
+
+
+
+## Default: blank
+#
+# The user and password which will allow access to the special mv_admin
+# administration catalog. No default; if not present then access is
+# disabled.
+#
+# The password is a normal encrypted string unless the global
+# Variable MV_NO_CRYPT is non-blank and non-zero.
+#
+Variable   MV_NO_CRYPT   1
+AdminUser  minivend:nevairbe
 
 
 ## Default: blank
@@ -21,7 +35,7 @@
 # user not only to write good Perl code, but to have access to all files
 # readable and writable by MiniVend.
 #
-# AllowGlobal simple
+AllowGlobal _mv_admin
 
 
 ## Default: blank
@@ -79,7 +93,6 @@
 #
 # You may define as many as desired.
 #
-
 GlobalSub sub test_global_sub { return 'Test of global subroutine OK.' }
 
 
@@ -107,7 +120,7 @@ GlobalSub sub test_global_sub { return 'Test of global subroutine OK.' }
 # If you have a very lightly used server then you could set this to a high
 # number to allow MiniVend to be swapped to disk more readily.
 #
-# HouseKeeping
+HouseKeeping 5
 
 
 ## Default: No
@@ -123,6 +136,7 @@ GlobalSub sub test_global_sub { return 'Test of global subroutine OK.' }
 # Default is no, and DomainTail must be set to 'no' for it to operate.
 #
 # IpHead
+
 
 ## Default: blank
 #
@@ -238,6 +252,17 @@ GlobalSub sub test_global_sub { return 'Test of global subroutine OK.' }
 #
 # UserBuild
 
+
+########### Variable
+##
+## Default: none
+#
+# Variable values that can be accessed on pages of ALL catalogs with
+# @@VARIABLE@@ notation.
+#
+Variable TEST_VARIABLE Test of global variable OK.
+
+
 ## Default: none
 #
 # Custom tag for every catalog served by this MiniVend.
@@ -249,7 +274,6 @@ GlobalSub sub test_global_sub { return 'Test of global subroutine OK.' }
 # This tag is the equivalent of [L] ... [/L] localization, except
 # it works with contained tags
 #
-
 UserTag loc hasEndTag   1
 UserTag loc Interpolate 1
 UserTag loc Order locale
@@ -270,21 +294,32 @@ sub {
 }
 EOF
 
-
-Variable TEST_VARIABLE Test of global variable OK.
-
-UserTag  db-date  Order format 
+# [db-date table format]
+#
+# This tag returns the last-modified time of a database table,
+# 'products' by default. Accepts a POSIX strftime value for
+# date format; uses '%A %d %b %Y' by default.
+#
+UserTag  db-date  Order table format
+UserTag  db-date  PosNumber 2
 UserTag  db-date  Routine <<EOF
 sub {
-    my ($format) = @_;
+    my ($format, $db) = @_;
     $format = '%A %d %b %Y';
 
-    my $mtime = (stat('products/products.asc'))[9];
+	$db = 'products' unless $db;
+
+    my $mtime = (stat($Vend::Cfg->{Database}{'file'}))[9];
     return POSIX::strftime($format, localtime($mtime));
 
 }
 EOF
 
+### The user database stuff
 #include userdb.cfg
 
+### The minivend administration stuff
+#include admin/mv_admin.cfg
+
 # #include locale.error
+

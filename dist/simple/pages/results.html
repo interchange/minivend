@@ -1,12 +1,12 @@
 <HTML>
 [tag flag build][value mv_searchspec][/tag]
 <HEAD>
-<TITLE>Search Results</TITLE>
+<TITLE>[L]Search Results[/L]</TITLE>
 </HEAD>
 [body 1]
 <H2>
 [page srchform]<IMG BORDER=0 SRC="search.gif" ALT="SEARCH"></A>
-Search Results
+[L]Search Results[/L]
 </H2>
 
 <P>
@@ -28,9 +28,9 @@ Search Results
 <B>[item_increment].</B>
 <I>[item-field title]</I><BR>
 <B>[item-field artist]</B><BR>
-[page href="[item-code]" send=1]<IMG ALT=" INFO " BORDER=0 SRC="details.gif">[/page]
-[order [item-code]]<IMG ALT=" ORDER " BORDER=0 SRC="ordernow.gif">[/order]
-<B>Our Price [item-price]</B><p>
+[page href="[item-code]" send=1]<IMG ALT="[L]More Info[/L]" BORDER=0 SRC="details.gif">[/page]
+[order [item-code]]<IMG ALT="[L]ORDER NOW[/L]" BORDER=0 SRC="ordernow.gif">[/order]
+<B>[L]Our Price[/L] [item-price]</B><p>
 <HR>
 [/search-list]
 
@@ -45,6 +45,6 @@ Sorry, no matches for [value mv_searchspec].
 [/more-list]
 [/search-region]
 <P ALIGN=CENTER>
-[buttonbar 0]
+[include pages/buttonbar.html]
 
 </body> </html>

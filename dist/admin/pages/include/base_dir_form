@@ -1,0 +1,47 @@
+	<table border="0" cellpadding="0" cellspacing="0" width="400">
+		<tr>
+		  <td width="75" VALIGN=CENTER><font size="-1"><B>Server name:</B> </font><BR></td>
+		  <td>[help name=SERVERNAME int]<input name="SERVERNAME" type="TEXT" size="38"
+		  		value="[default
+							name=SERVERNAME
+							default='www.[value CATALOGNAME].com'
+							]"> </td>
+		</tr>
+		<tr>
+		  <td width="75" VALIGN=CENTER><font size="-1"><B>Catalog directory:</B> </font><BR></td>
+		  <td><BR>[help name=CATROOT int]<input name="CATROOT" type="TEXT" size="38"
+		  		value="[default
+							name=CATROOT
+							default='[embed]
+				if($^O =~ /win32/i) {
+					return "$Global::VendRoot/catalogs";
+				}
+				return $::Values{HOMEDIR} . "/" . $::Values{CATALOGNAME};
+				[/embed]'
+							]"> </td>
+		</tr>
+		<tr>
+		  <td width="75" VALIGN=CENTER><font size="-1"><B>HTML directory:</B> </font><BR></td>
+		  <td><BR>[help name=DOCUMENTROOT int]<input name="DOCUMENTROOT" type="TEXT" size="38"
+		  		value="[default
+							name=DOCUMENTROOT
+							default='[value HOMEDIR]/www'
+							]"> </td>
+		</tr>
+		<tr>
+		  <td VALIGN=CENTER><font size="-1"><B>CGI Directory:</B></font><BR></td>
+		  <td><BR>[help name=CGIDIR int]<input name="CGIDIR" type="TEXT" size="38"
+		  		value="[default
+							name=CGIDIR
+							default='[value HOMEDIR]/cgi-bin'
+							]"> </td>
+		</tr>
+		<tr>
+		  <td VALIGN=CENTER><font size="-1"><B>Base URL for CGI:</B></font><BR></td>
+		  <td><BR>[help name=CGIBASE int]<input name="CGIBASE" type="TEXT" size="38"
+		  		value="[default
+							name=CGIBASE
+							default='/cgi-bin'
+							]"> </td>
+		</tr>
+  </table>

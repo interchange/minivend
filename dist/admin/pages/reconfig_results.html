@@ -1,0 +1,51 @@
+<HTML><HEAD>
+<TITLE>Reconfiguring catalog [value RECONFIGURE_CAT]</TITLE>
+
+</HEAD>
+<BODY BGCOLOR="#C0C0C0">
+[set name=its send=1 int]
+[embed] 
+undef $::Scratch->{reconfigured};
+return join "\n", 1 .. ($Global::HouseKeeping + 5);
+[/embed]
+[/set]
+
+Reconfiguring catalog, please wait..<BR>
+[loop arg="[scratch its]"]
+[label name=junk send=1]
+[embed]
+	my $now = time();
+	my $mod = ( stat("$Global::ConfDir/status." . $::Values->{RECONFIGURE_CAT}))[9];
+	if( ($now - $mod) < $Global::HouseKeeping ) {
+		$::Scratch->{possible_timeout} = 0;
+		$::Scratch->{reconfigured} = 1;
+		return '[goto check]';
+	}
+	else {
+		sleep 1;
+		$::Scratch->{possible_timeout} = 1;
+		return 'Reconfiguring catalog, please wait...<BR>';
+	}
+[/embed]
+[/loop]
+
+[label check]
+[if scratch possible_timeout]
+<P> WARNING: Reconfiguration may have timed out.
+	[embed]
+	return $Global::ConfDir . '/status.' . $::Values->{RECONFIGURE_CAT};
+	[/embed]
+<P> Last config:
+	[file name="[embed]
+	return $Global::ConfDir . '/status.' . $::Values->{RECONFIGURE_CAT};
+	[/embed]"]
+[else]
+Reconfigured: [file name="[embed]
+	return $Global::ConfDir . '/status.' . $::Values->{RECONFIGURE_CAT};
+	[/embed]"]
+[/else]
+[/if]
+[set possible_timeout][/set]
+<P>
+<A MV="page menu" HREF="menu">Return to menu</A>
+</BODY></HTML>

@@ -1,6 +1,6 @@
 # Table/InMemory.pm: store a table in memory
 #
-# $Id: InMemory.pm,v 1.12 1998/05/06 08:32:16 mike Exp $
+# $Id: InMemory.pm,v 1.13 1998/08/16 10:26:14 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -19,7 +19,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::InMemory;
-$VERSION = substr(q$Revision: 1.12 $, 10);
+$VERSION = substr(q$Revision: 1.13 $, 10);
 use Carp;
 use strict;
 
@@ -57,7 +57,7 @@ sub column_index {
     my ($s, $column) = @_;
     my $i = $s->[1]{$column};
     croak "There is no column named '$column'" unless defined $i;
-    $i;
+    return $i;
 }
 
 sub row {

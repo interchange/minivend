@@ -1,7 +1,7 @@
 /* tlink.c:  runs as a cgi program and passes request to Vend server
 			 via TCP/IP 
 
-   $Id: tlink.c,v 1.4 1997/05/22 07:10:45 mike Exp $
+   $Id: tlink.c,v 1.5 1998/08/16 10:26:14 mike Exp $
 
    Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 

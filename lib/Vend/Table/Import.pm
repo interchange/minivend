@@ -1,6 +1,6 @@
 # Table/Import.pm: import a table
 #
-# $Id: Import.pm,v 1.16 1998/07/04 21:59:55 mike Exp mike $
+# $Id: Import.pm,v 1.17 1998/08/01 07:04:30 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -19,7 +19,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::Import;
-$VERSION = substr(q$Revision: 1.16 $, 10);
+$VERSION = substr(q$Revision: 1.17 $, 10);
 
 require Exporter;
 @ISA = qw(Exporter);
@@ -262,6 +262,14 @@ EndOfRoutine
 				\$_ .= <IN>;
 				redo;
 			}
+			elsif (s/<<(\\w+)\$//) {
+				my \$mark = \$1;
+				my \$line = \$_;
+				\$line .= Vend::Config::read_here(\\*Vend::Table::Import::IN, \$mark);
+				\$_ = \$line;
+				redo;
+			}
+
             \$fields = \@fields = split(/$delimiter/, \$_, 99999);
 			$excel
 			$index

@@ -1,7 +1,7 @@
 #!/usr/local/bin/perl -wT
 # tlink.pl: runs as a cgi program and passes request to Vend server
 #
-#   $Id: tlink.pl,v 1.1 1997/04/22 15:31:27 mike Exp $
+#   $Id: tlink.pl,v 1.2 1998/08/16 10:26:14 mike Exp $
 #
 # Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
 #

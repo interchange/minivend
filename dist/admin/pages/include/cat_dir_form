@@ -1,0 +1,91 @@
+<table border="0" cellpadding="0" cellspacing="0" width="400">
+	<tr>
+		<td width="75" VALIGN=CENTER>
+			<font size="-1"><B>Catalog HTML:</B></font><BR>
+		</td>
+		<td>[help name=SAMPLEHTML int]
+		  	<input name="SAMPLEHTML" type="TEXT" size="38"
+		  		value="[default
+							name=SAMPLEHTML
+							default='[value DOCUMENTROOT]/[value CATALOGNAME]'
+							]">
+		</td>
+	</tr>
+	<tr>
+		<td width="75" VALIGN=CENTER>
+			<font size="-1"><B>HTML URL:</B> </font><BR>
+		</td>
+		<td>
+			<HR>[help name=SAMPLEURL int]
+			<input name="SAMPLEURL" type="TEXT" size="38"
+		  		value="[default
+							name=SAMPLEURL
+							default='http://[value SERVERNAME]/[value CATALOGNAME]'
+							]"> </td>
+	</tr>
+	<tr>
+		<td width="75" VALIGN=CENTER>
+			<font size="-1"><B>Image directory:</B></font><BR>
+		</td>
+		<td>
+			<HR>[help name=IMAGEDIR int]
+				<input name="IMAGEDIR" type="TEXT" size="38"
+						value="[default
+							name=IMAGEDIR
+							default='[value DOCUMENTROOT]/[value CATALOGNAME]/images'
+							]"> </td>
+	</tr>
+	<tr>
+		<td width="75" VALIGN=CENTER>
+			<font size="-1"><B>Image URL:</B> </font><BR>
+		</td>
+		<td>
+			<HR>[help name=IMAGEURL int]
+			<input name="IMAGEURL" type="TEXT" size="38"
+		  		value="[default
+							name=IMAGEURL
+							default='/[value CATALOGNAME]/images'
+							]">
+		</td>
+	</tr>
+	<tr>
+		<td VALIGN=CENTER>
+			<font size="-1"><B>CGI URL and ALIASES:</B></font><BR>
+		</td>
+							[calc]
+								$doc = q{[value DOCUMENTROOT]};
+								$cgi = q{[value CGIDIR]};
+								$cat = q{[value CATALOGNAME]};
+								if($doc eq $cgi) {
+									$cgifile = "$doc/$cat.cgi";
+									$cgiurl  = "/$cat.cgi";
+								}
+								else {
+									$cgifile = "$cgi/$cat";
+									$cgi =~ s:.*/:/:;
+									$cgiurl  = "$cgi/$cat";
+								}
+								return '';
+							[/calc]
+		<td>
+			<HR>[help name=CGIURL int]
+			<input name="CGIURL" type="TEXT" size="38"
+		  		value="[default
+							name=CGIURL
+							default='[calc]return $cgiurl[/calc]'
+					  ]"><BR>
+			<input name="ALIASES" type="TEXT" size="38"
+		  		value="[default
+							name=ALIASES
+							default='/[value CATALOGNAME]'
+					  ]"><BR>
+			Use INET mode
+				<input name="LINKMODE"
+					[checked LINKMODE INET]
+					type="radio" VALUE="INET"> yes
+				<input name="LINKMODE"
+					[checked name=LINKMODE value=UNIX default=1]
+					type="radio" VALUE="UNIX"> no
+		</td>
+	</tr>
+</table>

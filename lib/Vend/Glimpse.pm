@@ -1,6 +1,6 @@
 # Vend/Glimpse.pm:  Search indexes with Glimpse
 #
-# $Id: Glimpse.pm,v 1.13 1998/06/01 17:02:23 mike Exp $
+# $Id: Glimpse.pm,v 1.15 1998/08/16 10:26:14 mike Exp $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::Glimpse
 #
@@ -26,7 +26,7 @@ package Vend::Glimpse;
 require Vend::Search;
 @ISA = qw(Vend::Search);
 
-$VERSION = substr(q$Revision: 1.13 $, 10);
+$VERSION = substr(q$Revision: 1.15 $, 10);
 use strict;
 
 sub new {
@@ -54,18 +54,6 @@ sub init {
 
 sub version {
 	$Vend::Glimpse::VERSION;
-}
-
-sub quoted_string {
-
-my ($s, $text) = @_;
-my (@fields);
-push(@fields, $+) while $text =~ m{
-   "([^\"\\]*(?:\\.[^\"\\]*)*)"\s?  ## standard quoted string, w/ possible comma
-   | ([^\s]+)\s?                    ## anything else, w/ possible comma
-   | \s+                            ## any whitespace
-	    }gx;
-   return grep /\w/, @fields;
 }
 
 sub escape {
@@ -208,7 +196,7 @@ sub search {
 	$g->{coordinate} = '';
 
     if (! $g->{exact_match}) {
-        @specs = $s->quoted_string( join ' ', @specs);
+        @specs = Text::ParseWords::shellwords( join ' ', @specs);
     }
 
     @specs = $s->escape(@specs);
@@ -374,17 +362,17 @@ EOF
 		return undef;
 	}
 
+	if($delayed_return) {
+		$s->sort_search_return(\@out);
+		@out = map { &{$delayed_return}($_) } @out;
+	}
+
 	if($g->{unique_result}) {
 		my %seen;
 		@out = grep ! $seen{$_}++, @out;
 	}
 
 	$g->{matches} = scalar(@out);
-
-	if($delayed_return) {
-		$s->sort_search_return(\@out);
-		@out = map { &{$delayed_return}($_) } @out;
-	}
 
     if ($g->{matches} > $g->{match_limit}) {
         $s->save_more(\@out)

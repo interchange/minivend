@@ -128,7 +128,7 @@ EOF
 sub adjustvars {
 	my ($file,%vars) = @_;
 
-	my $bak = 'mytemp.fil';
+	my $bak = $file . "_";
 	return undef unless $file && defined %vars;
 
 	my $check;
@@ -199,7 +199,7 @@ sub adjustdefs {
 	my ($file,%defs) = @_;
 	my $changed = 0;
 
-	my $bak = 'mytemp.fil';
+	my $bak = $file . "_";
 	return undef unless $file && defined %defs;
 	my $save = $;
 	$ = 0;
@@ -262,7 +262,7 @@ sub shbang {
 	my $file = shift;
 	my $perl = shift;
 	my $changed = 0;
-	my $bak = 'mytemp.fil';
+	my $bak = $file . "_";
 	return undef unless $file && $perl;
 	rename $file, $bak;
 	open(ADJUST_IN,$bak)
@@ -641,10 +641,11 @@ my $Makecat;
 
 FINISHMESSAGE: {
 	my $dir = $Initial{VendRoot};
+	$dir =~ s:/:\\:g if $Windows;
 	$Runcommand = ! $Windows ? "$Initial{VendRoot}/bin/restart" : <<EOF;
 $dir\\minivend
 
-You may also use the shortcuts that should be present in that folder.
+You may also use the shortcuts that might be present in that folder.
 EOF
 	$Makecat = ! $Windows ? "$Initial{VendRoot}/bin/makecat" : "$dir\\makecat";
 	if($Windows) {
@@ -669,16 +670,43 @@ Welcome to MiniVend!
 EOF
 }
 
-$Runcommand =~ s/\n.*//s;
+my $have_www_stuff;
+eval {
+	require URI::URL;
+	require MIME::Base64;
+};
+unless ($@) {
+	$have_www_stuff = 1;
+}
+
+my $extrahost;
+if(! $Windows) {
+	$extrahost = `hostname`;
+	chomp $extrahost;
+}
+else {
+	$extrahost = 'localhost';
+}
+my $host = $extrahost || $Config{'myhost'};
+
+$Runcommand =~ s/\r?\n.*//s;
 
 MAKECAT: {
 	last MAKECAT if -f "minivend.cfg";
+	last MAKECAT if $have_www_stuff and $Windows;
 	print <<EOF;
 If you choose, you can make the "simple" demo catalog now, which will
 fully test MiniVend and give you a starting point for your own catalog.
 
 EOF
-	$ans = prompt "Make the simple demo? ", "yes";
+	print <<EOF if $have_www_stuff;
+Or you can reply "No" and try the new interface to the
+makecat program at:
+
+		http://$host:7786/mv_admin
+
+EOF
+	$ans = prompt "Make the simple demo now? ", ($have_www_stuff ? 'no' : 'yes');
 	last MAKECAT unless $ans =~ /^\s*y/i;
 	system $Makecat;
 	if($?) {
@@ -687,21 +715,46 @@ The configuration did not appear to succeed. You can re-run it at
 any time, including now.
 
 EOF
-		$ans = prompt "Re-try making catalog? ", "yes";
+		print <<EOF if $have_www_stuff;
+Or you can try the new interface to the makecat program at:
+
+		http://$host:7786/mv_admin
+
+EOF
+		$ans = prompt "Re-try making catalog? ",  ($have_www_stuff ? 'no' : 'yes');
 		redo MAKECAT if $ans =~ /^\s*y/i;
 	}
 }
 
 RUNSERVER: {
 	if(! -f "minivend.cfg") {
-		print <<EOF;
+		my $user = prompt ("Select an administrative username: ", 'minivend');
+		my $pass = prompt ("Select an administrative password: ", '');
+		unless($pass) {
+			print "MUST select a password.\n";
+			redo RUNSERVER;
+		}
+		open(IN, 'minivend.cfg.dist')	or die "open minivend.cfg.dist: $!\n";
+		open(OUT, '>minivend.cfg')		or die "create minivend.cfg: $!\n";
+		while(<IN>) {
+			s/^AdminUser\s+.*/AdminUser   $user:$pass/;
+			print OUT $_;
+		}
+		close IN; close OUT;
+		
+		unless ($have_www_stuff) {
+			print <<EOF;
 
 Apparently there are no catalogs made. When you make one, you
 can start the MiniVend server with:
 
     $Runcommand
+
 EOF
-		exit;
+			exit;
+		}
+		else {
+		}
 	}
 	print <<EOF;
 The MiniVend server must be running for your catalog to operate.
@@ -713,17 +766,40 @@ the "Start MiniVend Server" shortcut in your Start Menu. You will
 probably want to set it to run minimized by default -- use the
 Properties menu and select "Run minimized".
 
-To stop the MiniVend server, close the window -- you cannot
-stop it from the keyboard.
-
 To start the server, double click on the "Start MiniVend Server"
 icon which should be present in $Initial{VendRoot}.
+
+ NOTE: If you are on some versions of Windows, the shortcut may not
+ have been made. Make one yourself by taking "start.bat" and
+ creating a shortcut.
+
+To stop the MiniVend server, you may hit Ctrl-C on some versions
+of Windows and Perl; otherwise you must close the window.
+
+EOF
+	print <<EOF if $have_www_stuff && ! $Windows && findexe('netscape');
+Since you have Netscape in your path, we can start it with the catalog
+configuration program pre-loaded.
+
+EOF
+	print <<EOF if $have_www_stuff && $Windows;
+------------
+
+We will attempt to start the MiniVend server now, and to
+send a menu to your configured web browser.
 
 EOF
 	last RUNSERVER if $Windows;
 	$ans = prompt("Start the MiniVend server? ", "yes");
 	last RUNSERVER unless $ans =~ /^\s*y/i;
-	exec $Runcommand;
+	system $Runcommand;
+	my $h = "http://$host:7786/mv_admin";
+	$ans = prompt("Start Netscape with $h? ", "yes");
+	last RUNSERVER unless $ans =~ /^\s*y/i;
+	system "netscape -remote 'openURL($h,new-window)'";
+	if ($?) {
+		system "netscape '$h' &";
+	}
 }
 
 exit;

@@ -1,55 +1,56 @@
 <HTML>
 <HEAD>
-<TITLE>Search __COMPANY__</TITLE>
+<TITLE>[L]Search[/L] __COMPANY__</TITLE>
 </HEAD>
 [body 1]
 <TABLE>
 	<TR VALIGN=TOP>
 		<TD>
 			<IMG SRC="search.gif" ALT="SEARCH">
-			<FONT SIZE=6><I>Search</I></FONT>
+			<FONT SIZE=6><I>[L]Search[/L]</I></FONT>
 			<BR><BR>
 	<FORM ACTION="[process-target main]" METHOD=POST>
-	Spelling errors allowed<BR>
-	<INPUT TYPE="radio" NAME="mv_spelling_errors" VALUE="0" CHECKED> 0
+	[L]Spelling errors allowed[/L]<BR>
+	<INPUT TYPE="radio" NAME="mv_spelling_errors" VALUE="0"
+			[checked name=mv_orsearch value=0 default=1]> 0
 	<INPUT TYPE="radio" NAME="mv_spelling_errors" VALUE="1"> 1 
 	<INPUT TYPE="radio" NAME="mv_spelling_errors" VALUE="2"> 2
 		</TD>
 		<TD>
 	<TABLE>
 	<TR>
-		<TD VALIGN=BOTTOM><B>Artist or Title</B></TD>
+		<TD VALIGN=BOTTOM><B>[L]Artist or Title[/L]</B></TD>
 		<TD></TD>
 	</TR>
 	<TR>
 		<TD COLSPAN=2>
 		<INPUT TYPE=text NAME="mv_searchspec" SIZE=20>
-		<INPUT TYPE="submit" NAME="mv_todo" VALUE="Search">
+		<INPUT TYPE="submit" VALUE="[L]Search[/L]">
 		<INPUT TYPE="hidden" NAME="mv_doit" VALUE="search">
 		</TD>
 	<TR>
 	<TD VALIGN=TOP>
-		<INPUT TYPE="radio" NAME="mv_orsearch" VALUE="no" CHECKED>Must match all
+		<INPUT TYPE="radio" NAME="mv_orsearch" VALUE="no" [checked name=mv_orsearch value=no default=1]>[L]Must match all[/L]
+		<INPUT TYPE="radio" NAME="mv_orsearch" VALUE="yes">[L]Match any[/L]<BR>
 		<INPUT TYPE="hidden" NAME="mv_searchtype" VALUE="glimpse">
-		<INPUT TYPE="radio" NAME="mv_orsearch" VALUE="yes">Match any<BR>
-		<INPUT TYPE="checkbox" NAME="mv_case" VALUE="yes">Case sensitive<BR>
+		<INPUT TYPE="checkbox" NAME="mv_case" VALUE="yes">[L]Case sensitive[/L]<BR>
 		<INPUT TYPE="checkbox" NAME="mv_substring_match" VALUE="yes">
-			Match substrings
+		[L]Match substrings[/L]	
 	</TD>
 	<TD VALIGN=TOP>
-		<B>Fields to search:<B><BR>
+		<B>[L]Fields to search[/L]:<B><BR>
 		<INPUT TYPE="checkbox" NAME="mv_search_field" VALUE="artist" CHECKED>
-			Artist<BR>
+			[L]Artist[/L]<BR>
 		<INPUT TYPE="checkbox" NAME="mv_search_field" VALUE="title" CHECKED>
-			Title<BR>
+			[L]Title[/L]<BR>
 		<INPUT TYPE="checkbox" NAME="mv_search_field" VALUE="display" CHECKED>
-			Museum<BR>
+			[L]Museum[/L]<BR>
 	</TD>
 	</TR>
 	<TR>
 	
 	<TD VALIGN=CENTER COLSPAN=2>
-		<CENTER><B>Sort order<B></CENTER><BR>
+		<CENTER><B>[L]Sort order[/L]<B></CENTER><BR>
 		<FONT SIZE=-1>
 		<SELECT NAME="sort_field1">
 			<OPTION VALUE="products:title"> Title
@@ -58,25 +59,25 @@
 			<OPTION VALUE="products:title:r"> Reverse Title
 			<OPTION VALUE="products:artist:r"> Reverse Artist
 			<OPTION VALUE="products:price:nr"> Reverse Price
-			<OPTION VALUE=""> none
+			<OPTION VALUE="">[L]none[/L] 
 		</SELECT>
 		<SELECT NAME="sort_field2">
 			<OPTION VALUE=""> none
-			<OPTION VALUE="products:artist"> Artist
-			<OPTION VALUE="products:price:n"> Price
-			<OPTION VALUE="products:title"> Title
-			<OPTION VALUE="products:artist:r"> Reverse Artist
-			<OPTION VALUE="products:price:rn"> Reverse Price
-			<OPTION VALUE="products:title:r"> Reverse Title
+			<OPTION VALUE="products:artist"> [L]Artist[/L]
+			<OPTION VALUE="products:price:n"> [L]Price[/L]
+			<OPTION VALUE="products:title"> [L]Title[/L]
+			<OPTION VALUE="products:artist:r">[L]Reverse Artist[/L] 
+			<OPTION VALUE="products:price:rn">[L]Reverse Price[/L] 
+			<OPTION VALUE="products:title:r">[L]Reverse Title[/L] 
 		</SELECT>
 		<SELECT NAME="sort_field3">
 			<OPTION VALUE=""> none
-			<OPTION VALUE="products:price:n"> Price
-			<OPTION VALUE="products:title:"> Title
-			<OPTION VALUE="products:artist:"> Artist
-			<OPTION VALUE="products:price:nr"> Reverse Price
-			<OPTION VALUE="products:title:r"> Reverse Title
-			<OPTION VALUE="products:artist:r"> Reverse Artist
+			<OPTION VALUE="products:price:n">[L]Price[/L] 
+			<OPTION VALUE="products:title:"> [L]Title[/L]
+			<OPTION VALUE="products:artist:"> [L]Artist[/L]
+			<OPTION VALUE="products:price:nr">[L]Reverse Price[/L] 
+			<OPTION VALUE="products:title:r">[L]Reverse Title[/L] 
+			<OPTION VALUE="products:artist:r">[L]Reverse Artist[/L] 
 		</SELECT>
 		</FONT>
 	</TD>
@@ -91,36 +92,36 @@
 			<TD>
 			</TD>
 			<TD>
-			<B>Search by Price</B><BR>
+			<B>[L]Search by Price[/L]</B><BR>
 			</TD>
 			<INPUT TYPE="hidden" NAME="mv_range_look" VALUE="price">
 			<INPUT TYPE="hidden" NAME="mv_return_all" VALUE="yes">
 		</TR>
 		<TR>
 			<TD>
-			Low
+		[L]Low[/L]	
 			</TD>
 			<TD>
 				<SELECT NAME="mv_range_min">
-					<OPTION value=0 SELECTED> Any
-					<OPTION value=1000000> [currency]1000000[/currency]
-					<OPTION value=10000000> [currency]10000000[/currency]
-					<OPTION value=20000000> [currency]20000000[/currency]
-					<OPTION value=40000000> [currency]40000000[/currency]
+					<OPTION value=0 SELECTED> [L]Any[/L]
+					<OPTION value=1000000> [currency convert=1]1000000[/currency]
+					<OPTION value=10000000> [currency convert=1]10000000[/currency]
+					<OPTION value=20000000> [currency convert=1]20000000[/currency]
+					<OPTION value=40000000> [currency convert=1]40000000[/currency]
 				</SELECT><BR>
 			</TD>
 		</TR>
 		<TR>
 			<TD>
-			High
+			[L]High[/L]
 			</TD>
 			<TD>
 		    <SELECT NAME="mv_range_max">
-					<OPTION value=0 SELECTED> No object
-					<OPTION value=1000000> [currency]1000000[/currency]
-					<OPTION value=10000000> [currency]10000000[/currency]
-					<OPTION value=20000000> [currency]20000000[/currency]
-					<OPTION value=40000000> [currency]40000000[/currency]
+					<OPTION value=0 SELECTED>[L]No object[/L] 
+					<OPTION value=1000000> [currency convert=1]1000000[/currency]
+					<OPTION value=10000000> [currency convert=1]10000000[/currency]
+					<OPTION value=20000000> [currency convert=1]20000000[/currency]
+					<OPTION value=40000000> [currency convert=1]40000000[/currency]
 				</SELECT>
 			</TD>
 		</TR>
@@ -129,7 +130,7 @@
 			</TD>
 			<TD>
 				<INPUT TYPE=HIDDEN NAME="mv_searchtype" VALUE="text">
-				<INPUT TYPE="submit" NAME="mv_todo" VALUE="Search">
+				<INPUT TYPE="submit" VALUE="[L]Search[/L]">
 				<INPUT TYPE="hidden" NAME="mv_doit" VALUE="search"><BR>
 			</TD>
 		</TR>
@@ -143,6 +144,6 @@
 <CENTER>
 [random interpolate=1]
 <P>
-[buttonbar 0]
+[include pages/buttonbar.html]
 </CENTER>
 </body> </html>

@@ -1,0 +1,53 @@
+	<table border="0" cellpadding="0" cellspacing="0" width="400">
+		<tr>
+		  <td width="75"><font size="-1"><B>Company Name:</B> </font></td>
+		  <td><input name="COMPANY" type="TEXT" size="38"
+		  		value="[default name=COMPANY default='The Art Store']"> </td>
+		</tr>
+		<tr>
+		  <td><font size="-1">Address:</font></td>
+		  <td><input name="ADDRESS" type="TEXT" size="38" value="[value ADDRESS]"> </td>
+		</tr>
+		<tr>
+		  <td><font size="-1">City,<BR>state/province,<BR>zip/postal code: </font></td>
+		  <td VALIGN=TOP><input name="CITY" type="TEXT" size="38" value="[value CITY]"> </td>
+		</tr>
+		<tr>
+		  <td><font size="-1">Phone:</font></td>
+		  <td><input name="PHONE" type="TEXT" size="30" value="[value PHONE]"></TD>
+		</tr>
+		<tr>
+		  <td><font size="-1">Toll-free:</font></td>
+		  <td><input name="TOLLFREE" type="TEXT" size="30"
+		  				value="[value TOLLFREE]"></TD>
+		</tr>
+		<tr>
+		  <td><font size="-1">FAX:</font></td>
+		  <td><input name="FAX" type="TEXT" size="30"
+		  				value="[value FAX]"></TD>
+		</tr>
+		<tr>
+		  <td><font size="-1"><B>Email orders to:</B></font></td>
+		  <td><input name="MAILORDERTO" type="TEXT" size="30"
+		  				value="[default MAILORDERTO webmaster]"></TD>
+		</tr>
+		<tr>
+		  <td><font size="-1"><B>Large logo image:</B></font></td>
+		  <td><input name="LOGO" type="TEXT" size="30"
+		  				value="[default LOGO artstore.gif]"></TD>
+		</tr>
+		<tr>
+		  <td><font size="-1"><B>Small logo image:</B></font></td>
+		  <td><input name="SMLOGO" type="TEXT" size="30"
+		  				value="[default SMLOGO artsmall.gif]"></TD>
+		</tr>
+		<tr>
+		  <td><font size="-1"><B>Encryption command</B>:</font></td>
+		  <td><input name="ENCRYPTOR" type="TEXT" size="30"
+		  				value="[default ENCRYPTOR none]"></TD>
+		</tr>
+		<tr>
+		  <td>&nbsp;</TD>
+		  <td valign="bottom"><BR><font size="-1">Fields in <B>bold</B> are required.</font></td>
+            </tr>
+          </table>

@@ -1,6 +1,6 @@
 # Table/DBI.pm: access a table stored in an DBI/DBD Database
 #
-# $Id: DBI.pm,v 1.22 1998/07/04 21:59:52 mike Exp mike $
+# $Id: DBI.pm,v 1.23 1998/07/18 11:43:40 mike Exp $
 #
 # Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -19,7 +19,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::DBI;
-$VERSION = substr(q$Revision: 1.22 $, 10);
+$VERSION = substr(q$Revision: 1.23 $, 10);
 
 use Carp;
 use strict;
@@ -422,7 +422,7 @@ sub hash_query {
 #	if ::debug(0x4);
 # END DEBUG
 	my $key = $s->[$KEY];
-    my $sth = $s-[$DBI]->prepare($text)
+    my $sth = $s->[$DBI]->prepare($text)
 		or croak "$DBI::errstr\n";
     $sth->execute() or croak $DBI::errstr;
 	my $out = {};

@@ -1,6 +1,6 @@
 # Session.pm - Minivend Sessions
 #
-# $Id: Session.pm,v 1.29 1998/07/04 21:59:30 mike Exp mike $
+# $Id: Session.pm,v 1.32 1998/09/01 13:15:22 mike Exp mike $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
@@ -24,7 +24,7 @@ package Vend::Session;
 require Exporter;
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.29 $, 10);
+$VERSION = substr(q$Revision: 1.32 $, 10);
 
 @ISA = qw(Exporter);
 
@@ -207,13 +207,13 @@ sub close_session {
 	return 1 if ! defined $Vend::SessionOpen;
 
 	unless($DB_sessions) {
+		undef $DB_object;
 		untie %Vend::SessionDBM
 			or die "Could not close $Vend::Cfg->{'SessionDatabase'}: $!\n";
 	}
 	
 	return 1 if $File_sessions;
 
-	undef $DB_object;
 	unlockfile(\*Vend::SessionLock)
 		or die "Could not unlock '$Vend::Cfg->{'SessionLockFile'}': $!\n";
     close(Vend::SessionLock)
@@ -338,6 +338,8 @@ sub read_session {
 	$Vend::Session->{'arg'} = $Vend::Argument;
 	$Vend::Session->{override_check} = $Vend::Session->{'time'};
 
+    $::Values	= $Vend::Session->{'values'};
+    $::Scratch	= $Vend::Session->{'scratch'};
     $Vend::Items	= $Vend::Session->{'items'}
 					= $Vend::Session->{'carts'}->{'main'};
 }
@@ -400,8 +402,10 @@ sub init_session {
     };
     $Vend::Items	= $Vend::Session->{'items'}
 					= $Vend::Session->{'carts'}->{'main'};
+	$::Values = $Vend::Session->{'values'};
+	$::Scratch = $Vend::Session->{'scratch'};
 	$Vend::Session->{'secure'} = $Vend::Cfg->{'AlwaysSecure'} ? 1 : 0;
-	$Vend::Session->{'values'}->{'mv_shipmode'} = $Vend::Cfg->{'DefaultShipping'};
+	$::Values->{'mv_shipmode'} = $Vend::Cfg->{'DefaultShipping'};
 }
 
 sub dump_sessions {
@@ -460,7 +464,7 @@ sub expire_sessions {
 
 		$session = evalr($s);
 		die "Could not eval '$s' from session dbm: $@\n" if $@;
-		next if check_save($session,$time);
+		next if check_save($time);
 		if ( (! defined $session) ||
 			 $time - $session->{'time'} > $Vend::Cfg->{'SessionExpire'}) {
 			push @delete, $session_name;
@@ -486,7 +490,6 @@ sub expire_sessions {
 
 sub check_save {
 	my($time) = (@_);
-	return 0 unless $Vend::Session->{'values'}->{mv_save_session};
 	my $expire;
 
 	$time = $time || time();
@@ -495,18 +498,13 @@ sub check_save {
 		$expire = $Vend::Session->{'values'}->{mv_expire_time};
 		unless($expire =~ /^\d{6,}$/) {
 			$expire = Vend::Config::time_to_seconds($expire);
-			if(defined $expire) {
-				$Vend::Session->{'values'}->{mv_expire_time} = $expire;
-			}
 		}
 	}
-	else {
-		$expire = $Vend::Cfg->{SaveExpire};
-	}
+	$expire = $Vend::Cfg->{SaveExpire} unless $expire;
 
-	$Vend::Expire = $time + $expire;
+	$Vend::Session->{'expire'} = $Vend::Expire = $time + $expire;
 
-	return ($time - $expire < $Vend::Session->{'time'}) ? 1 : 0;
+	return ($expire > $time);
 }	
 
 1;

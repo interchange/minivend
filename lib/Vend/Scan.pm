@@ -1,6 +1,6 @@
 # Vend/Scan.pm:  Prepare searches for MiniVend
 #
-# $Id: Scan.pm,v 1.24 1998/01/18 05:55:19 mike Exp $
+# $Id: Scan.pm,v 1.41 1998/09/01 13:15:22 mike Exp mike $
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ require Exporter;
 			perform_search
 			);
 
-$VERSION = substr(q$Revision: 1.24 $, 10);
+$VERSION = substr(q$Revision: 1.41 $, 10);
 
 use strict;
 use Vend::Util;
@@ -59,6 +59,7 @@ my @Sql = ( qw(
 					mv_first_match
                     mv_more_matches
 					mv_field_names
+					mv_value
 
 ));
 
@@ -115,6 +116,7 @@ my @Order = ( qw(
 					mv_searchtype
 					mv_unique
 					mv_more_matches
+					mv_value
 
 ));
 
@@ -168,6 +170,7 @@ my %Map = ( qw(
 					mv_spelling_errors	spelling_errors
 					mv_sql_query     	sql_query
 					mv_unique			unique_result
+					mv_value     		mv_value
 					mv_searchspec		search_spec
 					mv_substring_match	substring_match
 
@@ -226,6 +229,7 @@ my %Scan = ( qw(
 					tc	mv_sort_command
 					ty	mv_sort_crippled
 					un	mv_unique
+					va  mv_value
 
 				) );
 
@@ -247,6 +251,7 @@ my %Parse = (
 	dict_limit			=>	\&_dict_limit,
 	exact_match			=>	\&_yes,
 	mv_profile          =>	\&parse_profile,
+	mv_value            =>	\&_value,
 	or_search           =>  \&_yes,
 	return_fields       =>	\&_column,
 	range_look	        =>	\&_column,
@@ -326,6 +331,53 @@ sub find_search_params {
 
 my %Save;
 
+sub parse_map {
+	my($ref,$map) = @_;
+	$map = $ref->{mv_search_map} unless $map;
+	use strict;
+	return undef unless defined $map;
+	my($params);
+	if(index($map, "\n") != -1) {
+		$params = $map;
+	}
+    elsif(defined $Vend::Cfg->{'SearchProfileName'}->{$map}) {
+        $map = $Vend::Cfg->{'SearchProfileName'}->{$map};
+        $params = $Vend::Cfg->{'SearchProfile'}->[$map];
+    }
+    elsif($map =~ /^\d+$/) {
+        $params = $Vend::Cfg->{'SearchProfile'}->[$map];
+    }
+    elsif(defined $::Scratch->{$map}) {
+        $params = $::Scratch->{$map};
+    }
+	
+	return undef unless $params;
+
+	if ( index($params, '[') != -1 or index($params, '__') != -1) {
+		$params = interpolate_html($params);
+	}
+
+	my($ary, $var,$source, $i);
+
+	$params =~ s/^\s+//mg;
+	$params =~ s/\s+$//mg;
+	my %out;
+	my(@param) = grep $_, split /[\r\n]+/, $params;
+	for(@param) {
+#::logGlobal("parm=$_");
+		($var,$source) = split /[\s=]+/, $_, 2;
+		$out{$var} = [] unless defined $out{$var};
+		push @{$out{$var}}, ($ref->{$source} || '');
+	}
+	while( ($var, $ary) = each %out ) {
+#::logGlobal("ary: $var=" . Data::Dumper::Dumper($ary));
+		unshift @$ary, $ref->{$var}
+			if defined $ref->{$var};
+		$ref->{$var} = join "\0", @$ary;
+	}
+	return 1;
+}
+
 sub parse_profile {
 	my($ref,$profile) = @_;
 	return undef unless defined $profile;
@@ -337,8 +389,8 @@ sub parse_profile {
     elsif($profile =~ /^\d+$/) {
         $params = $Vend::Cfg->{'SearchProfile'}->[$profile];
     }
-    elsif(defined $Vend::Session->{'scratch'}->{$profile}) {
-        $params = $Vend::Session->{'scratch'}->{$profile};
+    elsif(defined $::Scratch->{$profile}) {
+        $params = $::Scratch->{$profile};
     }
 	
 	return undef unless $params;
@@ -432,11 +484,6 @@ sub sql_search {
 				};
 	$db = $db->ref();
 
-::logGlobal("field_names before formulate: ",
-	(ref $options->{field_names}
-		?  @{$options->{field_names}}
-		: $options->{field_names} ) );
-
 FORMULATE: {
 	# See if we have the simple query. If sql_query is set,
 	# then we will just do it by skipping the rest
@@ -513,7 +560,7 @@ FORMULATE: {
 	}
 	$options->{return_fields} =~ s/\b0\b/code/;
 
-	if ($options->{search_field}) {
+	if (defined $options->{search_field}) {
 		@fields = split /[\0,\s]+/, $options->{search_field};
 	}
 	else {
@@ -657,11 +704,6 @@ FORMULATE: {
 		$options->{field_names}	= _array('', $options->{field_names});
 	}
 
-::logGlobal("field_names after formulate: ",
-	(ref $options->{field_names}
-		?  @{$options->{field_names}}
-		: $options->{field_names} ) );
-
 	for(@$out) {
 		push @out, join "\t", @{$_};
 	}
@@ -686,7 +728,7 @@ FORMULATE: {
 
 sub finish_up {
 	my($c,$q,$out) = @_;
-	my($v) = $Vend::Session->{'values'};
+	my($v) = $::Values;
 	my $matches = $q->{'global'}->{'matches'};
 	$v->{'mv_search_match_count'}	= $matches;
 	$v->{'mv_matchlimit'}			= $q->{'global'}{match_limit};
@@ -737,6 +779,7 @@ sub perform_search {
 	my $delay;
 
 	if (!$c) {
+		return undef unless $Vend::Session->{search_params};
 		($c, $more_matches) = @{$Vend::Session->{search_params}};
 		unless($c->{mv_cache_key}) {
 			Vend::Scan::create_last_search($c);
@@ -758,7 +801,7 @@ sub perform_search {
 		return main::cache_page($c->{mv_delay_page}, 1);
 	}
 
-	my($v) = $Vend::Session->{'values'};
+	my($v) = $::Values;
     my($param);
 	my(@fields);
 	my(@specs);
@@ -785,6 +828,8 @@ sub perform_search {
 	}
 
 	# A text or glimpse search from here
+
+	parse_map($c) if defined $c->{mv_search_map};
 
 	if(defined $c->{mv_sql_query}) {
 		my $params = Vend::Interpolate::escape_scan($c->{mv_sql_query}, $c);
@@ -853,7 +898,7 @@ sub perform_search {
 			};
 			if ($@) {
 				::display_special_page(
-					$Vend::Cfg->{SpecialPage}{'badsearch'},
+					find_special_page('badsearch'),
 					errmsg('Scan.pm:2', "Bad search type %s: %s",
 							$options{search_type}, $@ )
 					);
@@ -1016,6 +1061,17 @@ sub sql_statement {
 	return $string;
 }
 
+sub _value {
+	my($ref, $in) = @_;
+	return unless $in;
+	my (@in) = split /\0/, $in;
+	for(@in) {
+		my($var,$val) = split /=/, $_, 2;
+		$::Values->{$var} = $val;
+	}
+	return;
+}
+
 sub _opt {
 	return ($_[2] || '') unless $_[1];
 	my @fields = grep $_, split /\s*[,\0]\s*/, $_[1];
@@ -1029,7 +1085,7 @@ sub _opt {
 }
 
 sub _column_opt {
-	return ($_[2] || '') unless $_[1];
+	return ($_[2] || '') unless length($_[1]);
 	my @fields = grep $_, split /\s*[,\0]\s*/, $_[1];
 	unshift(@fields, @{$_[2]}) if $_[2];
 	my $col;
@@ -1052,12 +1108,13 @@ sub _column_opt {
 }
 
 sub _column {
-	return ($_[2] || '') unless $_[1];
+	return ($_[2] || '') unless length $_[1];
 	my @fields = split /\s*[,\0]\s*/, $_[1];
 	unshift(@fields, @{$_[2]}) if $_[2];
 	my $col;
 	for(@fields) {
 		next if /^\d+$/;
+		next if /:/;
 		if (! defined $_[0]->{search_file} and defined ($col = column_index($_)) ) {
 			$_ = $col + 1;
 		}
@@ -1070,6 +1127,7 @@ sub _column {
 			return undef;
 		}
 	}
+#::logGlobal("fields=", @fields);
 	\@fields;
 }
 
@@ -1154,15 +1212,22 @@ sub _scalar_or_array {
 
 sub _yes_array {
 	my(@fields) = split /\s*[,\0]\s*/, $_[1];
-	return $#fields ? [map {_yes('',$_)} @fields] : _yes('',$fields[0]);
+	if(defined $_[2]) {
+		unshift(@fields, ref $_[2] ? @{$_[2]} : $_[2]);
+	}
+#::logGlobal("fields=", @fields);
+	map { $_ = _yes('',$_) } @fields;
+	return \@fields if @fields > 1;
+	return @fields;
 }
 
 sub _dict_limit {
 	my ($ref,$limit) = @_;
 	return undef unless	defined $ref->{dict_look};
+	$limit = -1 if $limit =~ /[^-0-9]/;
     $ref->{'dict_end'} = $ref->{'dict_look'};
     substr($ref->{'dict_end'},$limit,1) =~ s/(.)/chr(ord($1) + 1)/e;
-	1;
+	return $_[1];
 }
 
 1;

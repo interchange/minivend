@@ -82,8 +82,10 @@ sub get_id {
 	return '' unless $file;
 	my ($name, $group);
 
-	my($uid) = (stat($file))[4];
-	$name = (getpwuid($uid))[0];
+	eval {
+		my($uid) = (stat($file))[4];
+		$name = (getpwuid($uid))[0];
+	};
 	return $name;
 }
 

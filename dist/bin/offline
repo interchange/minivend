@@ -2,7 +2,7 @@
 #
 # offline - MiniVend database builder and indexer
 #
-# $Id: offline,v 1.5 1997/09/03 05:55:05 mike Exp $
+# $Id: offline,v 1.8 1998/07/18 11:48:28 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>

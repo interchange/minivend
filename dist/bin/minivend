@@ -1,8 +1,8 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 #
-# MiniVend version 3.09
+# MiniVend version 3.11
 #
-# $Id: minivend,v 1.19 1998/01/18 06:42:42 mike Exp mike $
+# $Id: minivend,v 1.34 1998/09/01 13:15:22 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -46,7 +46,7 @@ BEGIN {
 $Global::VendRoot = $Global::VendRoot || '/home/minivend';
 $Global::ConfigFile = 'minivend.cfg';
 
-die "MiniVend not configured. Did you make a catalog?\n"
+die "MiniVend not configured, no $Global::ConfigFile.\n"
 	unless -f "$Global::VendRoot/$Global::ConfigFile";
 
 $Global::ConfDir = "$Global::VendRoot/etc";
@@ -133,7 +133,7 @@ sub debug {
 	return ($_[0] || 0) & $Global::DEBUG;
 }
 
-$VERSION = '3.10';
+$VERSION = '3.11';
 use strict;
 use Fcntl;
 
@@ -273,7 +273,7 @@ sub interaction_error {
 #    logError ("Difficulty interacting with browser: $msg");
     logError( errmsg('bin/minivend:2', "Difficulty interacting with browser: %s" , $msg) );
 
-    $page = readin($Vend::Cfg->{Special}->{'interact'});
+    $page = readin(find_special_page('interact'));
     if (defined $page) {
 		$page =~ s#\[message\]#$msg#ig;
 		response('html',interpolate_html($page, $wantref));
@@ -338,7 +338,7 @@ sub expect_form {
 # Display the initial catalog page.
 
 sub do_catalog {
-    do_page($Vend::Cfg->{Special}->{'catalog'});
+    do_page(find_special_page('catalog'));
 }
 
 
@@ -367,7 +367,7 @@ sub display_page {
 	if($Vend::Cfg->{'ExtraSecure'} and
 		$Vend::Cfg->{AlwaysSecure}->{$name}
 		and !$CGI::secure) {
-		$name = $Vend::Cfg->{Special}->{'violation'};
+		$name = find_special_page('violation');
 	}
 
     $page = readin($name);
@@ -382,7 +382,7 @@ sub display_page {
     } else {
 		logData($Vend::Cfg->{'LogFile'}, format_log_msg('page not found'))
 			if defined $Vend::Cfg->{CollectData}->{nopage};
-		display_special_page($Vend::Cfg->{Special}->{'missing'}, $name);
+		display_special_page(find_special_page('missing'), $name);
 		return 0;
     }
 }
@@ -434,7 +434,7 @@ sub cache_page {
 	else {
 		logData($Vend::Cfg->{'LogFile'}, format_log_msg('page not found'))
 			if defined $Vend::Cfg->{CollectData}->{nopage};
-		return display_special_page($Vend::Cfg->{Special}->{'missing'}, $name);
+		return display_special_page(find_special_page('missing'), $name);
     }
 }
 
@@ -477,14 +477,14 @@ sub do_order
 
     my $base = product_code_exists_tag($code, $catalog || undef);
 
-	$quantity = (defined $quantity and $quantity =~ /^[-+](\d+)$/)
-				? ($quantity =~ s/^_//, $quantity)
+	$quantity = (defined $quantity and $quantity =~ /^[-+_](\d+)$/)
+				? ($quantity =~ s/^[_+]//, $quantity)
 				: 1;
 
     if (! $base ) {
 #		logError("Attempt to order missing product code: $code");
 		logError( errmsg('bin/minivend:5', "Attempt to order missing product code: %s" , $code) );
-		display_special_page($Vend::Cfg->{Special}->{'noproduct'}, $code);
+		display_special_page(find_special_page('noproduct'), $code);
 		return;
     }
 
@@ -544,7 +544,7 @@ WARNING:
 Possible bad robot. Cart limit of $limit exceeded.  Cart emptied.
 EOF
 		my $cmd;
-		if($cmd = $Vend::Cfg->{LockoutCommand}) {
+		if($cmd = $Global::LockoutCommand) {
 			my $host = http()->Client_IP_Address;
 			$cmd =~ s/%s/$host/ or $cmd .= " $host";
 			$msg .= "Performing lockout command '$cmd'.";
@@ -840,13 +840,22 @@ sub update_data {
 		return undef;
 	}
 
-	my $function	= $CGI::values{'mv_data_function'};
+	my $function	= lc (delete $CGI::values{'mv_data_function'});
+	if($function eq 'delete' and ! delete $CGI::values{'mv_data_verify'}) {
+		logError("DELETE without VERIFY, abort");
+		return undef;
+	}
 	my $table		= $CGI::values{'mv_data_table'};
 	my $prikey		= $CGI::values{'mv_data_key'};
+	my $decode		= is_yes($CGI::values{'mv_data_decode'});
 	my ($ref, $type, $db, $msql, $database);
 
 	$ref = $Vend::Cfg->{Database}->{$table} || '';
 
+	if (! $ref) {
+		logError("set: non-existent table $table");
+		return undef;
+	}
 	$Vend::WriteDatabase{$table} = 1;
 
 	if( $ref->{'type'} eq '7') {
@@ -872,9 +881,9 @@ sub update_data {
 		return undef;
 	}
 
-	my @fields		= split /[\s,]+/, $CGI::values{'mv_data_fields'};
+	my @fields		= grep $_, split /[\s\0,]+/, $CGI::values{'mv_data_fields'};
 
-	$function = ($function =~ /insert/i ? 'insert' : 'update');
+	$function = 'update' unless $function;
 
 	my (%data);
 	for(@fields, $prikey) {
@@ -905,11 +914,14 @@ sub update_data {
 		for(keys %data) {
 			next unless (($value = $data{$_}->[$i]) || $CGI::values{mv_update_empty});
 			push(@k, $_);
-			$value =~ s/'/\\'/g;
+			HTML::Entities::decode($value) if $decode;
 			$select_key = $value if $_ eq $prikey;
 			push(@v, $value);
 		}
-		if($type eq 'sql' and $function eq 'insert') {
+		if($function eq 'delete') {
+			$db->delete_record($select_key);
+		}
+		elsif($type eq 'sql' and $function eq 'insert') {
 			sql_query('set', "", "delete from $table where code = '$select_key'",
 						$msql || undef, $database);
 			$query = "insert into $table (";
@@ -944,7 +956,6 @@ sub update_data {
 		sql_query('set', "", $query, $msql || undef, $database)
 			if $type eq 'sql';
 	}
-
 
 }
 
@@ -1175,7 +1186,8 @@ sub do_process {
 		my(@map) = split /\s*[\0]+\s*/, $CGI::values{'mv_click_map'};
 		foreach $click (@map) {
 			push (@clicks, $click)
-				if defined $CGI::values{"mv_click.$click.x"};
+				if defined $CGI::values{"mv_click.$click.x"}
+				or defined $CGI::values{"$click.x"};
 		}
 	}
 
@@ -1187,7 +1199,7 @@ sub do_process {
     $todo = $CGI::values{'mv_todo'};
 
     $nextpage = $CGI::values{'mv_nextpage'} || $Vend::Session->{'page'};
-    $orderpage = $CGI::values{'mv_orderpage'} || $Vend::Cfg->{Special}->{'order'};
+    $orderpage = $CGI::values{'mv_orderpage'} || find_special_page('order');
     $ordered_items = $CGI::values{'mv_order_item'};
 
 	# Maybe we have an imagemap input, if not, use $doit
@@ -1230,7 +1242,6 @@ sub do_process {
 		update_quantity() || return; #Return on error
 		my($ok);
 		my($missing,$next,$status,$final);
-		my($values) = $Vend::Session->{'values'};
 
 		# Set shopping cart
 		
@@ -1238,60 +1249,72 @@ sub do_process {
 
 	  CHECK_ORDER: {
 
-		if (defined $CGI::values{'mv_order_profile'}) {
+		if (defined $CGI::values{mv_order_profile}) {
 			($status,$final,$missing) =
-				check_order($CGI::values{'mv_order_profile'});
-			update_user();
+				check_order($CGI::values{mv_order_profile});
 		}
 		else {
 			$status = $final = 1;
 		}
 
 		if($status) {
-			$next = $Vend::Session->{'values'}->{'mv_successpage'} || $orderpage;
+			$next = $::Values->{mv_successpage} || $orderpage;
 			display_page($next) unless $final;
 		}
 		else {
-			$next = $CGI::values{'mv_failpage'} || $Vend::Cfg->{Special}->{'needfield'};
+			$next = $::Values{mv_failpage} || find_special_page('needfield');
 			display_special_page($next, $missing);
 			last CHECK_ORDER;
 		}
 
 		last CHECK_ORDER unless $final;
 
-		($status, $missing) = check_required($values);
+		($status, $missing) = check_required($::Values);
 		if (!$status) {
-			display_special_page($Vend::Cfg->{Special}->{'needfield'}, $missing);
+			display_special_page(find_special_page('needfield'), $missing);
 			put_session();
 			return;
 		}
 
-		if($Vend::Cfg->{CyberCash} and defined $CGI::values{mv_cyber_mode}) {
+		my $order_no;
+
+		if (defined $CGI::values{mv_order_route}) {
+			# $ok will not be defined unless Route "supplant" was set
+			# $order_no will come back so we don't issue two of them
+			($ok, $order_no) = Vend::Order::route_order(
+								$CGI::values{mv_order_route},
+								$Vend::Items
+								);
+		} 
+		elsif($Vend::Cfg->{CyberCash} and defined $CGI::values{mv_cyber_mode}) {
 			$status = cyber_charge();
 			unless($status) {
 				display_special_page(
-					$Vend::Cfg->{Special}->{failed},
+					find_special_page('failed'),
 					$Vend::Session->{cybercash_error}
 				);
 				return;
 			}
 		}
 				
-		# This function (followed down) now does the backend ordering
-		$ok = mail_order();
+		# This function (followed down) now does the backend ordering,
+		# so AsciiBackend won't work if you use "supplant"
+		# If the "supplant" option was set in order routing it will
+		# not be used ($ok would have been defined)
+#::logGlobal("Order number=$order_no\n");
+		$ok = mail_order(undef, $order_no || undef) unless defined $ok;
 
 		# Display a receipt if configured
 
-		if ($ok && $Vend::Session->{'values'}->{'mv_order_receipt'}) {
-	    	display_special_page($Vend::Session->{'values'}->{'mv_order_receipt'});
+		if ($ok) {
+	    	display_special_page(
+								$::Values->{mv_order_receipt}	||
+								$Vend::Cfg->{ReceiptPage}		||
+								find_special_page('confirmation')
+								);
 		}
-		elsif ($ok && $Vend::Cfg->{'ReceiptPage'}) {
-	    	display_special_page($Vend::Cfg->{'ReceiptPage'});
-		}
-		elsif ($ok) {
-	    	display_special_page($Vend::Cfg->{Special}->{'confirmation'});
-		} else {
-	    	display_special_page($Vend::Cfg->{Special}->{'failed'});
+		else {
+	    	display_special_page(find_special_page('failed'));
 		}
 
 		# Remove the items
@@ -1345,7 +1368,7 @@ sub do_process {
 			return;
 		}
 		else {
-			do_page($Vend::Cfg->{Special}->{'order_security'});
+			do_page(find_special_page('order_security'));
 			return;
 		}
     }
@@ -1363,7 +1386,7 @@ sub do_process {
 		get_session();
 		init_session();
 		$Vend::Session->{'frames'} = $frames;
-		display_page($Vend::Cfg->{Special}->{'canceled'});
+		display_page(find_special_page('canceled'));
     }
 	else {
 		interaction_error(
@@ -1420,7 +1443,9 @@ sub add_catalog {
 	my $g = $Global::Catalog{$name}
 				or die "Catalog '$name' not parsed.\n";
 
-	my $c = $Global::Selector{$g->{script}} || {};
+	my $c = $Global::Selector{$g->{script}}			||
+			$Global::SelectorAlias{$g->{script}}	||
+			{};
 
 	$c->{CatalogName} = $name;
 
@@ -1562,10 +1587,109 @@ EOF
 		read_salestax();
 		read_shipping();
 		open_database();
+		my $db;
+		DREAD: {
+			if($db = $Vend::Cfg->{DbDatabase}) {
+				$db = database_exists_ref($db)
+					or last DREAD;
+				$db = $db->ref();
+				my ($k, @f);	# key and fields
+				my @l;			# refs to locale repository
+				my @n;			# names of locales
+
+				@n = $db->columns();
+				my $name;
+				foreach $name (@n) {
+					my $file = $db->field('_file', $name);
+					my $type = $db->field('_type', $name);
+					next unless $file and $type;
+					Vend::Config::parse_database('', "$name $file $type");
+				}
+				my $i;
+				while( ($k , @f ) = $db->each_record) {
+					next if $k =~ /^_/;
+					for ($i = 0; $i < @f; $i++) {
+						next unless length $f[$i];
+						Vend::Config::parse_database('', "$n[$i] $k $f[$i]");
+					}
+				}
+			}
+			my $save = $^W;
+			$^W = 0;
+			close_database();
+			$^W = $save;
+			open_database();
+		}
 		(
 			$Vend::Cfg->{ItemPriceRoutine},
 			$Vend::Cfg->{QuantityPriceRoutine}
 		)	= read_pricing();
+
+		LREAD: {
+			if($db = $Vend::Cfg->{LocaleDatabase}) {
+				$db = database_exists_ref($db)
+					or last LREAD;
+				$db = $db->ref();
+				my ($k, @f);	# key and fields
+				my @l;			# refs to locale repository
+				my @n;			# names of locales
+
+				@n = $db->columns();
+				my $extra;
+				for(@n) {
+					$Vend::Cfg->{Locale_repository}{$_} = {}
+						unless $Vend::Cfg->{Locale_repository}{$_};
+					push @l, $Vend::Cfg->{Locale_repository}{$_};
+				}
+				my $i;
+				while( ($k , @f ) = $db->each_record) {
+					for ($i = 0; $i < @f; $i++) {
+						next unless length($f[$i]);
+						$l[$i]->{$k} = $f[$i];
+					}
+				}
+				unless ($Vend::Cfg->{Locale}) {
+					for(@n) {
+						next unless $Vend::Cfg->{Locale_repository}{$_}{'default'};
+						$Vend::Cfg->{Locale} = $Vend::Cfg->{Locale_repository}{$_};
+						last;
+					}
+					$Vend::Cfg->{Locale} = $Vend::Cfg->{Locale_repository}{$n[0]}
+						unless $Vend::Cfg->{Locale};
+				}
+			}
+		}
+
+		SREAD: {
+			if($db = $Vend::Cfg->{DirectiveDatabase}
+					|| $Vend::Cfg->{VariableDatabase}) {
+				$db = database_exists_ref($db)
+					or last SREAD;
+				$db = $db->ref();
+				my ($k, @f);	# key and fields
+				my @l;			# refs to locale repository
+				my @n;			# names of locales
+
+				@n = $db->columns();
+				my $extra;
+				for(@n) {
+					if (! ref $Vend::Cfg->{$_} or $Vend::Cfg->{$_} !~ /HASH/) {
+						# ignore non-existent directive
+						push @l, {};
+						next;
+					}
+					push @l, $Vend::Cfg->{$_};
+				}
+				my $i;
+				while( ($k , @f ) = $db->each_record) {
+					for ($i = 0; $i < @f; $i++) {
+						next unless length($f[$i]);
+						$l[$i]->{$k} = $f[$i];
+					}
+				}
+			}
+		}
+
 # STATICPAGE
 		if($build) {
 			$Vend::BuildingPages = 1;
@@ -1587,6 +1711,8 @@ EOF
     }
 
 	dump_structure($c, $g->{name}) if $Global::DumpStructure;
+	Vend::Util::writefile(">$Global::ConfDir/status.$g->{name}", scalar localtime());
+	Vend::Util::writefile(">$c->{ConfDir}/status.$g->{name}", scalar localtime());
 
 	return $c;
 
@@ -1997,7 +2123,7 @@ sub build_all {
 
 sub map_cgi {
 
-    my($host, $ip, $user);
+    my($host);
 
     $CGI::request_method = http()->Method;
     die "REQUEST_METHOD is not defined" unless defined $CGI::request_method
@@ -2005,34 +2131,35 @@ sub map_cgi {
 
     $CGI::path_info = http()->Path_Info;
 
-	# The great and final AOL fix
+	# The great and really final AOL fix
 	#
-    $host = $CGI::remote_host = http()->Client_Hostname;
-    $ip   = $CGI::remote_addr = http()->Client_IP_Address;
+    $host      = $CGI::remote_host = http()->Client_Hostname;
+    $CGI::ip   = $CGI::remote_addr = http()->Client_IP_Address;
 
 	if($Global::DomainTail and $host) {
 		$host =~ s/.*?([-A-Za-z0-9]+\.[A-Za-z]+)$/$1/;
 	}
 	elsif($Global::IpHead) {
+		$host = $Global::IpQuad == 0 ? 'nobody' : '';
 		my @ip;
-		@ip = split /\./, $ip;
-		$ip = '';
-		$ip = join ".", @ip[0 .. ($Global::IpQuad - 1)] if $Global::IpQuad;
+		@ip = split /\./, $CGI::ip;
+		$CGI::ip = '';
+		$CGI::ip = join ".", @ip[0 .. ($Global::IpQuad - 1)] if $Global::IpQuad;
 	}
 	#
 	# end AOL fix
 
-    $CGI::host = $host || $ip;
+    $CGI::host = $host || $CGI::ip;
 
     $CGI::secure = 1
 		if http()->Https_on;
 
-    $user = http()->Authenticated_User;
-    $user = '' unless defined $user;
 
-    $CGI::user = $user;
+    $CGI::user = http()->Authenticated_User || '';
     $CGI::useragent = http()->User_Agent;
     $CGI::cookie = http()->Cookie;
+	$CGI::authorization = http()->{Authorization}
+		if defined $Vend::InternalHTTP and ! $CGI::user;
 
     #$CGI::content_length = http()->Content_Length;
     $CGI::content_type = http()->Content_Type;
@@ -2071,7 +2198,9 @@ sub map_cgi {
 sub dispatch {
 	my($http, $debug) = @_;
 	$H = $http;
-
+	if($Vend::Foreground) {
+		Vend::Interpolate::reset_calc();
+	}
 # DEBUG
 #Vend::Util::logDebug ("begin dispatch: " . (join " ", times()) . "\n")
 #						if ::debug(0x80);
@@ -2127,7 +2256,9 @@ sub dispatch {
 				unless $Vend::Cfg->{Static};
 		}
 
-		if (defined $Global::SelectorAlias{$CGI::script_name}) {
+		if (defined $Global::SelectorAlias{$CGI::script_name}
+			and ! defined $Vend::InternalHTTP                 )
+		{
 			my $real = $Global::SelectorAlias{$CGI::script_name};
 			if(defined $Vend::NoFork) {
 				$Vend::Save = {} unless $Vend::Save;
@@ -2140,6 +2271,13 @@ sub dispatch {
 					and $Vend::Cfg->{VendURL}   !~ m!$CGI::script_name$!;
 			$Vend::Cfg->{SecureURL} =~ s!$real!$CGI::script_name!;
 		}
+		elsif ($Vend::InternalHTTP) {
+			$Vend::Cfg->{VendURL} = "http://" .
+									http()->{Http_Host} .
+									$CGI::script_path;
+			$Vend::Cfg->{ImageDir} = $Vend::Cfg->{ImageDirInternal}
+				if  $Vend::Cfg->{ImageDirInternal};
+		}
 	}
 	else {
 		$Vend::Cfg = $Global::Standalone;
@@ -2149,7 +2287,6 @@ sub dispatch {
 		$Global::DEBUG &= 0xF800;
 		$Global::DEBUG |= $Vend::Cfg->{DebugMode};
 	}
-
 	if ($Vend::Cfg->{SetGroup}) {
 		eval {$) = "$Vend::Cfg->{SetGroup} $Vend::Cfg->{SetGroup}"};
 		if ($@) {
@@ -2192,20 +2329,23 @@ EOF
 	umask $Vend::Cfg->{'Umask'};
 	open_database();
 
+	$CGI::user = Vend::Util::check_authorization($CGI::authorization)
+		if defined $CGI::authorization;
+
 	$Vend::OnlyProducts = defined $Vend::Cfg->{ProductFiles}->[1]
 						  ? undef
 						  : $Vend::Cfg->{ProductFiles}->[0];
 
     if (defined $CGI::query_string && $CGI::query_string ne '') {
 		($sessionid, $argument, $rest) = split(/;/, $CGI::query_string);
-		if ($CGI::cookie =~ /\bMV_SESSION_ID=(\w{8})
-								: (
+		if ($CGI::cookie =~ /\bMV_SESSION_ID=(\w{8,32})
+								[:_] (
 									(	\d{1,3}\.   # An IP ADDRESS
 										\d{1,3}\.
 										\d{1,3}\.
 										\d{1,3})
 									# A user name or domain
-									|	([A-Za-z0-9][-\@A-Za-z.0-9]+) )
+									|	([A-Za-z0-9][-\@A-Za-z.0-9]+) )?
 									\b/x) {
 			$sessionid = $1 unless defined $rest && $rest eq 'RESET';
 			$CGI::cookiehost = $3 || undef;
@@ -2219,34 +2359,53 @@ EOF
 		$Vend::Argument = $argument;
     }
 
+	if ($Vend::Cfg->{WideOpen}) {
+		$CGI::host = 'nobody';
+		my $id;
+		if ($id = $CGI::values{mv_session_id}) {
+			$sessionid = $id;
+		}
+		elsif($id = $Vend::Cfg->{Variable}{MV_SESSION_ID}) {
+			$sessionid = $CGI::values{$id} if $CGI::values{$id};
+		}
+	}
+
 	# Get a cookie if we have no session id (and its there)
-    unless (defined $sessionid && $sessionid ne '') {
+    unless ($sessionid) {
         if (defined $CGI::cookie and
-			$CGI::cookie =~ /\bMV_SESSION_ID=(\w{8})
-								: (
+			$CGI::cookie =~ /\bMV_SESSION_ID=(\w{8,32})
+								[:_] (
 									(	\d{1,3}\.   # An IP ADDRESS
 										\d{1,3}\.
 										\d{1,3}\.
 										\d{1,3})
 									# A user name or domain
-									|	([A-Za-z0-9][-\@A-Za-z.0-9]+) )
+									|	([A-Za-z0-9][-\@A-Za-z.0-9]+) )?
 									\b/x)
 		{
             $sessionid = $1;
             $CGI::cookiehost = $3 || undef;
             $CGI::cookieuser = $4 || undef;
         }
+		elsif ($Vend::Cfg->{FallbackIP}) {
+			$sessionid = generate_key($CGI::remote_addr . $CGI::useragent);
+		}
 	}
 # DEBUG
 #Vend::Util::logDebug ("session='$sessionid' cookie='$CGI::cookie' chost='$CGI::cookiehost'\n") if ::debug(0x20);
 # END DEBUG
 
-    if (defined $sessionid && $sessionid ne '') {
+    if ($sessionid) {
 		$Vend::SessionID = $sessionid;
     	$Vend::SessionName = session_name();
 		get_session();
 		my $now = time;
-		if ($now - $Vend::Session->{'time'} > $Vend::Cfg->{'SessionExpire'}) {
+		if ($Vend::Session->{'expire'}) {
+			init_session() if
+				$now > $Vend::Session->{'expire'};
+				
+		}
+		elsif ($now - $Vend::Session->{'time'} > $Vend::Cfg->{'SessionExpire'}) {
 	    	init_session();
 		}
 		elsif($Vend::Cfg->{RobotLimit}) {
@@ -2261,7 +2420,7 @@ WARNING: POSSIBLE BAD ROBOT.  $Vend::Session->{'accesses'} accesses with
 no 30 second pause.
 EOF
 					my $cmd;
-					if ($cmd = $Vend::Cfg->{LockoutCommand}) {
+					if ($cmd = $Global::LockoutCommand) {
 						my $host = http()->Client_IP_Address;
 						$cmd =~ s/%s/$host/ or $cmd .= " $host";
 						$msg .= "Performing lockout command '$cmd'.";
@@ -2389,6 +2548,7 @@ sub dontwarn {
 	$File::Find::name +
 	$File::Find::prune +
 	$Global::UserBuild +
+	<DATA> + 
 # END STATICPAGE
 	$FindBin::RealBin +
 	$Global::AdminSub +
@@ -2445,10 +2605,9 @@ sub parse_post {
 		}
 	}
 	if($Global::TolerateGet and !$CGI::query_string  ) {
-		$CGI::query_string =	$CGI::values{mv_session_id} || '';
+		$CGI::query_string =	$CGI::cookie ? '' : $CGI::values{mv_session_id};
 		$CGI::query_string .=	';';
 		$CGI::query_string .=	$CGI::values{mv_argument}   || '';
-		$CGI::query_string .=	';0';
 	}
 }
 
@@ -2752,7 +2911,8 @@ print "\n##### DEBUG MODE, level=0x" .
 			next if
 				$Vend::mode eq 'build' and
 				! defined $Vend::CatalogToBuild{$g->{'name'}};
-			print "Configuring catalog " . $g->{'name'} . '...';
+			print "Configuring catalog " . $g->{'name'} . '...'
+				unless $g->{name} eq '_mv_admin';
 			if (exists $Global::Selector{$g->{'script'}}) {
 				warn "Two catalogs with same script name $g->{'script'}.\n";
 				warn "Skipping catalog $g->{'name'}....\n\n";
@@ -2818,7 +2978,7 @@ EOF
 				}
 			}
 # END STATICPAGE
-			print "done.\n";
+			print "done.\n" unless $g->{name} eq '_mv_admin';
 		}
 	}
 

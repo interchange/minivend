@@ -1,7 +1,7 @@
 /* minivend.c:  runs as a command line or cgi program and starts up
 			    MiniVend in various modes
 
-   $Id: mvctl.c,v 1.1 1997/04/22 15:31:27 mike Exp $
+   $Id: mvctl.c,v 1.2 1998/08/16 10:26:14 mike Exp $
 
    Copyright 1997 by Mike Heins <mikeh@minivend.com>
 

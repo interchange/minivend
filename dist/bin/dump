@@ -2,7 +2,7 @@
 #
 # MiniVend session dumper
 #
-# $Id: dump,v 1.9 1998/06/06 08:35:28 mike Exp mike $
+# $Id: dump,v 1.10 1998/08/11 18:16:32 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -150,6 +150,7 @@ EOF
 		my $dir = $Vend::Cfg->{SessionDatabase};
 		my $file;
 		$dir =~ s:/?([^/]+)$::;
+		$dir = '.' unless $dir;
 		$file = $1;
 		die "Aborting, no lock files found, even in $dir/etc/$file.lock!\n"
 			unless -f "$dir/etc/$file.lock";

@@ -25,7 +25,7 @@
 #
 package Vend::Search;
 
-$VERSION = substr(q$Revision: 1.21 $, 10);
+$VERSION = substr(q$Revision: 1.25 $, 10);
 $DEBUG = 0;
 
 my $Joiner;
@@ -172,6 +172,7 @@ sub more_matches {
 		while (<Vend::Search::MORE>) {
 			next unless $count++ >= $next;
 			next if ($count - 1) > $last;
+			chomp;
 			push(@out, $_);
 		}
 		close Vend::Search::MORE;
@@ -221,6 +222,7 @@ sub get_return {
 
 	if(!defined $g->{return_fields}) {
 		$return_sub = sub { substr($_[0], 0, index($_[0], $g->{index_delim})) };
+#::logGlobal("default return_fields");
 	}
 	elsif ( ref($g->{return_fields}) =~ /^ARRAY/ ) {
 		$return_sub = sub {
@@ -228,6 +230,7 @@ sub get_return {
 			return join $g->{return_delim},
 						(split /\Q$g->{index_delim}/, $_[0])[@{$g->{return_fields}}];
 		};
+#::logGlobal("array return_fields");
 	}
 	elsif ( ref($g->{return_fields}) =~ /^HASH/ ) {
 		$return_sub = sub {
@@ -236,17 +239,20 @@ sub get_return {
 			my(@return);
 			my(%strings) = %{$g->{return_fields}};
 			while ( ($key,$val) = each %strings) {
-				$val = '\s' unless $val ||= 0;
+				$val = '\s' unless $val;
 				1 while $line =~ s/($key)\s*(\S.*?)($val)/push(@return, $2)/ge;
 			}
 			return undef unless @return;
 			join $g->{index_delim}, @return;
 		};
+#::logGlobal("hash return_fields");
 	}
 	elsif( $g->{return_fields} ) {
 		$return_sub = sub { substr($_[0], 0, index($_[0], $g->{return_fields})) };
+#::logGlobal("scalar return_fields");
 	}
 	else {
+#::logGlobal("return all fields");
 		$return_sub = sub { @_ };
 	}
 
@@ -330,24 +336,50 @@ sub map_ops {
 sub get_limit {
 	my($s, $f) = @_;
 	my $g = $s->{'global'};
-	my ($code,$limit_sub);
+	my $limit_sub;
 	my $range_code = '';
-	my ($sub);
+	my $code       = "sub {\nmy \$line = shift; chomp \$line;\n";
+	my $join_key;
+	$join_key = defined $g->{return_fields} ? $g->{return_fields}[0] : 0;
+	my $sub;
+	my @join_fields;
 	my $joiner = $g->{or_search} ? '1 if' : 'undef unless';
 	my $ender = $g->{or_search} ? 'return undef;' : 'return 1;';
+	# Here we join data if we are passed a non-numeric field. The array
+	# index comes from the end to avoid counting the fields.
+	my $k = 0;
+	for(@{$s->{'fields'}}) {
+#::logGlobal("join_field $_");
+		next unless /\w+:+.+/;
+		unshift(@join_fields, $_);
+		$_ = --$k;
+#::logGlobal("join_field $_");
+	}
+	# Add the code to get the join data if it is there
+	if(@join_fields) {
+		$code .= <<EOF;
+my \$key = (split m{$g->{index_delim}}, \$line)[$join_key];
+EOF
+		for(@join_fields) {
+			my ($table, $col) = split /:+/, $_;
+			$code .= <<EOF;
+\$line .= qq{$g->{index_delim}} .
+		  Vend::Data::database_field('$table', \$key, '$col');
+EOF
+		}
+	}
 	my $fields = join ",", @{$s->{'fields'}};
 
 	if ( ref $g->{range_look} )  {
 		$range_code = <<EOF;
-return $joiner \$s->range_check(qq{$g->{index_delim}},\$_[0]);
+return $joiner \$s->range_check(qq{$g->{index_delim}},\$line);
 EOF
 	}
 	if ( $g->{coordinate} )
 	{
 		 undef $f;
 		 $code .= <<EOF;
-sub {
-	my \@fields = (split /\\Q$g->{index_delim}/, \$_[0])[$fields];
+	my \@fields = (split /\\Q$g->{index_delim}/, \$line)[$fields];
 EOF
 		my @specs;
 		# For a limiting function, can't if or_search
@@ -390,6 +422,7 @@ EOF
 					$start .= '\b' unless $begin[$i];
 				}
 				$term .= 'i' unless $cases[$i];
+				$candidate = 1 if defined $candidate;
 			}
 			if ($start =~ s/LIKE$//) {
 				$specs[$i] =~ s/^(%)?([^%]*)(%)?$/$2/;
@@ -403,9 +436,10 @@ EOF
 					$like = 1;
 				}
 			 }
+			 undef $candidate if $i >= $k + $field_count;
 			 if(defined $candidate and ! $like) {
 				undef $f if $candidate;
-			 	$f = "sub { return 1 if \\\$_ $start$specs[$i]$term ; return 0}"
+			 	$f = "sub { return 1 if \$_ $start$specs[$i]$term ; return 0}"
 					if ! defined $f and $start =~ m'=~';
 				undef $candidate if $candidate;
 			 }
@@ -448,13 +482,9 @@ EOF
 						$g->{negate},
 						@{$s->{'specs'}});
 		}
-		$code = <<'EOF';
-sub {
-	my $line = $_[0];
-EOF
 		 $code .= $range_code;
 		 $code .= <<EOF;
-	my \@fields = (split /\\Q$g->{index_delim}/, \$_[0])[$fields];
+	my \@fields = (split /\\Q$g->{index_delim}/, \$line)[$fields];
 	my \$field = join q{$g->{index_delim}}, \@fields;
 	\$_ = \$field;
 	return(\$_ = \$line) if &\$sub();
@@ -464,8 +494,7 @@ EOF
 	} 
 	# In case range_look only
 	elsif ($g->{range_look})  {
-		$code = <<EOF;
-sub {
+		$code .= <<EOF;
 	$range_code
 	$ender
 }
@@ -476,9 +505,10 @@ EOF
 		die("no limit and no search") unless defined $f;
 		return ($f);
 	}
+#::logGlobal("code is $code");
 	$limit_sub = eval $code;
 	die "Bad code: $@" if $@;
-	return $limit_sub;
+	return ($limit_sub, $f || undef);
 }
 
 sub saved_params {
@@ -639,11 +669,13 @@ sub save_context {
 sub find_sort {
 	my($s) = @_;
 	my $g = $s->{'global'};
-	my ($crippled, $i);
 	
 	return '' unless ref $g->{sort_field};
 
-	my $sort_string = $g->{sort_command} or return '';
+	my ($crippled, $i);
+
+	my $sort_string;
+	$sort_string = $g->{sort_command} or return '';
 	$sort_string .= " -t'$g->{index_delim}'";
 	if($g->{sort_crippled}) {
 		$sort_string .= " -$g->{sort_option}[0]"
@@ -708,18 +740,6 @@ sub save_more {
 		return undef;
 	}
 	1;
-}
-
-sub quoted_string {
-
-my ($s, $text) = @_;
-my (@fields);
-push(@fields, $+) while $text =~ m{
-   "([^\"\\]*(?:\\.[^\"\\]*)*)"\s?  ## standard quoted string, w/ possible comma
-   | ([^\s]+)\s?                    ## anything else, w/ possible comma
-   | \s+                            ## any whitespace
-	    }gx;
-	@fields;
 }
 
 my (@Opts);
@@ -787,9 +807,9 @@ EOF
 eval {
 
 	use locale;
-	if($Vend::Session->{scratch}->{mv_locale}) {
+	if($::Scratch->{mv_locale}) {
 		POSIX::setlocale(POSIX::LC_COLLATE(),
-			$Vend::Session->{scratch}->{mv_locale});
+			$::Scratch->{mv_locale});
 	}
 
 };

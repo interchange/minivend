@@ -1,6 +1,6 @@
 # Config.pm - Configure Minivend
 #
-# $Id: Config.pm,v 1.33 1998/01/16 07:30:42 mike Exp mike $
+# $Id: Config.pm,v 1.54 1998/09/01 13:15:22 mike Exp mike $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
@@ -41,7 +41,7 @@ use Fcntl;
 use Vend::Parse;
 use Vend::Util;
 
-$VERSION = substr(q$Revision: 1.33 $, 10);
+$VERSION = substr(q$Revision: 1.54 $, 10);
 
 for( qw(search refresh cancel return secure unsecure submit control checkout) ) {
 	$Global::LegalAction{$_} = 1;
@@ -83,6 +83,7 @@ qw/
 		CommonAdjust
 		DescriptionField
 		ImageDir
+		ImageDirSecure
 		PageDir
 		PriceCommas
 		PriceDatabase
@@ -146,6 +147,7 @@ sub global_directives {
     ['DisplayErrors',    'yesno',            $Global::DEBUG & 8192 ? 'Yes' : 'No'],
     ['DisplayComments',  'yesno',            'No'],
     ['TcpPort',          'integer',          '7786'],
+    ['TcpMap',           'hash',             '7786 mv_admin 7787 "" 7788 "" 7789 ""'],
 	['Environment',      'array',            ''],
     ['TcpHost',           undef,             'localhost'],
 	['SendMailProgram',  'executable',		$Global::SendMailLocation
@@ -159,9 +161,11 @@ sub global_directives {
 	['Locale',			 'locale',            ''],
 	['IpHead',			 'yesno',            'No'],
 	['IpQuad',			 'integer',          '1'],
+	['TemplateDir',      'root_dir', 	     ''],
 	['DomainTail',		 'yesno',            'Yes'],
 	['SafeSignals',	 	 'yesno',            'Yes'],
 	['AcrossLocks',		 'yesno',            'No'],
+	['PIDcheck',		 'integer',          '0'],
     ['LockoutCommand',    undef,             ''],
     ['LogFile', 		  undef,     	     'etc/log'],
     ['SafeUntrap',       'array',            do { my $r = '249 148';
@@ -172,7 +176,8 @@ sub global_directives {
                                                   $r } ],
 	['MailErrorTo',		  undef,			 'webmaster'],
 	['NoAbsolute',		 'yesno',			 'No'],
-	['AllowGlobal',		 'boolean',			 ''],
+	['AllowGlobal',		 'boolean',			 '_mv_admin'],
+	['AddDirective',	 'directive',		 ''],
 	['UserTag',			 'tag',				 ''],
 	['AdminSub',		 'boolean',			 ''],
 	['AdminUser',		  undef,			 ''],
@@ -184,7 +189,7 @@ sub global_directives {
 	['Variable',	  	 'variable',     	 ''],
     ['MultiServer',		 'yesno',     	     0],  # Prevent errors on 2.02 upgrade
     ['UserBuild',		 'yesno',     	     'No'],   # UNDOCUMENTED
-    ['Catalog',			 'catalog',     	 ''],
+    ['Catalog',			 'catalog',     	 "_mv_admin $Global::VendRoot/admin /mv_admin mv_admin"],
     ['SubCatalog',		 'catalog',     	 ''],
 
     ];
@@ -206,6 +211,7 @@ sub catalog_directives {
 	['OfflineDir',       'relative_dir',     'offline'],
 	['DataDir',          'relative_dir',     'products'],
 	['ConfigDir',        'relative_dir',     'config'],
+	['TemplateDir',      'dir_array', 		 ''],
 	['ConfigDatabase',	 'config_db',	     ''],
 	['Delimiter',        'delimiter',        'TAB'],
     ['DisplayErrors',    'yesno',            $Global::DEBUG & 8192 ? 'Yes' : 'No'],
@@ -237,6 +243,11 @@ sub catalog_directives {
 	['PGP',              undef,       		 ''],
     ['Glimpse',          'executable',       ''],
     ['Locale',           'locale',           ''],
+    ['Route',            'locale',           ''],
+	['LocaleDatabase',    undef,             ''],
+	['DbDatabase',        undef,             ''],
+	['DirectiveDatabase', undef,             ''],
+	['VariableDatabase',  undef,         	 ''],
     ['RequiredFields',   undef,              ''],
     ['SqlHost',   	 	 undef,              'localhost'],
     ['MsqlProducts',   	 'warn',            ''],
@@ -246,6 +257,8 @@ sub catalog_directives {
     ['ReportIgnore',     undef, 			 'credit_card_no,credit_card_exp'],
     ['OrderCounter',	 undef,     	     ''],
     ['ImageAlias',	 	 'hash',     	     ''],
+    ['ImageDirSecure',   undef,     	     ''],
+    ['ImageDirInternal', undef,     	     ''],
     ['ImageDir',	 	 undef,     	     ''],
     ['UseCode',		 	 undef,     	     'yes'],
     ['SetGroup',		 'valid_group',      ''],
@@ -266,6 +279,8 @@ sub catalog_directives {
 	['Password',         undef,              ''],
     ['NewEscape',	 	 'yesno',     	     'Yes'],
     ['ExtraSecure',		 'yesno',     	     'No'],
+    ['FallbackIP',		 'yesno',     	     'No'],
+    ['WideOpen',		 'yesno',     	     'No'],
     ['Cookies',			 'yesno',     	     'Yes'],
 	['CookieDomain',     undef,              ''],
     ['MasterHost',		 undef,     	     ''],
@@ -298,7 +313,7 @@ sub catalog_directives {
     ['StaticDepth',		 undef,     	     '1'],
     ['StaticFly',		 'yesno',     	     'No'],
     ['StaticDir',		 undef,     	     ''], 
-    ['UserDatabase',	 undef,		     	 ''],  #undocumented, unused
+    ['UserDatabase',	 undef,		     	 ''],  #undocumented
     ['AdminDatabase',	 'boolean',     	 ''], 
     ['AdminPage',		 'boolean',     	 ''],
     ['RobotLimit',		 'integer',		      0],  #undocumented
@@ -309,6 +324,7 @@ sub catalog_directives {
     ['StaticPath',		 undef,     	     '/'],
     ['StaticPattern',	 'regex',     	     ''],
     ['StaticSuffix',	 undef,     	     '.html'],
+    ['HTMLsuffix',	     undef,     	     '.html'],
     ['CustomShipping',	 undef,     	     ''],
     ['DefaultShipping',	 undef,     	     'default'],
     ['UpsZoneFile',		 undef,     	     ''],
@@ -346,6 +362,9 @@ sub catalog_directives {
 	['Mv_VlinkColor',   'color',             ''],
 
     ];
+
+	push @$directives, @$Global::AddDirective
+		if $Global::AddDirective;
 	return $directives;
 }
 
@@ -488,6 +507,11 @@ sub config {
 	my ($db, $dname, $nm);
 	my ($before, $after);
 	my $recno = 'C0001';
+
+	if(-f "$C->{CatalogName}.site") {
+		push @include, $C->{ConfigFile};
+		$C->{ConfigFile} = "$C->{CatalogName}.site";
+	}
 	
 	# Create closure that reads and sets config values
 	my $read = sub {
@@ -994,6 +1018,19 @@ sub config_warn {
 	     $name . "':\n" . $Vend::config_line . "\n");
 }
 
+# Allow addition of a new catalog directive
+sub parse_directive {
+    my($name, $val) = @_;
+
+	return '' unless $val;
+	my($dir, $parser, $default) = split /\s+/, $val, 3 ;
+	$parser = undef unless defined &{"parse_$parser"};
+	$default = '' if ! $default or $default eq 'undef';
+	$Global::AddDirective = [] unless $Global::AddDirective;
+	push @$Global::AddDirective, [ $dir, $parser, $default ];
+	return $Global::AddDirective;
+}
+
 # Allow a subcatalog value to completely replace a base value
 sub parse_replace {
     my($name, $val) = @_;
@@ -1145,7 +1182,7 @@ sub parse_locale {
 			and $settings =~ /}\s*$/
 				and $eval = 1;
 		$eval and ! $safe and $safe = new Safe;
-		if(! defined $store->{$name}) {
+		if(! defined $store->{$name} and $item eq 'Locale') {
 			if(POSIX::setlocale(POSIX::LC_ALL, $settings) ) {
 				$store->{$name} = POSIX::localeconv();
 			}
@@ -1163,10 +1200,12 @@ sub parse_locale {
 		}
 		elsif(index($settings, "\n") > -1) {
 			$settings =~ s/^(\S+\s+)"([\000-\377]*)"\s+$/$1$2/;
+			$sethash = {};
 			%{$sethash} = split(/\s+/, $settings, 2);
 		}
 		else {
-			%{$sethash} = quoted_string($settings);
+			$sethash = {};
+			%{$sethash} = Text::ParseWords::shellwords($settings);
 		}
 		$c = $store->{$name} || {};
         for (keys %{$sethash}) {
@@ -1321,24 +1360,51 @@ sub parse_regex {
     return $value;
 }
 
+# Prepend the Global::VendRoot pathname to the relative directory specified,
+# unless it already starts with a leading /.
+
+sub parse_root_dir {
+    my($var, $value) = @_;
+	return [] unless $value;
+    $value = "$Global::VendRoot/$value"
+		unless File::Spec->file_name_is_absolute($value);
+    $value =~ s./+$..;
+	no strict 'refs';
+    my $c = ${"Global::$var"} || [];
+    push @$c, $value;
+	return $c;
+}
+
+sub parse_dir_array {
+    my($var, $value) = @_;
+	return [] unless $value;
+    $value = "$C->{VendRoot}/$value"
+		unless File::Spec->file_name_is_absolute($value);
+    $value =~ s./+$..;
+    $C->{$var} = [] unless $C->{$var};
+    my $c = $C->{$var} || [];
+    push @$c, $value;
+	return $c;
+}
+
 # Prepend the VendRoot pathname to the relative directory specified,
 # unless it already starts with a leading /.
 
 sub parse_relative_dir {
     my($var, $value) = @_;
 
-    config_error(
-      "Please specify the VendRoot directive before the $var directive\n")
-		unless defined $C->{'VendRoot'};
-		config_error(
-		  "No leading / allowed if NoAbsolute set. Contact administrator.\n")
-		if $value =~ m.^/. and $Global::NoAbsolute;
-		config_error(
-		  "No leading ../.. allowed if NoAbsolute set. Contact administrator.\n")
-		if $value =~ m#^\.\./.*\.\.# and $Global::NoAbsolute;
-	
-    $value = "$C->{'VendRoot'}/$value" unless $value =~ m.^/.;
-    $value =~ s./$..;
+	config_error(
+	  "No leading / allowed if NoAbsolute set. Contact administrator.\n"
+	  )
+	  if File::Spec->file_name_is_absolute($value) and $Global::NoAbsolute;
+	config_error(
+	  "No leading ../.. allowed if NoAbsolute set. Contact administrator.\n"
+	  )
+	  if $value =~ m#^\.\./.*\.\.# and $Global::NoAbsolute;
+
+    $value = "$C->{'VendRoot'}/$value"
+		unless File::Spec->file_name_is_absolute($value);
+    $value =~ s./+$..;
     $value;
 }
 
@@ -1358,7 +1424,7 @@ sub parse_url {
     config_warn(
       "The $var directive (now set to '$value') should probably\n" .
       "start with 'http:' or 'https:'")
-	unless $value =~ m/^https?:/i;
+	unless $value eq '/mv_admin' or $value =~ m/^https?:/i;
     $value =~ s./$..;
     $value;
 }
@@ -1581,7 +1647,7 @@ sub parse_config_db {
 			}
 		}
 		elsif(defined $Ary_ref{$p}) {
-			my(@v) = quoted_string($val);
+			my(@v) = Text::ParseWords::shellwords($val);
 			$d->{$p} = [] unless defined $d->{$p};
 			push @{$d->{$p}}, @v;
 		}
@@ -1699,9 +1765,17 @@ sub parse_database {
 			}
 		}
 		elsif(defined $Ary_ref{$p}) {
-			my(@v) = quoted_string($val);
+			my(@v) = Text::ParseWords::shellwords($val);
 			$d->{$p} = [] unless defined $d->{$p};
 			push @{$d->{$p}}, @v;
+		}
+		elsif ($p eq 'ALIAS') {
+			if (defined $c->{$val}) {
+				config_warn "Database '$val' already exists, can't alias.";
+			}
+			else {
+				$c->{$val} = $d;
+			}
 		}
 		else {
 			config_warn "Database '$database' scalar parameter '$p' redefined."
@@ -1889,12 +1963,12 @@ sub parse_tag {
 			unless defined $c->{Order}{$tag};
 	}
 	elsif(defined $tagAry{$p}) {
-		my(@v) = quoted_string($val);
+		my(@v) = Text::ParseWords::shellwords($val);
 		$c->{$p}{$tag} = [] unless defined $c->{$p}{$tag};
 		push @{$c->{$p}{$tag}}, @v;
 	}
 	elsif(defined $tagHash{$p}) {
-		my(%v) = quoted_string($val);
+		my(%v) = Text::ParseWords::shellwords($val);
 		$c->{$p}{$tag} = {} unless defined $c->{$p}{$tag};
 		for (keys %v) {
 		  $c->{$p}{$tag}{$_} = $v{$_};

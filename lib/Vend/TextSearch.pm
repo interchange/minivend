@@ -1,6 +1,6 @@
 # Vend/TextSearch.pm:  Search indexes with Perl
 #
-# $Id: TextSearch.pm,v 1.16 1998/06/01 17:06:35 mike Exp $
+# $Id: TextSearch.pm,v 1.19 1998/09/01 13:15:22 mike Exp mike $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::TextSearch
 #
@@ -25,7 +25,7 @@ require Vend::Search;
 
 @ISA = qw(Vend::Search);
 
-$VERSION = substr(q$Revision: 1.16 $, 10);
+$VERSION = substr(q$Revision: 1.19 $, 10);
 
 use Search::Dict;
 use strict;
@@ -110,15 +110,12 @@ Vend::Util::logDebug
 	}
 
 	# Auto-index search
-	if($g->{dict_look} and @{$s->{fields}} == 1) {
-		my $f = pop @{$s->{fields}};
+	if($g->{dict_look} and $g->{dict_limit} =~ /[^-0-9]/) {
+		my $f = $g->{dict_limit};
+		$g->{dict_limit} = -1;
 		for (@searchfiles) {
 			next unless -f "$_.$f"; 
-			#my $itime = (stat(_))[9];
-			#my $ftime = (stat($_))[9];
-			#next if $ftime > $itime;
 			$_ .= ".$f";
-			$g->{head_skip} = 0;
 			$g->{return_fields} = [1];
 		}
 	}
@@ -207,7 +204,7 @@ Vend::Util::logDebug
 # END DEBUG
 
 	if ( ! $g->{exact_match} and ! $g->{coordinate}) {
-		@specs = $s->quoted_string( join ' ', @specs);
+		@specs = Text::ParseWords::shellwords( join ' ', @specs);
 	}
 
 	@specs = $s->escape(@specs);
@@ -268,6 +265,8 @@ Vend::Util::logDebug
 	}
 
 	$f = $prospect if $prospect;
+
+#::logGlobal("f=$f limit=$limit_sub");
 
 	eval {($return_sub, $delayed_return) = $s->get_return()};
 	if($@) {
@@ -345,7 +344,7 @@ Vend::Util::logDebug
                 unless defined $g->{field_names} || $sort_string;
         }
         elsif($g->{head_skip} > 1) {
-            while(<Search::TextSearch::SEARCH>) {
+            while(<Vend::TextSearch::SEARCH>) {
                 last if $. >= $g->{head_skip};
             }
         }
@@ -376,7 +375,7 @@ Vend::Util::logDebug
 ("Dict search: found='$_'\n")
 	if ::debug(0x10);
 # END DEBUG
-				next unless &$f();
+				next unless ! defined $f or &$f();
 				next unless &$limit_sub($_);
 				(push @out, $searchfile and last)
 					if defined $return_file_name;
@@ -403,6 +402,7 @@ Vend::Util::logDebug
 			}
 		}
 		elsif(! defined $f and defined $limit_sub) {
+#::logGlobal("no f, limit");
 			while(<Vend::TextSearch::SEARCH>) {
 				next unless &$limit_sub($_);
 				(push @out, $searchfile and last)
@@ -411,8 +411,10 @@ Vend::Util::logDebug
 			}
 		}
 		elsif(defined $limit_sub) {
+#::logGlobal("f and limit");
 			while(<Vend::TextSearch::SEARCH>) {
 				next unless &$f();
+#::logGlobal("matched f");
 				next unless &$limit_sub($_);
 				(push @out, $searchfile and last)
 					if defined $return_file_name;
@@ -420,6 +422,7 @@ Vend::Util::logDebug
 			}
 		}
 		else {
+#::logGlobal("just f");
 			while(<Vend::TextSearch::SEARCH>) {
 				next unless &$f();
 				(push @out, $searchfile and last)
@@ -430,17 +433,17 @@ Vend::Util::logDebug
 		close Vend::TextSearch::SEARCH;
 	}
 
+	if($delayed_return) {
+		$s->sort_search_return(\@out);
+		@out = map { &{$delayed_return}($_) } @out;
+	}
+
 	if($g->{unique_result}) {
 		my %seen;
 		@out = grep ! $seen{$_}++, @out;
 	}
 
 	$g->{matches} = scalar(@out);
-
-	if($delayed_return) {
-		$s->sort_search_return(\@out);
-		@out = map { &{$delayed_return}($_) } @out;
-	}
 
     if ($g->{matches} > $g->{match_limit}) {
         $s->save_more(\@out)

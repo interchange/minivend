@@ -63,7 +63,7 @@ my %env = (
 
 GETPASS: {
 
-	my $pass;
+	my $pass = $ENV{RECONFIGURE_MINIVEND} = '';
 
 	if (defined $ENV{GATEWAY_INTERFACE}) {
 	# Allow passing of the password with query string parameter 

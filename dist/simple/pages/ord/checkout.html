@@ -1,6 +1,6 @@
 <HTML>
 <HEAD>
-<TITLE>Check Out of __COMPANY__</TITLE>
+<TITLE>[L]Check out[/L] -- __COMPANY__</TITLE>
 
 [set checkout_profile]
 name=required
@@ -61,7 +61,7 @@ mv_credit_card_info=required
 [then]
 <TABLE>
 <TR><TD COLSPAN=4 BGCOLOR="#00F0F0">
-	<FONT SIZE="+2">Order details</FONT>
+	<FONT SIZE="+2">[L]Order details[/L]</FONT>
 	</TD>
 </TR>
 [item-list]
@@ -81,22 +81,22 @@ mv_credit_card_info=required
 [/item-list]
 <TR>
 	<TD COLSPAN=2></TD>
-	<TD>Subtotal</TD>
+	<TD>[L]Subtotal[/L]</TD>
 	<TD ALIGN=RIGHT>[subtotal]</TD>
 </TR>
 <TR>
 	<TD COLSPAN=2></TD>
-	<TD>Sales Tax</TD>
+	<TD>[L]Sales Tax[/L]</TD>
 	<TD ALIGN=RIGHT>[salestax]</TD>
 </TR>
 <TR>
 	<TD COLSPAN=2>
-	<TD>Shipping</TD>
+	<TD>[L]Shipping[/L]</TD>
 	<TD ALIGN=RIGHT>[shipping]</TD>
 </TR>
 <TR>
 	<TD COLSPAN=2></TD>
-	<TD>TOTAL</TD>
+	<TD>[L]TOTAL[/L]</TD>
 	<TD ALIGN=RIGHT>[total-cost]</TD>
 </TR>
 </TABLE>
@@ -104,10 +104,9 @@ mv_credit_card_info=required
 [/then]
 [else]
 
-<H2>No items in your basket.</H2>
+<H2>[L]No items in your basket.[/L]</H2>
 <P>
-<I>You can enter information, and it will
-be saved, but no checkout will happen until you order something!</I>
+<I>[L]You can enter information, and it will be saved, but no checkout will happen until you order something![/L]</I>
 
 [/else]
 [/if]
@@ -119,7 +118,7 @@ be saved, but no checkout will happen until you order something!</I>
 <INPUT TYPE="hidden" NAME="mv_order_profile" VALUE="checkout_profile">
 
 <TABLE WIDTH=500><TR><TD BGCOLOR="#00F0F0">
-<FONT SIZE="+2">Shipping Address</FONT>
+<FONT SIZE="+2">[L]Shipping Address[/L]</FONT>
 </TD></TR></TABLE>
 
 <TABLE WIDTH=90%>
@@ -128,7 +127,7 @@ be saved, but no checkout will happen until you order something!</I>
 	<TD ALIGN=RIGHT>
 		<IMG WIDTH=12 HEIGHT=12 SRC="redball.gif">
 	</TD>
-	<TD ALIGN=RIGHT><B>Name</B></TD>
+	<TD ALIGN=RIGHT><B>[L]Name[/L]</B></TD>
 	<TD>
 	<INPUT TYPE="text" NAME="name" VALUE="[value name]" size=40>
 	</TD>
@@ -138,7 +137,7 @@ be saved, but no checkout will happen until you order something!</I>
 	<TD ALIGN=RIGHT>
 		<IMG WIDTH=12 HEIGHT=12 SRC="redball.gif">
 	</TD>
-	<TD ALIGN=RIGHT><B>Address</B></TD>
+	<TD ALIGN=RIGHT><B>[L]Address[/L]</B></TD>
 	<TD ALIGN=LEFT>
 		<INPUT TYPE="text" NAME="address" VALUE="[value address]" size=40>
 	</TD>
@@ -149,7 +148,7 @@ be saved, but no checkout will happen until you order something!</I>
 		<BR>
 	<IMG WIDTH=12 HEIGHT=12 SRC="redball.gif">
 	</TD>
-	<TD ALIGN=RIGHT><BR><B>City</B></TD>
+	<TD ALIGN=RIGHT><BR><B>[L]City[/L]</B></TD>
 	<TD VALIGN=BOTTOM>
 	<TABLE CELLPADDING=0 MARGINWIDTH=0>
 	<TR>
@@ -161,7 +160,7 @@ be saved, but no checkout will happen until you order something!</I>
 		<IMG WIDTH=12 HEIGHT=12 SRC="redball.gif">
 		</TD>
 		<TD ALIGN=CENTER VALIGN=BOTTOM>
-		State/Province<BR>
+		[L]State/Province[/L]<BR>
 		<INPUT onChange="this.form.submit()"
 			TYPE="text" NAME="state" VALUE="[value state]" size=8>
 		</TD>
@@ -170,7 +169,7 @@ be saved, but no checkout will happen until you order something!</I>
 		<IMG WIDTH=12 HEIGHT=12 SRC="redball.gif">
 		</TD>
 		<TD ALIGN=CENTER VALIGN=BOTTOM>
-		Zip/Postal Code<BR>
+		[L]Zip/Postal Code[/L]<BR>
 		<INPUT TYPE="text" NAME="zip" VALUE="[value zip]" size=10>
 
 		</TD> 
@@ -183,7 +182,7 @@ be saved, but no checkout will happen until you order something!</I>
 	<TD ALIGN=RIGHT>
 	<IMG WIDTH=12 HEIGHT=12 SRC="redball.gif">
 	</TD>
-	<TD ALIGN=RIGHT><B>Email Address</B></TD>
+	<TD ALIGN=RIGHT><B>[L]Email Address[/L]</B></TD>
 	<TD>
 	<TABLE>
 	<TR>
@@ -194,7 +193,7 @@ be saved, but no checkout will happen until you order something!</I>
 		<IMG WIDTH=12 HEIGHT=12 SRC="bg.gif">
 		</TD>
 		<TD ALIGN=RIGHT>
-		<B>Country</B>
+		<B>[L]Country[/L]</B>
 		</TD>
 		<TD ALIGN=RIGHT>
 		[if value country eq 'US']
@@ -224,7 +223,7 @@ be saved, but no checkout will happen until you order something!</I>
 	<TD ALIGN=RIGHT>
 	<IMG WIDTH=12 HEIGHT=12 SRC="redball.gif">
 	</TD>
-	<TD ALIGN=RIGHT><B>Daytime Phone</B></TD>
+	<TD ALIGN=RIGHT><B>[L]Daytime Phone[/L]</B></TD>
 	<TD>
 	<TABLE>
 	<TR>
@@ -235,7 +234,7 @@ be saved, but no checkout will happen until you order something!</I>
 		<IMG WIDTH=12 HEIGHT=12 SRC="bg.gif">
 		</TD>
 		<TD ALIGN=RIGHT>
-		<B>Evening</B>
+		<B>[L]Evening[/L]</B>
 		</TD>
 		<TD>
 		<INPUT TYPE="text" NAME="phone_night" VALUE="[value phone_night]" size=16>
@@ -249,13 +248,13 @@ be saved, but no checkout will happen until you order something!</I>
 	<IMG WIDTH="12" HEIGHT="12" SRC="redball.gif">
 	</TD>
 	<TD COLSPAN=2>
-		<I>We need these fields to process your order</I>
+		<I>[L]We need these fields to process your order[/L]</I>
 	</TD>
 </TR>
 </TABLE>
 
 <TABLE WIDTH=500><TR><TD BGCOLOR="#00F0F0">
-<FONT SIZE="+2">Choose your shipping method</FONT>
+<FONT SIZE="+2">[L]Choose your shipping method[/L]</FONT>
 </TD></TR></TABLE>
 
 <P>
@@ -275,13 +274,13 @@ be saved, but no checkout will happen until you order something!</I>
 <TR>
 <TD COLSPAN=2 ALIGN=CENTER>
 [if session ship_message]
-<BR><B>Note:</B> [data session ship_message]<BR>
+<BR><B>[L]Note[/L]:</B> [data session ship_message]<BR>
 [/if]
 </TD>
 </TR></TABLE>
 
 <TABLE WIDTH=500><TR><TD BGCOLOR="#00F0F0">
-<FONT SIZE="+2">Credit Card Information</FONT>
+<FONT SIZE="+2">[L]Credit Card Information[/L]</FONT>
 </TD></TR></TABLE>
 
 [if value mv_credit_card_info]
@@ -293,7 +292,7 @@ be saved, but no checkout will happen until you order something!</I>
 [/if]
 <P>  
 <TABLE><TR><TD VALIGN=TOP>
-Card Number<BR>
+[L]Card Number[/L]<BR>
 [if value mv_credit_card_valid]
 <input type="text" name="mv_credit_card_number"
 		value="" size=19>
@@ -304,21 +303,21 @@ Card Number<BR>
 [/if]
 </TD>
 <TD VALIGN=TOP>
-  Expires
+ [L]Expires[/L] 
 <BR>
   	<SELECT name="mv_credit_card_exp_month">
-		<OPTION VALUE=1 [selected mv_credit_card_exp_month 1]> 01 - January
-		<OPTION VALUE=2 [selected mv_credit_card_exp_month 2]> 02 - February
-		<OPTION VALUE=3 [selected mv_credit_card_exp_month 3]> 03 - March
-		<OPTION VALUE=4 [selected mv_credit_card_exp_month 4]> 04 - April
-		<OPTION VALUE=5 [selected mv_credit_card_exp_month 5]> 05 - May
-		<OPTION VALUE=6 [selected mv_credit_card_exp_month 6]> 06 - June
-		<OPTION VALUE=7 [selected mv_credit_card_exp_month 7]> 07 - July
-		<OPTION VALUE=8 [selected mv_credit_card_exp_month 8]> 08 - August
-		<OPTION VALUE=9 [selected mv_credit_card_exp_month 9]> 09 - September
-		<OPTION VALUE=10 [selected mv_credit_card_exp_month 10]> 10 - October
-		<OPTION VALUE=11 [selected mv_credit_card_exp_month 11]> 11 - November
-		<OPTION VALUE=12 [selected mv_credit_card_exp_month 12]> 12 - December
+		<OPTION VALUE=1 [selected mv_credit_card_exp_month 1]> 01 - [L]January[/L]
+		<OPTION VALUE=2 [selected mv_credit_card_exp_month 2]> 02 - [L]February[/L]
+		<OPTION VALUE=3 [selected mv_credit_card_exp_month 3]> 03 - [L]March[/L]
+		<OPTION VALUE=4 [selected mv_credit_card_exp_month 4]> 04 - [L]April[/L]
+		<OPTION VALUE=5 [selected mv_credit_card_exp_month 5]> 05 - [L]May[/L]
+		<OPTION VALUE=6 [selected mv_credit_card_exp_month 6]> 06 - [L]June[/L]
+		<OPTION VALUE=7 [selected mv_credit_card_exp_month 7]> 07 - [L]July[/L]
+		<OPTION VALUE=8 [selected mv_credit_card_exp_month 8]> 08 - [L]August[/L]
+		<OPTION VALUE=9 [selected mv_credit_card_exp_month 9]> 09 - [L]September[/L]
+		<OPTION VALUE=10 [selected mv_credit_card_exp_month 10]> 10 - [L]October[/L]
+		<OPTION VALUE=11 [selected mv_credit_card_exp_month 11]> 11 - [L]November[/L]
+		<OPTION VALUE=12 [selected mv_credit_card_exp_month 12]> 12 - [L]December[/L]
 	</SELECT>
 	<SELECT name="mv_credit_card_exp_year">
 		<OPTION VALUE=98 [selected mv_credit_card_exp_year 98]> 1998
@@ -331,38 +330,38 @@ Card Number<BR>
 </TD></TR></TABLE>
 <INPUT TYPE=radio NAME="fax_order" VALUE=0
 	[if !value fax_order]CHECKED[/if] [checked fax_order 0]>
-<I>Pay by credit card</I><BR>
+<I>[L]Pay by credit card[/L]</I><BR>
 <INPUT TYPE=radio NAME="fax_order" VALUE=1 [checked fax_order 1]>
-<I>I will call with payment information</I><BR>
+<I>[L]I will call with payment information[/L]</I><BR>
 <INPUT TYPE=checkbox NAME="mv_credit_card_force" VALUE=1>
-<I>Force this card number to be taken</I><BR>
+<I>[L]Force this card number to be taken[/L]</I><BR>
 
 <TABLE WIDTH=500><TR><TD BGCOLOR="#00F0F0">
-<FONT SIZE="+2">Billing address (if different)</FONT>
+<FONT SIZE="+2">[L]Billing Address (if different)[/L]</FONT>
 </TD></TR></TABLE>
 
 <TABLE>
 <TR>
-	<TD ALIGN=RIGHT><B>Name</B></TD>
+	<TD ALIGN=RIGHT><B>[L]Name[/L]</B></TD>
 	<TD>
 	<INPUT TYPE="text" NAME="b_name" VALUE="[value b_name]" size=60>
 	</TD>
 </TR>
 
 <TR>
-	<TD ALIGN=RIGHT><B>Address</B></TD>
+	<TD ALIGN=RIGHT><B>[L]Address[/L]</B></TD>
 	<TD ALIGN=LEFT>
 		<INPUT TYPE="text" NAME="b_address" VALUE="[value b_address]" size=60>
 	</TD>
 </TR>
 <TR>
-	<TD ALIGN=RIGHT><B>City, State, Postal Code</B></TD>
+	<TD ALIGN=RIGHT><B>[L]City[/L], [L]State[/L], [L]Postal Code[/L]</B></TD>
 	<TD>
 	<INPUT TYPE="text" NAME="b_city" VALUE="[value b_city]" size=60>
 	</TD>
 </TR>
 </TABLE>
-[set Place Order!]
+[set [L]Place Order![/L]]
 mv_todo=submit
 [/set]
 
@@ -378,19 +377,19 @@ mv_subroutine=userdb
 
 [/then]
 [else]
-<INPUT TYPE=checkbox NAME=mv_save_session VALUE=1> <I>I plan on returning, save my information
+<INPUT TYPE=checkbox NAME=mv_save_session VALUE=1> <I>[L]I plan on returning, save my information[/L]
 	[if config EncryptProgram =~ /pgp/]
 	(credit card is encrypted with PGP!)
 	[else]
-	(OOPS! credit card not encrypted with PGP)
+	[L](OOPS! credit card not encrypted with PGP)[/L]
 	[/else][/if]<BR>
 [/else][/if]
 <CENTER>
-<B><INPUT TYPE=submit NAME=mv_todo VALUE="Place Order!"></B></BR>
-<INPUT TYPE=submit VALUE="(update without placing)">
+<B><INPUT TYPE=submit NAME=mv_todo VALUE="[L]Place Order![/L]"></B></BR>
+<INPUT TYPE=submit VALUE="([L]Update without placing[/L])">
 </CENTER>
 <P>
 </FORM>
 <P>
-<CENTER>[buttonbar 0]</CENTER>
+<CENTER>[include pages/buttonbar.html]</CENTER>
 </body> </html>

@@ -1,6 +1,6 @@
 # Util.pm - Minivend utility functions
 #
-# $Id: Util.pm,v 1.22 1998/01/16 07:30:42 mike Exp mike $
+# $Id: Util.pm,v 1.41 1998/08/25 01:47:28 mike Exp $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
@@ -33,6 +33,7 @@ check_security
 dump_structure
 errmsg
 evalr
+find_special_page
 file_modification_time
 format_log_msg
 is_no
@@ -50,7 +51,6 @@ unlockfile
 readfile
 readin
 random_string
-quoted_string
 quoted_comma_string
 setup_escape_chars
 strftime
@@ -75,7 +75,7 @@ use Config;
 use Fcntl;
 use subs qw(logError logGlobal);
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.22 $, 10);
+$VERSION = substr(q$Revision: 1.41 $, 10);
 
 BEGIN {
 	eval {
@@ -348,50 +348,49 @@ sub us_number {
 }
 
 sub setlocale {
-	my ($locale, $currency, $persist) = @_;
-	$locale = $Vend::Session->{'scratch'}{mv_locale} unless defined $locale;
-
-	my $loc = $Vend::Cfg->{Locale};
-	my $curr;
+    my ($locale, $currency, $persist) = @_;
+    $locale = $::Scratch->{mv_locale} unless defined $locale;
 
     if ( $locale and not defined $Vend::Cfg->{Locale_repository}{$locale}) {
         Vend::Util::logError( errmsg('Util.pm:1', "attempt to set non-existant locale '%s'" , $locale) );
         return '';
     }
 
-	$loc  = $Vend::Cfg->{Locale_repository}{$locale} if $locale;
-
     if ( $currency and not defined $Vend::Cfg->{Locale_repository}{$currency}) {
         Vend::Util::logError( errmsg('Util.pm:2', "attempt to set non-existant currency '%s'" , $currency) );
         return '';
     }
-	$curr = $Vend::Cfg->{Locale_repository}{$currency} if $currency;
 
-	if($locale) {
-		for(@Vend::Config::Locale_directives_scalar) {
-			$Vend::Cfg->{$_} = $Vend::Cfg->{Locale}->{$_}
-				if defined $Vend::Cfg->{Locale}->{$_};
-		}
+    if($locale) {
+        my $loc = $Vend::Cfg->{Locale} = $Vend::Cfg->{Locale_repository}{$locale};
 
-		for(@Vend::Config::Locale_directives_ary) {
-			@{$Vend::Cfg->{$_}} = split (/\s+/, $Vend::Cfg->{Locale}->{$_})
-				if $Vend::Cfg->{Locale}->{$_};
-		}
-	}
+        for(@Vend::Config::Locale_directives_scalar) {
+            $Vend::Cfg->{$_} = $loc->{$_}
+                if defined $loc->{$_};
+        }
 
-	if ($currency) {
-		for(@Vend::Config::Locale_directives_currency) {
-			$Vend::Cfg->{$_} = $curr->{$_}
-				if defined $curr->{$_};
-		}
-		@{$loc}{@Vend::Config::Locale_keys_currency} =
-				@{$curr}{@Vend::Config::Locale_keys_currency};
-	}
+        for(@Vend::Config::Locale_directives_ary) {
+            @{$Vend::Cfg->{$_}} = split (/\s+/, $loc->{$_})
+                if $loc->{$_};
+        }
+    }
 
-	$Vend::Session->{scratch}{mv_locale}   = $locale    if $persist and $locale;
-	$Vend::Session->{scratch}{mv_currency} = $currency  if $persist and $currency;
+    if ($currency) {
+        my $curr = $Vend::Cfg->{Locale_repository}{$currency};
+
+        for(@Vend::Config::Locale_directives_currency) {
+            $Vend::Cfg->{$_} = $curr->{$_}
+                if defined $curr->{$_};
+        }
+        @{$Vend::Cfg->{Locale}}{@Vend::Config::Locale_keys_currency} =
+                @{$curr}{@Vend::Config::Locale_keys_currency};
+    }
+
+    $::Scratch->{mv_locale}   = $locale    if $persist and $locale;
+    $::Scratch->{mv_currency} = $currency  if $persist and $currency;
     return '';
 }
+
 
 sub currency {
 	my($amount, $noformat, $convert) = @_;
@@ -597,7 +596,7 @@ sub writefile {
 			unlockfile(\*Vend::LOGDATA) or die "unlock\n";
 		}
 		else {
-            my (@args) = grep /\S/, quoted_string($file);
+            my (@args) = grep /\S/, Text::ParseWords::shellwords($file);
 			open(Vend::LOGDATA, "|-") || exec @args;
 			print(Vend::LOGDATA "$data\n") or die "pipe to\n";
 		}
@@ -631,7 +630,7 @@ sub logData {
 			unlockfile(\*Vend::LOGDATA)		or die "unlock\n";
 		}
 		else {
-            my (@args) = grep /\S/, quoted_string($file);
+            my (@args) = grep /\S/, Text::ParseWords::shellwords($file);
 			open(Vend::LOGDATA, "|-") || exec @args;
 			print(Vend::LOGDATA "$msg\n") or die "pipe to\n";
 		}
@@ -651,20 +650,6 @@ sub file_modification_time {
     my @s = stat($fn) or die "Can't stat '$fn': $!\n";
     return $s[9];
 }
-
-
-sub quoted_string {
-
-	my ($text) = @_;
-	my (@fields);
-	push(@fields, $+) while $text =~ m{
-	   "([^\"\\]*(?:\\.[^\"\\]*)*)"\s?  ## standard quoted string, w/ possible space
-	   | ([^\s]+)\s?                    ## anything else, w/ possible space
-	   | \s+                            ## any whitespace
-        }gx;
-    @fields;
-}
-
 
 sub quoted_comma_string {
 
@@ -720,42 +705,54 @@ sub copyref {
 # file could not be read.
 
 sub readin {
-    my($file) = @_;
-    my($fn, $contents, $dir, $level);
+    my($file, $only) = @_;
+    my($fn, $contents, $pathdir, $dir, $level);
     local($/);
 
 	$Global::Variable->{MV_PAGE} = $file;
 
 	$file =~ s#\.html?$##;
-	($dir = $file) =~ s#/[^/]*##;
-	$dir = $Vend::Cfg->{PageDir} . "/" . $dir;
+	($pathdir = $file) =~ s#/[^/]*##;
+	my $try;
+	foreach $try (
+					$Vend::Cfg->{PageDir},
+					@{$Vend::Cfg->{TemplateDir}},
+					@{$Global::TemplateDir}          )
+	{
+		$dir = $try . "/" . $pathdir;
+		my $suffix = $Vend::Cfg->{HTMLsuffix};
 # DEBUG
-#Vend::Util::logDebug
-#("dirname for readin: $dir\n")
+#logDebug("dirname for readin: $dir\n")
 #	if ::debug(0x2);
 # END DEBUG
-	if (-f "$dir/.access") {
-		$level = '';
-		$level = 3 if -s _;
-	}
+		if (-f "$dir/.access") {
+			$level = '';
+			$level = 3 if -s _;
+		}
 
-	if( defined $level and ! check_security($file, $level) ){
-		$file = $Vend::Cfg->{SpecialPage}->{violation};
-		$fn = $Vend::Cfg->{PageDir} . "/" . escape_chars($file) . "$Vend::Cfg->{StaticSuffix}";
-	}
-	else {
-		$fn = $Vend::Cfg->{PageDir} . "/" . escape_chars($file) . "$Vend::Cfg->{StaticSuffix}";
-	}
+		if( defined $level and ! check_security($file, $level) ){
+			my $realm = $Vend::Cfg->{Variable}{COMPANY} || $Vend::Cfg->{CatalogName};
+			$Vend::StatusLine = <<EOF if $Vend::InternalHTTP;
+HTTP/1.0 401 Unauthorized
+WWW-Authenticate: Basic realm="$realm"
+EOF
+			$file = find_special_page('violation');
+			$fn = $try . "/" . escape_chars($file) . $suffix;
+		}
+		else {
+			$fn = $try . "/" . escape_chars($file) . $suffix;
+		}
 
-    if (open(Vend::IN, $fn)) {
-		binmode(Vend::IN) if $Global::Windows;
-		undef $/;
-		$contents = <Vend::IN>;
-		close(Vend::IN);
-    } else {
-		$contents = undef;
-    }
-	if($Vend::Cfg->{Locale}) {
+		if (open(Vend::IN, $fn)) {
+			binmode(Vend::IN) if $Global::Windows;
+			undef $/;
+			$contents = <Vend::IN>;
+			close(Vend::IN);
+			last;
+		}
+		last if defined $only;
+	}
+	if(defined $contents and $Vend::Cfg->{Locale}) {
 		my $key;
 		$contents =~ s~\[L(\s+([^\]]+))?\]([\000-\377]*?)\[/L\]~
 						$key = $2 || $3;		
@@ -843,7 +840,7 @@ sub vendUrl
 	';' . ($arguments || '') . ';';
 	++$Vend::Session->{pageCount};
 	$r .= $Vend::Session->{pageCount}
-		unless $Vend::Session->{scratch}->{mv_no_count};
+		unless $::Scratch->{mv_no_count};
     $r;
 }    
 
@@ -860,7 +857,7 @@ sub secure_vendUrl
 	';' . ($arguments || '') . ';';
 	++$Vend::Session->{pageCount};
 	$r .= $Vend::Session->{pageCount}
-		unless $Vend::Session->{scratch}->{mv_no_count};
+		unless $::Scratch->{mv_no_count};
     $r;
 }
 
@@ -1028,6 +1025,60 @@ sub dump_structure {
 	$Data::Dumper::Indent = $save if defined $save;
 }
 
+# Do an internal HTTP authorization check
+sub check_authorization {
+	my($auth, $pwinfo) = @_;
+
+#::logGlobal("Received request for auth=$auth pwinfo=$pwinfo");
+	$auth =~ s/^\s*basic\s+//i or return undef;
+	my ($user, $pw) = split(
+						":",
+						MIME::Base64::decode_base64($auth),
+						2,
+						);
+#::logGlobal("user=$user pw=$pw cfg=$Vend::Cfg");
+	my $cmp_pw;
+	my $use_crypt = 1;
+	if(!defined $Vend::Cfg) {
+		$pwinfo = $Global::AdminUser;
+		$pwinfo =~ s/^\s+//;
+		$pwinfo =~ s/\s+$//;
+#::logGlobal("pwinfo=$pwinfo");
+		my (%compare) = split /[\s:]+/, $pwinfo;
+		return undef unless $compare{$user};
+		$cmp_pw = $compare{$user};
+		undef $use_crypt if $Global::Variable->{MV_NO_CRYPT};
+	}
+	elsif(	$user eq $Vend::Cfg->{RemoteUser}	and
+			$Vend::Cfg->{Password}					)
+	{
+		$cmp_pw = $Vend::Cfg->{Password};
+		undef $use_crypt if $Vend::Cfg->{Variable}{MV_NO_CRYPT};
+	}
+	else {
+		$pwinfo = $Vend::Cfg->{UserDatabase} unless $pwinfo;
+		undef $use_crypt unless $Vend::Cfg->{Variable}{MV_USE_CRYPT};
+		$cmp_pw = Vend::Interpolate::tag_data($pwinfo, 'password', $user)
+			if defined $Vend::Cfg->{Database}{$pwinfo};
+	}
+
+#::logGlobal("user=$user pw=$pw cmp_pw=$cmp_pw");
+
+	return undef unless $cmp_pw;
+
+	if(! $use_crypt) {
+		return $user if $pw eq $cmp_pw;
+	}
+	else {
+		my $test = crypt($pw, $cmp_pw);
+#::logGlobal("user=$user pw=$test cmp_pw=$cmp_pw");
+		return $user
+			if $test eq $cmp_pw;
+	}
+#::logGlobal("denied.");
+	return undef;
+}
+
 # Check that the user is authorized by one or all of the
 # configured security checks
 sub check_security {
@@ -1073,7 +1124,7 @@ EOF
 	}
 
 	# Check to see if password enabled, then check
-	if ($Vend::Cfg->{Password} and
+	if (!$CGI::user and $Vend::Cfg->{Password} and
 		crypt($CGI::reconfigure_catalog, $Vend::Cfg->{Password})
 		ne  $Vend::Cfg->{Password})
 	{
@@ -1127,12 +1178,12 @@ EOF
 
 # Replace the escape notation %HH with the actual characters.
 #
-#sub unescape_chars {
-#    my($in) = @_;
-#
-#    $in =~ s/%(..)/chr(hex($1))/ge;
-#    $in;
-#}
+sub unescape_chars {
+    my($in) = @_;
+
+    $in =~ s/%(..)/chr(hex($1))/ge;
+    $in;
+}
 
 # Returns its arguments as a string of comma separated and quoted
 # fields.  Double quotes in the argument values are converted to
@@ -1155,8 +1206,8 @@ sub send_mail {
 	my($reply) = '';
     my($ok);
 
-	$reply = "Reply-To: $Vend::Session->{'values'}->{'mv_email'}\n"
-		if defined $Vend::Session->{'values'}->{'mv_email'};
+	$reply = "Reply-To: $::Values->{'mv_email'}\n"
+		if defined $::Values->{'mv_email'};
 
     $ok = 0;
 	my $none;
@@ -1200,6 +1251,17 @@ sub tainted {
     eval { open(Vend::FOO, ">" . "FOO" . substr($v,0,0)); };
     close Vend::FOO;
     ($@ ? 1 : 0);
+}
+
+# Checks the Locale for a special page definintion mv_special_$key and
+# returns it if found, otherwise goes to the default Vend::Cfg->{Special} array
+sub find_special_page {
+    my $key = shift;
+    return $Vend::Cfg->{Special}{$key} unless 
+		$Vend::Cfg->{Locale};
+    return $Vend::Cfg->{Locale}{"mv_special_$key"}
+		if defined $Vend::Cfg->{Locale}{"mv_special_$key"};
+    return $Vend::Cfg->{Special}{$key};
 }
 
 # Appends the string $value to the end of $filename.  The file is opened

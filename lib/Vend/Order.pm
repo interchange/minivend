@@ -2,7 +2,7 @@
 #
 # MiniVend version 1.04
 #
-# $Id: Order.pm,v 1.16 1998/01/16 07:30:42 mike Exp mike $
+# $Id: Order.pm,v 1.27 1998/09/01 13:15:22 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -30,7 +30,7 @@
 package Vend::Order;
 require Exporter;
 
-$VERSION = substr(q$Revision: 1.16 $, 10);
+$VERSION = substr(q$Revision: 1.27 $, 10);
 $DEBUG = 0;
 
 @ISA = qw(Exporter);
@@ -97,16 +97,18 @@ my $CC3;
 
 eval {
 	require CCLib;
-	import CCLib qw(SetServer sendmserver);
 	$CC2 = 1;
-#	logGlobal "CyberCash module found.";
 	my $ver = $CCLib::VERSION || '2.1';
 	logGlobal( errmsg('Order.pm:1', "CyberCash module found (CyberCash 2).", $ver ) );
 };
 
 eval {
+	require CCMckLib3_2 ;
+	import CCMckLib3_2 qw/InitConfig/;
 	require CCMckDirectLib3_2;
 	import CCMckDirectLib3_2 qw/SendCC2_1Server/;
+	require CCMckErrno3_2;
+	import CCMckErrno3_2 qw/MCKGetErrorMessage/;
 	$CC3 = 1;
 	logGlobal( errmsg('Order.pm:2', "CyberCash module found (CyberCash 3).") );
 };
@@ -221,22 +223,33 @@ sub cyber_charge {
     # Constants to find the merchant payment server
     #
     my %payment = (
-    'host' => $Vend::Cfg->{Variable}->{CYBER_HOST} || 'localhost',
-    'port' => $Vend::Cfg->{Variable}->{CYBER_PORT} || 8000,
-    'secret' => $Vend::Cfg->{Variable}->{CYBER_SECRET} || '',
-        );
+		'host' => $Vend::Cfg->{Variable}->{CYBER_HOST} || 'localhost',
+		'port' => $Vend::Cfg->{Variable}->{CYBER_PORT} || 8000,
+		'secret' => $Vend::Cfg->{Variable}->{CYBER_SECRET} || '',
+    );
 
 	$actual{cyber_mode} = 'mauthcapture'
 		unless $actual{cyber_mode};
-	
-	my $CC3;
 
     unless ($actual{cyber_mode} eq 'minivend_test') {
-		$CC3 = 1 if defined $Vend::Cfg->{CYBER_VERSION} and $Vend::Cfg->{CYBER_VERSION} >= 3;
-		SetServer(%payment) unless $CC3;
+		undef $CC3
+			unless	defined $Vend::Cfg->{Variable}{CYBER_VERSION}
+			and		        $Vend::Cfg->{Variable}{CYBER_VERSION} >= 3;
+		if($CC3) {
+			my $status = InitConfig($Vend::Cfg->{Variable}{CYBER_CONFIGFILE});
+			if ($status != 0) {
+				$Vend::Session->{cybercash_error} = MCKGetErrorMessage($status);
+				return undef;
+			}
+			*sendmserver = \&CCMckDirectLib3_2::SendCC2_1Server;
+		}
+		else {
+			*sendmserver = \&CCLib::sendmserver;
+			CCLib::SetServer(%payment);
+		}
 	}
 	else {
-		testSetServer(%payment);
+		*sendmserver = \&testSetServer;
 	}
 
     my($orderID);
@@ -275,40 +288,20 @@ sub cyber_charge {
 #	if ::debug(0x1);
 # END DEBUG
 
-	if($CC3) {
-	}
-
     my %result;
-    if ($actual{cyber_mode} ne 'minivend_test') {
-		%result = sendmserver(
-			$actual{cyber_mode},
-			'Order-ID'     => $orderID,
-			'Amount'       => $amount,
-			'Card-Number'  => $actual{mv_credit_card_number},
-			'Card-Name'    => $actual{b_name},
-			'Card-Address' => $actual{b_address},
-			'Card-City'    => $actual{b_city},
-			'Card-State'   => $actual{b_state},
-			'Card-Zip'     => $actual{b_zip},
-			'Card-Country' => $actual{b_country},
-			'Card-Exp'     => $exp,
-		);
-	}
-	else {
-		%result = testsendmserver(
-			$actual{cyber_mode},
-			'Order-ID'     => $orderID,
-			'Amount'       => $amount,
-			'Card-Number'  => $actual{mv_credit_card_number},
-			'Card-Name'    => $actual{b_name},
-			'Card-Address' => $actual{b_address},
-			'Card-City'    => $actual{b_city},
-			'Card-State'   => $actual{b_state},
-			'Card-Zip'     => $actual{b_zip},
-			'Card-Country' => $actual{b_country},
-			'Card-Exp'     => $exp,
-		);
-	}
+	%result = sendmserver(
+		$actual{cyber_mode},
+		'Order-ID'     => $orderID,
+		'Amount'       => $amount,
+		'Card-Number'  => $actual{mv_credit_card_number},
+		'Card-Name'    => $actual{b_name},
+		'Card-Address' => $actual{b_address},
+		'Card-City'    => $actual{b_city},
+		'Card-State'   => $actual{b_state},
+		'Card-Zip'     => $actual{b_zip},
+		'Card-Country' => $actual{b_country},
+		'Card-Exp'     => $exp,
+	);
 
 	if($result{MStatus} !~ /^success/) {
 		$Vend::Session->{cybercash_error} = $result{MErrMsg};
@@ -455,9 +448,10 @@ sub get_ignored {
 # Email the processed order.
 
 sub mail_order {
-	my $email = shift || $Vend::Cfg->{MailOrderTo};
+	my ($email, $order_no) = @_;
+	$email = $Vend::Cfg->{MailOrderTo} unless $email;
     my($body, $i, $code, $ok, $seen, $blankline);
-    my($values, $key, $value, $order_no, $pgp, $subject);
+    my($values, $key, $value, $pgp, $subject);
 	my(%modifiers);
 	my $new = 0;
     $seen = get_ignored();
@@ -473,7 +467,7 @@ sub mail_order {
 
     $values = $Vend::Session->{'values'};
 
-	$order_no = update_order_number();
+	$order_no = update_order_number() unless $order_no;
 
 	if(defined $values->{'mv_order_report'}
 		and $values->{'mv_order_report'}) {
@@ -507,7 +501,7 @@ sub mail_order {
     $body .= "\n" . order_list()
 		unless $new;
 
-	$subject = $CGI::values{mv_order_subject} || "ORDER %n";
+	$subject = $::Values{mv_order_subject} || "ORDER %n";
 
 	if(defined $order_no) {
 	    $subject =~ s/%n/$order_no/;
@@ -516,23 +510,34 @@ sub mail_order {
 	}
 	else { $subject =~ s/\s*%n\s*//g; }
 
-	if($pgp = $Vend::Cfg->{'PGP'} ||= '') {
-		open(Vend::Order::PGP, "|$pgp > pgp$$.out 2>pgp$$.err")
-			or die "Couldn't fork: $!";
-		print Vend::Order::PGP $body;
-		close Vend::Order::PGP;
-		if($?) {
-			logError("PGP failed with status " . $? << 8 . ": $!");
-			return 0;
-		}
-		$body = readfile("pgp$$.out");
-		unlink "pgp$$.out";
-		unlink "pgp$$.err";
-	}
+	$body = pgp_encrypt($body) if $Vend::Cfg->{PGP};
+
     $ok = send_mail($email, $subject, $body);
     $ok;
 }
 
+sub pgp_encrypt {
+	my($body, $key, $cmd) = @_;
+	$cmd = $Vend::Cfg->{PGP} unless $cmd;
+	if($key) {
+		$cmd =~ s/%%/:~PERCENT~:/g;
+		$cmd =~ s/%s/$key/g;
+		$cmd =~ s/:~PERCENT~:/%/g;
+	}
+	my $fpre = $Vend::Cfg->{ScratchDir} . "/pgp.$$";
+	open(Vend::Order::PGP, "|$cmd >$fpre.out 2>$fpre.err")
+			or die "Couldn't fork: $!";
+	print Vend::Order::PGP $body;
+	close Vend::Order::PGP;
+	if($?) {
+		logError("PGP failed with status " . $? << 8 . ": $!");
+		return 0;
+	}
+	$body = readfile("$fpre.out");
+	unlink "$fpre.out";
+	unlink "$fpre.err";
+	return $body;
+}
 
 sub check_order {
 	my ($profile) = @_;
@@ -545,8 +550,8 @@ sub check_order {
 	elsif($profile =~ /^\d+$/) {
 		$params = $Vend::Cfg->{'OrderProfile'}->[$profile];
 	}
-	elsif(defined $Vend::Session->{scratch}->{$profile}) {
-		$params = $Vend::Session->{scratch}->{$profile};
+	elsif(defined $Vend::Session->{'scratch'}->{$profile}) {
+		$params = $Vend::Session->{'scratch'}->{$profile};
 	}
 	else { return undef }
 	return undef unless $params;
@@ -736,16 +741,20 @@ sub _required {
 	return (undef, $var, "blank");
 }
 
+sub counter_number {
+	my $file = shift || $Vend::Cfg->{'OrderCounter'};
+	$File::CounterFile::DEFAULT_DIR = $Vend::Cfg->{'VendRoot'}
+		unless $file =~ m!^/!;
+	my $c = new File::CounterFile $file, "000000";
+	return $c->inc;
+}
+
 sub update_order_number {
 
 	my($c,$order_no);
 
 	if($Vend::Cfg->{'OrderCounter'}) {
-		$File::CounterFile::DEFAULT_DIR = $Vend::Cfg->{'VendRoot'}
-			unless $Vend::Cfg->{'OrderCounter'} =~ m!^/!;
-		my $c = new File::CounterFile $Vend::Cfg->{'OrderCounter'}, "000000";
-		$order_no = $c->inc;
-		undef $c;
+		$order_no = counter_number();
 	}
 	else {
 		$order_no = $Vend::SessionID . '.' . time;
@@ -786,6 +795,227 @@ sub track_order {
 	}
 
 }
+
+sub route_order {
+	my ($route, $save_cart) = @_;
+	my $cart = [ @$save_cart ];
+	if(! $Vend::Cfg->{Route}) {
+		$Vend::Cfg->{Route} = {
+			report		=> "pages/$::Values->{mv_order_report}.html" || 'etc/report',
+			receipt		=> $::Values->{mv_order_receipt} || 
+									$Vend::Cfg->{ReceiptPage}  ||
+									find_special_page('confirmation'),
+			encrypt_program	=> '',
+			encrypt		=> 0,
+			pgp_key		=> '',
+			pgp_cc_key	=> '',
+			cybermode	=> $CGI::values{mv_cybermode} || undef,
+			credit_card	=> 1,
+			profile		=> '',
+			email		=> $Vend::Cfg->{MailOrderTo},
+			attach		=> 0,
+			counter		=> '',
+			increment	=> 0,
+			supplant	=> 0,
+			errors_to	=> $Vend::Cfg->{MailOrderTo},
+		};
+	}
+
+	my $main = $Vend::Cfg->{Route};
+
+	my $encrypt_program = $main->{encrypt_program} || 'pgpe -fat -r %s';
+	my (@routes);
+	my $shelf = { };
+	my $item;
+	foreach $item (@$cart) {
+		$shelf = { } unless $shelf;
+		next unless $item->{mv_order_route};
+		my(@r) = split /[\s\0,]+/, $item->{mv_order_route};
+		for(@r) {
+			next unless $_;
+			$shelf->{$_} = [] unless defined $shelf->{$_};
+			push @routes, $_;
+			push @{$shelf->{$_}}, $item;
+		}
+	}
+	my %seen;
+
+	@routes = grep !$seen{$_}, @routes;
+	my (@main) = split /[\s\0,]+/, $route;
+	for(@main) {
+		next unless $_;
+		$shelf->{$_} = [ @$cart ];
+	}
+
+	push @routes, @main;
+
+	my ($c,@out);
+	my $status;
+	my $errors = '';
+
+	$::Values->{mv_order_number} = counter_number($main->{counter});
+
+	my $value_save = { %{$::Values} };
+
+	BUILD:
+	foreach $c (@routes) {
+		$Data::Dumper::Indent = 3;
+::logGlobal("main:\n" . Data::Dumper::Dumper($main) .
+							"route:\n" .  Data::Dumper::Dumper($route) .
+							"values:\n" .  Data::Dumper::Dumper($::Values)
+							);
+		$::Values = { %$value_save };
+		$Vend::Items = $shelf->{$c};
+		if(! defined $Vend::Cfg->{Route_repository}{$c}) {
+			logError(errmsg('Order.pm:4', "Non-existent order routing %s", $c));
+			next;
+		}
+		my $route = $Vend::Cfg->{Route_repository}{$c};
+	eval {
+
+		if($route->{profile}) {
+			check_order($route->{profile})
+				or die "Failed order profile $route->{profile}";
+		}
+
+		if($CGI::values{mv_cyber_mode} and $route->{cyber_mode}) {
+			my $save = $CGI::values{mv_cyber_mode};
+			$CGI::values{mv_cyber_mode} = $route->{cyber_mode};
+			my $glob = {};
+			my (@vars) =  (qw/ CYBER_CONFIGFILE CYBER_CURRENCY CYBER_HOST
+							CYBER_PORT CYBER_REMAP CYBER_SECRET CYBER_VERSION /);
+			for(@vars) {
+				next unless $route->{$_};
+				$glob->{$_} = $Vend::Cfg->{Variable}{$_};
+				$Vend::Cfg->{Variable}{$_} = $route->{$_};
+			}
+			eval {
+				$ok = cyber_charge();
+			};
+			for(@vars) {
+				next unless exists $glob->{$_};
+				$Vend::Cfg->{Variable}{$_} = $glob->{_};
+			}
+			$CGI::values{mv_cyber_mode} = $save;
+			unless ($ok) {
+				$errors .= errmsg('Order.pm:5',
+								"Failed online charge for routing %s: %s",
+								$c,
+								$Vend::Session->{cybercash_error}
+							);
+			}
+		}
+		elsif($route->{credit_card}) {
+			$::Values->{mv_credit_card_info} = pgp_encrypt(
+								$::Values->{mv_credit_card_info},
+								$route->{pgp_cc_key} || $route->{pgp_key},
+								$route->{encrypt_program} || $encrypt_program,
+							);
+		}
+
+		if($route->{counter}) {
+			$::Values->{mv_order_number} = counter_number($route->{counter});
+		}
+		elsif($route->{increment}) {
+			$::Values->{mv_order_number} = counter_number();
+		}
+		my $page = readfile($route->{'report'} || $main->{'report'});
+		die "No order report $route->{'report'} or $main->{'report'} found."
+			unless defined $page;
+		$page = interpolate_html($page);
+		if($route->{encrypt}) {
+			$page = pgp_encrypt($page,
+								$route->{pgp_key},
+								$route->{encrypt_program} || $encrypt_program,
+								);
+		}
+		my ($address, $reply, $to, $subject, $template);
+		if($route->{attach}) {
+			$Vend::Items->[0]{mv_order_report} = $page;
+		}
+		elsif ($address = $route->{email}) {
+			$address = $::Values->{$address} if $address =~ /^\w+$/;
+			$::Values->{mv_order_subject} =~ s/%n/%s/;
+			$subject = $::Values->{mv_order_subject} || 'ORDER %s';
+			$subject = sprintf "$subject", $::Values->{mv_order_number};
+			$reply   = $route->{reply} || $main->{reply};
+			$reply   = $::Values->{$reply} if $reply =~ /^\w+$/;
+			$to		 = $route->{email};
+			push @out, [$to, $subject, $page, $reply];
+		}
+		elsif ($route->{empty}) {
+			# Do nothing
+		}
+		else {
+			die "Empty order routing $c (and not explicitly empty)";
+		}
+	};
+		if($@) {
+			my $err = $@;
+			$errors .=  errmsg('Order.pm:6',
+						"Error during creation of order routing %s:\n%s",
+						$c, $err
+						)
+					;
+			next BUILD;
+		}
+
+	} #BUILD
+	my $msg;
+
+	foreach $msg (@out) {
+		$::Values->{mv_email} = pop @$msg;
+		eval {
+			send_mail(@$msg);
+		};
+		if($@) {
+			my $err = $@;
+			$errors .=  errmsg('Order.pm:7',
+						"Error sending mail to %s:\n%s",
+							$msg->[0], $err
+						);
+			$status = 0;
+			next;
+		}
+		else {
+			$status = 1;
+		}
+	}
+
+	$::Values = $value_save;
+	$Vend::Items = $save_cart;
+
+	if(! $errors) {
+		delete $Vend::Session->{order_error};
+	}
+	elsif ($main->{errors_to}) {
+		$Vend::Session->{order_error} = $errors;
+		send_mail(
+			$main->{errors_to},
+			errmsg('Order.pm:8', "ERRORS on ORDER %s", $::Values{mv_order_number}),
+			$errors
+			);
+	}
+	else {
+		$Vend::Session->{order_error} = $errors;
+		::logError(
+			errmsg('Order.pm:9',
+					"ERRORS on ORDER %s:\n%s",
+					$::Values{mv_order_number},
+					$errors
+				)
+		);
+	}
+
+	# If we give a defined value, the regular mail_order routine will not
+	# be called
+	if($main->{supplant}) {
+		return ($status, $::Values->{mv_order_number});
+	}
+	return (undef, $::Values->{mv_order_number});
+	1;
+}
+
 
 1;
 __END__

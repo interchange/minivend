@@ -1,6 +1,6 @@
 # Table/GDBM.pm: access a table stored in a GDBM file
 #
-# $Id: GDBM.pm,v 1.8 1998/06/01 17:07:17 mike Exp $
+# $Id: GDBM.pm,v 1.9 1998/09/01 13:15:22 mike Exp mike $
 #
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -20,7 +20,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::GDBM;
-$VERSION = substr(q$Revision: 1.8 $, 10);
+$VERSION = substr(q$Revision: 1.9 $, 10);
 use Carp;
 use strict;
 use GDBM_File;
@@ -140,8 +140,9 @@ sub open_table {
 
 sub close_table {
     my ($s) = @_;
-	return unless $Vend::Foreground;
-    untie %{$s->[$TIE_HASH]} or die "Could not close '$s->[$FILENAME]': $!\n";
+	pop(@$s);
+	my $ref = pop(@$s);
+    untie %$ref or die "Could not close GDBM table $s->[$FILENAME]: $!\n";
 }
 
 

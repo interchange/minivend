@@ -1,6 +1,6 @@
 # Table/Msql.pm: access a table stored in an Msql Database
 #
-# $Id: Msql.pm,v 1.11 1998/05/02 03:08:13 mike Exp $
+# $Id: Msql.pm,v 1.12 1998/07/28 00:43:12 mike Exp $
 #
 
 # Basic schema
@@ -24,7 +24,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::Msql;
-$VERSION = substr(q$Revision: 1.11 $, 10);
+$VERSION = substr(q$Revision: 1.12 $, 10);
 
 use Carp;
 use strict;
@@ -120,7 +120,7 @@ sub create {
 		or croak "The '$config->{Catalog}' Msql database is not present.\n";
 
     croak "columns argument $columns is not an array ref\n"
-        unless ref($columns) eq 'ARRAY';
+        unless CORE::ref($columns) eq 'ARRAY';
 
     my $column_index = {};
     my ($i,$key,$query,$version);

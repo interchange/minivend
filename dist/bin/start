@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl -w
+#!/usr/bin/perl -w
 # start - starts MiniVend UNIX, INET, combined server mode
 #       - also handles buildtree function
 
@@ -80,10 +80,13 @@ sub get_id {
 	my $file = -f "$VendRoot/error.log"
 				? "$VendRoot/error.log" : '';
 	return '' unless $file;
+	return '' if $^O =~ /win32/i;
 	my ($name, $group);
 
-	my($uid) = (stat($file))[4];
-	$name = (getpwuid($uid))[0];
+	eval {
+		my($uid) = (stat($file))[4];
+		$name = (getpwuid($uid))[0];
+	};
 	return $name;
 }
 
@@ -123,7 +126,9 @@ EOM
 if (defined $Trysu) {
 	exec "su -c $0 $name" or
 	exec <<EndOfExec or die "Couldn't exec: $!\n";
-su -c $0 $name
+su $name <<EOF
+$0
+EOF
 EndOfExec
 
 }

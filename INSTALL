@@ -2,6 +2,10 @@
 
                       I N S T A L L A T I O N
 
+IMPORTANT NOTE: The installation procedure has changed, we hope for the
+                better. Please read this even if you have installed
+                MiniVend before.
+
 We IMPLORE you to read all of the verbiage below.  We know how most
 of us are, so we put the install procedure up here, but if you have
 problems please read all of this file, PLUS the MiniVend documentation
@@ -9,7 +13,8 @@ in doc/minivend.html.  Also, please check out the official MiniVend
 FAQ at http://www.minivend.com/minivend/faq/ before you call for help.
 And send your system, Perl, and Minivend information, VERSIONS AND ALL!
 
-IMPORTANT NOTE: If you don't give evidence of having read and
+IMPORTANT NOTE: The installation procedure has changed, we hope for the
+                better. If you don't give evidence of having read and
                 heeded the above heartfelt plea, your email
                 may well be ignored.  Caveat Emptor.
 
@@ -17,7 +22,7 @@ IMPORTANT NOTE: If you don't give evidence of having read and
 WINDOWS INSTALLATION
 --------------------
 
-    Obtain the self-extracting executable minivend-3.10.exe
+    Obtain the self-extracting executable minivend-3.11.exe
     and double-click on it.
 
     IMPORTANT NOTE: If you get the message "Bad command or file name"
@@ -25,10 +30,10 @@ WINDOWS INSTALLATION
     on your machine or is not in your path.  Go to http://www.perl.com
     and install the *standard* 5.004 version (AKA the Gurusamy Sarathy
     port). MiniVend will not work with the ActiveState 5.003 port; it
-	appears to work well with the "Merge" port.
+    appears to work well with the ActiveState 5.005 "Merge" port.
     
     If you already have the CYGWIN.DLL executable or plan on using the
-    Perl link CGI, you can download the file minivend-3.10-nodll.exe
+    Perl link CGI, you can download the file minivend-3.11-nodll.exe
     and do the same.
 
     The defaults are set for Microsoft Personal Web Server on Win95 --
@@ -46,23 +51,28 @@ WINDOWS INSTALLATION
     Some features are untested in the Windows version, and it 
     can be considered a beta.
 
+    If you have installed the MIME::Base64 and URI::URL (from libwww)
+    modules, then there is a new interface that is available for
+    a GUI-like catalog configuration. It should run automatically
+	upon a new installation.
+
 UNIX INSTALLATION
 ------------------
 Here is the short version:
 
-    gzip -dc minivend-3.10.tar.gz | tar xvf -
-    cd minivend-3.10
+    gzip -dc minivend-3.11.tar.gz | tar xvf -
+    cd minivend-3.11
     ./configure
 
 Long version with comments:
 
     # Unzip and untar the file -- if you have GNU tar, you can substitute
-    # 'tar xzf minivend-3.10.tar.gz'
-    gzip -dc minivend-3.10.tar.gz | tar xvf -
+    # 'tar xzf minivend-3.11.tar.gz'
+    gzip -dc minivend-3.11.tar.gz | tar xvf -
 
     # Change directory to the one that was created 
     #
-    cd minivend-3.10
+    cd minivend-3.11
 
     # If you have trouble with picking up the wrong Perl version,
     # try  '/dir/where/perl/is/perl Makefile.PL
@@ -115,6 +125,13 @@ Long version with comments:
     #
     bin/start
 
+The new catalog installer is at:
+
+    http://the.configured.host:7786/mv_admin
+
+NOTE:   The MiniVend server must be running to use the installer.
+        We attempt to make this automatic on Windows. 8-)
+
 That should be it.  If you have problems, please do what is asked above,
 and pretty please reference the web site. And
 
@@ -141,15 +158,13 @@ Key things that people sometimes don't understand:
        space.  They are in the catalog directory of the catalog
        that is in question.
 
-    -- The highly interpolative nature of MiniVend and HTML tags
-       means that interpolation order, not page position order,
-       is often important when using the OLD tag syntax.
+    -- When using the NEW page syntax, the default in this version,
+       tags are interpreted in the order they appear on the page.
 
-       When using the NEW page syntax, tags are interpreted in
-       the order they appear on the page.
-
-       It is strongly recommended that you move to the new syntax,
-       as MiniVend 4.0 will be removing many of the old tags.
+    -- It is strongly recommended that you move to the new syntax,
+       as MiniVend 4.0 will be removing many of the old tags. If you
+       have pages that will be too much trouble to move, use
+       [compat][/compat] for now, but even that will go away.
 
     -- The first thing to do in setting up a custom MiniVend catalog
        is to define the database.  Everything with MiniVend stems

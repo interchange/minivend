@@ -1,6 +1,6 @@
 # Data.pm - Minivend databases
 #
-# $Id: Data.pm,v 1.40 1998/07/04 21:57:12 mike Exp mike $
+# $Id: Data.pm,v 1.46 1998/09/01 13:15:22 mike Exp mike $
 # 
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -197,24 +197,18 @@ sub update_productbase {
 sub product_price {
     my ($code, $q, $base) = @_;
 
-	unless (ref $base) {
-		return "" unless $base = product_code_exists_ref($code, $base || undef);
+	if (ref $base) {
+		$base = $Vend::Basefinder{$base}
 	}
 
-	my($price);
-    if($Vend::Cfg->{PriceBreaks}) {
-		$price = quantity_price(
-					$code,
-					database_field($base,$code,$Vend::Cfg->{PriceField}),
-					$q)
-				 / $Vend::Cfg->{PriceDivide};
-	}
-	else {
-		$price = database_field($base,$code,$Vend::Cfg->{PriceField})
-				/ $Vend::Cfg->{PriceDivide};
-	}
-	#return international_number($price) if $Vend::Cfg->{Locale};
-	return $price;
+	return item_price(
+		{
+			code		=> $code,
+			quantity	=> $q,
+			mv_ib		=> $base,
+		},
+		$q
+	);
 }
 
 sub product_description {
@@ -376,6 +370,7 @@ sub sql_query {
 
 sub column_index {
     my ($field_name) = @_;
+    return undef unless $Products->test_column($field_name);
     return $Products->column_index($field_name);
 }
 
@@ -486,8 +481,19 @@ sub read_shipping {
 	my $append = '00000';
     while(<Vend::SHIPPING>) {
 		chomp;
+		if(s/\\$//) {
+			$_ .= <Vend::SHIPPING>;
+			redo;
+		}
+		elsif (s/<<(\w+)$//) {
+			my $mark = $1;
+			my $line = $_;
+			$line .= Vend::Config::read_here(\*Vend::SHIPPING, $mark);
+			$_ = $line;
+			redo;
+		}
 		next unless /\S/;
-		($mode, $desc, $criterion, $min, $max, $cost) = split(/\t/);
+		($mode, $desc, $criterion, $min, $max, $cost) = split(/\t/, $_, 6);
 		$code = defined $seen{$mode} ? $mode . $append++ : $mode; 
 		$seen{$code} = 1;
 # DEBUG
@@ -624,13 +630,13 @@ sub read_salestax {
     while(<Vend::SALESTAX>) {
 		chomp;
 		tr/\r//d;
-		($code, $percent) = split(/\s+/);
+		($code, $percent) = split(/\s+/, $_, 2);
 		$Vend::Cfg->{SalesTaxTable}->{"\U$code"} = $percent;
     }
     close Vend::SALESTAX;
 
-	if(not defined $Vend::Cfg->{SalesTaxTable}->{'default'}) {
-		$Vend::Cfg->{SalesTaxTable}->{'default'} = 0;
+	if(not defined $Vend::Cfg->{SalesTaxTable}->{'DEFAULT'}) {
+		$Vend::Cfg->{SalesTaxTable}->{'DEFAULT'} = 0;
 	}
 
 	1;
@@ -760,10 +766,15 @@ sub import_database {
 
 	my $no_import = defined $Vend::Cfg->{NoImport}->{$name};
 
+	if (defined $Vend::ForceImport{$name}) {
+		undef $no_import;
+		delete $Vend::ForceImport{$name};
+	}
+
 	$base = $obj->{'name'};
 	$dir = $obj->{'dir'} if defined $obj->{'dir'};
   IMPORT: {
-	last IMPORT if $no_import;
+	last IMPORT if $no_import and $obj->{'dir'};
 	last IMPORT if defined $obj->{IMPORT_ONCE} and $obj->{'dir'};
 
     $database_txt = $database;
@@ -779,12 +790,15 @@ sub import_database {
 	}
 
 	$obj->{'dir'} = $dir;
+
+	last IMPORT if $no_import;
+
 	if($type == 8) {
 		$New_table_sql = $base;
 		$New_name_sql = $name;
     	$database_dbm = File::Spec->catfile($dir,"$base.sql");
     	$New_database_dbm = File::Spec->catfile($dir,"new_$base.sql");
-		if ($no_import or -f $database_dbm or ! -f $database_txt) {
+		if (-f $database_dbm or ! -f $database_txt) {
 			$no_import = 1;
 		}
 		else {
@@ -800,7 +814,7 @@ sub import_database {
 		$New_name_sql = $name;
     	$database_dbm = File::Spec->catfile($dir,"$base.sql");
     	$New_database_dbm = File::Spec->catfile($dir,"new_$base.sql");
-		if ($no_import or -f $database_dbm or ! -f $database_txt) {
+		if (-f $database_dbm or ! -f $database_txt) {
 			$no_import = 1;
 		}
 		else {
@@ -833,10 +847,6 @@ sub import_database {
     	$create_sub = \&create_database_mem;
 		$cacheable = 1;
 	}
-	if (defined $Vend::ForceImport{$name}) {
-		undef $database_dbm;
-		delete $Vend::ForceImport{$name};
-	}
 	last IMPORT if $no_import;
     if (! defined $database_dbm
 		or ! -e $database_dbm
@@ -855,10 +865,9 @@ sub import_database {
 # END DEBUG
 		my $save = $/;
 		$/ = $record_delim if defined $record_delim;
-        $db = import_ascii_delimited($database_txt, $obj, $create_sub)
-			unless $delimiter eq 'CSV';
-        $db = import_quoted($database_txt, $create_sub)
-			if $delimiter eq 'CSV';
+        $db = $delimiter ne 'CSV'
+			? import_ascii_delimited($database_txt, $obj, $create_sub)
+        	: import_quoted($database_txt, $create_sub);
 
 		$/ = $save;
 		if(defined $database_dbm) {
@@ -910,16 +919,34 @@ sub import_database {
 #("Opening GDBM: RO=$read_only\n")
 #	if ::debug(0x4);
 # END DEBUG
+		eval {
     	$db = Vend::Table::GDBM->open_table({Read_only => $read_only},
 									  File::Spec->catfile($dir,"$base.gdbm")
 									  );
+		};
+		if($@) {
+			die $@ unless $no_import;
+			if(! -f $database_dbm) {
+				$Vend::ForceImport{$obj->{'name'}} = 1;
+				return import_database($obj);
+			}
+		}
 	}
     elsif($Global::DB_File) {
 		$db->close_table() if defined $db;
 		undef $db;
+		eval {
     	$db = Vend::Table::DB_File->open_table({Read_only => $read_only},
 									  File::Spec->catfile($dir,"$base.db")
 									  );
+		};
+		if($@) {
+			die $@ unless $no_import;
+			if(! -f $database_dbm) {
+				$Vend::ForceImport{$obj->{'name'}} = 1;
+				return import_database($obj);
+			}
+		}
 	}
 
 	if(defined $cacheable) {
@@ -980,8 +1007,8 @@ sub export_database {
 	}
 	elsif ($field and ! $delete) {
 #		logError("Adding field $_");
-		logError( errmsg('Data.pm:7', "Adding field %s" , $_) );
-		push @cols, $_;
+		logError( errmsg('Data.pm:7', "Adding field %s" , $field) );
+		push @cols, $field;
 		$notouch = 1;
 	}
 	elsif ($field and $delete) {
@@ -1112,15 +1139,175 @@ EOF
 	return $sub;
 }
 
+sub chain_cost {
+	my ($item, $raw) = @_;
+	return $raw if $raw =~ /^[\d.]*$/;
+	my $price;
+	my $final = 0;
+	my $its = 0;
+	my @p;
+	$raw =~ s/^\s+//;
+	$raw =~ s/\s+$//;
+	if($raw =~ /^\[\B/ and $raw =~ /\]$/) {
+		my $ref = Vend::Interpolate::tag_calc($raw);
+		@p = @{$ref} if ref $ref;
+	}
+	else {
+		@p = Text::ParseWords::shellwords($raw);
+	}
+	if(scalar @p > 16) {
+			::logError('Too many chained cost levels for item ' .  uneval($item) );
+			return undef;
+	}
+
+#::logGlobal("chain_cost item = " . uneval ($item) );
+	my ($chain, $percent);
+	my $passed_key;
+	my $want_key;
+CHAIN:
+	foreach $price (@p) {
+		if($its++ > 20) {
+			::logError('Too many chained cost levels for item ' .  uneval($item) );
+			last CHAIN;
+		}
+		$price =~ s/^\s+//;
+		$price =~ s/\s+$//;
+		if ($want_key) {
+			$passed_key = $price;
+			undef $want_key;
+			next CHAIN;
+		}
+		if ($price =~ s/^;//) {
+			next if $final;
+		}
+		$chain = $price =~ s/,$// ? 1 : 0 unless $chain;
+		if ($price =~ /^ \(  \s*  (.*)  \s* \) \s* $/x) {
+			$price = $1;
+			$want_key = 1;
+		}
+		if ($price =~ s/^([^-+\d.].*)//s) {
+			my $mod = $1;
+			if($mod =~ s/^\$(\d|$)/$1/) {
+				$price = $item->{mv_price} || $mod;
+				redo CHAIN;
+			}
+			elsif($mod =~ /^(\w*):([^:]+)(:(\S*))?$/) {
+				my ($table,$field,$key) = ($1, $2, $4);
+				if($passed_key) {
+					(! $key   and $key   = $passed_key)
+						or 
+					(! $field and $field = $passed_key)
+						or 
+					(! $table and $table = $passed_key);
+					undef $passed_key;
+				}
+				my @breaks;
+				if($field =~ /,/ || $field =~ /\.\./) {
+					my (@tmp) = split /,/, $field;
+					for(@tmp) {
+						if (/(.+)\.\.+(.+)/) {
+							push @breaks, $1 .. $2;
+						}
+						else {
+							push @breaks, $_;
+						}
+					}
+				}
+				if(@breaks) {
+					my $attribute = 'quantity';
+					$attribute = shift @breaks  if $breaks[0] !~ /\d/;
+
+					$field = shift @breaks;
+					my $test = $field;
+					$test =~ s/\D+//;
+					redo CHAIN if $item->{$attribute} < $test;
+					for(@breaks) {
+						$test = $_;
+						$test =~ s/\D+//;
+						last if $test > $item->{$attribute};
+						$field = $_;
+					}
+				}
+				$price = database_field(
+						($table || $item->{mv_ib} || $Vend::Cfg->{ProductFiles}[0]),
+											($key || $item->{code}),
+											$field
+										);
+				redo CHAIN;
+			}
+			elsif ($mod =~ s/^[&]//) {
+				my $adj;
+				$Vend::Interpolate::item = $item;
+				$Vend::Interpolate::s = $final;
+				$Vend::Interpolate::q = $item->{quantity};
+				$price = Vend::Interpolate::tag_calc($mod);
+				undef $Vend::Interpolate::item;
+				redo CHAIN;
+			}
+			elsif ($mod =~ s/^=([\d.]*)=([^=]+)//) {
+				$final += $1 if $1;
+				my ($attribute, $table, $field, $key) = split /:/, $2;
+				$item->{$attribute} and
+					do {
+						$key = $field ? $item->{$attribute} : $item->{'code'};
+						$price = database_field( ( $table ||
+													$item->{mv_ib} ||
+													$Vend::Cfg->{ProductFiles}[0]),
+												$key,
+												($field || $item->{$attribute})
+										);
+						redo CHAIN;
+					};
+			}
+			elsif($mod =~ /^\s*[[_]+/) {
+				$::Scratch->{'mv_item_object'} = $Vend::Interpolate::item = $item;
+				$Vend::Interpolate::s = $final;
+				$Vend::Interpolate::q = $item->{quantity};
+				$price = Vend::Interpolate::interpolate_html($mod);
+				undef $::Scratch->{'mv_item_object'};
+				undef $Vend::Interpolate::item;
+				redo CHAIN;
+			}
+			elsif($mod =~ s/^>>+//) {
+				# This can point to a new mode for shipping
+				# or taxing
+				$final = $mod;
+				last CHAIN;
+			}
+			else {
+				$passed_key = $mod;
+				next CHAIN;
+			}
+		}
+		elsif($price =~ s/%$//) {
+			$price = $final * ($price / 100); 
+		}
+		elsif($price =~ s/\s*\*$//) {
+			$final *= $price;
+			undef $price;
+		}
+		$final += $price if $price;
+		last if ($final and !$chain);
+		undef $chain;
+		undef $passed_key;
+#::logGlobal("chain_cost intermediate '$final'");
+	}
+#::logGlobal("chain_cost returning '$final'");
+	return $final;
+}
+
 sub build_item_price {
 
 ###
 my $code = <<'EOF';
 	sub {
-	my($item, $quantity) = @_;
-	my ($price, $base);
-	$quantity = $quantity || undef;
-	$base = product_code_exists_ref($item->{code}, $item->{mv_ib});
+	my($item, $quantity, $noformat) = @_;
+	return $item->{mv_cache_price}
+		if ! $quantity and defined $item->{mv_cache_price};
+	my ($price, $base, $adjusted);
+	$item = { 'code' => $item, 'quantity' => ($quantity || 1) } unless ref $item;
+	$base = product_code_exists_ref($item->{code}, $item->{mv_ib})
+		or return undef;
 	$price = database_field($base, $item->{code}, $Vend::Cfg->{PriceField});
 EOF
 ###
@@ -1145,9 +1332,7 @@ EOF
 ###
 
 		if($Vend::Cfg->{CommonAdjust}) {
-			croak "Must have price adjustment database '" .
-						$Vend::Cfg->{CommonAdjust} . "' defined.\n"
-				unless defined $Vend::Database{$Vend::Cfg->{CommonAdjust}};
+			if (defined $Vend::Database{$Vend::Cfg->{CommonAdjust}}) {
 ###
 $code .= <<'EOF';
 	my $adder = database_field($Vend::Database{$Vend::Cfg->{CommonAdjust}},
@@ -1160,6 +1345,13 @@ $code .= <<'EOF';
 	$price += $adder;
 EOF
 ###
+			}
+			else {
+$code .= <<'EOF';
+$price = chain_cost($item,$price || $Vend::Cfg->{CommonAdjust});
+EOF
+###
+			}
 		}
 		else {
 ###
@@ -1178,16 +1370,23 @@ EOF
 ###
 
 	}
-	if($Vend::Cfg->{Locale} or $Vend::Cfg->{PriceDivide} != 1) {
-		$code .= <<'EOF';
-$price = $price / $Vend::Cfg->{PriceDivide};
+	elsif ($Vend::Cfg->{CommonAdjust}) {
+$code .= <<'EOF';
+$price = chain_cost($item,$price || $Vend::Cfg->{CommonAdjust});
 EOF
 ###
 	}
+		$code .= <<'EOF';
+$price = $price / $Vend::Cfg->{PriceDivide};
+$item->{mv_cache_price} = $price if ! $quantity and exists $item->{mv_cache_price};
+EOF
+###
+
 	if($Vend::Cfg->{Locale}) {
 ###
 		$code .= <<'EOF';
-return international_number($price);
+return international_number($price) unless $noformat;
+return $price;
 }
 EOF
 ###
@@ -1207,7 +1406,7 @@ EOF
 }
 
 sub item_price {
-	&{$Vend::Cfg->{ItemPriceRoutine}}($_[0], $_[1] || undef);
+	&{$Vend::Cfg->{ItemPriceRoutine}}(@_);
 }
 
 

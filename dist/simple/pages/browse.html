@@ -1,14 +1,14 @@
 <HTML>
 <HEAD>[tag flag build][/tag]
-<TITLE>Browse __COMPANY__</TITLE>
+<TITLE>[L]Browse[/L] __COMPANY__</TITLE>
 </HEAD>
 [body 1]
 <CENTER>
 <H1>
-Browse __COMPANY__
+[L]Browse[/L] __COMPANY__
 </H1>
 <FONT SIZE="-1">
-	Browse [page browse1 1:1]one</A>
+	[L]Browse[/L] [page browse1 1:1]one</A>
 	or     [page browse1 1:2]two</A> at a time </FONT></BR>
 [tag each products]
 [sort products:category products:price:rn]
@@ -27,15 +27,15 @@ Browse __COMPANY__
 
 <H2>[loop-description]</H2>
 <P>
-Catalog No.: [loop-code]
+[L]Catalog[/L] [L]Number[/L]: [loop-code]
 <P>
-Price: [loop-price]
+[L]Price[/L]: [loop-price]
 <P>
-[page [loop-code]]<IMG BORDER=0 SRC="details.gif">[/page]
-[order [loop-code]]<IMG BORDER=0 SRC="ordernow.gif" ALT="(ORDER NOW)">[/order]
+[page [loop-code]]<IMG BORDER=0 SRC="details.gif" ALT="[L]More Info[/L]">[/page]
+[order [loop-code]]<IMG BORDER=0 SRC="ordernow.gif" ALT="[L]ORDER NOW[/L]">[/order]
 [/tag]
 <HR>
-[buttonbar 0]
+[include pages/buttonbar.html]
 </CENTER>
 
 </BODY>

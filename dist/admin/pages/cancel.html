@@ -1,0 +1,41 @@
+<HTML><HEAD>
+
+<TITLE>Cancel Operation?</TITLE>
+
+</HEAD>
+<BODY BGCOLOR="#C0C0C0">
+
+<FORM METHOD="POST" ACTION="[process-target]">
+<INPUT TYPE=hidden NAME="mv_doit" VALUE="return">
+<INPUT TYPE=hidden NAME="mv_nextpage" VALUE="menu">
+
+<TABLE WIDTH=580>
+	<TR VALIGN=TOP><TD>__WIZARD_BANNER__</TD>
+<TD><FONT SIZE="-1" FACE="arial, helvetica"><BR></FONT>
+			<TABLE BORDER=2 CELLPADDING=10 CELLSPACING=0 WIDTH=390>
+			<TR><TD>
+				Wipe out administration session
+			<P>
+				
+</TD></TR></TABLE></TD></TR></TABLE>
+
+<TABLE BORDER=0 CELLPADDING=0 CELLSPACING=0 WIDTH=550>
+<TR ALIGN="RIGHT"><TD>
+
+    <INPUT TYPE=submit NAME=mv_click VALUE="Yes, Cancel"> 
+    &nbsp; &nbsp; &nbsp; 
+    <INPUT TYPE=submit VALUE=" No, go back ">
+
+[set Yes, Cancel]
+mv_todo=cancel
+[/set]
+<P>
+<A HREF="[area menu]">Return to main menu</A>
+</TD>
+</TR>
+</TABLE>
+
+</table>
+</FORM>
+</BODY>
+</HTML>

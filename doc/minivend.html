@@ -1,4 +1,4 @@
-<!-- $Id$ -->
+<!-- $Id: minivend.html,v 1.7 1998/09/01 13:15:22 mike Exp mike $ -->
 <HTML><HEAD>
 <CENTER><TITLE>minivend</TITLE>
 </HEAD>
@@ -14,8 +14,8 @@ MiniVend -- multi-catalog shopping cart and mall
 <A NAME="minivend_version_0">
 Version</A>
 </H2>
-This document describes MiniVend 3.09, based on Andrew Wilcox's
-original Vend, Version 0.2, with portions from Vend 0.3.
+This document describes MiniVend 3.11, based originally on Andrew Wilcox's
+1995 <I>Vend</I>.
 <p><p><hr>
 <!-- INDEX BEGIN -->
 <!--
@@ -41,6 +41,9 @@ original Vend, Version 0.2, with portions from Vend 0.3.
 		<LI><A HREF="#Where_to_Download_MiniVend">Where to Download MiniVend</A>
 		<LI><A HREF="#Perl">Perl</A>
 		<LI><A HREF="#Setup_for_HTTP_Servers">Setup for HTTP Servers</A>
+		<LI><A HREF="#UNIX_domain_sockets">UNIX-domain sockets</A>
+		<LI><A HREF="#INET_domain_sockets">INET-domain sockets</A>
+		<LI><A HREF="#Internal_HTTP_server">Internal HTTP server</A>
 	</UL>
 
 	<LI><A HREF="#QUICK_START">QUICK START</A>
@@ -131,11 +134,12 @@ original Vend, Version 0.2, with portions from Vend 0.3.
 		<LI><A HREF="#The_Search_Form">The Search Form</A>
 		<LI><A HREF="#Glimpse">Glimpse</A>
 		<LI><A HREF="#Fast_Binary_Search">Fast Binary Search</A>
-		<LI><A HREF="#Coordinated_searching">Coordinated searching</A>
+		<LI><A HREF="#Coordinated_and_joined_searching">Coordinated and joined searching</A>
 		<LI><A HREF="#Specifying_a_text_based_search_w">Specifying a text-based search with SQL-like syntax</A>
 		<LI><A HREF="#Range_Searching">Range Searching</A>
 		<LI><A HREF="#SQL_searches">SQL searches</A>
 		<LI><A HREF="#One_click_searches">One-click searches</A>
+		<LI><A HREF="#Setting_display_options_with_mv_">Setting display options with mv_value</A>
 		<LI><A HREF="#In_page_searches">In-page searches</A>
 		<LI><A HREF="#Search_Profiles">Search Profiles</A>
 		<LI><A HREF="#Search_Reference">Search Reference</A>
@@ -158,11 +162,20 @@ original Vend, Version 0.2, with portions from Vend 0.3.
 		<LI><A HREF="#Order_Receipts">Order Receipts</A>
 		<LI><A HREF="#The_Order_Counter">The Order Counter</A>
 		<LI><A HREF="#Customer_Input_Fields">Customer Input Fields</A>
-		<LI><A HREF="#Product_Pricing">Product Pricing</A>
+	</UL>
+
+	<LI><A HREF="#PRODUCT_PRICING">PRODUCT PRICING</A>
+	<UL>
+
+		<LI><A HREF="#Simple_pricing">Simple pricing</A>
+		<LI><A HREF="#Price_Maintenance_with_CommonAdj">Price Maintenance with CommonAdjust</A>
+		<LI><A HREF="#CommonAdjust_Examples">CommonAdjust Examples</A>
+		<LI><A HREF="#PriceBreaks_discounts_and_Pric">PriceBreaks, discounts, and PriceAdjustment</A>
 		<LI><A HREF="#Item_Attributes">Item Attributes</A>
 		<LI><A HREF="#Product_Discounts">Product Discounts</A>
 		<LI><A HREF="#Sales_Tax">Sales Tax</A>
 		<LI><A HREF="#Using_CyberCash">Using CyberCash</A>
+		<LI><A HREF="#CyberCash_3_2">CyberCash 3.2</A>
 	</UL>
 
 	<LI><A HREF="#SORTING">SORTING</A>
@@ -211,15 +224,173 @@ original Vend, Version 0.2, with portions from Vend 0.3.
 		<LI><A HREF="#Special_Locale_keys_for_price_re">Special Locale keys for price representation</A>
 		<LI><A HREF="#Dynamic_locale_directive_changes">Dynamic locale directive changes</A>
 		<LI><A HREF="#Sorting_based_on_Locale">Sorting based on Locale</A>
+		<LI><A HREF="#Placing_Locale_information_in_a_">Placing Locale information in a Database</A>
 	</UL>
 
 	<LI><A HREF="#MINIVEND_CONFIGURATION_FILES">MINIVEND CONFIGURATION FILES</A>
+	<LI><A HREF="#MINIVEND_CFG">MINIVEND.CFG</A>
 	<UL>
 
-		<LI><A HREF="#Server_Configuration_File">Server Configuration File</A>
-		<LI><A HREF="#Catalog_Configuration_File">Catalog Configuration File</A>
-		<LI><A HREF="#Required_Configuration_Directive">Required Configuration Directives</A>
+		<LI><A HREF="#AdminSub">AdminSub</A>
+		<LI><A HREF="#AdminUser">AdminUser</A>
+		<LI><A HREF="#AllowGlobal">AllowGlobal</A>
+		<LI><A HREF="#Catalog">Catalog</A>
+		<LI><A HREF="#DisplayErrors">DisplayErrors</A>
+		<LI><A HREF="#DomainTail">DomainTail</A>
+		<LI><A HREF="#Environment">Environment</A>
+		<LI><A HREF="#FullUrl">FullUrl</A>
+		<LI><A HREF="#GlobalSub">GlobalSub</A>
+		<LI><A HREF="#HammerLock">HammerLock</A>
+		<LI><A HREF="#HouseKeeping">HouseKeeping</A>
+		<LI><A HREF="#IpHead">IpHead</A>
+		<LI><A HREF="#LockoutCommand">LockoutCommand</A>
+		<LI><A HREF="#MaxServers">MaxServers</A>
+		<LI><A HREF="#MultiServer">MultiServer</A>
+		<LI><A HREF="#NoAbsolute">NoAbsolute</A>
+		<LI><A HREF="#PIDcheck">PIDcheck</A>
+		<LI><A HREF="#SafeSignals">SafeSignals</A>
+		<LI><A HREF="#SafeUntrap">SafeUntrap</A>
+		<LI><A HREF="#SendMailProgram">SendMailProgram</A>
+		<LI><A HREF="#SubCatalog">SubCatalog</A>
+		<LI><A HREF="#TcpHost">TcpHost</A>
+		<LI><A HREF="#TcpMap">TcpMap</A>
+		<LI><A HREF="#TcpPort">TcpPort</A>
+		<LI><A HREF="#TolerateGet">TolerateGet</A>
+		<LI><A HREF="#UserTag">UserTag</A>
+		<LI><A HREF="#Variable">Variable</A>
+	</UL>
+
+	<LI><A HREF="#CATALOG_CFG">CATALOG.CFG</A>
+	<UL>
+
+		<LI><A HREF="#VendURL">VendURL</A>
+		<LI><A HREF="#MailOrderTo">MailOrderTo</A>
 		<LI><A HREF="#Optional_Configuration_Directive">Optional Configuration Directives</A>
+		<LI><A HREF="#ActionMap">ActionMap</A>
+		<LI><A HREF="#AdminDatabase">AdminDatabase</A>
+		<LI><A HREF="#AdminPage">AdminPage</A>
+		<LI><A HREF="#AlwaysSecure">AlwaysSecure</A>
+		<LI><A HREF="#AsciiBackend">AsciiBackend</A>
+		<LI><A HREF="#AsciiTrack">AsciiTrack</A>
+		<LI><A HREF="#BackendOrder">BackendOrder</A>
+		<LI><A HREF="#ButtonBars">ButtonBars</A>
+		<LI><A HREF="#CheckoutFrame">CheckoutFrame</A>
+		<LI><A HREF="#CheckoutPage">CheckoutPage</A>
+		<LI><A HREF="#ClearCache">ClearCache</A>
+		<LI><A HREF="#CollectData">CollectData</A>
+		<LI><A HREF="#CommonAdjust">CommonAdjust</A>
+		<LI><A HREF="#ConfigDir">ConfigDir</A>
+		<LI><A HREF="#CookieDomain">CookieDomain</A>
+		<LI><A HREF="#Cookies">Cookies</A>
+		<LI><A HREF="#CreditCardAuto">CreditCardAuto</A>
+		<LI><A HREF="#CustomShipping">CustomShipping</A>
+		<LI><A HREF="#CyberCash">CyberCash</A>
+		<LI><A HREF="#DataDir">DataDir</A>
+		<LI><A HREF="#Database">Database</A>
+		<LI><A HREF="#DefaultShipping">DefaultShipping</A>
+		<LI><A HREF="#Delimiter">Delimiter</A>
+		<LI><A HREF="#DescriptionField">DescriptionField</A>
+		<LI><A HREF="#DisplayErrors">DisplayErrors</A>
+		<LI><A HREF="#DynamicData">DynamicData</A>
+		<LI><A HREF="#EncryptProgram">EncryptProgram</A>
+		<LI><A HREF="#ErrorFile">ErrorFile</A>
+		<LI><A HREF="#ExtraSecure">ExtraSecure</A>
+		<LI><A HREF="#FieldDelimiter">FieldDelimiter</A>
+		<LI><A HREF="#FinishOrder">FinishOrder</A>
+		<LI><A HREF="#FormIgnore">FormIgnore</A>
+		<LI><A HREF="#FractionalItems">FractionalItems</A>
+		<LI><A HREF="#FrameFlyPage">FrameFlyPage</A>
+		<LI><A HREF="#FrameLinkDir">FrameLinkDir</A>
+		<LI><A HREF="#FrameOrderPage">FrameOrderPage</A>
+		<LI><A HREF="#FrameSearchPage">FrameSearchPage</A>
+		<LI><A HREF="#FramesDefault">FramesDefault</A>
+		<LI><A HREF="#Glimpse">Glimpse</A>
+		<LI><A HREF="#Help">Help</A>
+		<LI><A HREF="#ImageAlias">ImageAlias</A>
+		<LI><A HREF="#ImageDir">ImageDir</A>
+		<LI><A HREF="#ImageDirInternal">ImageDirInternal</A>
+		<LI><A HREF="#ImageDirSecure">ImageDirSecure</A>
+		<LI><A HREF="#ItemLinkDir">ItemLinkDir</A>
+		<LI><A HREF="#ItemLinkValue">ItemLinkValue</A>
+		<LI><A HREF="#Locale">Locale</A>
+		<LI><A HREF="#LocaleDatabase">LocaleDatabase</A>
+		<LI><A HREF="#LogFile">LogFile</A>
+		<LI><A HREF="#MasterHost">MasterHost</A>
+		<LI><A HREF="#MixMatch">MixMatch</A>
+		<LI><A HREF="#MsqlDB">MsqlDB</A>
+		<LI><A HREF="#Mv_AlinkColor">Mv_AlinkColor</A>
+		<LI><A HREF="#Mv_Background">Mv_Background</A>
+		<LI><A HREF="#Mv_BgColor">Mv_BgColor</A>
+		<LI><A HREF="#Mv_LinkColor">Mv_LinkColor</A>
+		<LI><A HREF="#Mv_TextColor">Mv_TextColor</A>
+		<LI><A HREF="#Mv_VlinkColor">Mv_VlinkColor</A>
+		<LI><A HREF="#NewEscape">NewEscape</A>
+		<LI><A HREF="#NewReport">NewReport</A>
+		<LI><A HREF="#NewTags">NewTags</A>
+		<LI><A HREF="#NoCache">NoCache</A>
+		<LI><A HREF="#NoImport">NoImport</A>
+		<LI><A HREF="#NonTaxableField">NonTaxableField</A>
+		<LI><A HREF="#OfflineDir">OfflineDir</A>
+		<LI><A HREF="#OldShipping">OldShipping</A>
+		<LI><A HREF="#OrderCounter">OrderCounter</A>
+		<LI><A HREF="#OrderFrame">OrderFrame</A>
+		<LI><A HREF="#OrderLineLimit">OrderLineLimit</A>
+		<LI><A HREF="#OrderProfile">OrderProfile</A>
+		<LI><A HREF="#OrderReport">OrderReport</A>
+		<LI><A HREF="#PageCache">PageCache</A>
+		<LI><A HREF="#PageDir">PageDir</A>
+		<LI><A HREF="#PGP">PGP</A>
+		<LI><A HREF="#PageSelectField">PageSelectField</A>
+		<LI><A HREF="#ParseVariables">ParseVariables</A>
+		<LI><A HREF="#Password">Password</A>
+		<LI><A HREF="#PriceAdjustment">PriceAdjustment</A>
+		<LI><A HREF="#PriceBreaks">PriceBreaks</A>
+		<LI><A HREF="#PriceCommas">PriceCommas</A>
+		<LI><A HREF="#PriceDivide">PriceDivide</A>
+		<LI><A HREF="#PriceField">PriceField</A>
+		<LI><A HREF="#ProductDir">ProductDir</A>
+		<LI><A HREF="#Random">Random</A>
+		<LI><A HREF="#ReadPermission_and_WritePermissi">ReadPermission and WritePermission</A>
+		<LI><A HREF="#ReceiptPage">ReceiptPage</A>
+		<LI><A HREF="#RecordDelimiter">RecordDelimiter</A>
+		<LI><A HREF="#RemoteUser">RemoteUser</A>
+		<LI><A HREF="#ReportIgnore">ReportIgnore</A>
+		<LI><A HREF="#RequiredFields">RequiredFields</A>
+		<LI><A HREF="#RobotLimit">RobotLimit</A>
+		<LI><A HREF="#Rotate">Rotate</A>
+		<LI><A HREF="#SalesTax">SalesTax</A>
+		<LI><A HREF="#SaveExpire">SaveExpire</A>
+		<LI><A HREF="#ScratchDir">ScratchDir</A>
+		<LI><A HREF="#SearchCache">SearchCache</A>
+		<LI><A HREF="#SearchFrame">SearchFrame</A>
+		<LI><A HREF="#SearchProfile">SearchProfile</A>
+		<LI><A HREF="#SecureURL">SecureURL</A>
+		<LI><A HREF="#SendMailProgram">SendMailProgram</A>
+		<LI><A HREF="#SeparateItems">SeparateItems</A>
+		<LI><A HREF="#SessionDatabase">SessionDatabase</A>
+		<LI><A HREF="#SessionExpire">SessionExpire</A>
+		<LI><A HREF="#SessionLockFile">SessionLockFile</A>
+		<LI><A HREF="#Shipping">Shipping</A>
+		<LI><A HREF="#SpecialPage">SpecialPage</A>
+		<LI><A HREF="#Static">Static</A>
+		<LI><A HREF="#StaticAll">StaticAll</A>
+		<LI><A HREF="#StaticDepth">StaticDepth</A>
+		<LI><A HREF="#StaticDir">StaticDir</A>
+		<LI><A HREF="#StaticFly">StaticFly</A>
+		<LI><A HREF="#StaticPage">StaticPage</A>
+		<LI><A HREF="#StaticPath">StaticPath</A>
+		<LI><A HREF="#StaticPattern">StaticPattern</A>
+		<LI><A HREF="#StaticSuffix">StaticSuffix</A>
+		<LI><A HREF="#Sub">Sub</A>
+		<LI><A HREF="#SubArgs">SubArgs</A>
+		<LI><A HREF="#TaxShipping">TaxShipping</A>
+		<LI><A HREF="#Tracking">Tracking</A>
+		<LI><A HREF="#TransparentItem">TransparentItem</A>
+		<LI><A HREF="#UpsZoneFile">UpsZoneFile</A>
+		<LI><A HREF="#UseCode">UseCode</A>
+		<LI><A HREF="#UseModifier">UseModifier</A>
+		<LI><A HREF="#Variable">Variable</A>
+		<LI><A HREF="#VariableDatabase">VariableDatabase</A>
 	</UL>
 
 	<LI><A HREF="#ADMINISTERING_MINIVEND">ADMINISTERING MINIVEND</A>
@@ -743,13 +914,64 @@ the <EM>Gurusamy Sarathy</EM> or <EM>CORE</EM> version, from the directory <CODE
 <H2><A NAME="Setup_for_HTTP_Servers">Setup for HTTP Servers
 
 </A></H2>
-The most important issue with MiniVend is the permissions with which the 
-<FONT SIZE=-1>CGI</FONT> program and the MiniVend server run.
+MiniVend requires a that a web server be installed on your system in the
+normal course of events; it does have an internal server which can be used
+for administration and maintenance, but you will not want to use it to
+serve images and other content.
 
 <P>
 
-MiniVend uses a server running <EM>in the background</EM>, with a small 
-<FONT SIZE=-1>C</FONT> program (generically called <CODE>vlink</CODE>) that communicates with MiniVend via a UNIX-domain socket.
+As detailed previously, MiniVend is always running in the background as a
+daemon. It monitors either 1) a UNIX-domain file-based socket, located in
+the <A HREF="#item_etc_">etc/</A> subdirectory; or 2) a series of INET-domain sockets. The small 
+<FONT SIZE=-1>CGI</FONT> link program, called in the demo <A HREF="#item_simple">simple</A>, is run to connect to one of those sockets and provide the link between
+your browser.
+
+<P>
+
+<FONT SIZE=-1>NOTE:</FONT> Since Apache and other CERN/NCSA-derived servers are the most popular, we will talk in the terms they use. If you use another web server, you may have to translate the terms; for instance on 
+<FONT SIZE=-1>MS</FONT> Personal web server the standard
+ <CODE>ScriptAlias</CODE> is <CODE>/scripts</CODE>.
+
+<P>
+
+You need to have a <CODE>ScriptAlias</CODE> or other 
+<FONT SIZE=-1>CGI</FONT> execution capability to use the link program. (The
+default <CODE>ScriptAlias</CODE> for many web servers is <CODE>/cgi-bin</CODE>.) If you have <CODE>ExecCGI</CODE> set for all of your directories, then any program ending in a particular
+file suffix (usually
+<A HREF="#item__cgi">.cgi</A>) will be seen as a 
+<FONT SIZE=-1>CGI</FONT> program.
+
+<P>
+
+MiniVend, by convention, names the link program the same name as the catalog 
+<FONT SIZE=-1>ID.</FONT> In the distribution demo, this would yield a program name or 
+<FONT SIZE=-1>SCRIPT_PATH</FONT> of
+ <CODE>/cgi-bin/simple</CODE> or <CODE>/simple.cgi</CODE>. This 
+<FONT SIZE=-1>SCRIPT_PATH</FONT> is used to determine which particular
+MiniVend catalog will be run.
+
+<P>
+
+<P>
+<HR>
+<H2><A NAME="UNIX_domain_sockets">UNIX-domain sockets
+
+</A></H2>
+This is a socket which is not reachable from the Internet directly, but
+which must come from a request on your own server. The link program
+<CODE>vlink</CODE> is the provided facility for such communication with MiniVend.
+
+<P>
+
+This is the most secure way to run your catalog, for there is no way for
+systems on the Internet to interact with MiniVend except through its link
+program.
+
+<P>
+
+The most important issue with UNIX-domain sockets on MiniVend is the permissions with which the 
+<FONT SIZE=-1>CGI</FONT> program and the MiniVend server run.
 
 <P>
 
@@ -763,10 +985,49 @@ To improve security, MiniVend normally runs with the socket file having 0600 per
 <P>
 
 With MiniVend 3.0 multiple catalog capability, the permissions situation
-gets a bit tricky. MiniVend comes with a program,
-<CODE>makecat</CODE>, which configures catalogs for a multiple catalog system. It should
+gets a bit tricky. MiniVend comes with a program, <CODE>makecat</CODE>, which configures catalogs for a multiple catalog system. It should
 properly set up ownership and permissions for multiple users if run as the
 superuser.
+
+<P>
+
+<P>
+<HR>
+<H2><A NAME="INET_domain_sockets">INET-domain sockets
+
+</A></H2>
+These are sockets which are reachable from the Internet directly. The link
+program <CODE>tlink</CODE> is the provided facility for such communication with MiniVend; you may also
+use your browser to talk to the socket directly if you have it mapped to a
+catalog with the global <EM>TcpMap</EM> directive.
+
+<P>
+
+To improve security, MiniVend usually checks that the request comes from
+one of a limited number of systems, defined in the global <EM>TcpHost</EM>
+directive. (This check is not made for the internal 
+<FONT SIZE=-1>HTTP</FONT> server.)
+
+<P>
+
+<P>
+<HR>
+<H2><A NAME="Internal_HTTP_server">Internal HTTP server
+
+</A></H2>
+If you contact the socket directly (only for INET-domain sockets), MiniVend will perform the 
+<FONT SIZE=-1>HTTP</FONT> server function itself, talking directly to the browser. It can monitor any number of ports and map them to a particular catalog; by default it only maps the special catalog mv_admin, which performs administrative functions. The default port is 7786 
+<FONT SIZE=-1>(ASCII</FONT> for 
+<FONT SIZE=-1>M</FONT> an 
+<FONT SIZE=-1>V),</FONT> which is the default compiled into the distribution
+ <EM>tlink</EM> program. If you change this port via <EM>TcpMap</EM>, and wish 
+
+<P>
+
+To prevent catalogs that do not wish access made in this way from being served from the internal server, MiniVend has a fixed 
+<FONT SIZE=-1>SCRIPT_PATH</FONT> of
+ <CODE>/catalogname</CODE> (/simple for the distribution demo) which needs to be placed as an alias in
+the <EM>Catalog</EM> directive to enable access. See <EM>TcpMap</EM> for more details.
 
 <P>
 
@@ -779,7 +1040,7 @@ Obtain, decompress and untar the distribution:
 
 <P>
 
-<PRE>    gzip -dc minivend-3.09.tar.gz | tar xvf -
+<PRE>    gzip -dc minivend-3.11.tar.gz | tar xvf -
 </PRE>
 
 <P>
@@ -799,7 +1060,7 @@ Change to the created directory, something like:
 
 <P>
 
-<PRE>    cd minivend-3.09
+<PRE>    cd minivend-3.11
 </PRE>
 
 <P>
@@ -1610,7 +1871,7 @@ session. The tag names and their general function are:
   file           Insert the contents of a file
   finish-order   DEPRECATED. Conditionally show a &quot;check basket&quot; link.
   fly-list       Show an item &quot;on-the-fly&quot; in an arbitrary page
-    /fly-list
+    /fly-list     (new tags mode only)
   framebase      DEPRECATED. Set a &lt;BASE FRAME=&quot;...&quot;&gt; only if in frames mode.
   frames-off     Turn off MiniVend frames mode.
   frames-on      Turn on MiniVend frames mode.
@@ -1765,7 +2026,8 @@ should include a regular &lt;
 <FONT SIZE=-1>SRC=``URL''&gt;</FONT> element, where the 
 <FONT SIZE=-1>URL</FONT> refers to a graphic image. You cannot use relative image names as you would in an 
 <FONT SIZE=-1>HTML</FONT> document! MiniVend has the capability of defining an image directory (with the
- <EM>ImageDir</EM> directive) that automatically adjusts your image path to a set base
+
+<EM>ImageDir</EM> and <EM>ImageDirSecure</EM> directives) that automatically adjusts your image path to a set base
 directory.
 
 <P>
@@ -1978,6 +2240,24 @@ Example:
 <P>
 
 <PRE>  Order a [order TK112]Toaster[/order] today.
+</PRE>
+
+<P>
+
+Note that this is the same as:
+
+<P>
+
+<PRE>  Order a [page order TK112]Toaster&lt;/A&gt; today.
+</PRE>
+
+<P>
+
+You can change frames for the order with:
+
+<P>
+
+<PRE>  Order a &lt;A HREF=&quot;[area order TK112]&quot; TARGET=newframe&gt;Toaster&lt;/A&gt; today.
 </PRE>
 
 <P>
@@ -3129,9 +3409,13 @@ of <CODE>%s</CODE> in the query. For example:
 <P>
 
 <DL>
-<DT><STRONG><A NAME="item__sql">[sql array] SQL [/sql identifier*]
+<DT><STRONG><A NAME="item__sql">[sql type=array base=identifier*] SQL [/sql]
 
 </A></STRONG><DD>
+Old parser: [sql array] 
+<FONT SIZE=-1>SQL</FONT> [/sql identifier*]
+
+<P>
 
 <FONT SIZE=-1>A</FONT> complete array of arrays, suitable for <EM>eval</EM> by Perl, can be returned by this query. This tag pair encloses any valid 
 <FONT SIZE=-1>SQL</FONT> query, and returns the results (if any) as a
@@ -3140,7 +3424,7 @@ embedded Perl area as:
 
 <P>
 
-<PRE> [perl]
+<PRE> [perl interpolate=1]
 </PRE>
 
 <P>
@@ -3176,9 +3460,13 @@ embedded Perl area as:
 
 <P>
 
-<DT><STRONG>[sql hash] SQL [/sql identifier*]
+<DT><STRONG>[sql type=hash base=identifier*] SQL [/sql]
 
 </A></STRONG><DD>
+Old parser: [sql hash] 
+<FONT SIZE=-1>SQL</FONT> [/sql identifier*]
+
+<P>
 
 <FONT SIZE=-1>A</FONT> complete hash of hashes, suitable for <EM>eval</EM> by Perl, can be returned by this query. This tag pair encloses any valid 
 <FONT SIZE=-1>SQL</FONT> query, and returns the results (if any) as a
@@ -3187,13 +3475,13 @@ syntax. If placed in an embedded Perl area as:
 
 <P>
 
-<PRE> [perl]
+<PRE> [perl interpolate=1]
 </PRE>
 
 <P>
 
 <PRE>    my $string =&lt;&lt;'EOF';
- [sql hash]select * from arbitrary where code &lt;= '19'[/sql]
+ [sql type=hash base=arbitrary]select * from arbitrary where code &lt;= '19'[/sql]
 </PRE>
 
 <P>
@@ -3216,9 +3504,14 @@ syntax. If placed in an embedded Perl area as:
 
 <P>
 
-<DT><STRONG>[sql set] SQL [/sql identifier*]
+<DT><STRONG>[sql type=set base=identifier*] SQL [/sql]
 
 </A></STRONG><DD>
+Old parser: [sql hash] 
+<FONT SIZE=-1>SQL</FONT> [/sql identifier*]
+
+<P>
+
 Any arbitrary 
 <FONT SIZE=-1>SQL</FONT> query can be passed with this method. No return
 text will be sent. This might be used for passing an order to an order
@@ -3226,7 +3519,7 @@ database, perhaps on the order report or receipt page. An example might be:
 
 <P>
 
-<PRE> [sql set]
+<PRE> [sql type=set base=orders interpolate=1]
      insert into orders
      values
       ('[value mv_order_number]',
@@ -3240,7 +3533,7 @@ database, perhaps on the order report or receipt page. An example might be:
          Item: [item-code] Quan: [item-quantity] Price: [item-price]
         [/item-list]'
       )
- [/sql orders]
+ [/sql]
 </PRE>
 
 <P>
@@ -3250,9 +3543,13 @@ characters have slipped into their entry.
 
 <P>
 
-<DT><STRONG>[sql param] SQL [/sql]
+<DT><STRONG>[sql type=param base=identifier*] SQL [/sql]
 
 </A></STRONG><DD>
+Old parser: [sql param] 
+<FONT SIZE=-1>SQL</FONT> [/sql identifier*]
+
+<P>
 
 <FONT SIZE=-1>A</FONT> list of keys, or in fact any 
 <FONT SIZE=-1>SQL</FONT> fields, can be returned as a set of parameters suitable for passing to a program or list primitive. This tag pair encloses any valid 
@@ -3260,9 +3557,18 @@ characters have slipped into their entry.
 
 <P>
 
-<DT><STRONG>[sql html] SQL [/sql]
+This tag is deprecated.
+
+<P>
+
+<DT><STRONG>[sql type=html base=identifier*] SQL [/sql]
 
 </A></STRONG><DD>
+Old parser: [sql html] 
+<FONT SIZE=-1>SQL</FONT> [/sql identifier*]
+
+<P>
+
 This tag returns a set of 
 <FONT SIZE=-1>HTML</FONT> table rows with <STRONG>bold</STRONG> field names at the top, followed by each row in a set of table cells. The 
 <FONT SIZE=-1>&lt;TABLE&gt;</FONT> and 
@@ -3271,13 +3577,13 @@ This tag returns a set of
 <P>
 
 <PRE>  &lt;TABLE BORDER=2&gt;
-  [sql html]select * from arbitrary where code &gt; '19' order by field2[/sql]
+  [sql type=html]select * from arbitrary where code &gt; '19' order by field2[/sql]
   &lt;/TABLE&gt;
 </PRE>
 
 <P>
 
-<DT><STRONG>[sql list SQL] list [/sql]
+<DT><STRONG>[sql type=list query="SQL query" base=identifier*] list [/sql]
 
 </A></STRONG><DD>
 This tag differs from the rest in that it passes the query enclosed inside the tag itself. The enclosed text is then evaluated with the same method as with a loop list, with data items (in columns) iterated over for the contents of a list. The following snippet will place a three-column list in an 
@@ -3287,8 +3593,8 @@ This tag differs from the rest in that it passes the query enclosed inside the t
 
 <PRE>  &lt;TABLE BORDER=2&gt;
   &lt;TR&gt;&lt;TH&gt;&lt;B&gt;SKU&lt;/B&gt;&lt;/TH&gt;&lt;TH&gt;&lt;B&gt;Description&lt;/B&gt;&lt;/TH&gt;&lt;TH&gt;&lt;B&gt;Price&lt;/B&gt;&lt;/TH&gt;
-  [sql list
-    select * from arbitrary where code &gt; '19' order by field2 ]
+  [sql type=list
+    query=&quot;select * from arbitrary where code &gt; '19' order by field2&quot;]
   &lt;TR&gt;
     &lt;TD&gt;[page [sql-code]][sql-code]&lt;/A&gt;&lt;/TD&gt;
     &lt;TD&gt;[sql-param 1]&lt;/TD&gt;
@@ -3421,7 +3727,7 @@ to import:
 To export your existing database to a file suitable for searching by
 MiniVend, you can create an <EM>AdminPage</EM> (or any page, for that matter) that contains a [tag export ...][/tag] element. For example, the following 
 <FONT SIZE=-1>UNIX</FONT> shell script will create a page only accessible to the
- <EM>AdminUser</EM>
+ <EM>RemoteUser</EM>
 which will export the products database to the MiniVend default search file <EM>products.asc</EM>:
 
 <P>
@@ -3588,7 +3894,7 @@ parameter for another tag.
 
 <P>
 
-<PRE>        [page scan/se=[scratch somevar]]
+<PRE>        [page scan se=[scratch somevar]]
 </PRE>
 
 <P>
@@ -4014,10 +4320,20 @@ Outputs the
 
 <P>
 
+<FONT SIZE=-1>NOTE:</FONT> This tag does not nest with other [if-loop-data
+...] tags.
+
+<P>
+
 <DT><STRONG><A NAME="item__if_loop_field">[if-loop-field field] IF [else] ELSE [/else][/if-loop-field]
 
 </A></STRONG><DD>
 Outputs the <STRONG>IF</STRONG> if the <A HREF="#item_field">field</A> in the <A HREF="#item_products">products</A> table is non-empty, and the <STRONG>ELSE</STRONG> (if any) otherwise.
+
+<P>
+
+<FONT SIZE=-1>NOTE:</FONT> This tag does not nest with other [if-loop-field
+...] tags.
 
 <P>
 
@@ -4645,6 +4961,15 @@ pairs.
 
 <P>
 
+Named syntax:
+
+<P>
+
+<PRE>        [tag op=operation arg=&quot;arg1 arg2 ...&quot;]other[/tag]
+</PRE>
+
+<P>
+
 <DL>
 <DT><STRONG><A NAME="item__tag">[tag arg* arg*]text[/tag]
 
@@ -4826,7 +5151,7 @@ These two sequences evaluate the same:
 <P>
 
 <PRE>    [tag scan/sf=category]Renaissance[/tag]
-    [page scan/sf=category/se=Renaissance]Renaissance[/page]
+    [page scan sf=category/se=Renaissance]Renaissance[/page]
 </PRE>
 
 <P>
@@ -4845,7 +5170,7 @@ instead of:
 
 <P>
 
-<PRE>    [page scan/sf=author/se=John%20F.%20Kennedy]John F. Kennedy[/page]
+<PRE>    [page scan sf=author/se=John%20F.%20Kennedy]John F. Kennedy[/page]
 </PRE>
 
 <P>
@@ -5276,7 +5601,7 @@ the new syntax is not used for the call, i.e. <CODE>[usertag argument]</CODE> in
 <DT><STRONG><A NAME="item_ReplaceAttr">ReplaceAttr
 
 </A></STRONG><DD>
-Works in concert with InsertHTML, defining a <STRONG>single</STRONG> attribute which will be replaced in the insertion operation..
+Works in concert with InsertHTML, defining a <STRONG>single</STRONG> attribute which will be replaced in the insertion operation.
 
 <P>
 
@@ -5899,6 +6224,11 @@ If the database field <CODE>column</CODE> in table <EM>table</EM> is non-blank, 
 
 <P>
 
+<FONT SIZE=-1>NOTE:</FONT> This tag does not nest with other [if-data ...]
+tags.
+
+<P>
+
 <DT><STRONG>[if-data ! table column]
 
 </A></STRONG><DD>
@@ -5919,6 +6249,11 @@ Terminates an [if_data table column] element.
 If the products database field <EM>fieldname</EM> is non-blank, the following text up to the [/if_field] tag is substituted.
 If you have more than one products database table (see <EM>ProductFiles</EM>), it will check them in order until a matching key is found. This can be used to substitute 
 <FONT SIZE=-1>IMG</FONT> or other tags only if the corresponding source item is present. Also accepts a [else]else text[/else] pair for the opposite condition.
+
+<P>
+
+<FONT SIZE=-1>NOTE:</FONT> This tag does not nest with other [if-field ...]
+tags.
 
 <P>
 
@@ -6137,19 +6472,19 @@ Examples:
 
 <P>
 
-<PRE>    # Simple example, old syntax
-    [perl]
-    $comments = '[value comments]';
-    [/perl]
-</PRE>
-
-<P>
-
 <PRE>    # New syntax
     # If the item might contain a single quote
     [perl interpolate=1]
     $comments = '[value comments escaped]';
     [/perl]
+</PRE>
+
+<P>
+
+<PRE>    # Simple example, old syntax
+    [compat][perl]
+    $comments = '[value comments]';
+    [/perl][/compat]
 </PRE>
 
 <P>
@@ -6426,7 +6761,7 @@ To echo the user's browser, but within some
 
 <P>
 
-<PRE>    [perl browser]
+<PRE>    [perl arg=browser]
     my $html = '&lt;H5&gt;';
     $html .= $Safe{'browser'};
     $html .= '&lt;/H5&gt;';
@@ -6440,7 +6775,7 @@ To show the user their name, and the current time:
 
 <P>
 
-<PRE>    [perl values]
+<PRE>    [perl arg=values]
 </PRE>
 
 <P>
@@ -6475,11 +6810,44 @@ particular field.
 
 <P>
 
-Because the tags are the same, an [item_list] cannot be used on an
-on-the-fly page. The [loop item, item] tag is still usable. 
+Because the tags are the same, an [item-list] cannot be used on an on-the-fly page. The [loop item, item] tag is still usable. If you want to have an on-the-fly page mixed in, use the [fly-list 
+<FONT SIZE=-1>CODE</FONT> 
+<FONT SIZE=-1>BASE]</FONT> [/flylist] pair, which essentially encapsulates a flypage within a page.
 
 <P>
 
+<DL>
+<DT><STRONG><A NAME="item__fly_list">[fly-list code="product_code" base="table"] ... [/fly-list]
+
+</A></STRONG><DD>
+(New tags mode only.)
+
+<P>
+
+Defines an area in a random page which performs the flypage lookup
+function, implementing the tags below.
+
+<P>
+
+<PRE>   [fly-list code=&quot;[data session arg]&quot;]
+        (contents of flypage.html)
+   [/fly-list]
+</PRE>
+
+<P>
+
+If you place the above around the contents of the demo flypage, in a file
+named <CODE>flypage2.html</CODE>, it will make these two calls display identical pages:
+
+<P>
+
+<PRE>        [page 00-0011] One way to display the Mona Lisa [/page]
+        [page flypage2 00-0011] Another way to display the Mona Lisa [/page]
+</PRE>
+
+<P>
+
+</DL>
 If the directive <EM>PageSelectField</EM> is set to a valid product database field which contains a valid MiniVend
 page name (relative to the catalog pages directory, without the .html
 suffix) it will be used to build the on-the-fly page.
@@ -6511,6 +6879,13 @@ Active tags in their order of interpolation:
 <DT><STRONG><A NAME="item__any_">[[any]]
 
 </A></STRONG><DD>
+
+<FONT SIZE=-1>NOTE:</FONT> This is not used in the new parser. If you are
+using this mechanism you should be changing the way you do things, for this
+style of tag will disappear in the next version of MiniVend.
+
+<P>
+
 Forces early interpolation of any tag. Sometimes needed if the order of
 interpolation does not achieve the desired result (meaning you see MiniVend
 tags displayed on the page).
@@ -6524,6 +6899,13 @@ tags displayed on the page).
 <DT><STRONG><A NAME="item__">[ n [any] HTML n ]
 
 </A></STRONG><DD>
+
+<FONT SIZE=-1>NOTE:</FONT> This is not used in the new parser. If you are
+using this mechanism you should be changing the way you do things, for this
+style of tag will disappear in the next version of MiniVend.
+
+<P>
+
 Where n is a single digit in the range 0-9. If present, it forces early
 interpolation of that region of MiniVend tags, and is differentiated from
 other early interpolation areas. The enclosed MiniVend tags will still be
@@ -6539,6 +6921,13 @@ interpolated in the normal order, but it can usually be combined with the
 <DT><STRONG><A NAME="item__post_">[post]
 
 </A></STRONG><DD>
+
+<FONT SIZE=-1>NOTE:</FONT> This is not used in the new parser. If you are
+using this mechanism you should be changing the way you do things, for this
+style of tag will disappear in the next version of MiniVend.
+
+<P>
+
 Selects an area that will not be interpolated until after the rest of the
 page is interpolated. If followed by a number, will match a terminating
 [/post] tag with the corresponding number.
@@ -6895,6 +7284,8 @@ These special fields all begin with <EM>mv_</EM>, and include:
  mv_todo.submit.x     O   Causes submit action on click of image
  mv_todo.x            A   Set by form imagemap
  mv_todo.y            A   Set by form imagemap
+ mv_unique            S   Return unique search results only
+ mv_value             S   Sets value on one-click search (va=var=value)
  mv_vlinkcolor        C   Sets visited link color
 </PRE>
 
@@ -7265,13 +7656,22 @@ checkboxes with the [checked] and [selected] tags.
 <DT><STRONG><A NAME="item__checked">[checked var_name value]
 
 </A></STRONG><DD>
-named attributes: [checked name=``var_name'' value=``value'']
+named attributes: [checked name=``var_name'' value=``value'' multiple=0|1
+default=0|1]
 
 <P>
 
 This will output 
 <FONT SIZE=-1>CHECKED</FONT> if the variable <CODE>var_name</CODE> is equal to
-<A HREF="#item_value">value</A>. Not case sensitive.
+<A HREF="#item_value">value</A>. Not case sensitive. 
+
+<P>
+
+As of 3.11: If the <CODE>multiple</CODE> attribute is defined and set to a non-zero value (1 is implicit) then if the value matches on a word/non-word boundary it will be 
+<FONT SIZE=-1>CHECKED.</FONT> If the
+ <CODE>default</CODE> attribute is set to a non-zero value, then the box will be checked if the
+variable <CODE>var_name</CODE>
+is empty or zero.
 
 <P>
 
@@ -7593,7 +7993,7 @@ the use of a hot link, using the special <EM>scan</EM>
 
 <P>
 
-<PRE>  [page scan/se=shirt]See our shirt collection![/page]
+<PRE>  [page scan se=shirt]See our shirt collection![/page]
 </PRE>
 
 <P>
@@ -7614,7 +8014,7 @@ In the hot-linked
 
 <P>
 
-<PRE>  [page scan/se=shirt/sf=description]See our shirt collection![/page]
+<PRE>  [page scan se=shirt/sf=description]See our shirt collection![/page]
 </PRE>
 
 <P>
@@ -7742,12 +8142,58 @@ above, except it will be <STRONG>much</STRONG> faster on large files and will ma
 
 <P>
 <HR>
-<H2><A NAME="Coordinated_searching">Coordinated searching
+<H2><A NAME="Coordinated_and_joined_searching">Coordinated and joined searching
 
 </A></H2>
 MiniVend will do a complete range of tests on individual columns in the
-database. To use this function, set <A HREF="#item_mv_coordinate">mv_coordinate</A> to <STRONG>yes</STRONG> (co=yes in the one-click syntax). The number of search fields must equal
-the number of search strings.
+database. To use this function, set <A HREF="#item_mv_coordinate">mv_coordinate</A> to <STRONG>yes</STRONG> (co=yes in the one-click syntax).
+
+<P>
+
+In order to use coordinated searching, the number of <EM>search fields</EM>
+
+<STRONG>must equal</STRONG> the number of <EM>search strings</EM>. This makes sense if you think about it a bit.
+
+<P>
+
+If you want to make sure that is the case, use the <CODE>mv_search_map</CODE>
+variable. It allows you to map variables to others in the search
+specification. For example:
+
+<P>
+
+<PRE>    &lt;INPUT TYPE=hidden NAME=mv_search_map VALUE=&quot;
+                mv_searchspec=search1
+                mv_searchspec=search2
+                mv_searchspec=search3
+                &quot;&gt;
+    &lt;INPUT TYPE=hidden NAME=mv_search_field VALUE=title&gt;
+    &lt;INPUT TYPE=hidden NAME=mv_search_field VALUE=artist&gt;
+    &lt;INPUT TYPE=hidden NAME=mv_search_field VALUE=category&gt;
+    Artist: &lt;INPUT NAME=search1 VALUE=&quot;[value search1]&quot;&gt;
+    Title:  &lt;INPUT NAME=search2 VALUE=&quot;[value search2]&quot;&gt;
+    Genre:  &lt;INPUT NAME=search3 VALUE=&quot;[value search3]&quot;&gt;
+</PRE>
+
+<P>
+
+Even if the user leaves one blank, the search will work.
+
+<P>
+
+Leading/trailing whitespace is stripped from all lines in the mv_search_map
+variable, so you can position it as shown for convenience.
+
+<P>
+
+Coordinated searches may be joined with the output of another table if you
+set one of the <A HREF="#item_mv_search_field">mv_search_field</A> values to a <CODE>table:column</CODE>
+pair. Note that this will slow down large searches considerably unless you
+have another search specification, as the database must be accessed for
+every search line! If you have a search field that qualifies for a regular
+expression search function, or are doing a binary search with
+<A HREF="#item_mv_dict_look">mv_dict_look</A>, or are not doing an <CODE>OR</CODE> search, the penalty should not be too great as only matching lines will
+cause an access to the database.
 
 <P>
 
@@ -7791,11 +8237,22 @@ An example:
             co=yes
             sf=title
             se=Sunflowers
+                        nu=0
             op=!~
             sf=artist
             se=Van Gogh
-            op=rm          ] Any painting except Sunflowers, Van Gogh [/page]
+            op=rm    
+                        nu=0
+            sf=inventory:qty
+            se=1
+            op=&gt;=
+                        nu=1      ] Any in stock except Sunflowers, Van Gogh [/page]
 </PRE>
+
+<P>
+
+The second search will check the stock status of the painting provideded
+there is an <CODE>inventory</CODE> table as in the demo catalogs. If the <CODE>qty</CODE> field is greater than or equal to 1.
 
 <P>
 
@@ -8093,7 +8550,7 @@ be generated by:
 
 <P>
 
-<PRE>    [page scan/sf=category/se=Americana/st=sql]
+<PRE>    [page scan sf=category/se=Americana/st=sql]
       Americana
     [/page]
 </PRE>
@@ -8232,7 +8689,7 @@ reference <CODE>scan</CODE>. Here is an example:
 
 <P>
 
-<PRE>     [page scan/se=Impressionists/sf=category]
+<PRE>     [page scan se=Impressionists/sf=category]
         Impressionist Paintings
      [/page]
 </PRE>
@@ -8255,31 +8712,32 @@ The two-letter abbreviations are mapped with these letters:
 
 <P>
 
-<PRE>  DL  mv_raw_dict_look         ms  mv_min_string
-  MM  mv_more_matches          ne  mv_negate
-  SE  mv_raw_searchspec        nu  mv_numeric
-  ac  mv_all_chars             op  mv_column_op
-  bd  mv_base_directory        os  mv_orsearch
-  bs  mv_begin_string          ra  mv_return_all
-  co  mv_coordinate            rd  mv_return_delim
-  cs  mv_case                  rf  mv_return_fields
-  de  mv_dict_end              rg  mv_range_alpha
-  df  mv_dict_fold             rl  mv_range_look
-  di  mv_dict_limit            rm  mv_range_min
-  dl  mv_dict_look             rn  mv_return_file_name
-  do  mv_dict_order            rs  mv_return_spec
-  dp  mv_delay_page            rx  mv_range_max
-  dr  mv_record_delim          se  mv_searchspec
-  em  mv_exact_match           sf  mv_search_field
-  er  mv_spelling_errors       sp  mv_search_page
-  fi  mv_search_file           sq  mv_sql_query
-  fm  mv_first_match           st  mv_searchtype
-  fn  mv_field_names           su  mv_substring_match
-  hs  mv_head_skip             tc  mv_sort_command
-  id  mv_index_delim           tf  mv_sort_field
-  ml  mv_matchlimit            to  mv_sort_option
-  mm  mv_max_matches           ty  mv_sort_crippled
-  mp  mv_profile
+<PRE>  DL  mv_raw_dict_look         ne  mv_negate           
+  MM  mv_more_matches          nu  mv_numeric           
+  SE  mv_raw_searchspec        op  mv_column_op          
+  ac  mv_all_chars             os  mv_orsearch             
+  bd  mv_base_directory        ra  mv_return_all          
+  bs  mv_begin_string          rd  mv_return_delim          
+  co  mv_coordinate            rf  mv_return_fields           
+  cs  mv_case                  rg  mv_range_alpha              
+  de  mv_dict_end              rl  mv_range_look             
+  df  mv_dict_fold             rm  mv_range_min             
+  di  mv_dict_limit            rn  mv_return_file_name     
+  dl  mv_dict_look             rs  mv_return_spec                 
+  do  mv_dict_order            rx  mv_range_max              
+  dp  mv_delay_page            se  mv_searchspec           
+  dr  mv_record_delim          sf  mv_search_field          
+  em  mv_exact_match           sp  mv_search_page             
+  er  mv_spelling_errors       sq  mv_sql_query              
+  fi  mv_search_file           st  mv_searchtype           
+  fm  mv_first_match           su  mv_substring_match       
+  fn  mv_field_names           tc  mv_sort_command               
+  hs  mv_head_skip             tf  mv_sort_field              
+  id  mv_index_delim           to  mv_sort_option           
+  ml  mv_matchlimit            ty  mv_sort_crippled          
+  mm  mv_max_matches           un  mv_unique       
+  mp  mv_profile               va  mv_value
+  ms  mv_min_string
 </PRE>
 
 <P>
@@ -8309,7 +8767,7 @@ strings ``Surreal'' and ``Gogh'', while matching substrings, you would do:
 
 <P>
 
-<PRE> [page scan/se=Surreal/se=Gogh/os=yes/su=yes/sf=artist/sf=category]
+<PRE> [page scan se=Surreal/se=Gogh/os=yes/su=yes/sf=artist/sf=category]
     Van Gogh -- compare to surrealists
  [/page]
 </PRE>
@@ -8321,25 +8779,6 @@ the sp, bd, or fi parameter) you must use the shorthand of ::, i.e.
 sp=results::standard. (This may not work for some browsers, so you should
 probably either put the page in the main pages directory or define the page
 in a search profile.)
-
-<P>
-
-<DT><STRONG><A NAME="item_Ampersand">Ampersand
-
-</A></STRONG><DD>
-You can substitute &amp; for / in the specification and be able to use /
-and quotes and spaces in the specification.
-
-<P>
-
-<PRE> [page scan se=&quot;Van Gogh&quot;&amp;sp=lists/surreal&amp;os=yes&amp;su=yes&amp;sf=artist&amp;sf=category]
-    Van Gogh -- compare to surrealists
- [/page]
-</PRE>
-
-<P>
-
-Any ``unsafe'' characters will be escaped. 
 
 <P>
 
@@ -8362,14 +8801,60 @@ You can specify parameters one to a line, as well.
 
 <P>
 
-Any ``unsafe'' characters will be escaped. You may not search for trailing
-spaces in this method; it is allowed in the other notations.
+Any ``unsafe'' characters will be escaped. If you need to search for
+trailing spaces (unlikely) you must quote.
+
+<P>
+
+<DT><STRONG><A NAME="item_Ampersand">Ampersand
+
+</A></STRONG><DD>
+You can substitute &amp; for / in the specification and be able to use /
+and quotes and spaces in the specification.
+
+<P>
+
+<PRE> [page scan se=&quot;Van Gogh&quot;&amp;sp=lists/surreal&amp;os=yes&amp;su=yes&amp;sf=artist&amp;sf=category]
+    Van Gogh -- compare to surrealists
+ [/page]
+</PRE>
+
+<P>
+
+Any ``unsafe'' characters will be escaped. 
 
 <P>
 
 </DL>
 New syntax and old syntax handle the tags the same, though if by some odd
 chance you wanted to be able to search for a <CODE>]</CODE> (right square bracket) you would need to use new syntax.
+
+<P>
+
+<P>
+<HR>
+<H2><A NAME="Setting_display_options_with_mv_">Setting display options with mv_value
+
+</A></H2>
+As of MiniVend 3.11, you can specify a value that will be set in the link
+with the <A HREF="#item_mv_value">mv_value</A> parameter. It takes an argument of <CODE>var=value</CODE>, just as you would set a normal variable in a MiniVend profile. Actually
+<A HREF="#item_mv_value">mv_value</A> is a misnomer, for you would almost never use it in a form, where you can
+easily set variable values. You will always specify it in a one-click
+search with <CODE>va=var=value</CODE>. Example:
+
+<P>
+
+<PRE>    [page href=scan
+                  arg=&quot;se=Renaissance
+                           se=Impressionists
+                           va=category_name=Renaissance and Impressionist Paintings
+               os=yes&quot;]Renaissance and Impressionist Paintings[/page]
+</PRE>
+
+<P>
+
+Now you can display the appropriate category on the search results page
+with [value category_name].
 
 <P>
 
@@ -8394,7 +8879,12 @@ categories ``Americana'' and ``Contemporary'' you can do:
 
 <P>
 
-<PRE>    [loop search=&quot;se=Americana/se=Contemporary/os=yes/sf=category9&quot;]
+<PRE>    [loop search=&quot;
+                se=Americana
+                se=Contemporary
+                os=yes
+                sf=category9
+                &quot;]
     Artist: [loop-field artist]&lt;BR&gt;
     Title: [loop-field title]&lt;P&gt;
     [/loop]
@@ -8525,7 +9015,7 @@ In a one-click search, you use the <CODE>mp</CODE> modifier:
 
 <P>
 
-<PRE>    [page scan/se=Leonardo/mp=artist_profile]A left-handed artist[/page]
+<PRE>    [page scan se=Leonardo/mp=artist_profile]A left-handed artist[/page]
 </PRE>
 
 <P>
@@ -8752,6 +9242,57 @@ prevents having to scan the whole file once a unique match is found.
 <P>
 
 The order of this and the <EM>mv_dict_end</EM> variable is significant -- each will overwrite the other.
+
+<P>
+
+If this is set to a non-numeric number, an automatic mode is entered which
+looks for a dictionary-indexed file that corresponds to the file name plus
+<A HREF="#item__field">.field</A>, where <A HREF="#item_field">field</A> is what you have set <A HREF="#item_mv_dict_limit">mv_dict_limit</A> to. The actual value of mv_dict_limit is set to <CODE>-1</CODE>. If the file does not exist, then the original file is silently used (this
+might not be what you want!). Also, the value of <A HREF="#item_mv_return_fields">mv_return_fields</A> is set to <CODE>1</CODE> to correspond to the location of the key in the auto-indexed file.
+
+<P>
+
+To illustrate:
+
+<P>
+
+<PRE>    &lt;INPUT TYPE=hidden NAME=mv_dict_limit  VALUE=category&gt;
+    &lt;INPUT TYPE=hidden NAME=mv_search_file VALUE=&quot;products.asc&quot;&gt;
+</PRE>
+
+<P>
+
+is equal to:
+
+<P>
+
+<PRE>    &lt;INPUT TYPE=hidden NAME=mv_dict_limit    VALUE=&quot;-1&quot;&gt;
+    &lt;INPUT TYPE=hidden NAME=mv_search_file   VALUE=&quot;products.asc.category&quot;&gt;
+    &lt;INPUT TYPE=hidden NAME=mv_return_fields VALUE=&quot;1&quot;&gt;
+</PRE>
+
+<P>
+
+The real utility would be in a form construct like
+
+<P>
+
+<PRE>        Search for
+        &lt;SELECT NAME=mv_dict_limit&gt;
+        &lt;OPTION&gt; author
+        &lt;OPTION&gt; title
+        &lt;/SELECT&gt; beginning with &lt;INPUT NAME=mv_dictlook&gt;
+</PRE>
+
+<P>
+
+which would allow automatic binary search file selection.
+
+<P>
+
+Combined with the <CODE>INDEX</CODE> attribute to the <EM>Database</EM> directive, this allows fast binary search qualification combined with
+regular
+<A HREF="#item_mv_searchspec">mv_searchspec</A> text searches.
 
 <P>
 
@@ -9063,8 +9604,12 @@ searching for categories of items instead of individual items.
 <DT><STRONG><A NAME="item_mv_sort_command">mv_sort_command
 
 </A></STRONG><DD>
-Set to a path name that will access the standard 
-<FONT SIZE=-1>UNIX</FONT> sort command -- the default is of course <EM>sort</EM>. If the sort command does not accept field-specific options, as more recent sorts like the 
+In Minivend 
+<FONT SIZE=-1>V3.09</FONT> and higher, the default is to use an internal sort routine which should be better than most 
+<FONT SIZE=-1>UNIX</FONT> sorts. But if you wish to use an external sort command, set
+ <A HREF="#item_mv_sort_command">mv_sort_command</A> to a path name that will access the standard 
+<FONT SIZE=-1>UNIX</FONT> sort command -- in most cases simply
+<EM>sort</EM>. If the sort command does not accept field-specific options, as more recent sorts like the 
 <FONT SIZE=-1>GNU</FONT> sort command do, set mv_sort_crippled to
  <EM>yes</EM>.
 
@@ -9073,10 +9618,6 @@ Set to a path name that will access the standard
 <DT><STRONG><A NAME="item_mv_sort_field">mv_sort_field
 
 </A></STRONG><DD>
-(Most new users should ignore and use in-list sorting.)
-
-<P>
-
 The file <CODE>field(s)</CODE> the search is to be sorted on, specified in
 one of two ways. If the <CODE>file(s)</CODE> to be searched have a header
 line (the first line) that contains <EM>Delimiter</EM>-separated field names, it can be specified by field name. If can also be
@@ -9098,10 +9639,6 @@ a single specification separated by commas.
 <DT><STRONG><A NAME="item_mv_sort_option">mv_sort_option
 
 </A></STRONG><DD>
-(Most new users should ignore and use in-list sorting.)
-
-<P>
-
 The way that each field should be sorted. The flags are <CODE>r</CODE>, <CODE>n</CODE>, and <CODE>f</CODE> -- for reverse, numeric, and case-insensitive respectively. These can be
 stacked, if coming from a form, or placed in a single specification
 separated by commas. The stacked options will be applied to the sort fields
@@ -9127,6 +9664,25 @@ set this for dictionary-based searches.
 
 If stacked to match the mv_search_field and mv_searchspec variables, and
 mv_coordinate is set, it will operate only for the corresponding field.
+
+<P>
+
+<DT><STRONG><A NAME="item_mv_unique">mv_unique
+
+</A></STRONG><DD>
+If set to a true value, causes the sort to return only unique results. This
+operates on whatever the search return is, as defined by
+<A HREF="#item_mv_return_fields">mv_return_fields</A>.
+
+<P>
+
+<DT><STRONG><A NAME="item_mv_value">mv_value
+
+</A></STRONG><DD>
+This is normally only used in the one-click search (va=var=value). It
+allows setting of a session variable based on the clicked link, which makes
+for easy definition of headers and other display choices. (If you had
+trouble using mv_searchspec for this before, this is what you need.)
 
 <P>
 
@@ -9393,7 +9949,7 @@ are present, they represent image files that will be inserted instead of
 the standard 'Next', 'Previous', and page number. If <CODE>prev_img</CODE>
 is <CODE>none</CODE>, then no previous link will be output. If <CODE>page_img</CODE> is
 <CODE>none</CODE>, then no links to pages of matches will be output. These are URLs, are
-substituted for with <EM>ImageDir</EM>, and will be encased in 
+substituted for with <EM>ImageDir</EM> and friends, and will be encased in 
 <FONT SIZE=-1>IMG</FONT> tags. Lastly, <CODE>border</CODE> is the border number to put.
 
 <P>
@@ -10333,9 +10889,9 @@ it large enough to be comfortable for the customer.
 
 <P>
 <HR>
-<H2><A NAME="Product_Pricing">Product Pricing
+<H1><A NAME="PRODUCT_PRICING">PRODUCT PRICING
 
-</A></H2>
+</A></H1>
 MiniVend maintains a price in its database for every product. The price
 field is the one required field in the product database -- it is necessary
 to build the price routines.
@@ -10348,6 +10904,355 @@ that affects product pricing you must reconfigure the catalog.
 
 <P>
 
+<P>
+<HR>
+<H2><A NAME="Simple_pricing">Simple pricing
+
+</A></H2>
+The simplest method is flat pricing based on a fixed value in the <A HREF="#item_products">products</A> database. If you put that price in a field named
+<CODE>price</CODE>, you don't need to do more. If you want to change pricing based on
+quantity, size, color or other factors read on.
+
+<P>
+
+<P>
+<HR>
+<H2><A NAME="Price_Maintenance_with_CommonAdj">Price Maintenance with CommonAdjust
+
+</A></H2>
+As of MiniVend 3.11, a flexible chained pricing scheme is available when
+the <EM>CommonAdjust</EM> directive is set.
+
+<P>
+
+<FONT SIZE=-1>NOTE:</FONT> For compatibility with older carts, if both
+PriceAdjustment and CommonAdjust are set, and CommonAdjust contains a valid
+database identifier, the CommonAdjust value is used to set pricing
+adjustments based on item attributes. This is not discussed further in this
+section; all items below assume <EM>PriceAdjustment</EM> is not in use.
+
+<P>
+
+We talk below about a <EM>CommonAdjust string</EM>; it will be defined in due time.
+
+<P>
+
+<FONT SIZE=-1>A</FONT> few rules about CommonAdjust, all assuming the <EM>PriceField</EM> directive is set to <CODE>price</CODE>:
+
+<P>
+
+<OL>
+<LI><STRONG><A NAME="item_">
+
+</A></STRONG>
+If <CODE>CommonAdjust</CODE> is set to any value, a valid <EM>CommonAdjust string</EM> or not, extended price adjustments are enabled. It may also hold the
+default pricing scheme.
+
+<P>
+
+<LI><STRONG><A NAME="item_">
+
+</A></STRONG>
+The <CODE>price</CODE> field may also hold a <EM>CommonAdjust string</EM>. It takes precedence over the default.
+
+<P>
+
+<LI><STRONG><A NAME="item_">
+
+</A></STRONG>
+If the value of the <CODE>CommonAdjust</CODE> directive is set to a CommonAdjust string, and the <CODE>price</CODE> field is empty or specifically <EM></EM>, then it will be used to set the price of the items.
+
+<P>
+
+<LI><STRONG><A NAME="item_">
+
+</A></STRONG>
+If PriceBreaks is in use, it's price will take precedence over the value of <CODE>CommonAdjust</CODE>, though it may also contain a CommonAdjust string.
+
+<P>
+
+<LI><STRONG><A NAME="item_">
+
+</A></STRONG>
+If no CommonAdjust strings are found, then the price will be 0, subject to
+any later application of discounts.
+
+<P>
+
+<LI><STRONG><A NAME="item_">
+
+</A></STRONG>
+If another CommonAdjust string is found as the result of an operation, it
+will be re-parsed and the result applied. Chaining is retained; a fallback
+may be passed and will take effect.
+
+<P>
+
+</OL>
+Prices may be adjusted in several ways, and the individual actions are
+referred to below as <EM>atoms</EM>. Price atoms they may be <EM>final</EM>,
+<EM>chained</EM>, or <EM>fallback</EM>. 
+<FONT SIZE=-1>A</FONT> final price atom is always applied if it does not evaluate to zero. 
+<FONT SIZE=-1>A</FONT> chained price atom is subject to further adjustment. 
+<FONT SIZE=-1>A</FONT> fallback price atom is skipped if a previous chained price was not zero.
+
+<P>
+
+Atoms are separated by whitespace, and may be quoted (although there should not normally be whitespace in a setting). 
+<FONT SIZE=-1>A</FONT> chained item ends with a comma. 
+<FONT SIZE=-1>A</FONT> fallback item has a leading semi-colon. Final atoms have no comma appended or semi-colon prepended.
+
+<P>
+
+<FONT SIZE=-1>A</FONT> <EM>settor</EM> is the means by which the price is set. There are There are eight different
+types of price settors. All settors can then yield another CommonAdjust
+string. 
+
+<P>
+
+It is quite possible to create endless loops, so the maximum number of
+initial CommonAdjust strings is set to 16, and there may be only 20
+iterations before the price will return zero on an error.
+
+<P>
+
+<STRONG>NOTE</STRONG>: Common needs are easily shown but not so easily explained; skip to the
+examples if the reference below if your vision starts to blur when reading
+the next section. 8-)
+
+<P>
+
+<FONT SIZE=-1>USAGE:</FONT> Optional items below have asterisks appended.
+The asterisk should not be used in the actual string. Optional <STRONG>base</STRONG> or <STRONG>table</STRONG> always defaults to the active <A HREF="#item_products">products</A> database table. The optional <STRONG>key</STRONG>
+defaults to the item code except in a special case for the attribute-based
+lookup. The <STRONG>field</STRONG> name is not optional except in the case of an attribute lookup.
+
+<P>
+
+<DL>
+<DT><STRONG><A NAME="item_N">N.NN or -N.NN
+
+</A></STRONG><DD>
+where 
+<FONT SIZE=-1>N</FONT> is a digit. 
+<FONT SIZE=-1>A</FONT> number which is applied directly; for instance 10 will yield a price of 10. May be a positive or negative number.
+
+<P>
+
+<DT><STRONG><A NAME="item_N">N.NN%
+
+</A></STRONG><DD>
+where 
+<FONT SIZE=-1>N</FONT> is a digit. 
+<FONT SIZE=-1>A</FONT> number which is applied as a percentage of the
+ <EM>current</EM> price value. May be a positive or negative number. For example, if the
+price is 10 and -8% is applied, the next price value will be 9.20.
+
+<P>
+
+<DT><STRONG><A NAME="item_table">table*:column:key*
+
+</A></STRONG><DD>
+Causes a straight lookup in a database table. The optional <STRONG>table</STRONG> 
+defaults to the main products database table for the item (subject of
+course to multiple product files). The <STRONG>column</STRONG> must always be present. The optional <STRONG>key</STRONG> defaults to the item code except in a special case for the attribute-based
+lookup. The return value is then re-parsed as another price settor.
+
+<P>
+
+<DT><STRONG><A NAME="item_table">table*:col1..col5,col10:key*
+
+</A></STRONG><DD>
+Causes a quantity lookup in database table <STRONG>table</STRONG> (which defaults to the products database), with a set of comma-separated
+fields, looked up by the optional <STRONG>key</STRONG>. (Key defaults to the item code, of course). If ranges are specified with
+.., each column in the sequence will be used; Therefore
+
+<P>
+
+<PRE>        pricing:p1,p2,p3,p4,p5,p10:
+</PRE>
+
+<P>
+
+is the same as
+
+<P>
+
+<PRE>        pricing:p1..p5,p10:
+</PRE>
+
+<P>
+
+Leading non-digits are stripped, and the item quantity is compared with the
+numerical portion of the column name. The price is set to the value of the
+database column (numeric portion) that is at least equal to it but doesn't
+yet reach the next break.
+
+<P>
+
+<FONT SIZE=-1>WARNING:</FONT> If the field at the appropriate quantity
+level is blank, a zero cost will be returned from the atom. It is important
+to have all columns populated.
+
+<P>
+
+<DT><STRONG><A NAME="item__attribute_table_column_key_">==attribute:table*:column*:key*
+
+</A></STRONG><DD>
+Does an attribute-based adjustment. The attribute is looked up in the
+database <STRONG>table</STRONG>, with the optional <STRONG>column</STRONG> defaulting to the same name as the <EM>value</EM> of the <STRONG>attribute</STRONG>. If the column is not left blank, the <EM>key</EM> is set to the <EM>value</EM> of the <STRONG>attribute</STRONG> if blank.
+
+<P>
+
+<DT><STRONG><A NAME="item__amp_">&amp; CODE
+
+</A></STRONG><DD>
+The leading <CODE>&</CODE> sign is stripped and the code is passed to the equivalent of a [calc] tag.
+No MiniVend tags can be used, but the <CODE>&tag_data</CODE> routine is
+available, the current value of the price and quantity are available as <CODE>$s</CODE>, and the current item (code, quantity, price, and any attributes) are
+available as <CODE>$item</CODE>.
+
+<P>
+
+<DT><STRONG><A NAME="item__valid">[valid minivend tags]
+
+</A></STRONG><DD>
+If the settor begins with a square bracket (<CODE>[</CODE>) or underscore, it is parsed for MiniVend tags with variable substitution
+(but no Locale substitution). You may define a price in a <EM>Variable</EM> in this fashion. The string is re-submitted as an atom, so it may yield yet
+another settor.
+
+<P>
+
+<DT><STRONG><A NAME="item__">$
+
+</A></STRONG><DD>
+Tells MiniVend to look in the <CODE>mv_price</CODE> attribute of the shopping cart, and apply that price as the final price, if
+it exists. The attribute must be a numerical value.
+
+<P>
+
+<DT><STRONG><A NAME="item__word">>>word
+
+</A></STRONG><DD>
+Tells the routine to return <A HREF="#item_word">word</A> directly as the result. This is not useful in pricing, as it will evaluate
+to zero. But when CommonAdjust is used for shipping, it is a way of
+re-directing shipping modes.
+
+<P>
+
+<DT><STRONG><A NAME="item_word">word
+
+</A></STRONG><DD>
+The value of <A HREF="#item_word">word</A>, which must not match any of the other settors, is available as a key for
+the next lookup (only). If the next settor is a database lookup, and it
+contains a dollar sign (<CODE>$</CODE>) the <A HREF="#item_word">word</A>
+will be substituted; i.e. <CODE>table:column:$</CODE> becomes <CODE>table:column:word</CODE>.
+
+<P>
+
+<DT><STRONG><A NAME="item__">( settor )
+
+</A></STRONG><DD>
+The value returned by <CODE>settor</CODE> will be used as a key for the next lookup, as above.
+
+<P>
+
+</DL>
+<P>
+<HR>
+<H2><A NAME="CommonAdjust_Examples">CommonAdjust Examples
+
+</A></H2>
+Most examples below use an outboard database table named <STRONG>pricing</STRONG>, but any valid table including the <STRONG>products</STRONG> table can be used. We will refer to this <STRONG>pricing</STRONG> table:
+
+<P>
+
+<PRE>  code    common  q1     q5     q10    XL    S      red
+  99-102          10     9      8      1     -0.50  0.75
+  00-343                               2
+  red      0.75
+</PRE>
+
+<P>
+
+The simplest case is a straight lookup on an attribute; <EM>size</EM> in this case. 
+
+<P>
+
+<PRE>  10.00, ==size:pricing
+</PRE>
+
+<P>
+
+With this value in the <CODE>price</CODE> field, a base price of 10.00 will be adjusted with the value of the <EM>size</EM> attribute. If size for the item 99-102 is set to <CODE>XL</CODE> then 1.00 will be added for a total price of 11.00; if it is <CODE>S</CODE> then .50 will be subtracted for a total price of 9.50; for any other value
+of <EM>size</EM> no further adjustment would be made. 00-343 would be adjusted up 2.00 only
+for <EM>XL</EM>.
+
+<P>
+
+<PRE>  10.00, ==size:pricing, ==color:pricing
+</PRE>
+
+<P>
+
+This is the same as above, except both size and color are adjusted for. 
+<FONT SIZE=-1>A</FONT> color value of red for item code 99-102 would add
+0.75 to the price. For 00-343 it would have no effect.
+
+<P>
+
+<PRE>  10.00, ==size:pricing, ==color:pricing:common
+</PRE>
+
+<P>
+
+Here price is set based on a common column, keyed by the value of the color
+attribute. Any item with a color value of red would have 0.75 added to the
+base price.
+
+<P>
+
+<PRE>  pricing:q1,q5,q10:, ;10.00, ==size:pricing, ==color:pricing:common
+</PRE>
+
+<P>
+
+Here is a quantity price lookup, with a fallback price setting. If there is
+a valid price found at the quantity of 1, 5, or 10, depending on item
+quantity, then it will be used. The fallback of 10.00 only applies if no
+non-zero/non-blank price was found at the quantity lookup. In either case,
+size/color adjustment is applied.
+
+<P>
+
+<PRE>  pricing:q1,q5,q10:, ;10.00 ==size:pricing, ==color:pricing:common
+</PRE>
+
+<P>
+
+Removing the comma from the end of the fallback string stops color/size
+lookup if it reaches that point. If a quantity price was found, then size
+and color are chained.
+
+<P>
+
+<PRE>  pricing:q1,q5,q10:, ;products:list_price, ==size:pricing, ==color:pricing
+</PRE>
+
+<P>
+
+The value of the database column <CODE>list_price</CODE> is used as a fallback instead of the fixed 10.00 value. The above value
+might be a nice one to use as the default for a typical retail catalog that
+has items with colors and sizes.
+ 
+
+<P>
+
+<P>
+<HR>
+<H2><A NAME="PriceBreaks_discounts_and_Pric">PriceBreaks, discounts, and PriceAdjustment
+
+</A></H2>
 There are several ways that MiniVend can modify the price of a product
 during normal catalog operation. Several of them require that the <EM>pricing.asc</EM>
 file be present, and that you define a pricing database. You do that by
@@ -10357,6 +11262,12 @@ placing the following directive in <EM>catalog.cfg</EM>:
 
 <PRE>  Database  pricing pricing.asc 1
 </PRE>
+
+<P>
+
+<FONT SIZE=-1>NOTE:</FONT> PriceAdjustment is slightly deprecated by
+CommonAdjust, but will remain in use at least through the end of Version 3
+of MiniVend.
 
 <P>
 
@@ -10384,10 +11295,11 @@ behavior.
 <P>
 
 <LI><STRONG></STRONG>
-Product discounts for specific products, all products, or the entire order
-can be configured with the [discount ...] tag. Discounts are applied on a
-per-user basis -- you can gate the discount based on membership in a club
-or other arbitrary means. See <EM>Product Discounts</EM>.
+Product discounts for individual products, specific product codes, all
+products, or the entire order can be configured with the [discount ...]
+tag. Discounts are applied on a per-user basis -- you can gate the discount
+based on membership in a club or other arbitrary means. See
+<EM>Product Discounts</EM>.
 
 <P>
 
@@ -10464,14 +11376,6 @@ and <CODE>$Vend::Session-</CODE>&gt;<CODE>{item_quantity}</CODE>.
 
 The pricing information must always come from a database because of
 security.
-
-<P>
-
-See <EM>CommonAdjust</EM> for another scheme that makes the same adjustment for any item having the
-attribute -- both schemes cannot be used at the same time. (This is true
-even if you were to change the value of $Vend::Cfg-&gt;{CommonAdjust} in a
-subroutine -- the pricing algorithm is built at catalog configuration
-time.)
 
 <P>
 
@@ -10758,7 +11662,9 @@ only to the customer receiving them, and are of one of three types:
 
 <PRE>    1. A discount for one particular item code (key is the item-code)
     2. A discount applying to all item codes (key is ALL_ITEMS)
-    3. A discount applied after all items are totaled
+        3. A discount for an individual line item (set the mv_disount attribute
+           with embedded Perl)
+    4. A discount applied after all items are totaled
        (key is ENTIRE_ORDER)
 </PRE>
 
@@ -10766,15 +11672,16 @@ only to the customer receiving them, and are of one of three types:
 
 The discounts are specified via a formula. The formula is scanned for the
 variables <CODE>$q</CODE> and $s, which are substituted for with the item
-<EM>quantity</EM> and <EM>subtotal</EM> respectively. In the case of the item and all items discount, the formula
-must evaluate to a new subtotal for all items <EM>of that code</EM> that are ordered. The discount for the entire order is applied to the
+<EM>quantity</EM> and <EM>subtotal</EM> respectively. The variable <CODE>$s</CODE> is saved between iterations, so
+the discounts are cumulative. In the case of the item and all items
+discount, the formula must evaluate to a new subtotal for all items <EM>of that code</EM> that are ordered. The discount for the entire order is applied to the
 entire order, and would normally be a monetary amount to subtract or a flat
 percentage discount.
 
 <P>
 
 Discounts are applied to the effective price of the product, including any
-quantity discounts.
+quantity discounts or price adjustments.
 
 <P>
 
@@ -10814,8 +11721,32 @@ To subtract $5.00 from the customer's order:
 
 <P>
 
-Perl code can be used to apply the discounts. Here is an example of a
-discount for item code 00-343 which prices the <EM>second</EM> one ordered at 1 cent:
+Perl code can be used to apply the discounts, and variables are saved
+between items and are shared with the <CODE>[calc]</CODE> tag. This example gives 10% off if two items are ordered, with 5% more for
+each additional up to a maximum of 30% discount:
+
+<P>
+
+<PRE>    [calc] 
+        [item-list]
+            $totalq{&quot;[item-code]&quot;} += [item-quantity];
+        [/item-list]
+            return '';
+    [/calc]
+    
+    [item-list]
+        [discount code=&quot;[item-code]&quot;]
+            return ($s)       if $totalq{&quot;[item-code]&quot;} == 1;
+            return ($s * .70) if $totalq{&quot;[item-code]&quot;} &gt; 6;
+            return ($s * ( 1 - 0.05 * $totalq{&quot;[item-code]&quot;} ));
+        [/discount]
+    [/item-list]
+</PRE>
+
+<P>
+
+Here is an example of a special discount for item code 00-343 which prices
+the <EM>second</EM> one ordered at 1 cent:
 
 <P>
 
@@ -10940,14 +11871,20 @@ or to do it without submitting a form:
 <H2><A NAME="Using_CyberCash">Using CyberCash
 
 </A></H2>
-MiniVend will directly interface with the Perl CCLib provided by CyberCash,
-Inc. This allows direct card billing at the time the order is placed. The
-CCLib.pm version should be 1.3 or greater. If the library is found at
-startup, the message ``CyberCash module found'' will be displayed.
+MiniVend will directly interface with Perl libraries provided by CyberCash,
+Inc. This allows direct card billing at the time the order is placed. If
+using CyberCash 2, the module is called CCLib.pm and its version should be
+1.3 or greater. If the library is found at startup, the message ``CyberCash
+2 module found'' will be displayed.
 
 <P>
 
-To use CyberCash, you must first have a CyberCash Secure Merchant Payment Server 
+MiniVend 3.11 and above support CyberCash 3; see the section below for
+differences when using CyberCash 3.
+
+<P>
+
+To use CyberCash 2, you must first have a CyberCash Secure Merchant Payment Server 
 <FONT SIZE=-1>(SMPS)</FONT> running on your system. It must be fully enabled, and should be tested 
 <FONT SIZE=-1>OK</FONT> with the CyberCash test suite. This capability has been tested to work with SMPS-2.1.x in
  <CODE>mauthcapture</CODE> and <CODE>mauthonly</CODE>
@@ -10961,8 +11898,9 @@ catalog <CODE>error.log</CODE> file.
 
 <P>
 
-The CCLib.pm file must be available to MiniVend -- if you cannot install it
-in the main Perl library then the Minivend software directory <EM>lib/</EM> will suffice. If it is found at MiniVend startup, a message will be
+The CyberCash Perl library module must be available to MiniVend -- if you
+cannot install it in the main Perl library then the Minivend software
+directory <EM>lib/</EM> will suffice. If it is found at MiniVend startup, a message will be
 displayed.
 
 <P>
@@ -11110,15 +12048,68 @@ message returned from CyberCash.
 
 <P>
 <HR>
+<H2><A NAME="CyberCash_3_2">CyberCash 3.2
+
+</A></H2>
+MiniVend 3.11 supports CyberCash 3 with the CCMckDirectLib3_2.pm
+CCMckLib3_2.pm modules. If those modules are in place in your Perl include
+path (you can use VendRoot/lib as a home if you wish), using CyberCash 3.2
+is the same as with CyberCash 2 server except:
+
+<P>
+
+<OL>
+<LI><STRONG><A NAME="item_">
+
+</A></STRONG>
+CyberCash 3 maintains a configuration file (merchant.conf) for each merchant. This needs to be set in the variable 
+<FONT SIZE=-1>CYBER_CONFIGFILE</FONT> as in:
+
+<P>
+
+<PRE>  Variable CYBER_CONFIGFILE  /home/you/mck-lib/conf/merchant.conf
+</PRE>
+
+<P>
+
+In all likelihood, this will make the values of 
+<FONT SIZE=-1>CYBER_HOST,</FONT> 
+<FONT SIZE=-1>CYBER_PORT,</FONT> and 
+<FONT SIZE=-1>CYBER_SECRET</FONT> moot. It will not hurt anything if they remain set.
+
+<P>
+
+<LI><STRONG><A NAME="item_"> 
+
+</A></STRONG>
+The variable 
+<FONT SIZE=-1>CYBER_VERSION</FONT> needs to be set to a numeric value of 3
+or greater:
+
+<P>
+
+<PRE>  Variable CYBER_VERSION  3.2
+</PRE>
+
+<P>
+
+This allows CyberCash 2 and 3 implementations to coexist on the same
+machine.
+
+<P>
+
+</OL>
+<P>
+<HR>
 <H1><A NAME="SORTING">SORTING
 
 </A></H1>
-MiniVend 3.03 regularizes the sorting options for sorting the search lists,
-loop lists, and item lists based on the contents of database fields. In
-addition, MiniVend 3.07 adds list slices, or limiting the displayed entries
-based on a start value and chunk size (or start and end value, from which a
-chunk size is determined). All accept a standard format sort tag which must
-be directly after the list call:
+MiniVend has standard sorting options for sorting the search lists, loop
+lists, and item lists based on the contents of database fields. In
+addition, adds list slices for limiting the displayed entries based on a
+start value and chunk size (or start and end value, from which a chunk size
+is determined). All accept a standard format sort tag which must be
+directly after the list call:
 
 <P>
 
@@ -11539,7 +12530,7 @@ found entry is used in case of ties.
 <DT><STRONG><A NAME="item_cost">cost
 
 </A></STRONG><DD>
-The total cost, determined by formula if it begins with <CODE>f</CODE>, by multiplier if it begins with <CODE>x</CODE>, by UPS-style lookup if it begins with <CODE>u</CODE> or <CODE>[A-Z]</CODE>, by named subroutine if it begins with an <CODE>s</CODE>, and a straight cost otherwise. If it begins with an <CODE>e</CODE>, a zero cost is returned with the following string as the error message.
+The total cost, determined by formula if it begins with <CODE>f</CODE>, by multiplier if it begins with <CODE>x</CODE>, by UPS-style lookup if it begins with <CODE>u</CODE> or <CODE>[A-Z]</CODE>, by named subroutine if it begins with an <CODE>s</CODE>, by a MiniVend chained cost calculation if <CODE>m</CODE> or <CODE>i</CODE>, and a straight cost otherwise. If it begins with an <CODE>e</CODE>, a zero cost is returned with the following string as the error message.
 
 <P>
 
@@ -12167,7 +13158,7 @@ other session qualifier.
 <P>
 
 You can specify user variables to examine for geographic offering of
-shipping modes with the <A HREF="#item_CustomShipping">CustomShipping</A> directive, and you can specify which qualifications they must meet with the <A HREF="#item_Shipping">Shipping</A>
+shipping modes with the <CODE>CustomShipping</CODE> directive, and you can specify which qualifications they must meet with the <CODE>Shipping</CODE>
 directive. Example:
 
 <P>
@@ -12811,7 +13802,7 @@ prevent a search from being cached or built statically.
 
 <P>
 
-Pages are also searched for static [page scan/...] searches, and those
+Pages are also searched for static [page scan se=...] searches, and those
 searches are built statically if appropriate. They are placed in the pages
 scan1.html on up, so don't name any of your pages scan and then digits if
 you want to avoid clashing. Search builds recurse one level down, meaning
@@ -13034,9 +14025,9 @@ duration of their session.
 <H2><A NAME="MiniVend_Locale_Settings">MiniVend Locale Settings
 
 </A></H2>
-The <A HREF="#item_Locale">Locale</A> directive has many possible settings, allowing complete
+The <CODE>Locale</CODE> directive has many possible settings, allowing complete
 internationalization of page sets and currencies. The
-<A HREF="#item_Locale">Locale</A> directive is defined in a series of key/value pairs, with a key (which
+<CODE>Locale</CODE> directive is defined in a series of key/value pairs, with a key (which
 contains word characters only) followed by a value. The value should be
 surrounded with double quotes if it contains whitespace. In this example,
 the key is <CODE>Value setting</CODE>.
@@ -13082,6 +14073,12 @@ For longer series of strings, the configuration file recognizes:
 The above sets two string substitutions. As long as this is valid Perl
 syntax describing a series of settings, the text will be matched. It can
 contain any arbitrary set of characters that don't contain <CODE>[L]</CODE> and <CODE>[/L]</CODE>. If using double quotes, string literals like \n and \t are recognized.
+
+<P>
+
+You can also use a database to set locale information. It is added to any
+in the catalog.cfg file, and values in it will overwrite previous settings.
+See <EM>LocaleDatabase</EM>.
 
 <P>
 
@@ -13275,6 +14272,13 @@ would set:
     Locale fr_FR  ImageDir   /images/francais/
     Locale en_US  ImageDir   /images/english/
 </PRE>
+
+<P>
+
+<DT><STRONG><A NAME="item_ImageDirSecure">ImageDirSecure
+
+</A></STRONG><DD>
+Same as ImageDir.
 
 <P>
 
@@ -13494,6 +14498,59 @@ If the proper
 
 <P>
 <HR>
+<H2><A NAME="Placing_Locale_information_in_a_">Placing Locale information in a Database
+
+</A></H2>
+MiniVend has the capability to read its locale information from a database,
+named with the <EM>LocaleDatabase</EM> directive. The database can be of any valid MiniVend type. The locales are
+in columns, and the keys are in rows. So to set up price information:
+
+<P>
+
+<PRE>    key                 en_US   fr_FR   de_DE
+    PriceDivide         1       .1590   .58
+    mon_decimal_point   .       ,       ,
+    mon_thousands_sep   ,       .        
+    currency_symbol     $        frs    DM 
+    ps_cs_precedes      1       0               0   
+</PRE>
+
+<P>
+
+That would translate <EM>exactly</EM> into:
+
+<P>
+
+Locale en_US PriceDivide 1 Locale en_US mon_decimal_point . Locale en_US
+mon_thousands_sep , Locale en_US currency_symbol $ Locale en_US
+ps_cs_precedes 1
+
+<P>
+
+Locale fr_FR PriceDivide .1590 Locale fr_FR mon_decimal_point , Locale
+fr_FR mon_thousands_sep . Locale fr_FR currency_symbol `` frs'' Locale
+fr_FR ps_cs_precedes 0
+
+<P>
+
+Locale de_DE PriceDivide .58 Locale de_DE mon_decimal_point , Locale de_DE mon_thousands_sep `` '' Locale de_DE currency_symbol 
+<FONT SIZE=-1>``DM</FONT> '' Locale de_DE ps_cs_precedes 1
+           
+
+<P>
+
+These settings add on to <STRONG>but overwrite</STRONG> any that are set in the catalog configuration files, including any #include
+files.
+
+<P>
+
+<FONT SIZE=-1>IMPORTANT</FONT> 
+<FONT SIZE=-1>NOTE:</FONT> The information is only read on catalog configuration. It is not reasonable to access a database for translation or currency conversion in the normal course of events.
+
+<P>
+
+<P>
+<HR>
 <H1><A NAME="MINIVEND_CONFIGURATION_FILES">MINIVEND CONFIGURATION FILES
 
 </A></H1>
@@ -13526,28 +14583,31 @@ You can also use a type of ``here document'' to specify MiniVend directives, wit
 
 <P>
 <HR>
-<H2><A NAME="Server_Configuration_File">Server Configuration File
+<H1><A NAME="MINIVEND_CFG">MINIVEND.CFG
 
-</A></H2>
+</A></H1>
 The VendRoot directory, specified in the main program <CODE>minivend</CODE>, is the default location of all of the MiniVend program, configuration,
 special, and library files. Unless changed in <CODE>minivend</CODE>, the main MiniVend server configuration file will be minivend.cfg in the
 VendRoot directory.
 
 <P>
 
-If no <EM>Catalog</EM> directives are present, all of the directives listed under <EM>Catalog Configuration File</EM> are operative for the single catalog that will be served by MiniVend.
+If no <EM>Catalog</EM> directives are present, only the special MiniVend admin catalog will be
+started.
 
 <P>
 
-Otherwise, there are only a few directives that are defined in the 
-<EM>minivend.cfg</EM> file.
+The directives defined in minivend.cfg affect the entire MiniVend server
+and all catalogs running under it; though you may run multiple MiniVend
+servers on the same machine with totally independent operation.
 
 <P>
 
-<DL>
-<DT><STRONG><A NAME="item_AdminSub">AdminSub
+<P>
+<HR>
+<H2><A NAME="AdminSub">AdminSub
 
-</A></STRONG><DD>
+</A></H2>
 Specifies subroutine names that may not be run unless the user is the
 administrative user for the catalog. (See <EM>MasterHost</EM>, 
 <EM>Password</EM>, and <EM>RemoteUser</EM>).
@@ -13559,9 +14619,37 @@ administrative user for the catalog. (See <EM>MasterHost</EM>,
 
 <P>
 
-<DT><STRONG><A NAME="item_AllowGlobal">AllowGlobal
+<P>
+<HR>
+<H2><A NAME="AdminUser">AdminUser
 
-</A></STRONG><DD>
+</A></H2>
+
+<FONT SIZE=-1>A</FONT> space or colon-separated list of users who have
+global MiniVend administration permission for the special mv_admin catalog.
+The password is encrypted unless the Global <EM>Variable</EM> 
+<FONT SIZE=-1>MV_NO_CRYPT</FONT> is set to a true value. This is the case
+in the distribution minivend.cfg file, which has these settings:
+
+<P>
+
+<PRE>        Variable    MV_NO_CRYPT
+    AdminUser   minivend:nevairbe
+</PRE>
+
+<P>
+
+Obviously you should change the password at your first opportunity. To
+begin with, the catalog is defined with a <EM>MasterHost</EM> value of 127.0.0.1 to disallow access from the outside world. To access it
+from another system besides <CODE>localhost</CODE>, you will need to remove or change the value.
+
+<P>
+
+<P>
+<HR>
+<H2><A NAME="AllowGlobal">AllowGlobal
+
+</A></H2>
 Specifies catalog identifiers that may define subroutines and UserTag
 entries that can operate with the full permissions of the server. <STRONG>DON'T USE THIS UNLESS YOU TRUST THE CATALOG USER IMPLICITLY.</STRONG>
 Default is blank.
@@ -13573,9 +14661,11 @@ Default is blank.
 
 <P>
 
-<DT><STRONG><A NAME="item_Catalog">Catalog
+<P>
+<HR>
+<H2><A NAME="Catalog">Catalog
 
-</A></STRONG><DD>
+</A></H2>
 Specifies a catalog that can run using this MiniVend server. There are
 three required parameters, separated by spaces and/or tabs.
 
@@ -13615,9 +14705,11 @@ In addition, if you set the global directive <EM>FullUrl</EM> to <EM>yes</EM>, y
 
 <P>
 
-<DT><STRONG><A NAME="item_DisplayErrors">DisplayErrors
+<P>
+<HR>
+<H2><A NAME="DisplayErrors">DisplayErrors
 
-</A></STRONG><DD>
+</A></H2>
 While all errors are reported in the error log file, you can also have
 errors displayed by the browser. This is convenient while you are testing
 your configuration. Unless this is set, the DisplayErrors setting in the
@@ -13630,9 +14722,11 @@ user catalogs will have no effect. Default is <EM>No</EM>.
 
 <P>
 
-<DT><STRONG><A NAME="item_DomainTail">DomainTail
+<P>
+<HR>
+<H2><A NAME="DomainTail">DomainTail
 
-</A></STRONG><DD>
+</A></H2>
 Implements the domain/IP session qualifiers so that only the major domain is used to qualify the session 
 <FONT SIZE=-1>ID.</FONT> This is a compromise on security, but it allows non-cookie-accepting browsers like AOL's 
 <FONT SIZE=-1>V2.0</FONT> to use multiple proxy servers. Default is yes, since most everyone wants 
@@ -13640,9 +14734,11 @@ Implements the domain/IP session qualifiers so that only the major domain is use
 
 <P>
 
-<DT><STRONG><A NAME="item_Environment">Environment
+<P>
+<HR>
+<H2><A NAME="Environment">Environment
 
-</A></STRONG><DD>
+</A></H2>
 Environment variables to inherit from the calling 
 <FONT SIZE=-1>CGI</FONT> link program. And example might be 
 <FONT SIZE=-1>PGPPATH,</FONT> used to set the directory which 
@@ -13655,9 +14751,11 @@ Environment variables to inherit from the calling
 
 <P>
 
-<DT><STRONG><A NAME="item_FullUrl">FullUrl
+<P>
+<HR>
+<H2><A NAME="FullUrl">FullUrl
 
-</A></STRONG><DD>
+</A></H2>
 Normally MiniVend determines which catalog to call by determining the 
 <FONT SIZE=-1>SCRIPT_NAME</FONT> from the 
 <FONT SIZE=-1>CGI</FONT> call. This means that different (and maybe virtual) hosts cannot use the same 
@@ -13673,9 +14771,11 @@ Normally MiniVend determines which catalog to call by determining the
 
 <P>
 
-<DT><STRONG><A NAME="item_GlobalSub">GlobalSub
+<P>
+<HR>
+<H2><A NAME="GlobalSub">GlobalSub
 
-</A></STRONG><DD>
+</A></H2>
 Defines a <EM>global</EM> subroutine for use by the <STRONG>[perl sub] subname arg [/perl]</STRONG>
 construct. Use the ``here document'' capability of MiniVend configuration
 files to make it easy to define:
@@ -13713,9 +14813,11 @@ complete package qualifications for your variables.
 
 <P>
 
-<DT><STRONG><A NAME="item_HammerLock">HammerLock
+<P>
+<HR>
+<H2><A NAME="HammerLock">HammerLock
 
-</A></STRONG><DD>
+</A></H2>
 The number of seconds after which a locked session could be considered to
 be lost due to malfunction. This will kill the lock on the session. Only
 here for monitoring of session hand-off, if this error shows up in the
@@ -13728,9 +14830,11 @@ error log the system setup should be examined. Default is 30.
 
 <P>
 
-<DT><STRONG><A NAME="item_HouseKeeping">HouseKeeping
+<P>
+<HR>
+<H2><A NAME="HouseKeeping">HouseKeeping
 
-</A></STRONG><DD>
+</A></H2>
 How often, in seconds, the MiniVend server will ``wake up'' and look for
 user reconfiguration requests and hung search processes. On some systems,
 this wakeup is the only time the server will terminate in response to a
@@ -13743,9 +14847,11 @@ stop command. Default is 60.
 
 <P>
 
-<DT><STRONG><A NAME="item_IpHead">IpHead
+<P>
+<HR>
+<H2><A NAME="IpHead">IpHead
 
-</A></STRONG><DD>
+</A></H2>
 Implements the domain/IP session qualifiers so that only the first two dot-quads of the 
 <FONT SIZE=-1>IP</FONT> address are used to qualify the session 
 <FONT SIZE=-1>ID.</FONT> This is a compromise on security, but it allows non-cookie-accepting browsers like AOL's 
@@ -13768,9 +14874,11 @@ Default is <CODE>No</CODE>, and DomainTail must be set to <CODE>No</CODE> for it
 
 <P>
 
-<DT><STRONG><A NAME="item_LockoutCommand">LockoutCommand
+<P>
+<HR>
+<H2><A NAME="LockoutCommand">LockoutCommand
 
-</A></STRONG><DD>
+</A></H2>
 The name of a command (as you would enter it from the shell) that will lock out the host 
 <FONT SIZE=-1>IP</FONT> of an offending system. The 
 <FONT SIZE=-1>IP</FONT> address will be substituted for the first occurrence of the string %s.
@@ -13812,9 +14920,11 @@ would work as well (remember, the <CODE>%s</CODE> will become the
 
 <P>
 
-<DT><STRONG><A NAME="item_MaxServers">MaxServers
+<P>
+<HR>
+<H2><A NAME="MaxServers">MaxServers
 
-</A></STRONG><DD>
+</A></H2>
 The maximum number of servers that will be spawned to handle page requests.
 If more than MaxServers requests are pending, they will be queued (within
 the defined capability of the operating system, usually 5 pending requests)
@@ -13827,9 +14937,11 @@ until the number of active servers goes below that value.
 
 <P>
 
-<DT><STRONG><A NAME="item_MultiServer">MultiServer
+<P>
+<HR>
+<H2><A NAME="MultiServer">MultiServer
 
-</A></STRONG><DD>
+</A></H2>
 If defined to be true, then multiple servers can share the socket and serve users. Not usable on 
 <FONT SIZE=-1>SGI</FONT> systems. Default is
  <EM>no</EM>
@@ -13841,9 +14953,11 @@ If defined to be true, then multiple servers can share the socket and serve user
 
 <P>
 
-<DT><STRONG><A NAME="item_NoAbsolute">NoAbsolute
+<P>
+<HR>
+<H2><A NAME="NoAbsolute">NoAbsolute
 
-</A></STRONG><DD>
+</A></H2>
 Whether MiniVend [file ...] and other tags can read any file on the system
 (that is readable by the user id running the MiniVend daemon). The default
 is
@@ -13857,9 +14971,36 @@ multi-user environment to minimize security problems.
 
 <P>
 
-<DT><STRONG><A NAME="item_SafeSignals">SafeSignals
+<P>
+<HR>
+<H2><A NAME="PIDcheck">PIDcheck
 
-</A></STRONG><DD>
+</A></H2>
+If non-zero, enables a check of running MiniVend processes during the
+housekeeping routine. If a process has been running (or is hung) for longer
+than <EM>PIDcheck</EM> seconds then a kill -9 will be issued and the server count decremented.
+
+<P>
+
+Default is <STRONG></STRONG>, disabling the check.
+
+<P>
+
+<PRE>    PIDcheck   60
+</PRE>
+
+<P>
+
+If you have long-running database builds, you will need to disable this,
+set it to a high value (perhaps 600), or use the <EM>offline</EM> script.
+
+<P>
+
+<P>
+<HR>
+<H2><A NAME="SafeSignals">SafeSignals
+
+</A></H2>
 If your operating system does not have a re-entrant 
 <FONT SIZE=-1>C</FONT> library that can guarantee that signal race conditions will not occur, then set this to 
 <FONT SIZE=-1>NO.</FONT>
@@ -13881,9 +15022,11 @@ perl.core file, disable this directive.
 
 <P>
 
-<DT><STRONG><A NAME="item_SafeUntrap">SafeUntrap
+<P>
+<HR>
+<H2><A NAME="SafeUntrap">SafeUntrap
 
-</A></STRONG><DD>
+</A></H2>
 Sets the codes that will be untrapped in the Safe.pm module, used for
 embedded Perl and conditional operations. You can see the Safe.pm
 documentation by typing <CODE>perldoc Safe</CODE> at the command prompt. The default is <CODE>249 148</CODE> for Perl 5.003, and <CODE>ftfile sort</CODE> for Perl 5.003_20 and above, which untraps the file existence test operator
@@ -13897,9 +15040,11 @@ default restrictive operators.
 
 <P>
 
-<DT><STRONG><A NAME="item_SendMailProgram">SendMailProgram
+<P>
+<HR>
+<H2><A NAME="SendMailProgram">SendMailProgram
 
-</A></STRONG><DD>
+</A></H2>
 Specifies the program used to send email. Defaults to '/usr/lib/sendmail'.
 If it is not found at startup, MiniVend will complain and refuse to start.
 
@@ -13910,9 +15055,11 @@ If it is not found at startup, MiniVend will complain and refuse to start.
 
 <P>
 
-<DT><STRONG><A NAME="item_SubCatalog">SubCatalog
+<P>
+<HR>
+<H2><A NAME="SubCatalog">SubCatalog
 
-</A></STRONG><DD>
+</A></H2>
 Allows definition of a catalog which shares most of the characteristics of another catalog. Only the items that are changed from the base catalog are added. The parameters are 1) the catalog 
 <FONT SIZE=-1>ID</FONT> 2) the base catalog 
 <FONT SIZE=-1>ID,</FONT> 3) the directory to use (typically the same as the base catalog), and 4) the 
@@ -13931,9 +15078,11 @@ series of stores that share most of the same pages or databases.
 
 <P>
 
-<DT><STRONG><A NAME="item_TcpHost">TcpHost
+<P>
+<HR>
+<H2><A NAME="TcpHost">TcpHost
 
-</A></STRONG><DD>
+</A></H2>
 When running in 
 <FONT SIZE=-1>INET</FONT> mode, using <CODE>tlink</CODE>, specifies the hosts that are allowed to send/receive transactions from any catalog on this MiniVend server. Can be either an name or 
 <FONT SIZE=-1>IP</FONT> number, and multiple hosts can be specified in a space-separated list. Default is localhost.
@@ -13945,23 +15094,82 @@ When running in
 
 <P>
 
-<DT><STRONG><A NAME="item_TcpPort">TcpPort
+<P>
+<HR>
+<H2><A NAME="TcpMap">TcpMap
 
-</A></STRONG><DD>
+</A></H2>
 When running in 
-<FONT SIZE=-1>INET</FONT> mode, using <CODE>tlink</CODE>, specifies the port that will be monitored by the MiniVend server. Default
-is 7786.
+<FONT SIZE=-1>INET</FONT> mode, using <CODE>tlink</CODE> or the internal 
+<FONT SIZE=-1>HTTP</FONT> server, specifies the <CODE>port(s)</CODE> which
+will be monitored. by the MiniVend server. Default is 7786, which is mapped
+to the special mv_admin catalog.
 
 <P>
 
-<PRE>    TcpPort         7786
+To use the internal 
+<FONT SIZE=-1>HTTP</FONT> server (perhaps only for password-protected
+queries), you can map a catalog to a port. If you had three catalogs
+running on the server <EM>www.minivend.com</EM>, named <A HREF="#item_simple">simple</A>, <CODE>sample</CODE>, and <A HREF="#item_search">search</A>, you might have in the directive:
+
+<P>
+
+<PRE>    TcpPort   7786 mv_admin  7787 simple 7788 sample 7789 search
 </PRE>
 
 <P>
 
-<DT><STRONG><A NAME="item_TolerateGet">TolerateGet
+<FONT SIZE=-1>NOTE:</FONT> To map large numbers of ports, you can use the 
+<FONT SIZE=-1>&lt;&lt;MARKER</FONT> here document notation in minivend.cfg.
 
-</A></STRONG><DD>
+<P>
+
+With this in effect, the internal 
+<FONT SIZE=-1>HTTP</FONT> server would map the following addresses:
+
+<P>
+
+<PRE>        <A HREF="http://www.minivend.com:7786">http://www.minivend.com:7786</A>   mv_admin
+        <A HREF="http://www.minivend.com:7787">http://www.minivend.com:7787</A>   simple
+        <A HREF="http://www.minivend.com:7788">http://www.minivend.com:7788</A>   sample
+        <A HREF="http://www.minivend.com:7789">http://www.minivend.com:7789</A>   search
+</PRE>
+
+<P>
+
+<FONT SIZE=-1>NOTE:</FONT> This does not pertain to the use of <CODE>tlink</CODE>, which still relies on the 
+<FONT SIZE=-1>CGI</FONT> 
+<FONT SIZE=-1>SCRIPT_PATH.</FONT>
+
+<P>
+
+To enable this, the 
+<FONT SIZE=-1>SCRIPT_PATH</FONT> aliases /simple, /sample, etc. must be set
+in the <CODE>Catalog</CODE> directive. This would look like:
+
+<P>
+
+<PRE>  Catalog  simple  /home/minivend/catalogs/simple /cgi-bin/simple /simple
+</PRE>
+
+<P>
+
+<P>
+<HR>
+<H2><A NAME="TcpPort">TcpPort
+
+</A></H2>
+This is superceded by the <EM>TcpMap</EM> directive. It will still accept only a number, but it is not used. (The
+Global::TcpPort) variable is now used to signify which monitored port is
+connected.
+
+<P>
+
+<P>
+<HR>
+<H2><A NAME="TolerateGet">TolerateGet
+
+</A></H2>
 Sometimes proxy servers screw up and cache 
 <FONT SIZE=-1>POST</FONT> forms. This is mainly a problem from forms that
 are identical, such as popular items being placed in the basket and then
@@ -13993,19 +15201,22 @@ put it on the <EM>interact</EM> page that is shown when the normal error is rece
 
 <P>
 
-<DT><STRONG><A NAME="item_UserBuild">UserBuild
+<P>
+<HR>
+<H2><A NAME="UserTag">UserTag
 
-</A></STRONG><DD>
-
-<FONT SIZE=-1>A</FONT> Yes/No directive. Determines whether users are
-allowed to trigger static builds of their MiniVend catalogs. Default is no,
-as you do not typically want to allow rebuilds from the running server.
+</A></H2>
+This defines a UserTag which is global in nature, meaning not limited by
+the <EM>Safe.pm</EM> module, and which tag is available to all MiniVend catalogs running on the
+server. Otherwise this is the same as a catalog <EM>UserTag</EM>.
 
 <P>
 
-<DT><STRONG><A NAME="item_Variable">Variable
+<P>
+<HR>
+<H2><A NAME="Variable">Variable
 
-</A></STRONG><DD>
+</A></H2>
 Defines a global variable that will be available in <STRONG>all</STRONG> catalogs with the notation @@Variable@@. Variable identifiers must begin
 with a capital letter, and can contain only word characters (<STRONG>A-Z,a-z,0-9</STRONG> and underscore) -- they are case-sensitive. If using the
 <EM>ParseVariables</EM> directive, only variables in 
@@ -14055,12 +15266,11 @@ The current locale for currency
 <P>
 
 </DL>
-</DL>
 <P>
 <HR>
-<H2><A NAME="Catalog_Configuration_File">Catalog Configuration File
+<H1><A NAME="CATALOG_CFG">CATALOG.CFG
 
-</A></H2>
+</A></H1>
 If multiple catalogs are to be run, each must have a <CODE>catalog.cfg</CODE>
 file located in the catalog base directory. It contains most of the
 configurable parameters for MiniVend -- each is independent from catalog to
@@ -14068,19 +15278,17 @@ catalog.
 
 <P>
 
+In the catalog configuration file, the directives MailOrderTo and VendURL
+are <STRONG>required</STRONG>. They are not defined with defaults, and no catalog will operate unless
+and until they are set with a value.
+
+<P>
+
 <P>
 <HR>
-<H2><A NAME="Required_Configuration_Directive">Required Configuration Directives
+<H2><A NAME="VendURL">VendURL
 
 </A></H2>
-In the catalog configuration file, these directives are <STRONG>required</STRONG>:
-
-<P>
-
-<DL>
-<DT><STRONG><A NAME="item_VendURL">VendURL
-
-</A></STRONG><DD>
 Specifies the base 
 <FONT SIZE=-1>URL</FONT> that will run vlink as a cgi-bin program.
 
@@ -14091,9 +15299,11 @@ Specifies the base
 
 <P>
 
-<DT><STRONG><A NAME="item_MailOrderTo">MailOrderTo
+<P>
+<HR>
+<H2><A NAME="MailOrderTo">MailOrderTo
 
-</A></STRONG><DD>
+</A></H2>
 Specifies the email address to mail completed orders to.
 
 <P>
@@ -14103,7 +15313,6 @@ Specifies the email address to mail completed orders to.
 
 <P>
 
-</DL>
 <P>
 <HR>
 <H2><A NAME="Optional_Configuration_Directive">Optional Configuration Directives
@@ -14113,10 +15322,9 @@ These directives all have default values and are optional.
 
 <P>
 
-<DL>
-<DT><STRONG><A NAME="item_ActionMap">ActionMap
+<H2><A NAME="ActionMap">ActionMap
 
-</A></STRONG><DD>
+</A></H2>
 Allows setting of button actions for particular names. The predefined names
 are:
 
@@ -14148,9 +15356,9 @@ blank. Can be set as many times as necessary. Not case sensitive.
 
 <P>
 
-<DT><STRONG><A NAME="item_AdminDatabase">AdminDatabase
+<H2><A NAME="AdminDatabase">AdminDatabase
 
-</A></STRONG><DD>
+</A></H2>
 When set to one or more MiniVend database identifiers, any pages using data
 items from the specified <CODE>database(s)</CODE> will not be allowed for
 display unless the user the catalog operator -- i.e. is authenticated by
@@ -14165,9 +15373,9 @@ elements from the <CODE>database(s).</CODE>
 
 <P>
 
-<DT><STRONG><A NAME="item_AdminPage">AdminPage
+<H2><A NAME="AdminPage">AdminPage
 
-</A></STRONG><DD>
+</A></H2>
 When set to one or more MiniVend page names, pages with that name will not
 be allowed for display unless the user the catalog operator -- i.e. is
 authenticated by one of <EM>Password</EM>, <EM>MasterHost</EM>, or <EM>RemoteUser</EM>. The special page <A HREF="#item_violation">violation</A> will be displayed if another user attempts to access the
@@ -14180,9 +15388,9 @@ authenticated by one of <EM>Password</EM>, <EM>MasterHost</EM>, or <EM>RemoteUse
 
 <P>
 
-<DT><STRONG><A NAME="item_AlwaysSecure">AlwaysSecure
+<H2><A NAME="AlwaysSecure">AlwaysSecure
 
-</A></STRONG><DD>
+</A></H2>
 Determines whether checkout page operations should always be secure. Set it
 to the pages that should always be secure, separated by spaces and/or tabs.
 
@@ -14193,9 +15401,9 @@ to the pages that should always be secure, separated by spaces and/or tabs.
 
 <P>
 
-<DT><STRONG><A NAME="item_AsciiBackend">AsciiBackend
+<H2><A NAME="AsciiBackend">AsciiBackend
 
-</A></STRONG><DD>
+</A></H2>
 
 <FONT SIZE=-1>A</FONT> file name to log order fields in (set by
 BackendOrder). Unless preceded by a leading '/', will be placed relative to
@@ -14209,9 +15417,9 @@ send the fields to. Disabled by default.
 
 <P>
 
-<DT><STRONG><A NAME="item_AsciiTrack">AsciiTrack
+<H2><A NAME="AsciiTrack">AsciiTrack
 
-</A></STRONG><DD>
+</A></H2>
 
 <FONT SIZE=-1>A</FONT> file name to log formatted orders in. Unless
 preceded by a leading '/', will be placed relative to the catalog
@@ -14224,9 +15432,9 @@ directory. Disabled by default.
 
 <P>
 
-<DT><STRONG><A NAME="item_BackendOrder">BackendOrder
+<H2><A NAME="BackendOrder">BackendOrder
 
-</A></STRONG><DD>
+</A></H2>
 Controls the fields that are prepended to the item codes and quantities for
 the backend ordering capability. These are the values from the user
 checkout forms. You can access any value in that hash. If blank, no backend
@@ -14239,9 +15447,9 @@ ordering is in force. Default is blank.
 
 <P>
 
-<DT><STRONG><A NAME="item_ButtonBars">ButtonBars
+<H2><A NAME="ButtonBars">ButtonBars
 
-</A></STRONG><DD>
+</A></H2>
 The ButtonBars directive allows you to define several preset button bars that reside in files. The button bar file will usually contain an 
 <FONT SIZE=-1>IMG</FONT> link, along with its associated client-side image map. This allows you to insert a [buttonbar 1] or [buttonbar 2] directive instead of the equivalent 
 <FONT SIZE=-1>HTML,</FONT> and is designed to make it easy to change the look of your pages with the change of one file. If the file does not exist at program configuration time, the tag is simply stripped. The line in the
@@ -14261,9 +15469,9 @@ The ButtonBars directive is deprecated in favor of <EM>Variable</EM> and
 
 <P>
 
-<DT><STRONG><A NAME="item_CheckoutFrame">CheckoutFrame
+<H2><A NAME="CheckoutFrame">CheckoutFrame
 
-</A></STRONG><DD>
+</A></H2>
 The frame name where the checkout page will go, if frames are enabled.
 Default is not set, or making it subject to the default target.
 
@@ -14274,9 +15482,9 @@ Default is not set, or making it subject to the default target.
 
 <P>
 
-<DT><STRONG><A NAME="item_CheckoutPage">CheckoutPage
+<H2><A NAME="CheckoutPage">CheckoutPage
 
-</A></STRONG><DD>
+</A></H2>
 The name of the default page to send the user to when the [finish-order]
 tag is used. Default is ``order''. This is overridden in any number of ways
 from order forms.
@@ -14288,9 +15496,9 @@ from order forms.
 
 <P>
 
-<DT><STRONG><A NAME="item_ClearCache">ClearCache
+<H2><A NAME="ClearCache">ClearCache
 
-</A></STRONG><DD>
+</A></H2>
 
 <FONT SIZE=-1>A</FONT> yes/no directive. When set to yes, each time the
 catalog is reconfigured or the MiniVend server is restarted the page and
@@ -14305,9 +15513,9 @@ is set.
 
 <P>
 
-<DT><STRONG><A NAME="item_CollectData">CollectData
+<H2><A NAME="CollectData">CollectData
 
-</A></STRONG><DD>
+</A></H2>
 The points at which to log various data items collected by MiniVend, such as failed or successful searches. This allows you to find out what your customers are searching for and 
 <FONT SIZE=-1>NOT</FONT> finding -- perhaps you want to add it, or change your product description to match. Uses something like the 
 <FONT SIZE=-1>HTTP</FONT> common log format.
@@ -14342,9 +15550,9 @@ the [tag log ...]data[/tag] construct.
 
 <P>
 
-<DT><STRONG><A NAME="item_CommonAdjust">CommonAdjust
+<H2><A NAME="CommonAdjust">CommonAdjust
 
-</A></STRONG><DD>
+</A></H2>
 
 <FONT SIZE=-1>A</FONT> MiniVend database identifier specifying a database
 that contains, keyed on the item attribute value (not the product code!),
@@ -14370,9 +15578,9 @@ Can be set in the <EM>Locale</EM> settings to allow different price adjustment d
 
 <P>
 
-<DT><STRONG><A NAME="item_ConfigDir">ConfigDir
+<H2><A NAME="ConfigDir">ConfigDir
 
-</A></STRONG><DD>
+</A></H2>
 The default directory where directive values will be read from when using
 the &lt;file notation. Default is <A HREF="#item_config">config</A>. The name is relative to the catalog directory unless preceded by a /.
 
@@ -14383,9 +15591,9 @@ the &lt;file notation. Default is <A HREF="#item_config">config</A>. The name is
 
 <P>
 
-<DT><STRONG><A NAME="item_CookieDomain">CookieDomain
+<H2><A NAME="CookieDomain">CookieDomain
 
-</A></STRONG><DD>
+</A></H2>
 Allows you to set a domain so that two servers can handle traffic. For
 example, if you wanted to use server addresses of <STRONG>secure.yourdomain.com</STRONG>
 and <STRONG>www.yourdomain.com</STRONG> then you could set it to:
@@ -14401,9 +15609,9 @@ It <STRONG>must</STRONG> have at least two periods or browsers will ignore it.
 
 <P>
 
-<DT><STRONG><A NAME="item_Cookies">Cookies
+<H2><A NAME="Cookies">Cookies
 
-</A></STRONG><DD>
+</A></H2>
 Determines whether we will send (and read back) a cookie to get the session 
 <FONT SIZE=-1>ID</FONT> for links that go outside the catalog. Allows arbitrary 
 <FONT SIZE=-1>HREF</FONT> links to be placed in MiniVend pages, while still saving the contents of the session. The default is
@@ -14428,9 +15636,9 @@ directive is enabled.
 
 <P>
 
-<DT><STRONG><A NAME="item_CreditCardAuto">CreditCardAuto
+<H2><A NAME="CreditCardAuto">CreditCardAuto
 
-</A></STRONG><DD>
+</A></H2>
 If set to <EM>Yes</EM>, enables the encryption and saving of credit card information. In order for this to work properly, the EncryptProgram directive must be set to properly encode the field. The best way to set EncryptProgram is with 
 <FONT SIZE=-1>PGP</FONT> in the 
 <FONT SIZE=-1>ASCII</FONT> armor mode (the option set '-feat' is used).
@@ -14528,9 +15736,9 @@ forms:
 
 <P>
 
-<DT><STRONG><A NAME="item_CustomShipping">CustomShipping
+<H2><A NAME="CustomShipping">CustomShipping
 
-</A></STRONG><DD>
+</A></H2>
 If not blank, enables the addition of shipping charges based on quantity or
 weight of items ordered. See <EM>SHIPPING</EM>.
 
@@ -14541,9 +15749,9 @@ weight of items ordered. See <EM>SHIPPING</EM>.
 
 <P>
 
-<DT><STRONG><A NAME="item_CyberCash">CyberCash
+<H2><A NAME="CyberCash">CyberCash
 
-</A></STRONG><DD>
+</A></H2>
 
 <FONT SIZE=-1>A</FONT> yes/no directive, default no. Enables CyberCash
 payment protocols -- see <EM>Using CyberCash</EM>.
@@ -14555,9 +15763,9 @@ payment protocols -- see <EM>Using CyberCash</EM>.
 
 <P>
 
-<DT><STRONG><A NAME="item_DataDir">DataDir
+<H2><A NAME="DataDir">DataDir
 
-</A></STRONG><DD>
+</A></H2>
 The location of the extra database files if no path information is
 provided. Set to ``products'' as the default, and is relative to VendRoot
 if there is no leading slash. May not be set to an absolute directory
@@ -14570,9 +15778,9 @@ unless NoAbsolute is defined as No.
 
 <P>
 
-<DT><STRONG>Database
+<H2><A NAME="Database">Database
 
-</A></STRONG><DD>
+</A></H2>
 Definition of an arbitrary database, in the form ``Database database file type'', where ``file'' is the name of an 
 <FONT SIZE=-1>ASCII</FONT> file in the same format as the products database. The file is relative to VendRoot, and is put in
 
@@ -14587,9 +15795,9 @@ characters (including the underscore). See <EM>DATABASES</EM>.
 
 <P>
 
-<DT><STRONG><A NAME="item_DefaultShipping">DefaultShipping
+<H2><A NAME="DefaultShipping">DefaultShipping
 
-</A></STRONG><DD>
+</A></H2>
 This sets the default shipping mode by initializing the variable
 <EM>mv_ship_mode</EM>. If not set in <EM>catalog.cfg</EM>, it is <EM>default</EM>.
 
@@ -14600,9 +15808,9 @@ This sets the default shipping mode by initializing the variable
 
 <P>
 
-<DT><STRONG><A NAME="item_Delimiter">Delimiter
+<H2><A NAME="Delimiter">Delimiter
 
-</A></STRONG><DD>
+</A></H2>
 One of 
 <FONT SIZE=-1>TAB,</FONT> 
 <FONT SIZE=-1>PIPE,</FONT> 
@@ -14618,9 +15826,9 @@ One of
 
 <P>
 
-<DT><STRONG>DescriptionField
+<H2><A NAME="DescriptionField">DescriptionField
 
-</A></STRONG><DD>
+</A></H2>
 The field that will be accessed with the [item-description] element.
 
 <P>
@@ -14634,9 +15842,9 @@ Default is <A HREF="#item_description">description</A>. It is no longer a fatal 
 
 <P>
 
-<DT><STRONG>DisplayErrors
+<H2><A NAME="DisplayErrors">DisplayErrors
 
-</A></STRONG><DD>
+</A></H2>
 If the administrator has enabled <EM>DisplayErrors</EM> globally, then setting this to ``Yes'' will display the error returned from
 MiniVend in case something is wrong with embedded Perl programs, tags, or
 (horrors!) MiniVend itself. Usually you will only want to use this during
@@ -14649,9 +15857,9 @@ development or debugging -- default is <STRONG>no</STRONG>.
 
 <P>
 
-<DT><STRONG><A NAME="item_DynamicData">DynamicData
+<H2><A NAME="DynamicData">DynamicData
 
-</A></STRONG><DD>
+</A></H2>
 When set to one or more MiniVend database identifiers, any pages using data
 items from the specified <CODE>database(s)</CODE> will not be cached or
 built statically. This allows dynamic updating of certain arbitrary (or
@@ -14670,9 +15878,9 @@ on context.
 
 <P>
 
-<DT><STRONG><A NAME="item_EncryptProgram">EncryptProgram
+<H2><A NAME="EncryptProgram">EncryptProgram
 
-</A></STRONG><DD>
+</A></H2>
 Contains a program command line specification that indicates how an
 external encryption program will work. Two placeholders, <CODE>%p</CODE> and
 <CODE>%f</CODE>, are defined, which are replaced at encryption time with the password and
@@ -14697,9 +15905,9 @@ field mv_credit_card_number will never be written to disk in that case.
 
 <P>
 
-<DT><STRONG><A NAME="item_ErrorFile">ErrorFile
+<H2><A NAME="ErrorFile">ErrorFile
 
-</A></STRONG><DD>
+</A></H2>
 This is where MiniVend will write its runtime errors for 
 <FONT SIZE=-1>THIS</FONT> 
 <FONT SIZE=-1>CATALOG</FONT> 
@@ -14712,9 +15920,9 @@ This is where MiniVend will write its runtime errors for
 
 <P>
 
-<DT><STRONG><A NAME="item_ExtraSecure">ExtraSecure
+<H2><A NAME="ExtraSecure">ExtraSecure
 
-</A></STRONG><DD>
+</A></H2>
 Disallows access to pages which are marked with AlwaysSecure unless the browser is in 
 <FONT SIZE=-1>HTTPS</FONT> mode. 
 <FONT SIZE=-1>A</FONT> yes/no directive -- default is 'No'.
@@ -14726,9 +15934,9 @@ Disallows access to pages which are marked with AlwaysSecure unless the browser 
 
 <P>
 
-<DT><STRONG><A NAME="item_FieldDelimiter">FieldDelimiter
+<H2><A NAME="FieldDelimiter">FieldDelimiter
 
-</A></STRONG><DD>
+</A></H2>
 In conjunction with <EM>RecordDelimiter</EM>, allows custom database formats to be defined. The first string is the
 database type identifier, and the second is the field delimiter with C/Perl
 style double-quoted string format, i.e. \n is a newline.
@@ -14742,9 +15950,9 @@ style double-quoted string format, i.e. \n is a newline.
 
 <P>
 
-<DT><STRONG><A NAME="item_FinishOrder">FinishOrder
+<H2><A NAME="FinishOrder">FinishOrder
 
-</A></STRONG><DD>
+</A></H2>
 
 <FONT SIZE=-1>A</FONT> text string or image tag which is substituted for
 the <EM>[finish_order]</EM> tag.
@@ -14760,9 +15968,9 @@ This is deprecated, and may be removed from future versions of MiniVend.
 
 <P>
 
-<DT><STRONG><A NAME="item_FormIgnore">FormIgnore
+<H2><A NAME="FormIgnore">FormIgnore
 
-</A></STRONG><DD>
+</A></H2>
 Set to the <CODE>name(s)</CODE> of variables that should not be carried in
 the user session values. Must match exactly and are case sensitive.
 
@@ -14773,9 +15981,9 @@ the user session values. Must match exactly and are case sensitive.
 
 <P>
 
-<DT><STRONG><A NAME="item_FractionalItems">FractionalItems
+<H2><A NAME="FractionalItems">FractionalItems
 
-</A></STRONG><DD>
+</A></H2>
 Whether items in the shopping cart should be allowed to be fractional, i.e.
 2.5 or 1.25. Default is no.
 
@@ -14786,9 +15994,9 @@ Whether items in the shopping cart should be allowed to be fractional, i.e.
 
 <P>
 
-<DT><STRONG><A NAME="item_FrameFlyPage">FrameFlyPage
+<H2><A NAME="FrameFlyPage">FrameFlyPage
 
-</A></STRONG><DD>
+</A></H2>
 The MiniVend-style page name (i.e. no .html extension, relative to <EM>PageDir</EM>) which contains the special on-the-fly page for when frames are in use. If
 not set (the default), the standard flypage will be used.
 
@@ -14799,22 +16007,30 @@ not set (the default), the standard flypage will be used.
 
 <P>
 
-<DT><STRONG><A NAME="item_FrameLinkDir">FrameLinkDir
+<H2><A NAME="FrameLinkDir">FrameLinkDir
 
-</A></STRONG><DD>
-The relative directory where on-the-fly pages will be sent during static
-page builds -- it is relative to <EM>StaticDir</EM>. Default is 'framefly'.
+</A></H2>
+This parameter controls the directory where frame-based on-the-fly pages
+will be built during static builds. This allows a different presentation
+for frames and non-frames catalog incarnations.
 
 <P>
 
-<PRE>    FrameLinkDir      fr_fly
+It is not an absolute path, but is relative to <EM>StaticDir</EM>. Default is
+<CODE>framefly</CODE>. 
+<FONT SIZE=-1>A</FONT> <EM>StaticDir</EM> of /var/www/htdocs/simple/pages would yield a FrameLinkDir location of
+/var/www/htdocs/simple/pages/framefly.
+
+<P>
+
+<PRE>    FrameLinkDir      frames
 </PRE>
 
 <P>
 
-<DT><STRONG><A NAME="item_FrameOrderPage">FrameOrderPage
+<H2><A NAME="FrameOrderPage">FrameOrderPage
 
-</A></STRONG><DD>
+</A></H2>
 The MiniVend-style page name (i.e. no .html extension, relative to <EM>PageDir</EM>) which contains the special order page for when frames are in use. If not
 set (the default), the standard order page will be used. Vaguely
 deprecated, as multiple order pages are better set with the <EM>mv_orderpage</EM> variable.
@@ -14826,9 +16042,9 @@ deprecated, as multiple order pages are better set with the <EM>mv_orderpage</EM
 
 <P>
 
-<DT><STRONG><A NAME="item_FrameSearchPage">FrameSearchPage
+<H2><A NAME="FrameSearchPage">FrameSearchPage
 
-</A></STRONG><DD>
+</A></H2>
 The MiniVend-style page name (i.e. no .html extension, relative to <EM>PageDir</EM>) which contains the special search page for when frames are in use. If not
 set (the default), the standard search page will be used. Vaguely
 deprecated, as multiple search pages are better set with the <EM>mv_search_page</EM> variable.
@@ -14840,9 +16056,9 @@ deprecated, as multiple search pages are better set with the <EM>mv_search_page<
 
 <P>
 
-<DT><STRONG><A NAME="item_FramesDefault">FramesDefault
+<H2><A NAME="FramesDefault">FramesDefault
 
-</A></STRONG><DD>
+</A></H2>
 Whether the first access by a user will place them in frames mode. Default
 is <STRONG>no</STRONG>.
 
@@ -14853,9 +16069,9 @@ is <STRONG>no</STRONG>.
 
 <P>
 
-<DT><STRONG><A NAME="item_Glimpse">Glimpse
+<H2><A NAME="Glimpse">Glimpse
 
-</A></STRONG><DD>
+</A></H2>
 The pathname for the glimpse command, used if glimpse searches are to be
 enabled. If you wish to use <CODE>glimpseserver</CODE>, you must include the 
 <FONT SIZE=-1>-C,</FONT> 
@@ -14869,9 +16085,9 @@ enabled. If you wish to use <CODE>glimpseserver</CODE>, you must include the
 
 <P>
 
-<DT><STRONG><A NAME="item_Help">Help
+<H2><A NAME="Help">Help
 
-</A></STRONG><DD>
+</A></H2>
 The Help directive allows you to define an unlimited number of help
 messages or image specifications that reside in a file (or files). It is
 called by the [help item] tag, where item is the first line of a help file
@@ -14907,9 +16123,9 @@ and <EM>Variable</EM>.
 
 <P>
 
-<DT><STRONG><A NAME="item_ImageAlias">ImageAlias
+<H2><A NAME="ImageAlias">ImageAlias
 
-</A></STRONG><DD>
+</A></H2>
 Aliases for images, ala Apache/NCSA ScriptAlias and Alias directives.
 Relocates images based in a particular directory to another for MiniVend
 use -- operates <EM>after</EM> ImageDir. Useful for editing MiniVend pages with an 
@@ -14922,9 +16138,9 @@ use -- operates <EM>after</EM> ImageDir. Useful for editing MiniVend pages with 
 
 <P>
 
-<DT><STRONG>ImageDir
+<H2><A NAME="ImageDir">ImageDir
 
-</A></STRONG><DD>
+</A></H2>
 The directory where all <EM>relative</EM> 
 <FONT SIZE=-1>IMG</FONT> and 
 <FONT SIZE=-1>INPUT</FONT> source file specifications are based. 
@@ -14953,9 +16169,45 @@ Can be set in the <EM>Locale</EM> settings to allow different image sets for dif
 
 <P>
 
-<DT><STRONG><A NAME="item_ItemLinkDir">ItemLinkDir
+<H2><A NAME="ImageDirInternal">ImageDirInternal
 
-</A></STRONG><DD>
+</A></H2>
+
+<FONT SIZE=-1>A</FONT> value for <EM>ImageDir</EM> only when the internal 
+<FONT SIZE=-1>HTTP</FONT> server is in use. It must have a trailing / to
+work, and should always begin with a fully-qualified path starting with <CODE>http://</CODE>.
+
+<P>
+
+<PRE>    ImageDirInternal <A HREF="http://www.server.name/images/">http://www.server.name/images/</A>
+</PRE>
+
+<P>
+
+<H2><A NAME="ImageDirSecure">ImageDirSecure
+
+</A></H2>
+
+<FONT SIZE=-1>A</FONT> value for <EM>ImageDir</EM> only the pages are being served via 
+<FONT SIZE=-1>HTTPS.</FONT> It must have a trailing / to work, and should
+always begin with a fully-qualified path starting with <CODE>http://</CODE>.
+
+<P>
+
+<PRE>    ImageDirSecure   /secure/images/
+</PRE>
+
+<P>
+
+This is useful if you are using a separate 
+<FONT SIZE=-1>HTTPS</FONT> and 
+<FONT SIZE=-1>HTTP</FONT> server, and cannot make the image directory path heads match.
+
+<P>
+
+<H2><A NAME="ItemLinkDir">ItemLinkDir
+
+</A></H2>
 The directory where the [item_link] tag will base all of its hot links in,
 relative to the pages directory. The default is blank, basing all links in
 the pages directory. If set, it needs a trailing '/' to operate properly.
@@ -14969,9 +16221,9 @@ MiniVend.
 
 <P>
 
-<DT><STRONG><A NAME="item_ItemLinkValue">ItemLinkValue
+<H2><A NAME="ItemLinkValue">ItemLinkValue
 
-</A></STRONG><DD>
+</A></H2>
 Specifies the text or image you want to use to provide a clickable link to
 the catalog page when using the [item_link] tag (in the search form, or
 other forms). This directive is deprecated, and may disappear in future
@@ -14984,9 +16236,9 @@ versions of MiniVend.
 
 <P>
 
-<DT><STRONG><A NAME="item_Locale">Locale
+<H2><A NAME="Locale">Locale
 
-</A></STRONG><DD>
+</A></H2>
 Sets the special locale array. Tries to use 
 <FONT SIZE=-1>POSIX</FONT> setlocale based on the value of itself, then
 tries to accept a custom setting with the proper definitions of <CODE>mon_decimal_point</CODE>, <CODE>thousands_sep</CODE>, and <CODE>frac_digits</CODE>, which are the the only international settings required. Default if not
@@ -15023,9 +16275,24 @@ MiniVend 3.07 extends the Locale array to accept many more settings. See <EM>Int
 
 <P>
 
-<DT><STRONG><A NAME="item_LogFile">LogFile
+<H2><A NAME="LocaleDatabase">LocaleDatabase
 
-</A></STRONG><DD>
+</A></H2>
+Set to the MiniVend database <EM>identifier</EM> of a table that contains Locale settings. These settings add on to and
+overwrite any that are set in the catalog configuration files, including
+any #include files.
+
+<P>
+
+<PRE>    Database       locale_info  locale_info.asc  TAB
+    LocaleDatabase locale_info
+</PRE>
+
+<P>
+
+<H2><A NAME="LogFile">LogFile
+
+</A></H2>
 
 <FONT SIZE=-1>A</FONT> file where user pages accesses and search
 specifications will be logged if CollectData is set. Defaults to <CODE>etc/log</CODE>.
@@ -15037,9 +16304,9 @@ specifications will be logged if CollectData is set. Defaults to <CODE>etc/log</
 
 <P>
 
-<DT><STRONG><A NAME="item_MasterHost">MasterHost
+<H2><A NAME="MasterHost">MasterHost
 
-</A></STRONG><DD>
+</A></H2>
 The 
 <FONT SIZE=-1>IP</FONT> address that can reconfigure the catalog. Default is blank, disabling remote check of 
 <FONT SIZE=-1>IP</FONT> address.
@@ -15051,9 +16318,9 @@ The
 
 <P>
 
-<DT><STRONG><A NAME="item_MixMatch">MixMatch
+<H2><A NAME="MixMatch">MixMatch
 
-</A></STRONG><DD>
+</A></H2>
 
 <FONT SIZE=-1>A</FONT> yes/no directive. 
 <FONT SIZE=-1>A</FONT> setting of
@@ -15067,9 +16334,9 @@ The
 
 <P>
 
-<DT><STRONG><A NAME="item_MsqlDB">MsqlDB
+<H2><A NAME="MsqlDB">MsqlDB
 
-</A></STRONG><DD>
+</A></H2>
 Sets the name of the mSQL database (must be present on the default server).
 Defaults to <EM>minivend</EM>.
 
@@ -15080,9 +16347,9 @@ Defaults to <EM>minivend</EM>.
 
 <P>
 
-<DT><STRONG><A NAME="item_Mv_AlinkColor">Mv_AlinkColor
+<H2><A NAME="Mv_AlinkColor">Mv_AlinkColor
 
-</A></STRONG><DD>
+</A></H2>
 Sets the accessed link colors to be used in the color schemes. The line must begin with 
 <FONT SIZE=-1>'BEGIN',</FONT> then is followed by up to 15 
 <FONT SIZE=-1>RGB</FONT> color specifications for visited link color. The specification can be in 
@@ -15097,9 +16364,9 @@ Remember, the schemes are numbered in the order that they occur.
 
 <P>
 
-<DT><STRONG><A NAME="item_Mv_Background">Mv_Background
+<H2><A NAME="Mv_Background">Mv_Background
 
-</A></STRONG><DD>
+</A></H2>
 Sets the background patterns to be used in the color schemes. The line must begin with 
 <FONT SIZE=-1>'BEGIN',</FONT> then is followed by up to 15 pattern URLs containing background patterns to be used with the color schemes. Each pattern should be separated by one or more spaces. set to 0 to disable a background pattern for a particular scheme. Remember, the schemes are numbered in the order that they occur.
 
@@ -15110,9 +16377,9 @@ Sets the background patterns to be used in the color schemes. The line must begi
 
 <P>
 
-<DT><STRONG><A NAME="item_Mv_BgColor">Mv_BgColor
+<H2><A NAME="Mv_BgColor">Mv_BgColor
 
-</A></STRONG><DD>
+</A></H2>
 Sets the background colors to be used in the color schemes. The line must begin with 
 <FONT SIZE=-1>'BEGIN',</FONT> then is followed by up to 15 
 <FONT SIZE=-1>RGB</FONT> color specifications for background color. The specification can be in 
@@ -15127,9 +16394,9 @@ Remember, the schemes are numbered in the order that they occur.
 
 <P>
 
-<DT><STRONG><A NAME="item_Mv_LinkColor">Mv_LinkColor
+<H2><A NAME="Mv_LinkColor">Mv_LinkColor
 
-</A></STRONG><DD>
+</A></H2>
 Sets the link colors to be used in the color schemes. The line must begin with 
 <FONT SIZE=-1>'BEGIN',</FONT> then is followed by up to 15 
 <FONT SIZE=-1>RGB</FONT> color specifications for link color. The specification can be in 
@@ -15144,9 +16411,9 @@ Remember, the schemes are numbered in the order that they occur.
 
 <P>
 
-<DT><STRONG><A NAME="item_Mv_TextColor">Mv_TextColor
+<H2><A NAME="Mv_TextColor">Mv_TextColor
 
-</A></STRONG><DD>
+</A></H2>
 Sets the text colors to be used in the color schemes. The colors are accessed with the [body n] tag, where n is the color scheme number. The line must begin with 
 <FONT SIZE=-1>'BEGIN',</FONT> then is followed by up to 15 
 <FONT SIZE=-1>RGB</FONT> color specifications for text color. The specification can be in 
@@ -15162,9 +16429,9 @@ with 1.
 
 <P>
 
-<DT><STRONG><A NAME="item_Mv_VlinkColor">Mv_VlinkColor
+<H2><A NAME="Mv_VlinkColor">Mv_VlinkColor
 
-</A></STRONG><DD>
+</A></H2>
 Sets the visited link colors to be used in the color schemes. The line must begin with 
 <FONT SIZE=-1>'BEGIN',</FONT> then is followed by up to 15 
 <FONT SIZE=-1>RGB</FONT> color specifications for visited link color. The specification can be in 
@@ -15179,9 +16446,9 @@ Remember, the schemes are numbered in the order that they occur.
 
 <P>
 
-<DT><STRONG><A NAME="item_NewEscape">NewEscape
+<H2><A NAME="NewEscape">NewEscape
 
-</A></STRONG><DD>
+</A></H2>
 
 <FONT SIZE=-1>A</FONT> yes/no directive. When set to <STRONG>Yes</STRONG>, it disallows the old-style period escaping of one-click search spec
 strings, and allows HTTP-style escaping of passed arguments (the <CODE>[page name arg]</CODE>
@@ -15198,9 +16465,9 @@ This should probably be set to <CODE>Yes</CODE> for new catalogs.
 
 <P>
 
-<DT><STRONG><A NAME="item_NewReport">NewReport
+<H2><A NAME="NewReport">NewReport
 
-</A></STRONG><DD>
+</A></H2>
 
 <FONT SIZE=-1>A</FONT> yes/no directive. When set to <STRONG>No</STRONG>, it allows the old-style <CODE>$variable</CODE> interpolation on MiniVend
 order reports. Default is
@@ -15218,9 +16485,9 @@ The default prevents clashes with embedded Perl code.
 
 <P>
 
-<DT><STRONG><A NAME="item_NewTags">NewTags
+<H2><A NAME="NewTags">NewTags
 
-</A></STRONG><DD>
+</A></H2>
 
 <FONT SIZE=-1>A</FONT> yes/no directive. When set to <STRONG>Yes</STRONG>, it defaults all pages to using the new page syntax. This can be
 counteracted with an [old] tag at the very top of the page, or by
@@ -15234,9 +16501,9 @@ Default is <STRONG>No</STRONG>.
 
 <P>
 
-<DT><STRONG><A NAME="item_NoCache">NoCache
+<H2><A NAME="NoCache">NoCache
 
-</A></STRONG><DD>
+</A></H2>
 The names of MiniVend pages that are not to be cached (if <EM>Page Cache</EM>
 is being used) or built statically (if <EM>STATIC PAGE BUILDING</EM> is in use). If the name is a directory, then no pages in that directory (or
 any below it) be cached or built statically.
@@ -15249,9 +16516,9 @@ any below it) be cached or built statically.
 
 <P>
 
-<DT><STRONG><A NAME="item_NoImport">NoImport
+<H2><A NAME="NoImport">NoImport
 
-</A></STRONG><DD>
+</A></H2>
 When set to one or more MiniVend database identifiers, those <CODE>database(s)</CODE> will never be subject to import. Useful for 
 <FONT SIZE=-1>SQL</FONT> databases, or databases that will *never* change.
 
@@ -15262,9 +16529,9 @@ When set to one or more MiniVend database identifiers, those <CODE>database(s)</
 
 <P>
 
-<DT><STRONG><A NAME="item_NonTaxableField">NonTaxableField
+<H2><A NAME="NonTaxableField">NonTaxableField
 
-</A></STRONG><DD>
+</A></H2>
 The name of the field in the products database that is set (to 1 or yes) if
 an item is not to be taxed. Will log an error and tax it anyway if the
 field doesn't exist in the database. Blank by default, disabling the
@@ -15277,9 +16544,9 @@ feature.
 
 <P>
 
-<DT><STRONG><A NAME="item_OfflineDir">OfflineDir
+<H2><A NAME="OfflineDir">OfflineDir
 
-</A></STRONG><DD>
+</A></H2>
 The location of the offline database files for use with the MiniVend
 offline database build command. Set to ``offline'' as the default, and is
 relative to VendRoot if there is no leading slash.
@@ -15291,9 +16558,9 @@ relative to VendRoot if there is no leading slash.
 
 <P>
 
-<DT><STRONG><A NAME="item_OldShipping">OldShipping
+<H2><A NAME="OldShipping">OldShipping
 
-</A></STRONG><DD>
+</A></H2>
 Defines compatibility with older MiniVend shipping files -- they will break
 if using formulas where <CODE>x</CODE> is used as the substituted-for string for the accumulated total. 
 <FONT SIZE=-1>A</FONT> yes/no directive -- default is No. This will
@@ -15306,9 +16573,9 @@ disappear soon.
 
 <P>
 
-<DT><STRONG><A NAME="item_OrderCounter">OrderCounter
+<H2><A NAME="OrderCounter">OrderCounter
 
-</A></STRONG><DD>
+</A></H2>
 The name of the file (relative to catalog root if no leading /) that
 maintains the order number counter. If not set, the order will be assigned
 a string based on the time of the order and the user's session number.
@@ -15320,9 +16587,9 @@ a string based on the time of the order and the user's session number.
 
 <P>
 
-<DT><STRONG><A NAME="item_OrderFrame">OrderFrame
+<H2><A NAME="OrderFrame">OrderFrame
 
-</A></STRONG><DD>
+</A></H2>
 The frame name where the order page will go, if frames are enabled. If the
 frame doesn't exist, a new frame will be created. The default is '_top',
 which fills the browser window with the page.
@@ -15334,9 +16601,9 @@ which fills the browser window with the page.
 
 <P>
 
-<DT><STRONG><A NAME="item_OrderLineLimit">OrderLineLimit
+<H2><A NAME="OrderLineLimit">OrderLineLimit
 
-</A></STRONG><DD>
+</A></H2>
 The number of items that the user is allowed to place in the shopping cart.
 Some poorly-mannered robots may ``attack'' your site by following all links
 one after another. Some even ignore any <CODE>robots.txt</CODE> file you may have created. If one of these bad robots orders several dozen
@@ -15357,9 +16624,9 @@ items you ever expect a user to order.
 
 <P>
 
-<DT><STRONG><A NAME="item_OrderProfile">OrderProfile
+<H2><A NAME="OrderProfile">OrderProfile
 
-</A></STRONG><DD>
+</A></H2>
 Allows an unlimited number of order profiles to be set up, specifying
 complex checks to be performed at each of the steps in the checkout
 process. The files specified can be located anywhere -- if relative paths
@@ -15394,9 +16661,9 @@ whitespace and then the name. The search profile can then be accessed by
 
 <P>
 
-<DT><STRONG><A NAME="item_OrderReport">OrderReport
+<H2><A NAME="OrderReport">OrderReport
 
-</A></STRONG><DD>
+</A></H2>
 The location of the simple order report file. Defaults to <EM>etc/report</EM>. Not used frequently in later MiniVends, as the custom order report file
 is much more flexible.
 
@@ -15407,9 +16674,9 @@ is much more flexible.
 
 <P>
 
-<DT><STRONG><A NAME="item_PageCache">PageCache
+<H2><A NAME="PageCache">PageCache
 
-</A></STRONG><DD>
+</A></H2>
 When set to <STRONG>Yes</STRONG>, it will enable the caching of pages if the client browser has cookie
 capability. If the page has dynamic elements, it will not be cached. This
 can improve performance especially on large pages, since the page does not
@@ -15424,9 +16691,9 @@ enable this while enabling <EM>StaticFly</EM> -- however catalogs with large num
 
 <P>
 
-<DT><STRONG>PageDir
+<H2><A NAME="PageDir">PageDir
 
-</A></STRONG><DD>
+</A></H2>
 Location of catalog pages. Defaults to the pages subdirectory in the
 VendRoot directory.
 
@@ -15442,9 +16709,9 @@ Can be set in the <EM>Locale</EM> settings to allow different page sets for diff
 
 <P>
 
-<DT><STRONG><A NAME="item_PGP">PGP
+<H2><A NAME="PGP">PGP
 
-</A></STRONG><DD>
+</A></H2>
 If credit card information is to be accepted, and the emailed order will go over an insecure network to reach its destination, 
 <FONT SIZE=-1>PGP</FONT> security should be used. The key ring to be used must be for the user that is running the MiniVend server, or defined by the environment variable 
 <FONT SIZE=-1>PGPPATH,</FONT> and the key user specified must have a key on the public key ring of that user.
@@ -15463,9 +16730,9 @@ encrypt the <EM>entire order</EM> -- in addition to any encryption done as a res
 
 <P>
 
-<DT><STRONG><A NAME="item_PageSelectField">PageSelectField
+<H2><A NAME="PageSelectField">PageSelectField
 
-</A></STRONG><DD>
+</A></H2>
 Sets a products database column which can be used to select the on-the-fly
 template page. This allows multiple on-the-fly pages to be defined. If the
 field is empty (no spaces, either!) then the default &lt;flypage&gt; will
@@ -15478,9 +16745,9 @@ be used.
 
 <P>
 
-<DT><STRONG><A NAME="item_ParseVariables">ParseVariables
+<H2><A NAME="ParseVariables">ParseVariables
 
-</A></STRONG><DD>
+</A></H2>
 Determines whether global and catalog variables will be parsed in the
 configuration file. Should be set to No until parsing is needed, turned on
 for the parsed directives, then set back to No. Default is No.
@@ -15495,9 +16762,9 @@ for the parsed directives, then set back to No. Default is No.
 
 <P>
 
-<DT><STRONG><A NAME="item_Password">Password
+<H2><A NAME="Password">Password
 
-</A></STRONG><DD>
+</A></H2>
 The encrypted password that, when entered and sent as 
 <FONT SIZE=-1>RECONFIGURE_MINIVEND</FONT> by the reconfigure program, will
 be checked against the user entry to enable reconfiguration.
@@ -15515,9 +16782,9 @@ allowing you to just hit enter.
 
 <P>
 
-<DT><STRONG>PriceAdjustment
+<H2><A NAME="PriceAdjustment">PriceAdjustment
 
-</A></STRONG><DD>
+</A></H2>
 
 <FONT SIZE=-1>A</FONT> MiniVend item attribute (see <EM>UseModifier</EM>) which contains a value upon which a price adjustment to the item may be
 made.
@@ -15562,9 +16829,9 @@ Can be set in the <EM>Locale</EM> settings to allow different price adjustment f
 
 <P>
 
-<DT><STRONG><A NAME="item_PriceBreaks">PriceBreaks
+<H2><A NAME="PriceBreaks">PriceBreaks
 
-</A></STRONG><DD>
+</A></H2>
 The quantities where price breaks should be placed. Used to set up the
 pricing.asc entries to match actual pricing. Unlimited number of breaks --
 only enter the lowest quantity it applies to.
@@ -15576,9 +16843,9 @@ only enter the lowest quantity it applies to.
 
 <P>
 
-<DT><STRONG>PriceCommas
+<H2><A NAME="PriceCommas">PriceCommas
 
-</A></STRONG><DD>
+</A></H2>
 If you desire no commas in your price numbers (for the [item_price] tag)
 set this to <CODE>no</CODE>. The default is to use commas (or whatever is the thousands separator for
 your locale).
@@ -15594,9 +16861,9 @@ This would be overridden if a <EM>Locale</EM>  <A HREF="#item_price_picture">pri
 
 <P>
 
-<DT><STRONG>PriceDivide
+<H2><A NAME="PriceDivide">PriceDivide
 
-</A></STRONG><DD>
+</A></H2>
 The number the price should be divided by to get the price in units
 (dollars or such). The default is one -- if you use penny pricing you can
 set it to 100.
@@ -15613,9 +16880,9 @@ Can be set in the <EM>Locale</EM> settings to allow a price adjustment factor fo
 
 <P>
 
-<DT><STRONG>PriceField
+<H2><A NAME="PriceField">PriceField
 
-</A></STRONG><DD>
+</A></H2>
 The field in the product database that will be accessed with the
 [item-price] element. Default is ``price''.
 
@@ -15631,9 +16898,9 @@ Can be set in the <EM>Locale</EM> settings to allow different price fields for d
 
 <P>
 
-<DT><STRONG><A NAME="item_ProductDir">ProductDir
+<H2><A NAME="ProductDir">ProductDir
 
-</A></STRONG><DD>
+</A></H2>
 Location of the product files. Defaults to the products subdirectory of the
 VendRoot directory. May not be set to an absolute directory unless
 NoAbsolute is defined as No.
@@ -15645,9 +16912,9 @@ NoAbsolute is defined as No.
 
 <P>
 
-<DT><STRONG><A NAME="item_Random">Random
+<H2><A NAME="Random">Random
 
-</A></STRONG><DD>
+</A></H2>
 The Random directive allows you to define an unlimited number of random messages or image specifications that reside in files. It is called by the [random] tag. You don't know which one will show up! Even 
 <FONT SIZE=-1>I</FONT> don't, it is random. If the file does not exist at program configuration time, the tag is simply stripped. The line in the
  <EM>minivend.cfg</EM> file takes the form of the directive, followed by any number of vend-style
@@ -15660,9 +16927,9 @@ file names (relative to the PageDir, with no .html suffix).
 
 <P>
 
-<DT><STRONG><A NAME="item_ReadPermission">ReadPermission and WritePermission
+<H2><A NAME="ReadPermission_and_WritePermissi">ReadPermission and WritePermission
 
-</A></STRONG><DD>
+</A></H2>
 By default, only the user account that MiniVend runs under (as set by the
 setuid permission on vlink) can read and write files created by MiniVend.
 WritePermission and ReadPermission can be set to <CODE>user</CODE>, <CODE>group</CODE>, or 'world'.
@@ -15675,9 +16942,9 @@ WritePermission and ReadPermission can be set to <CODE>user</CODE>, <CODE>group<
 
 <P>
 
-<DT><STRONG><A NAME="item_ReceiptPage">ReceiptPage
+<H2><A NAME="ReceiptPage">ReceiptPage
 
-</A></STRONG><DD>
+</A></H2>
 The page to be displayed as a receipt after the user has submitted an
 order. Replaces the standard <A HREF="#item_confirmation">confirmation</A> page. Blank by default, showing no receipt page to the user. Overridden by
 the value of <EM>mv_order_receipt</EM>.
@@ -15689,9 +16956,9 @@ the value of <EM>mv_order_receipt</EM>.
 
 <P>
 
-<DT><STRONG><A NAME="item_RecordDelimiter">RecordDelimiter
+<H2><A NAME="RecordDelimiter">RecordDelimiter
 
-</A></STRONG><DD>
+</A></H2>
 In conjunction with <EM>FieldDelimiter</EM>, allows custom database formats to be defined. The first string is the
 database type identifier, and the second is the record delimiter with
 C/Perl style double-quoted string format, i.e. \n is a newline.
@@ -15705,9 +16972,9 @@ C/Perl style double-quoted string format, i.e. \n is a newline.
 
 <P>
 
-<DT><STRONG><A NAME="item_RemoteUser">RemoteUser
+<H2><A NAME="RemoteUser">RemoteUser
 
-</A></STRONG><DD>
+</A></H2>
 The value of the 
 <FONT SIZE=-1>HTTP</FONT> environment variable 
 <FONT SIZE=-1>REMOTE_USER</FONT> that will enable catalog reconfiguration. You need to enable 
@@ -15720,9 +16987,9 @@ The value of the
 
 <P>
 
-<DT><STRONG><A NAME="item_ReportIgnore">ReportIgnore
+<H2><A NAME="ReportIgnore">ReportIgnore
 
-</A></STRONG><DD>
+</A></H2>
 
 <FONT SIZE=-1>A</FONT> comma-separated list of items you don't want to have
 sent by email on the default order report. Default is blank, or none.
@@ -15737,9 +17004,9 @@ on the newer HTML-style order report.
 
 <P>
 
-<DT><STRONG><A NAME="item_RequiredFields">RequiredFields
+<H2><A NAME="RequiredFields">RequiredFields
 
-</A></STRONG><DD>
+</A></H2>
 
 <FONT SIZE=-1>A</FONT> comma-separated list of items you want to make sure
 the customer fills in before an order can be submitted. If an empty field
@@ -15754,9 +17021,9 @@ placement of the order.
 
 <P>
 
-<DT><STRONG><A NAME="item_RobotLimit">RobotLimit
+<H2><A NAME="RobotLimit">RobotLimit
 
-</A></STRONG><DD>
+</A></H2>
 The RobotLimit directive defines the number of consecutive pages a user
 session may access without a 30 second pause. If the limit is exceeded,
 then the command defined in the Global directive <EM>LockoutCommand</EM>
@@ -15769,9 +17036,9 @@ will be executed. The default is 0, disabling the check.
 
 <P>
 
-<DT><STRONG><A NAME="item_Rotate">Rotate
+<H2><A NAME="Rotate">Rotate
 
-</A></STRONG><DD>
+</A></H2>
 The Rotate directive allows you to define an unlimited number of rotating
 messages or image specifications that reside in files. It is called by the
 [rotate] tag. If the file does not exist at program configuration time, the
@@ -15785,9 +17052,9 @@ file names (relative to the PageDir, with no .html suffix).
 
 <P>
 
-<DT><STRONG><A NAME="item_SalesTax">SalesTax
+<H2><A NAME="SalesTax">SalesTax
 
-</A></STRONG><DD>
+</A></H2>
 If non-blank, enables automatic addition of sales tax based on the order
 form. The value is a comma-separated list of the field names (as placed in
 order.html), in priority order, which should be used to look up sales tax
@@ -15802,9 +17069,9 @@ monthly subscription.
 
 <P>
 
-<DT><STRONG><A NAME="item_SaveExpire">SaveExpire
+<H2><A NAME="SaveExpire">SaveExpire
 
-</A></STRONG><DD>
+</A></H2>
 The length of time that saved sessions will persist before being expired.
 See <EM>SessionExpire</EM> for the format. Default is 30 days.
 
@@ -15815,9 +17082,9 @@ See <EM>SessionExpire</EM> for the format. Default is 30 days.
 
 <P>
 
-<DT><STRONG><A NAME="item_ScratchDir">ScratchDir
+<H2><A NAME="ScratchDir">ScratchDir
 
-</A></STRONG><DD>
+</A></H2>
 The directory where scratch files will be written, notably cached searches.
 Defaults to VendRoot/etc.
 
@@ -15828,9 +17095,9 @@ Defaults to VendRoot/etc.
 
 <P>
 
-<DT><STRONG><A NAME="item_SearchCache">SearchCache
+<H2><A NAME="SearchCache">SearchCache
 
-</A></STRONG><DD>
+</A></H2>
 Whether searches will be cached. Caching is disabled for browsers that don't allow cookies to be set. 
 <FONT SIZE=-1>A</FONT> yes/no directive -- default is No. The cached pages are stored in the directory
  <EM>ScratchDir</EM>/SearchCache.
@@ -15842,9 +17109,9 @@ Whether searches will be cached. Caching is disabled for browsers that don't all
 
 <P>
 
-<DT><STRONG><A NAME="item_SearchFrame">SearchFrame
+<H2><A NAME="SearchFrame">SearchFrame
 
-</A></STRONG><DD>
+</A></H2>
 The frame name where search results will go, if frames are enabled. If the
 frame doesn't exist, a new frame will be created. The default is '_self'.
 
@@ -15855,9 +17122,9 @@ frame doesn't exist, a new frame will be created. The default is '_self'.
 
 <P>
 
-<DT><STRONG><A NAME="item_SearchProfile">SearchProfile
+<H2><A NAME="SearchProfile">SearchProfile
 
-</A></STRONG><DD>
+</A></H2>
 Allows an unlimited number of search profiles to be set up, specifying
 complex searches based on a single click. The directive accepts a file
 name, based in the catalog directory if the path is relative:
@@ -15907,7 +17174,7 @@ or with mp=profile in the one-click search.
 
 <P>
 
-<PRE>  [page scan/se=Renaissance/mp=dict_search]Renaissance Art[/page]
+<PRE>  [page scan se=Renaissance/mp=dict_search]Renaissance Art[/page]
 </PRE>
 
 <P>
@@ -15919,9 +17186,9 @@ Multiple profiles can reside in the same file, if separated by
 
 <P>
 
-<DT><STRONG><A NAME="item_SecureURL">SecureURL
+<H2><A NAME="SecureURL">SecureURL
 
-</A></STRONG><DD>
+</A></H2>
 The base 
 <FONT SIZE=-1>URL</FONT> for secure forms/page transmissions. Normally it
 is the same as <EM>VendURL</EM> except for the <CODE>https:</CODE> protocol definition. Default is blank, disabling secure access.
@@ -15933,9 +17200,9 @@ is the same as <EM>VendURL</EM> except for the <CODE>https:</CODE> protocol defi
 
 <P>
 
-<DT><STRONG>SendMailProgram
+<H2><A NAME="SendMailProgram">SendMailProgram
 
-</A></STRONG><DD>
+</A></H2>
 The location of the sendmail binary, needed for mailing orders. Must be found at startup. This often needs to be set for FreeBSD or 
 <FONT SIZE=-1>BSDI.</FONT>
 
@@ -15946,9 +17213,9 @@ The location of the sendmail binary, needed for mailing orders. Must be found at
 
 <P>
 
-<DT><STRONG><A NAME="item_SeparateItems">SeparateItems
+<H2><A NAME="SeparateItems">SeparateItems
 
-</A></STRONG><DD>
+</A></H2>
 Changes the default when ordering an item via MiniVend to allowing multiple
 lines on the order form for each item. The default, <CODE>No</CODE>, puts all orders with the same part number on the same line.
 
@@ -15968,9 +17235,9 @@ Can be overridden with the <EM>mv_separate_items</EM> variables (both scratch an
 
 <P>
 
-<DT><STRONG><A NAME="item_SessionDatabase">SessionDatabase
+<H2><A NAME="SessionDatabase">SessionDatabase
 
-</A></STRONG><DD>
+</A></H2>
 When storing sessions in a 
 <FONT SIZE=-1>DBM</FONT> database, specify the base name of the 
 <FONT SIZE=-1>DBM</FONT> file to use. The file extensions of .pag, .dir, .db, or .gdbm (depending on the 
@@ -15993,9 +17260,9 @@ catalogs). Can be an absolute path name if desired.
 
 <P>
 
-<DT><STRONG><A NAME="item_SessionExpire">SessionExpire
+<H2><A NAME="SessionExpire">SessionExpire
 
-</A></STRONG><DD>
+</A></H2>
 
 <FONT SIZE=-1>A</FONT> customer can exit their browser or leave the catalog pages at any time, and no indication is given to the 
 <FONT SIZE=-1>HTTPD</FONT> server aside from the lack of further requests that have the same session id. Old session information needs to be periodically expired. The SessionExpire specifies the minimum time to keep track of session information. Defaults to one day. Format is an integer number, followed by <CODE>s(econds),</CODE> <CODE>m(inutes),</CODE> <CODE>h(ours),</CODE> <CODE>d(ays),</CODE> or <CODE>w(eeks).</CODE>
@@ -16007,9 +17274,9 @@ catalogs). Can be an absolute path name if desired.
 
 <P>
 
-<DT><STRONG><A NAME="item_SessionLockFile">SessionLockFile
+<H2><A NAME="SessionLockFile">SessionLockFile
 
-</A></STRONG><DD>
+</A></H2>
 The file to use for locking coordination of the sessions.
 
 <P>
@@ -16025,9 +17292,9 @@ catalogs). Can be an absolute path name if desired.
 
 <P>
 
-<DT><STRONG><A NAME="item_Shipping">Shipping
+<H2><A NAME="Shipping">Shipping
 
-</A></STRONG><DD>
+</A></H2>
 Specifies a shipping charge to add onto the total price for items ordered.
 If you do not want to include a fixed shipping charge on the order page,
 leave this 0 and do not include the [shipping] element in the order page.
@@ -16041,9 +17308,9 @@ directive.
 
 <P>
 
-<DT><STRONG><A NAME="item_SpecialPage">SpecialPage
+<H2><A NAME="SpecialPage">SpecialPage
 
-</A></STRONG><DD>
+</A></H2>
 Sets a special page to other than its default value. Can be set as many
 times as necessary -- will have no effect if not one of the MiniVend <EM>Required Pages</EM>.
 
@@ -16059,9 +17326,9 @@ times as necessary -- will have no effect if not one of the MiniVend <EM>Require
 
 <P>
 
-<DT><STRONG><A NAME="item_Static">Static
+<H2><A NAME="Static">Static
 
-</A></STRONG><DD>
+</A></H2>
 
 <FONT SIZE=-1>A</FONT> yes/no directive. Enables static page building and
 display features. Default is <CODE>no</CODE>.
@@ -16073,9 +17340,9 @@ display features. Default is <CODE>no</CODE>.
 
 <P>
 
-<DT><STRONG><A NAME="item_StaticAll">StaticAll
+<H2><A NAME="StaticAll">StaticAll
 
-</A></STRONG><DD>
+</A></H2>
 
 <FONT SIZE=-1>A</FONT> yes/no directive. Tells MiniVend to try and build
 all pages in the catalog statically when called with the static page build
@@ -16090,9 +17357,9 @@ on the page in question.)
 
 <P>
 
-<DT><STRONG><A NAME="item_StaticDepth">StaticDepth
+<H2><A NAME="StaticDepth">StaticDepth
 
-</A></STRONG><DD>
+</A></H2>
 The number of levels of static search building that will be done if a
 search results page contains a search. Default is one -- beware that it
 could be very long if you set it higher. Set to 0 to disable re-scanning of
@@ -16105,9 +17372,9 @@ search results pages.
 
 <P>
 
-<DT><STRONG><A NAME="item_StaticDir">StaticDir
+<H2><A NAME="StaticDir">StaticDir
 
-</A></STRONG><DD>
+</A></H2>
 The absolute path of the directory which should be used as the root for static pages. The user 
 <FONT SIZE=-1>ID</FONT> executing MiniVend must have write permission on the directory (and all files within) if this is to work.
 
@@ -16118,9 +17385,9 @@ The absolute path of the directory which should be used as the root for static p
 
 <P>
 
-<DT><STRONG><A NAME="item_StaticFly">StaticFly
+<H2><A NAME="StaticFly">StaticFly
 
-</A></STRONG><DD>
+</A></H2>
 
 <FONT SIZE=-1>A</FONT> yes/no directive. If set to <CODE>Yes</CODE>, static builds will attempt to generate a page for every part number in
 the database using the on-the-fly page build capability. If pages are
@@ -16133,9 +17400,9 @@ already present with those names, they will be overwritten. The default is <CODE
 
 <P>
 
-<DT><STRONG><A NAME="item_StaticPage">StaticPage
+<H2><A NAME="StaticPage">StaticPage
 
-</A></STRONG><DD>
+</A></H2>
 Tells MiniVend to build the named page (or pages, whitespace separated)
 when employing the static page-building capability of MiniVend. Not
 necessary if using StaticAll.
@@ -16147,9 +17414,9 @@ necessary if using StaticAll.
 
 <P>
 
-<DT><STRONG><A NAME="item_StaticPath">StaticPath
+<H2><A NAME="StaticPath">StaticPath
 
-</A></STRONG><DD>
+</A></H2>
 The path (relative to 
 <FONT SIZE=-1>HTTP</FONT> document root) which should be used in pages
 built with the static page-building capability of MiniVend.
@@ -16161,9 +17428,9 @@ built with the static page-building capability of MiniVend.
 
 <P>
 
-<DT><STRONG><A NAME="item_StaticPattern">StaticPattern
+<H2><A NAME="StaticPattern">StaticPattern
 
-</A></STRONG><DD>
+</A></H2>
 
 <FONT SIZE=-1>A</FONT> perl regular expression which is used to qualify
 pages that are to be built statically. The default is blank, which means
@@ -16176,9 +17443,9 @@ all pages qualify.
 
 <P>
 
-<DT><STRONG><A NAME="item_StaticSuffix">StaticSuffix
+<H2><A NAME="StaticSuffix">StaticSuffix
 
-</A></STRONG><DD>
+</A></H2>
 The extension to be appended to a normal MiniVend page name when building
 statically. Default is <CODE>.html</CODE>. Also affects the name of pages in the MiniVend page directory -- if set
 to .htm the pages must be named with that extension.
@@ -16190,9 +17457,9 @@ to .htm the pages must be named with that extension.
 
 <P>
 
-<DT><STRONG><A NAME="item_Sub">Sub
+<H2><A NAME="Sub">Sub
 
-</A></STRONG><DD>
+</A></H2>
 Defines a catalog subroutine for use by the <STRONG>[perl sub] subname
 arg [/perl]</STRONG> construct. Use the ``here document'' capability of MiniVend configuration
 files to make it easy to define:
@@ -16256,9 +17523,9 @@ module enforces this.
 
 <P>
 
-<DT><STRONG><A NAME="item_SubArgs">SubArgs
+<H2><A NAME="SubArgs">SubArgs
 
-</A></STRONG><DD>
+</A></H2>
 Standard arguments that should be supplied to any routine with a name as
 defined.
 
@@ -16300,9 +17567,9 @@ combination with <EM>mv_subroutine</EM>.
 
 <P>
 
-<DT><STRONG><A NAME="item_TaxShipping">TaxShipping
+<H2><A NAME="TaxShipping">TaxShipping
 
-</A></STRONG><DD>
+</A></H2>
 
 <FONT SIZE=-1>A</FONT> comma or space separated list of states or jurisdictions that tax shipping cost, i.e. 
 <FONT SIZE=-1>UT.</FONT> Blank by default, never taxing shipping.
@@ -16314,9 +17581,9 @@ combination with <EM>mv_subroutine</EM>.
 
 <P>
 
-<DT><STRONG><A NAME="item_Tracking">Tracking
+<H2><A NAME="Tracking">Tracking
 
-</A></STRONG><DD>
+</A></H2>
 This option is removed in MiniVend 3.0. It will provide a warning, but will
 not stop the catalog from becoming operational.
 
@@ -16327,9 +17594,9 @@ capability.
 
 <P>
 
-<DT><STRONG><A NAME="item_TransparentItem">TransparentItem
+<H2><A NAME="TransparentItem">TransparentItem
 
-</A></STRONG><DD>
+</A></H2>
 When set to the name of a product attribute (which must be defined in the
 directive <EM>UseModifier</EM>, and that attributes evaluates to true (yes, true, or 1, not
 case-sensitive), that item will not be shown on <EM>Item Lists</EM>.
@@ -16341,9 +17608,9 @@ case-sensitive), that item will not be shown on <EM>Item Lists</EM>.
 
 <P>
 
-<DT><STRONG><A NAME="item_UpsZoneFile">UpsZoneFile
+<H2><A NAME="UpsZoneFile">UpsZoneFile
 
-</A></STRONG><DD>
+</A></H2>
 The file containing the 
 <FONT SIZE=-1>UPS</FONT> zone information, specified relative to the catalog directory unless it begins with a /. It can be in the format distributed by 
 <FONT SIZE=-1>UPS</FONT> (for 1997, at least) -- or can be in a tab-delimited format, with the three-letter zip prefix of the customer used to determine the zone. It interpolates based on the value in
@@ -16363,9 +17630,9 @@ The file containing the
 
 <P>
 
-<DT><STRONG><A NAME="item_UseCode">UseCode
+<H2><A NAME="UseCode">UseCode
 
-</A></STRONG><DD>
+</A></H2>
 This determines whether the part number field in the 
 <FONT SIZE=-1>ASCII</FONT> product file will be used to determine the link to the item for the [item_link] tag. If set, this has the effect of creating a different 
 <FONT SIZE=-1>HTML</FONT> page link for every part number. If not set (the default), the [item_link] tag uses the value of the last field in the 
@@ -16378,9 +17645,9 @@ This determines whether the part number field in the
 
 <P>
 
-<DT><STRONG>UseModifier
+<H2><A NAME="UseModifier">UseModifier
 
-</A></STRONG><DD>
+</A></H2>
 Determines whether any attributes, the modifiers specified in the
 directive, can be attached to the item. See <EM>Item Attributes</EM>. The default is no modifier. Don't use a value of <CODE>quantity</CODE> -- it will not do what you want.
 
@@ -16391,9 +17658,9 @@ directive, can be attached to the item. See <EM>Item Attributes</EM>. The defaul
 
 <P>
 
-<DT><STRONG>Variable
+<H2><A NAME="Variable">Variable
 
-</A></STRONG><DD>
+</A></H2>
 Defines a catalog variable that will be available in the current catalog
 with the notation __Variable__. Variable identifiers must begin with a
 capital letter, and can contain only word characters (<STRONG>A-Z,a-z,0-9</STRONG> and underscore). These are substituted second (right after global
@@ -16407,9 +17674,28 @@ except global variables.
 
 <P>
 
-</DL>
+<H2><A NAME="VariableDatabase">VariableDatabase
+
+</A></H2>
+Set to the MiniVend database <EM>identifier</EM> of a table that contains
+<EM>Variable</EM> settings. These settings add on to but overwrite any that are set in the
+catalog configuration files, including any #include files.
+
 <P>
-<HR>
+
+<PRE>    Database         variable  variable.asc  TAB
+    VariableDatabase variable
+</PRE>
+
+<P>
+
+Only a key and value are needed; multiple columns don't make sense, though
+you could include variable values in another table. In that case, append
+the column name to the database identifier, separated by a colon; i.e.
+variable:variable_setting.
+
+<P>
+
 <H1><A NAME="ADMINISTERING_MINIVEND">ADMINISTERING MINIVEND
 
 </A></H1>
@@ -16426,6 +17712,7 @@ Many utilities are supplied in the VendRoot/bin directory:
   restart_unix Re-starts the server in UNIX mode
   dump         Dumps the session file for a particular catalog
   expire       Expires sessions for a particular catalog
+  expireall    Expires all catalogs
   reconfig     Runtime reconfiguration of catalogs
   check        Template script to monitor server health
   checkstat.sh Template script to monitor server upness
@@ -16460,8 +17747,6 @@ it must come up when the server is started.
 
 <P>
 
-<P>
-<HR>
 <H2><A NAME="Starting_Stopping_and_Re_start">Starting, Stopping, and Re-starting the Servers
 
 </A></H2>
@@ -16541,8 +17826,6 @@ signals, they may have to wait for <EM>HouseKeeping</EM> seconds to stop. The de
 
 <P>
 
-<P>
-<HR>
 <H2><A NAME="UNIX_and_INET_modes">UNIX and INET modes
 
 </A></H2>
@@ -16576,8 +17859,6 @@ If you only want to run with one method of communication, use the
 
 <P>
 
-<P>
-<HR>
 <H2><A NAME="User_reconfiguration">User reconfiguration
 
 </A></H2>
@@ -16597,8 +17878,6 @@ authentication methods.
 
 <P>
 
-<P>
-<HR>
 <H2><A NAME="Making_the_Product_Database">Making the Product Database
 
 </A></H2>
@@ -16617,8 +17896,6 @@ directive <EM>OfflineDir</EM> -- <CODE>offline</CODE> in the catalog directory b
 
 <P>
 
-<P>
-<HR>
 <H2><A NAME="Updating_Individual_Records">Updating Individual Records
 
 </A></H2>
@@ -16663,8 +17940,6 @@ options.
 
 <P>
 
-<P>
-<HR>
 <H2><A NAME="Expiring_Sessions">Expiring Sessions
 
 </A></H2>
@@ -16680,6 +17955,14 @@ database file from growing too large.
 
 <P>
 
+There is also an <CODE>expireall</CODE> script which reads all catalog entries in <CODE>minivend.cfg</CODE> and runs <CODE>expire</CODE> on them.
+
+<P>
+
+The <CODE>expire</CODE> script accepts a <CODE>-r</CODE> option which tells it to recover lost disk space.
+
+<P>
+
 On 
 <FONT SIZE=-1>UNIX,</FONT> you could add a crontab entry such as the
 following:
@@ -16687,7 +17970,7 @@ following:
 <P>
 
 <PRE>    # once a day at 4:40 am
-    40 4 * * *    perl /home/minivend/bin/expire -c catalog
+    40 4 * * *    perl /home/minivend/bin/expireall -r
 </PRE>
 
 <P>
@@ -16700,11 +17983,6 @@ search paging files for the affected session (kept in <EM>ScratchDir</EM>) will 
 
 With Windows or other operating systems which don't <CODE>fork(),</CODE>
 you will need to stop the server before running <CODE>expire</CODE> -- this will prevent corruption of the database.
-
-<P>
-
-If you have GDBM_File and are using it for sessions, <CODE>expire</CODE> accepts a <CODE>-r</CODE> option which tells it to recover lost disk space with a
-<EM>gdbm_reorganize</EM> call. This will not work for DB_File, sorry.
 
 <P>
 
@@ -16771,8 +18049,6 @@ only customers who are not members.
 
 <P>
 
-<P>
-<HR>
 <H1><A NAME="DEBUGGING">DEBUGGING
 
 </A></H1>
@@ -16935,7 +18211,7 @@ The debug mode can be set both globally (in <CODE>minivend.cfg</CODE>) and for e
 
 <P>
 
-<DT><STRONG>DisplayErrors
+<DT><STRONG><A NAME="item_DisplayErrors">DisplayErrors
 
 </A></STRONG><DD>
 To enable display of fatal errors (those things that would normally cause a
@@ -16948,9 +18224,6 @@ The debug mode of 8192 will enable DisplayErrors for every catalog.
 
 <P>
 
-</DL>
-<P>
-<HR>
 <H1><A NAME="MANUAL_INSTALLATION_OF_CATALOGS">MANUAL INSTALLATION OF CATALOGS
 
 </A></H1>
@@ -16966,8 +18239,11 @@ catalog template. See the supplied demo template
 
 <P>
 
+There is also, starting with MiniVend 3.11, a ``wizard'' interface that operates completely through 
+<FONT SIZE=-1>HTML.</FONT>
+
 <P>
-<HR>
+
 <H2><A NAME="Needed_Directories">Needed Directories
 
 </A></H2>
@@ -17003,8 +18279,6 @@ program.
 
 <P>
 
-<P>
-<HR>
 <H2><A NAME="The_Demo_Systems">The Demo Systems
 
 </A></H2>
@@ -17027,8 +18301,6 @@ Answer the prompts supplied by the program. Note that there are two types of pat
 
 <P>
 
-<P>
-<HR>
 <H2><A NAME="Setting_up_VLINK_and_TLINK">Setting up VLINK and TLINK
 
 </A></H2>
@@ -17085,9 +18357,6 @@ probably a reasonable value.
 
 <P>
 
-</DL>
-<P>
-<HR>
 <H2><A NAME="Compiling_VLINK_and_TLINK">Compiling VLINK and TLINK
 
 </A></H2>
@@ -17180,8 +18449,6 @@ The
 
 <P>
 
-<P>
-<HR>
 <H1><A NAME="AUTHOR">AUTHOR
 
 </A></H1>
@@ -17189,8 +18456,6 @@ Mike Heins, <EM>mike@minivend.com</EM>.
 
 <P>
 
-<P>
-<HR>
 <H1><A NAME="ACKNOWLEDGEMENTS">ACKNOWLEDGEMENTS
 
 </A></H1>
@@ -17218,6 +18483,7 @@ and, of course, the entire Perl team without whom MiniVend could not exist.
 
 <P>
 
+</DL>
 </DL>
     </BODY>
 

@@ -26,7 +26,7 @@ my @mods_to_get;
 my $Lock_troubles;
 my $Windows;
 
-$VERSION = '3.10';
+$VERSION = '3.11';
 
 # See if we have the CPAN module
 my $Cpan = 0;
@@ -80,6 +80,8 @@ if($TermRead) {
 	};
 }
 
+my $ActiveState;
+
 if($Config{osname} eq 'solaris') {
 	eval { require 5.004 or require File::Lock };
 	if($@) {
@@ -94,12 +96,32 @@ elsif($Config{osname} =~ /win32/i) {
 	if($@) {
 				print <<EOF;
 Sorry -- this version of MiniVend for Windows requires
-Perl 5.004 -- the standard port of Perl.  The ActiveState
-5.003 version will not run MiniVend.
+Perl 5.004 or higher -- the standard port of Perl.  The
+ActiveState 5.003 version will not run MiniVend, but
+ActiveState 5.005 should work fine.
 
 See http://www.perl.com/ for information on how to get
 the standard Perl distribution.
 EOF
+	}
+	$ActiveState = 1;
+	eval { require 5.005 };
+	if (! $@ and $Config{archname} =~ /object/) {
+		$ActiveState = 1;
+	}
+	if($ActiveState) {
+		eval {
+			require DB_File;
+		};
+		push(@mods_to_get, 'DB_File') if $@;
+		eval {
+			require MIME::Base64;
+		};
+		push(@mods_to_get, 'MIME-Base64') if $@;
+		eval {
+			require URI::URL;
+		};
+		push(@mods_to_get, 'libwww') if $@;
 	}
 
 }
@@ -233,9 +255,17 @@ sub my_prompt {
     $ans ? $ans : $def;
 }
 
+sub active_get {
+	my (@mods) = @_;
+	for(@mods) {
+		system "start ppm.pl install $_";
+	}
+}
+
 sub cpan_get {
 	my($module, $libdir, $prompt) = @_;
 	
+	return active_get($module) if $ActiveState;
 	print <<EOF unless defined $CpanInit;
 
 Since you have the CPAN module installed and initialized,
@@ -270,7 +300,13 @@ EOF
 	
 	return undef unless defined $CPAN::Config;
 	$CPAN::Config->{makepl_arg} = "INSTALLPRIVLIB=$libdir/lib INSTALLARCHLIB=$libdir/lib INSTALLSITELIB=$libdir/lib INSTALLMAN1DIR=none INSTALLMAN3DIR=none INSTALLSITEARCH=$libdir/lib INSTALLDIRS=perl";
-	return install($module);
+	$CPAN::Config->{keep_source_where} = "$libdir/src"
+		unless -w $CPAN::Config->{keep_source_where};
+	$CPAN::Config->{cpan_home} = "$libdir/src"
+		unless -w $CPAN::Config->{cpan_home};
+	$CPAN::Config->{build_dir} = "$libdir/src"
+		unless -w $CPAN::Config->{build_dir};
+	return CPAN::install($module);
 }
 
 sub initialize {
@@ -319,7 +355,7 @@ EOF
 		}
 		$realdir ||= $mvdir[0];
 		$realdir=my_prompt("Where is your MiniVend to be installed? ",$realdir);
-
+		print "\n";
 		$realdir =~ s:[\\/]\s*$::;
 		$X{INSTALLARCHLIB}	= "$realdir/lib";
 		$X{INSTALLPRIVLIB}	= "$realdir/lib";
@@ -328,11 +364,46 @@ EOF
 		$X{INSTALLDIRS}     = "perl";
 
 		if($Windows) {
+			ACTIVEGET: {
+				last ACTIVEGET unless @mods_to_get;
+				unless( -f "_active_tried" or ! $ActiveState) {
+					print <<EOF;
+You appear to be running the ActiveState Perl port and are missing the
+following modules:
+
+  @mods_to_get
+
+These modules are very nice to have and we would like to try and get
+them. (You can still get MiniVend going without them, but it isn't 
+quite as slick.)
+
+We can try and get them with the Perl Package Manager (ppm.pl). If
+you are connected to the Internet then this might well work. (Proxy servers
+probably will not unless you have used them before with the PPM.)
+
+You will see some DOS boxes flash up on the screen. This is normal
+and will not hurt anything. If one fails, and you wait awhile, then
+close the window manually.
+
+If we can't get the modules on the first try we will not try again
+as long as the file "_active_tried" exists.
+
+EOF
+					my $ans = my_prompt("Try and get modules? ", 'yes');
+					last ACTIVEGET unless $ans =~ /^\s*y/i;
+					open TMP, ">_active_tried" and close TMP;
+					active_get(@mods_to_get);
+				}
+			}
+			my $dosdir = $realdir;
+			$dosdir =~ s:/:\\:g;
 			open(WINBAT, ">configure2.bat")
 				or die "create configure2.bat: $!\n";
 			print WINBAT <<EOF;
-CALL $Config{perlpath} Makefile.PL install $realdir\r
-pause\r
+$Config{perlpath} Makefile.PL install $realdir\r
+start configure.htm
+cd $dosdir
+$Config{perlpath} bin/minivend -serve
 EOF
 			close WINBAT;
 			exit;
@@ -387,6 +458,14 @@ MODCHECK: {
 			require SQL::Statement;
 		};
 	push(@mods_to_get, 'SQL::Statement') if $@ and $Cpan;
+	eval {
+			require MIME::Base64;
+		};
+	push(@mods_to_get, 'MIME::Base64') if $@ and $Cpan;
+	eval {
+			require URI::URL;
+		};
+	push(@mods_to_get, 'URI::URL') if $@ and $Cpan;
 
 }
 
@@ -400,14 +479,17 @@ UPGRADE: {
 		print <<EOF unless defined $Upgrade;
 This looks like an upgrade.
 
-If you are upgrading from MiniVend 2.03 (or MiniVend 3.0 
-beta 6 or less) than the directory structure is changed
-quite a bit.
-
 Your minivend.cfg file will be saved, but other files will
 be overwritten and MAY BE REMOVED WITHOUT WARNING.
 Any custom templates that are not in the 'simple'
 or 'sample' directories will be saved.
+
+These lines will be written to your minivend.cfg if 
+they are not already present:
+
+	#include admin/mv_admin.cfg
+	Variable   MV_NO_CRYPT   1
+	AdminUser  minivend:nevairbe
 
 If you wish to escape to the shell and save some files
 first, enter ! or 'sh' at the prompt. (Of course when
@@ -438,10 +520,6 @@ EOF
 
 You may wish to inspect minivend.cfg.dist for new values.
 
-If you have used static page building, you must now 
-define "Static Yes" in all of your catalog.cfg files
-or the catalog will not run with static pages.
-
 Check the README file for changes you might have to make if
 updating from an earlier version of MiniVend.
 EOF
@@ -466,9 +544,19 @@ EOF
 
 	my @files;
 	my @winfiles;
-	my $tar;
+	my @extra_doc_files;
+	
+	# Save on space
+	opendir(DOCDIR, 'doc') or die "opendir doc: $!\n";
+	@files = grep /\.(html?|gif|jpe?g)$/i, readdir DOCDIR;
+	closedir DOCDIR;
+	for(@files) {
+		File::Copy::copy("doc/$_", 'dist/simple/html');
+		push @extra_doc_files, "dist/simple/html/$_";
+	}
 
 	my $origdir = cwd();
+	
 	open(MANIFILE, 'MANIFEST')
 		or die "Couldn't open MANIFEST: $!\n";
 	@files = <MANIFILE>;
@@ -476,6 +564,9 @@ EOF
 	chomp(@files);
 	for(@extra_lib_files) {
 		push @files, "lib/$_";
+	}
+	for(@extra_doc_files) {
+		push @files, $_;
 	}
 	$ = 0;
 	if($Windows) {
@@ -570,15 +661,32 @@ EOF
 
 		File::Copy::copy('win/POSIX.pm', 'lib/POSIX.pm')
 			or die "File::Copy::copy error 'win/POSIX.pm': $!\n";
-		File::Copy::copy('Start MiniVend Server.pif', 'dist')
-			or die "File::Copy::copy error 'Start MiniVend Server.pif': $!\n";
-		File::Copy::copy('Make MiniVend Catalog.pif', 'dist')
-			or die "File::Copy::copy error 'Make MiniVend Catalog.pif': $!\n";
+
 		@winfiles = grep m:^lib/:, @files;
+		eval {
+			File::Copy::copy('Start MiniVend Server.pif', 'dist')
+				or die "File::Copy::copy error 'Start MiniVend Server.pif': $!\n";
+			File::Copy::copy('Make MiniVend Catalog.pif', 'dist')
+				or die "File::Copy::copy error 'Make MiniVend Catalog.pif': $!\n";
+			push @winfiles, 'Start MiniVend Server.pif';
+			push @winfiles, 'Make MiniVend Catalog.pif';
+		};
+		if ($@) {
+			my $windir = $realdir;
+			$windir =~ s:/:\\:g;
+			print <<EOF;
+The Shortcut files could not be made. Start the server with
+	
+	perl $realdir/bin/minivend -serve
+
+or
+
+	$windir\\minivend
+
+EOF
+		}
 		push @winfiles, 'makecat.bat', 'minivend.bat';
 		push @winfiles, 'lib/POSIX.pm';
-		push @winfiles, 'Start MiniVend Server.pif';
-		push @winfiles, 'Make MiniVend Catalog.pif';
 		for (@winfiles) {
 			install_file('.', $realdir, $_);
 		}
@@ -646,10 +754,16 @@ EOF
 
 WriteMakefile(
 	NAME       => "MiniVend",
+	
 	"DISTNAME" => "minivend",
 	"MAN1PODS" => {},
-	"dist"     => { SUFFIX   => ".gz", DIST_DEFAULT => 'all tardist',
-			    COMPRESS => "gzip -9f", ZIP_FLAGS => '-pr9' },
+	"dist"     => {
+					CI => "ci -l -t-Initial",
+					SUFFIX   => ".gz",
+					DIST_DEFAULT => 'all tardist',
+					COMPRESS => "gzip -9f",
+					ZIP_FLAGS => '-pr9',
+				},
 	VERSION_FROM => "dist/bin/minivend",
 	EXE_FILES => [],
 	CONFIGURE  => \&initialize,

@@ -1,6 +1,71 @@
 
                   W H A T ' S   N E W 
 
+MiniVend 3.11 is a major release enhancing many aspects of
+product pricing, secure authorization, and database updates.
+
+	* New experimental internal HTTP server means very fast
+	  request handling direct from the browser, and built-in
+	  internal security for admin tasks and protected catalog
+	  pages. Will authorize users from the add-in userdb database
+	  or any other MiniVend database. Supports crypt.
+
+	* Experimental catalog configuration "wizard" and admin
+	  interface built in.
+
+    * New CommonAdjust price setting scheme allows chained
+      conditional lookups in pricing, shipping, and taxing. Added
+      mv_price attribute for easy setting of prices in embedded
+      Perl. Added [discount-subtotal] tag which will reliably give
+      an item subtotal with discounts applied. New mv_discount
+      attribute allows individual line item discounts.
+
+    * Added LocaleDatabase, VariableDatabase, and DbDatabase;
+      these allow setting of the Locale, Variable, and Database
+      directives from a database table. This will allow maintenance
+      improvements (they still only change value on startup or
+      reconfigure.)
+
+	* New [goto LABEL] and [label LABEL] allow chunks of a 
+	  page to be skipped.
+
+    * Makecat program adds catalogs to a running server.
+    
+	* German error messages added to error locale file (thanks to
+	  Karsten Mueller).
+
+    * DB_File databases can be automatically compacted with
+      the expire program; a standalone "compact" script is
+      also provided.
+
+    * Fixed multi-page sorting problems that were in MiniVend
+      since 3.00.
+
+	* Added new WideOpen directive so that catalogs can individually
+	  be set to tolerate no IP address qualification. It is named
+	  that because that is what you will be; you should not use this
+	  if you ever store unencrypted credit cards (or other sensitive
+	  info). It is also recommend that you shorten your expire time
+	  to a small number of hours, maybe even 1 or 2.
+
+	* Added new FallbackIP directive to allow quasi-cookie capability
+	  by IP address and browser id string. Use if you have lots of
+	  users who don't take/give cookies. Suggest also that expire
+	  times be made short, though two users would have to have the
+	  same exact browser string and IP address. It will work with
+	  cookies if they have them.
+
+    * Added va=var=value parameter to one-click search so you
+      can set a value with a link.
+
+    * Allow deletes with form database maintenance (mv_data_*).
+      Added mv_data_decode to gate HTML::Entities decoding of data;
+      this will allow easy and reliable display of multi-line fields
+      in a <TEXTAREA>.
+
+	* Added "expireall" script that expires all catalogs
+	  in minivend.cfg by calling expire -c <name> [-r].
+
 MiniVend 3.10 is a bug-fix release with a few minor updates.
 
     * New IpQuad global directive allows removal of any IP address

@@ -1,6 +1,6 @@
 # Http.pm:  interface to cgi protocol
 #
-# $Id: Http.pm,v 1.12 1998/04/24 01:34:18 mike Exp $
+# $Id: Http.pm,v 1.13 1998/08/11 18:12:39 mike Exp $
 #
 package Vend::Http;
 
@@ -28,7 +28,7 @@ package Vend::Http::Base;
 
 use strict;
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.12 $, 10);
+$VERSION = substr(q$Revision: 1.13 $, 10);
 
 #sub Server                    { $_[0]->{'Server'} }
 sub Content_Encoding          { $_[0]->{'Content_Encoding'} }
@@ -57,6 +57,7 @@ sub Forwarded                 { $_[0]->{'Forwarded'} }
 sub From                      { $_[0]->{'From'} }
 #sub Glue	              	  { $_[0]->{'Glue'} }
 sub HTTP_Version              { $_[0]->{'HTTP_Version'} }
+sub Http_Host                 { $_[0]->{'Http_Host'} }
 sub Https_on              	  { $_[0]->{'Https_on'} }
 sub If_Modified_Since         { $_[0]->{'If_Modified_Since'} }
 sub Last_Modified             { $_[0]->{'Last_Modified'} }
@@ -124,6 +125,7 @@ my @Map =
     (
      'Authenticated_User' => 'REMOTE_USER',
      'Authorization_Type' => 'AUTH_TYPE',
+     'Authorization' => 'AUTHORIZATION',
      'Client_Hostname' => 'REMOTE_HOST',
      'Client_IP_Address' => 'REMOTE_ADDR',
      'Client_Ident' => 'REMOTE_IDENT',
@@ -133,6 +135,7 @@ my @Map =
      'From' => 'HTTP_FROM',
 #     'Glue' => 'MV_GLUE',
      'Https_on' => 'HTTPS',
+     'Http_Host' => 'HTTP_HOST',
      'Method', => 'REQUEST_METHOD',
      'Path_Info' => 'PATH_INFO',
      'Path_Translated' => 'PATH_TRANSLATED',
@@ -153,7 +156,6 @@ my @Map =
 # Accept_Encoding
 # Accept_Language
 # Allow
-# Authorization
 # Date
 # Derived_From
 # Expires

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# $Id: UserDB.pm,v 1.4 1998/07/04 21:59:39 mike Exp mike $
+# $Id: UserDB.pm,v 1.6 1998/09/01 13:15:22 mike Exp mike $
 #
 # Copyright 1997 by Michael J. Heins <mikeh@iac.net>
 #
@@ -8,7 +8,7 @@
 
 package Vend::UserDB;
 
-$VERSION = substr(q$Revision: 1.4 $, 10);
+$VERSION = substr(q$Revision: 1.6 $, 10);
 $DEBUG = 0;
 
 use vars qw! $VERSION $DEBUG @S_FIELDS @B_FIELDS @P_FIELDS %S_to_B %B_to_S!;
@@ -74,7 +74,7 @@ Create account:
 Change password:
 
     $obj->change_pass();  # Form values are
-                          # mv_username, mv_password, mv_verify(new)
+                          # mv_username, mv_password_old, mv_password, mv_verify(new)
 
 Get, set user information:
 
@@ -186,10 +186,11 @@ sub new {
 
 	my ($class, %options) = @_;
 
-	my $values = $options{'values'} || $Vend::Session->{'values'};
+	my $values = $options{'values'} || $::Values;
 
 	my $self = {
 			USERNAME  	=> $options{username}	|| $CGI::values{mv_username} || '',
+			OLDPASS  	=> $options{oldpass}	|| $CGI::values{mv_password_old} || '',
 			PASSWORD  	=> $options{password}	|| $CGI::values{mv_password} || '',
 			VERIFY  	=> $options{verify}		|| $CGI::values{mv_verify}	 || '',
 			NICKNAME   	=> $options{nickname}	|| '',
@@ -553,6 +554,54 @@ sub login {
 	1;
 }
 
+sub change_pass {
+
+	my $self;
+
+	$self = shift
+		if ref $_[0];
+
+	my(%options) = @_;
+	
+	eval {
+		unless($self) {
+			$self = new Vend::UserDB %options;
+		}
+
+		die "Bad object.\n" unless defined $self;
+
+		die "$self->{USERNAME} not a user"
+			unless $self->{DB}->record_exists($self->{USERNAME});
+		die "Must have old password"
+			if	$self->{OLDPASS}
+				ne
+				$self->{DB}->field($self->{USERNAME}, $self->{LOCATION}{PASSWORD});
+		die "Must enter at least 4 characters for password."
+			unless length($self->{PASSWORD}) > 3;
+		die "Password and check value don't match."
+			unless $self->{PASSWORD} eq $self->{VERIFY};
+		my $pass = Vend::Data::set_field(
+						$self->{DB},
+						$self->{USERNAME},
+						$self->{LOCATION}{PASSWORD},
+						$self->{PASSWORD}
+						);
+		die "Database access error." unless defined $pass;
+	};
+
+	if($@) {
+		if(defined $self) {
+			$self->{ERROR} = $@;
+		}
+		else {
+			logError( errmsg('UserDB.pm:3', "Vend::UserDB error: %s", $@ ) );
+		}
+		return undef;
+	}
+	
+	1;
+}
+
 sub new_account {
 
 	my $self;
@@ -590,7 +639,6 @@ sub new_account {
 			$self->{ERROR} = $@;
 		}
 		else {
-#			logError("Vend::UserDB error: $@\n");
 			logError( errmsg('UserDB.pm:2', "Vend::UserDB error: %s\n", $@ ) );
 		}
 		return undef;

@@ -4,12 +4,12 @@
 <HEAD><TITLE>[loop-description]</TITLE></HEAD>
 <CENTER>
 [body 1]
-[if-loop-field category]Category: [loop-field category][/if-loop-field]
+[if-loop-field category][L]Category[/L]: [loop-field category][/if-loop-field]
 <P>
 [if-loop-field image]
 <IMG SRC="[loop-field image]">
 <P>
-[order [loop-code]]<IMG SRC="ordernow.gif" BORDER=0>[/order]
+[order [loop-code]]<IMG SRC="ordernow.gif" ALT="[L]ORDER NOW[/L]" BORDER=0>[/order]
 <P>
 [/if-loop-field]
 <H2>[loop-field title]</H2>
@@ -18,7 +18,7 @@
 <TABLE BORDER=2>
 <TR VALIGN=BOTTOM>
 <P>
-<TD COLSPAN=6 VALIGN=BOTTOM ALIGN=TOP><H1>Quantity Pricing</H1>
+<TD COLSPAN=6 VALIGN=BOTTOM ALIGN=TOP><H1>[L]Quantity Pricing[/L]</H1>
 <TR>
 <P>
 	<TH WIDTH=70 VALIGN=BOTTOM ALIGN=LEFT>
@@ -62,7 +62,7 @@
 
 [/loop]
 
-[buttonbar 0]
+[include pages/buttonbar.html]
 
 </CENTER>
 

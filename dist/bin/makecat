@@ -29,7 +29,7 @@ BEGIN {
     };
 	($VendRoot = $ENV{MINIVEND_ROOT})
 		if defined $ENV{MINIVEND_ROOT};
-$VendRoot = $VendRoot || '/home/mike/mvend';
+$VendRoot = $VendRoot || '/home/minivend';
 }
 
 ## END CONFIGURABLE VARIABLES
@@ -39,42 +39,185 @@ use lib "$VendRoot/lib";
 $| = 1; select STDERR; 
 $| = 1; select STDOUT; 
 
-#use Data::Dumper;
-#$Data::Dumper::Terse = 1;
-#$Data::Dumper::Indent = 3;
-
 use Config;
 use File::Find;
 use File::Copy;
 use File::Path;
 use Vend::MakeCat;
 use Vend::Util;
-use Getopt::Std;
+use Getopt::Long;
 use IniConf;
 
 #use strict;
 
+my $Removeconfig;
+my $Reconfigure = 0;
+my $Configfile;
+my $Cfg;
+my $Interactive;
+my $Logfile = 'makecat.log';
+my $catalog_name;
+my %Conf;
+my $Inetmode;
+my $Windows;
+my $pid;
+$Windows = 1 if $Config{osname} =~ /win32/i;
+
+
 my $USAGE = <<EOF;
-usage: $0 [-rf] <catalogname>
+usage: $0 [options] [catalogname]
 
 options:
 
-	-F    Force make of catalog with defaults
-	-f    Configuration file (default is $0.cfg)
-	-i    Interactive edit of configuration
-	-r    Reconfigure defaults
+    -F    Force make of catalog with defaults
+    -f    Configuration file (default is $0.cfg)
+    -l    File to log to (default makecat.log)
+    -i    Interactive edit of configuration
+    -r    Reconfigure defaults
+
+    Defaults:
+    --basedir=directory      Base directory for catalogs
+    --cgibase=url_fragment   Base URL for link programs
+    --documentroot=directory The directory where HTML is based
+    --minivendgroup=group    The default group files should be owned by
+    --minivenduser=username  The user ID which runs MiniVend
+    --serverconf=filename    Location of httpd.conf
+    --vendroot=filename      Location of MiniVend software
+	--homedir=directory      Use instead of $HOME to set defaults
+
+    Required:
+    --catroot=directory      Directory where MiniVend catalog files go
+    --cgidir=directory       The directory the CGI link should go to
+    --servername=server      Name of server (www.whatever.domain)
+    --cgiurl=url_fragment    The path to the CGI link (no server name)
+    --demotype=template      The template catalog (simple is the default)
+    --mailorderto=email      Email address to send orders
+
+    Optional:
+    --catuser=username       The user files should be owned by (if root)
+    --samplehtml=directory   The directory where template HTML goes
+    --imagedir=directory     The directory where template images go
+    --imageurl=url           The URL to prefix images with
+    --nocfg                  Don't add to minivend.cfg
+    --nocopy                 Don't actually copy the files, just test
+    --norunning              Don't add to running server
+    --reference              Return hash of config as string (sets -F, no write)
+    --linkprogram=file       Use file as link program instead of vlink/tlink
+    --linkmode=mode          UNIX or INET (link program vlink or tlink)
+    --sampleurl=url          URL to access HTML for catalog
+    --noumask                Don't set umask
 
 EOF
 
-use vars qw($opt_i $opt_F $opt_f $opt_r);
-getopts('rfFi') or die "Couldn't get options: $@\n$USAGE\n";
+if (scalar @ARGV > 1) {
 
-my $Interactive = $opt_i;
+Getopt::Long::config(qw/permute/);
 
-my $catalog_name = shift;
+#Getopt::Long::config(qw/debug/);
+
+my %optctl = (
+
+    'F'                 => \$Vend::MakeCat::Force,
+    'aliases'           => \$Conf{aliases},
+    'basedir'           => \$Conf{basedir},
+    'catalogname'       => \$catalog_name,
+    'catroot'           => \$Conf{catroot},
+    'catuser'           => \$Conf{catuser},
+    'cgibase'           => \$Conf{cgibase},
+    'cgidir'            => \$Conf{cgidir},
+    'cgiurl'            => \$Conf{cgiurl},
+    'demotype'          => \$Conf{demotype},
+    'documentroot'      => \$Conf{documentroot},
+    'f'                 => \$Configfile,
+    'i'                 => \$Interactive,
+    'homedir'           => \$Conf{homedir},
+    'imagedir'          => \$Conf{imagedir},
+    'imageurl'          => \$Conf{imageurl},
+    'l'                 => \$Logfile,
+    'linkmode'          => \$Conf{linkmode},
+    'linkprogram'       => \$Conf{linkprogram},
+    'mailorderto'       => \$Conf{mailorderto},
+    'minivendgroup'     => \$Conf{minivendgroup},
+    'minivenduser'      => \$Conf{minivenduser},
+    'nocfg'             => \$Conf{nocfg},
+    'nocopy'            => \$Conf{nocopy},
+    'norunning'         => \$Conf{norunning},
+    'noumask'           => \$Conf{noumask},
+    'r'                 => \$Reconfigure,
+    'reference'         => \$Conf{reference},
+    'samplehtml'        => \$Conf{samplehtml},
+    'sampleurl'         => \$Conf{sampleurl},
+    'serverconf'        => \$Conf{serverconf},
+    'servername'        => \$Conf{servername},
+    'vendroot'          => \$Conf{vendroot},
+	'<>'				=> sub {
+							my $arg = shift;
+							return unless $arg =~ /=/;
+							my ($opt, $val) = split /=/, $arg, 2;
+							$opt = lc $opt;
+							die "Can't set \U$opt\E twice.\n$USAGE\n"
+								if defined $Conf{$opt};
+							$Conf{$opt} = $val;
+							return;
+							},
+);
+
+my @options = ( qw/
+
+	F
+    aliases=s
+    basedir|base=s
+    catalogname|name=s
+    catroot|dir=s
+    catuser|user=s
+    cgibase=s
+    cgidir=s
+    cgiurl|script=s
+    demotype|template=s
+    documentroot=s
+    f
+    i
+    homedir=s
+    imagedir=s
+    imageurl=s
+    l=s
+    linkmode=s
+    linkprogram=s
+    mailorderto=s
+    minivendgroup|group=s
+    minivenduser|mvuser=s
+    nocfg
+    nocopy
+    norunning
+    r
+    reference
+    samplehtml|html=s
+    sampleurl=s
+    serverconf|conf=s
+    servername|server=s
+    vendroot|mvdir=s
+    <>
+
+/ );
+
+GetOptions(\%optctl, @options)			or die "\n$USAGE\n";
+
+}
+
+$catalog_name = shift unless $catalog_name;
+if(@ARGV) {
+	die <<EOF . "\n";
+Extra command line arguments were found. (Did you specify
+both --catalogname=name and one on the command line?)
+
+$USAGE
+EOF
+}
+
 unless($catalog_name) {
-   $Interactive = 1;
-   print <<EOF;
+	die "$USAGE\n" if $Vend::MakeCat::Force;
+	$Interactive = 1;
+	print <<EOF;
 
 Select a short, mnemonic name for the catalog. This will be
 used to set the defaults for naming the catalog, executable,
@@ -88,15 +231,27 @@ EOF
 
 die "$USAGE\n" unless $catalog_name;
 
-if ($opt_F) {
-	$Vend::MakeCat::Force = 1;
-	open(LOGOUT, ">>makecat.log") or die "write makecat.log: $!\n";
+if($Conf{homedir}) {
+	die "Directory set with --homedir=$Conf{homedir} is not a directory.\n"
+		unless -d $Conf{homedir};
+	$ENV{HOME} = $Conf{homedir};
+}
+
+if($Conf{'reference'}) {
+	$Vend::MakeCat::Force =
+	$Conf{nocopy}         =
+	$Conf{norunning}      =
+	$Conf{nocfg}          = 1;
+	$Logfile = $Windows ?  'nul:'	: '/dev/null';
+}
+
+if ($Vend::MakeCat::Force) {
+	my $file = $Logfile || 'makecat.log';
+	open(LOGOUT, ">>$file") or die "write $file: $!\n";
 	select LOGOUT;
 }
 
-my $Reconfigure = 0;
-$Reconfigure = 1 if $opt_r;
-my $Configfile = $opt_f || "$0.cfg";
+$Configfile = "$0.cfg" unless $Configfile;
 my $Servername;
 my $Servers;
 my $Done_defaults;
@@ -123,21 +278,18 @@ READCONFIG: {
 	close READCONFIG;
 }
 
-my $CgiDefault		= $ENV{MVC_CGIDIR} || undef;
-my $DocrootDefault	= $ENV{MVC_DOCUMENTROOT} || undef;
+my $CgiDefault		= prefix('CGIDIR')			|| undef;
+my $DocrootDefault	= prefix('DOCUMENTROOT')	|| undef;
 
-my $Windows;
-if($Config{osname} =~ /win32/i) {
-	$Windows = 1;
-	$ENV{HOME}		= $ENV{HOME} || $ENV{MINIVEND_ROOT} || '';
-	$ENV{MVC_ENCRYPTOR} = $ENV{MVC_ENCRYPTOR} || 'none';
-	$CgiDefault		=  $ENV{MVC_CGIDIR} || 'c:/webshare/scripts';
-	$CgiUrlDefault	=  $ENV{MVC_CGIURL} || '/scripts';
-	$DocrootDefault =  $ENV{MVC_DOCUMENTROOT} || 'c:/webshare/wwwroot';
+if ($Windows) {
+	$ENV{HOME}		= $ENV{HOME} || $ENV{MINIVEND_ROOT}
+						|| prefix('VENDROOT') || '';
+	$CgiDefault		=  prefix('CGIDIR') || 'c:/webshare/scripts';
+	$CgiUrlDefault	=  prefix('CGIURL')  || '/scripts';
+	$DocrootDefault =  prefix('DOCUMENTROOT') || 'c:/webshare/wwwroot';
 }
-else {
-	$ENV{MVC_ENCRYPTOR} = $ENV{MVC_ENCRYPTOR} || 'none';
-}
+
+$ENV{MVC_ENCRYPTOR} = prefix('ENCRYPTOR') || 'none';
 
 FINDDOCROOT: {
 	last FINDDOCROOT if defined $DocrootDefault;
@@ -218,7 +370,6 @@ if ($< == 0) {
 	$isroot = 1 unless $Windows;
 }
 
-my %Conf;
 $Conf{catalogname} = $catalog_name;
 
 my %Initial;
@@ -228,6 +379,7 @@ my %IfRoot = (qw( permtype 1 minivenduser 1 minivendgroup 1 catuser 1));
 my %Prefix = (
 	vendroot     =>  $VendRoot,
 	basedir      =>  sub {
+							return prefix('basedir', 1) if prefix('basedir', 1);
 							return "$Conf{vendroot}/catalogs"
 								if $Windows;
 							return "$ENV{HOME}/catalogs"
@@ -237,12 +389,15 @@ my %Prefix = (
 	minivenduser =>  sub {  return 'everybody' if $Windows;
 							get_id(); },
 	minivendgroup=>  '',
+    servername	 =>  $Config{myhostname},
     documentroot =>  $ENV{MVC_DOCUMENTROOT} || $DocrootDefault,
 	cgidir       =>  $ENV{MVC_CGIDIR} || $CgiDefault,
 	cgibase      =>  $ENV{MVC_CGIBASE} || $CgiUrlDefault,
 	demotype     =>  $ENV{MVC_DEMOTYPE} || 'simple',
-    catuser      => 
-						sub { $isroot ? '' : $Conf{'minivenduser'} },
+    catuser      =>  sub {
+							$ENV{MVC_CATUSER} ||
+							($isroot ? '' : $Conf{'minivenduser'})
+						},
     mailorderto  => 
 						sub {  return 'webmaster' if $Windows;
 							if($Conf{servername} =~ s:(/~[^/]+)$:: ) {
@@ -250,13 +405,13 @@ my %Prefix = (
 							}
     						$Conf{catuser} },
 	catroot      =>   sub {
-							return $ENV{MVC_CATROOT} if $ENV{MVC_CATROOT};
-							my $dir = $Conf{basedir} . "/" . $catalog_name;
+							my $dir = prefix('basedir') . "/" . $catalog_name;
 							return $dir if $Windows;
 							my $userdir = (getpwnam($Conf{catuser}))[7];
-							$dir =~ s/\~/$userdir/;
+							$dir =~ s/^\~/$userdir/;
 							return $dir;
 							},
+	aliases      =>  sub { return "/" . $catalog_name },
 	cgiurl       =>  sub {
 							return $ENV{MVC_CGIURL} if $ENV{MVC_CGIURL};
 							my $url = '';
@@ -312,9 +467,11 @@ my %Postprocess = (
 );
 
 sub prefix {
-	my $parm = shift;
+	my ($parm, $nodefault) = @_;
+	$parm = lc $parm;
 	return $Conf{$parm} if $Conf{$parm};
 	return $ENV{"MVC_\U$parm"} if $ENV{"MVC_\U$parm"};
+	return undef if $nodefault;
 	if(ref $Prefix{$parm}) { 
 		return &{ $Prefix{$parm} };
 	}
@@ -463,16 +620,17 @@ unless($isroot) {
 my($ask,$param);
 
 unless (-f $Configfile) {
+	$Removeconfig = 1 if prefix('nocopy');
 	open(CFGFILE, ">$Configfile")	or die "Can't write $Configfile: $!\n";
 	while(<DATA>) {
 		print CFGFILE $_;
 	}
 	close(CFGFILE)					or die "Can't close $Configfile: $!\n";
-	warn "\nNew configuration file '$Configfile'\n" ;
+	print "\nNew configuration file '$Configfile'\n" ;
 	$Reconfigure = 1;
 }
 
-my $Cfg = new IniConf -file => $Configfile, -nocase => 1;
+$Cfg = new IniConf -file => $Configfile, -nocase => 1;
 
 die "Can't read config file $Configfile: $!\n" unless defined $Cfg;
 my @parms;
@@ -551,7 +709,7 @@ EOF
 	if(@conf) {
 		# Skip doing this again
 	}
-	elsif($param = $Cfg->val('base', 'serverconf')) {
+	elsif($param = prefix('serverconf') || $Cfg->val('base', 'serverconf')) {
 		last FINDCONF if $param =~ /^none$/i;
 		@conf = split /\s+/, $param;
 	}
@@ -595,9 +753,10 @@ EOF
 			last FINDCONF if $ask =~ /^\s*n/i;
 			redo FINDCONF;
 		}
+		else {
+			@Servers = sort keys %{$Servers};
+		}
 	}
-
-	@Servers = sort keys %{$Servers};
 }
 
 ##############
@@ -607,6 +766,7 @@ SETDEFAULTS: {
 	unless ($Reconfigure) {
 		my @parms = $Cfg->Parameters('base');
 		for(@parms) {
+			next if $Conf{$_} = prefix($_, 1);
 			$Conf{$_} = $Cfg->val('base', $_) || undef;
 		}
 		last SETDEFAULTS;
@@ -632,7 +792,8 @@ EOF
 
 		}
 		else {
-			print <<EOF ;
+			last PERMS if prefix('permtype', 1);
+			print <<EOF;
 
 You are the super-user. You can set the permissions to GROUP, MULTIPLE
 GROUP, or USER mode for catalogs on this server.
@@ -664,7 +825,7 @@ EOF
 			sethistory("MULTIPLE GROUP", "GROUP", "USER");
 			$Conf{permtype} = prompt("Permission Mode? ", "M");
 			unless($Conf{permtype} =~ s/^\s*([mgu]).*/uc $1/ie) {
-				warn "Must be one of M(ULTIPLE), G(ROUP), or U(SER).\n";
+				print "Must be one of M(ULTIPLE), G(ROUP), or U(SER).\n";
 				redo PERMS;
 			}
 			$Cfg->setval('base', 'permtype', $Conf{permtype});
@@ -714,6 +875,7 @@ EOF
 	my @ask = $Cfg->val('global', 'askbase');
 
 	for('cgidir') {
+		next if $Conf{$_};
 		print <<EOF;
 
 
@@ -724,7 +886,7 @@ CGI directory.
 EOF
 		$ask = prompt ("Do you have a CGI directory? ", 'y');
 		last if is_yes($ask);
-		$Prefix{cgidir} = $Prefix{documentroot};
+		$Prefix{cgidir} = prefix('documentroot');
 	}
 
 	my ($p, $i);
@@ -738,7 +900,7 @@ EOF
 			$hval = $history[0];
 			sethistory(@history);
 		}
-		$val = $Cfg->val("base", $p) || $hval;
+		$val = prefix($p, 1) || $Cfg->val("base", $p) || $hval;
 		print "\n";
 		print description($p);
 		print "\n\n";
@@ -752,7 +914,10 @@ EOF
 		if(defined $Postprocess{$p}) {
 			$Conf{$p} = &{$Postprocess{$p}}($Conf{$p});
 		}
-		$Cfg->setval('base', $p, $Conf{$p});
+	}
+
+	for(@ask) {
+		$Cfg->setval('base', $_, $Conf{$_});
 	}
 
 	$Cfg->WriteConfig("$Configfile.new")
@@ -763,12 +928,13 @@ EOF
 }
 #############
 
+	my $serv = prefix('servername') || 'www.yourdomain'; 
 	my $demo_template = <<"EndOfTemplate";
 # The server name, something like: www.company.com
 #                                  www.company.com:8000
 #                                  www.company.com/~yourname
 #
-SERVERNAME     $Conf{'servername'}
+SERVERNAME     $serv
 
 EndOfTemplate
 
@@ -836,7 +1002,8 @@ DEMOSETUP: {
 			/
 		)
 	{
-		next if defined $ENV{"MVC_$_"};
+		#next if defined $ENV{"MVC_$_"};
+		next if prefix($_);
 		$demo_template =~ /^$_\s+(.*)/m;
 		$ENV{"MVC_$_"} = $1;
 	}
@@ -902,18 +1069,24 @@ During many of the following operations, defaults are placed in
 a buffer for you.  You may use the up and down arrows to toggle
 between the defaults.
 
+If you made a mistake on a *previous* entry and realize that
+in a later one, if you enter ONLY an @ sign and press return you
+should be returned to the previous step.
+
 EOF
 SETSERVER: {
 	sethistory(@Servers);
 	print description('servername');
- 	$Servername = $ENV{MVC_SERVERNAME} || $Cfg->val('base', 'servername');
+ 	$Servername = prefix('servername', 1)  			|| 
+				  $Cfg->val('base', 'servername')	||
+				  prefix('servername');
 	$Servername =
 		$Conf{servername} =
 			prompt("Server name? ", ($Servername || $Servers[0]));
 	$Cfg->setval("catalog $catalog_name", 'servername', $Conf{servername});
 }
 
-@ask = $Cfg->val('global', 'askconfig');
+	@ask = $Cfg->val('global', 'askconfig');
 
 
 	for ($i = 0; $i < scalar @ask; $i++) {
@@ -921,13 +1094,16 @@ SETSERVER: {
 		if (defined $History{$p}) {
 			@history = &{$History{$p}}(prefix($p));
 			sethistory(@history);
-			$val = $Cfg->val("catalog $catalog_name", $p)
-					|| $history[0] || prefix($p);
+			$val =	prefix($p,1)							||
+					$Cfg->val("catalog $catalog_name", $p)	||
+					$history[0]								||
+					prefix($p);
 		}
 		else {
-			$val = $Cfg->val("catalog $catalog_name", $p) || prefix($p);
+			$val =	prefix($p,1)							||
+					$Cfg->val("catalog $catalog_name", $p)	||
+					prefix($p);
 		}
-		$val = $ENV{"MVC_\U$val"} if defined $ENV{"MVC_\U$val"};
 		if (! $isroot and defined $IfRoot{$p}) {
 			$Conf{$p} = $val;
 			next;
@@ -946,8 +1122,15 @@ SETSERVER: {
 		$Cfg->setval("catalog $catalog_name", $p, $Conf{$p});
 	}
 
-$Cfg->WriteConfig("$Configfile.new")
-	and rename "$Configfile.new", $Configfile;
+if($Removeconfig) {
+	unlink $Configfile;
+}
+elsif ( ! prefix('nocopy') ) {
+	$Cfg->WriteConfig("$Configfile.new")
+		and rename "$Configfile.new", $Configfile;
+}
+
+undef $Cfg;
 
 # Try and get the URL we will use to access the catalog
 GUESS: {
@@ -962,7 +1145,7 @@ GUESS: {
 
     unless( $guessdir =~ s/^$Conf{documentroot}// ) {
         print <<EOF;
-\a
+
 The specified HTML directory, $Conf{samplehtml},
 is not a subdirectory of DocumentRoot. This will make it
 hard for us to guess the URL needed to access pages from
@@ -1048,7 +1231,7 @@ $msg = q# supposed to be a directory, not a file. Can't continue.#;
 for ( $Conf{catroot}, $Conf{documentroot}, $Conf{basedir},
 	$Conf{samplehtml}, $Conf{imagedir} ) {
 	next unless -f $_;
-	warn "$_ $msg\n";
+	print "$_ $msg\n";
 	$warn++;
 }
 die "\n" if $warn;
@@ -1056,7 +1239,11 @@ die "\n" if $warn;
 my $prog;
 
 SETLINKMODE: {
+	if($prog = prefix('linkprogram')) {
+		last SETLINKMODE;
+	}
 	if ($Windows) {
+		$Conf{linkmode} = 'INET';
 		$prog = "$VendRoot/bin/tlink.exe";
 		last SETLINKMODE;
 	}
@@ -1074,14 +1261,19 @@ EOF
 		if $Vend::MakeCat::Prompt_sub;
 
 	sethistory("NONE", "UNIX", "INET");
-	$default = ($Config{osname} =~ /bsd/i and $Config{osvers} gt '3')
+
+	unless ( $default = prefix('linkmode') ) {
+		$default = ($Config{osname} =~ /bsd/i and $Config{osvers} gt '3')
 				? 'INET' : 'UNIX';
+	}
+	
 	$ask = prompt("INET or UNIX mode? ", $default);
 
 	$prog = "$VendRoot/bin/vlink";
 
 	if($ask =~ /^\s*i/i) {
 		$prog = "$VendRoot/bin/tlink";
+		$Inetmode = 1;
 	}
 	elsif($ask =~ /^\s*n/i) {
 		$prog = "NONE";
@@ -1115,6 +1307,8 @@ EOF
 	}
 }
 
+umask(022) unless $Conf{noumask};
+
 $warn = 0;
 print do_msg("Checking directories");
 
@@ -1126,8 +1320,10 @@ for($Conf{catroot}, $Conf{samplehtml}) {
 }
 
 if($warn) {
-	$ask = prompt "The above directories already exist. Overwrite files? ";
-	exit 2 unless is_yes($ask);
+	$ask = prompt "The above directories already exist. Overwrite files? ", 'n';
+	unless($Vend::MakeCat::Force) {
+		exit 2 unless is_yes($ask);
+	}
 }
 
 $warn = 0;
@@ -1152,7 +1348,7 @@ if($warn) {
 
 		(warn "\n$_ is empty, skipping.\n", next)
 			unless $dir =~ /\S/;
-		unless(-d $dir) {
+		unless(-d $dir or prefix('nocopy') ) {
 			File::Path::mkpath([$dir], 0, 0775)
 				or die "Couldn't make directory $dir: $!\n";
 		}
@@ -1164,6 +1360,17 @@ for(qw(catroot samplehtml imagedir)) {
 
 	# Allow nocopy
 	next if $dir =~ /^\s*none\s*$/i;
+
+	if (prefix('nocopy')) {
+		next if -w $dir;
+		my $parent = $dir;
+		do {
+			$parent =~ s:/[^/]+$::;
+		} until ! $parent or -d $parent;
+		warn "Directory $dir (or parents) not writable, could be problems.\n"
+			unless -w $dir || -w $parent;
+		next;
+	}
 
 	die "Directory $dir not writable, can't continue.\n"
 		unless -w $dir or $dir =~ /^\s*none\s*$/i;
@@ -1184,29 +1391,42 @@ unless (-d $Conf{'demotype'}) {
 else {
 	$dir = $Conf{'demotype'};
 }
-chdir $dir || die "Couldn't change directory to $dir: $!\n";
 
-# Before Archive::Tar -- thank you, Calle!
-#system "tar -cf - * | (cd $Conf{catroot}; tar -xf -)";
+# Here we actually do the file copy unless --nocopy is set
+DOCOPY: {
 
-eval {
-	copy_current_to_dir($Conf{catroot});
-};
+	if (prefix('nocopy')) {
+		print "not copying.\n";
+		last DOCOPY;
+	}
 
-if($@) {
-	die <<EOF . "\n";
+	chdir $dir || die "Couldn't change directory to $dir: $!\n";
+
+	# This is what we used to do
+	#system "tar -cf - * | (cd $Conf{catroot}; tar -xf -)";
+
+	umask(07) unless $Conf{noumask};
+
+	eval {
+		copy_current_to_dir($Conf{catroot});
+	};
+
+	umask(022) unless $Conf{noumask};
+
+	if($@) {
+		die <<EOF . "\n";
 There were errors in copying the demo files.  Cannot
 continue.  Check to see if permissions are correct.
 
 EOF
-}
+	}
 
-unless($prog eq 'NONE') {
-File::Copy::copy( $prog, "$Conf{catroot}/executable")
-	or die "Couldn't copy link program from $prog: $!\n";
-}
+	unless($prog eq 'NONE') {
+		File::Copy::copy( $prog, "$Conf{catroot}/executable")
+			or die "Couldn't copy link program from $prog: $!\n";
+	}
 
-print "done.\n";
+	print "done.\n";
 
 chdir $Conf{catroot} 
  	|| die "Couldn't change directory to $Conf{catroot}: $!\n";
@@ -1314,8 +1534,10 @@ sub wanted {
 
 	$cginame = $Conf{cgiurl};
 	$cginame =~ s:.*/::;
-	$cginame = "$Conf{cgidir}/$cginame";
+	$Conf{cgifile} = $cginame = "$Conf{cgidir}/$cginame";
 	
+	umask(022) unless $Conf{noumask};
+
 	unless ($prog eq 'NONE') {
 
 		print do_msg("Moving link program to $cginame");
@@ -1329,8 +1551,9 @@ sub wanted {
 				or die "\nCouldn't set ownership of $cginame: $!\n";
 		}
 
-		unless ($isroot or $Windows or can_do_suid()) {
-			print <<EOF;
+		unless ($Windows or $Inetmode) {
+			unless ($isroot or can_do_suid()) {
+				print <<EOF;
 
 My test indicates you can't change vlink to SUID mode.
 This will cause big problems -- you can make MiniVend work anyway
@@ -1341,11 +1564,15 @@ you should run this as root, or su to root and do:
 	chmod 4755 $cginame
 
 EOF
-			$ask = prompt("Continue? ", 'n');
-			exit 2 unless is_yes($ask);
+				$ask = prompt("Continue? ", 'n');
+				unless($Vend::MakeCat::Force) {
+					exit 2 unless is_yes($ask);
+				}
+			}
+
+			chmod 04755, $cginame
+				or warn "\nCouldn't set permissions on $cginame: $!\n";
 		}
-		chmod 04755, $cginame
-			or warn "\nCouldn't set permissions on $cginame: $!\n";
 
 		print "done.\n";
 	}
@@ -1414,9 +1641,41 @@ EOF
 	chdir $Conf{vendroot}
 		or die "\nCouldn't change directory to $VendRoot: $!\n";
 
-	$yes = prompt "Add catalog to minivend.cfg? ", 'y';
+	my $pidfile = 'etc/minivend.pid';
+	PID: {
+		local ($/);
+		open(PID,"+<$pidfile") or last PID;
+
+		# If we get lock we are not running
+		unless($Windows) {
+			lockfile(\*PID,1,0)  and last PID;
+		}
+		
+		$pid = <PID>;
+		$pid =~ /(\d+)/;
+		$pid = $1;
+	}
+
+}
+	my $add;
+
+	umask(07) unless $Conf{noumask};
+
+	$add = prefix('nocfg') ? 'n' : 'y';
+	$yes = prompt "Add catalog to minivend.cfg? ", $add;
+
+	$add = prefix('norunning') ? 'n' : 'y';
+
+	if($pid) {
+		$add_to_running = prompt "Add catalog to server running on PID $pid? ", $add;
+		$add_to_running = is_yes($add_to_running);
+	}
 
 	my $full = '';
+	my $newcfgline;
+
+	$newcfgline = sprintf "%-10s %s %s %s %s\n", 'Catalog',
+				$catalog_name, $Conf{catroot}, $full . $Conf{cgiurl}, $Conf{aliases};
 
 	if( is_yes($yes) ) {
 		my ($newcfgline, $mark, @out);
@@ -1431,9 +1690,9 @@ EOF
 		open(CFG, $tmpfile)
 			or die "\nCouldn't open $tmpfile: $!\n";
 		while(<CFG>) {
-			$mark = $. if /^#?\s*catalog\s+/i;
-			warn "\nDeleting old configuration $catalog_name.\n"
-				if s/^(\s*catalog\s+$catalog_name\s+)/#$1/io;
+			$mark = $. if /^#?catalog\s+/i;
+			print "\nDeleting old configuration $catalog_name.\n"
+				if s/^(catalog\s+$catalog_name\s+)/#$1/io;
 			$full = is_yes($1)
 				if /^\s*fullurl\s+(.*)/i;
 			push @out, $_;
@@ -1446,7 +1705,7 @@ EOF
 		open(NEWCFG, ">minivend.cfg")
 			or die "\nCouldn't write minivend.cfg: $!\n";
 
-		$newcfgline = sprintf "%-19s %s %s %s\n", 'Catalog',
+		$newcfgline = sprintf "%-13s %s %s %s\n", 'Catalog',
 				$catalog_name, $Conf{catroot}, $full . $Conf{cgiurl};
 		if (defined $mark) {
 			print NEWCFG @out[0..$mark-1];
@@ -1455,7 +1714,7 @@ EOF
 		}
 		else { 
 			$newconfig = 1;
-			warn "\nNo catalog previously defined. Adding $catalog_name at top.\n";
+			print "\nNo catalog previously defined. Adding $catalog_name at top.\n";
 			print NEWCFG $newcfgline;
 			print NEWCFG @out;
 		}
@@ -1467,8 +1726,6 @@ EOF
 		}
 	}
 	else {
-		my $newcfgline = sprintf "%-19s %s %s %s\n", 'Catalog',
-				$catalog_name, $Conf{catroot}, $Conf{cgiurl};
 		print <<EOF;
 You will need to add the following line to your minivend.cfg file
 to activate the catalog.
@@ -1478,6 +1735,37 @@ $newcfgline
 EOF
 	}
 
+	$newcfgline = sprintf "%-13s %s %s %s\n", 'Catalog',
+				$catalog_name, $Conf{catroot}, $full . $Conf{cgiurl};
+
+	if($add_to_running) {
+		my $fn = 'etc/restart';
+		open(RESTART, ">>$fn") or
+				die "Couldn't write $fn to add catalog: $!\n";
+		Vend::Util::lockfile(\*RESTART, 1, 1) 	or die "lock $fn: $!\n";
+		printf RESTART $newcfgline;
+		Vend::Util::unlockfile(\*RESTART) 		or die "unlock $fn: $!\n";
+		close RESTART;
+		unless ($Windows) {
+			kill 'HUP', $pid;
+			sleep 1;
+		}
+		$fn = 'etc/reconfig';
+		open(RESTART, ">>$fn") or
+				die "Couldn't write $fn to add catalog: $!\n";
+		Vend::Util::lockfile(\*RESTART, 1, 1) 	or die "lock $fn: $!\n";
+		printf RESTART $full . $Conf{cgiurl} . "\n";
+		if($isroot) {
+			chown ($mvuid, $mvgid, $fn)
+				or warn "\nCouldn't set ownership of $fn: $!\n";
+		}
+		Vend::Util::unlockfile(\*RESTART) 		or die "unlock $fn: $!\n";
+		close RESTART;
+		unless ($Windows) {
+			kill 'HUP', $pid;
+		}
+	}
+	
     my $start_string = $Windows	? "$Conf{vendroot}\\minivend"
 								: "$Conf{vendroot}/bin/restart";
 
@@ -1510,9 +1798,9 @@ EOF
 For session expiration, you might want to place a line like this in your
 crontab:
 
-44 4 * * * $Conf{vendroot}/bin/expire -c $Conf{catalogname}
+44 4 * * * $Conf{vendroot}/bin/expireall -r
 
-It will prevent the session database from getting too large.
+It will prevent the session databases from getting too large.
 
 EOF
 
@@ -1527,6 +1815,12 @@ EOF
 	}
 
 	print "Good luck with MiniVend!\n" if defined $newconfig;
+
+	if($Conf{'reference'}) {
+		$Data::Dumper::Terse = 1;
+		$Data::Dumper::Indent = 3;
+		print STDOUT Vend::Util::uneval(\%Conf);
+	}
 
 __END__
 
@@ -1596,6 +1890,7 @@ vendroot=
 # All params allowed
 #
 params=<<EOF
+aliases
 basedir
 catroot
 catuser
@@ -1618,6 +1913,7 @@ vendroot
 EOF
 
 catparams=<<EOF
+aliases
 catroot
 catuser
 cgidir
@@ -1659,6 +1955,7 @@ mailorderto
 catroot
 cgidir
 cgiurl
+aliases
 documentroot
 samplehtml
 imagedir
@@ -1669,6 +1966,7 @@ EOF
 
 # Simple test to make sure legal for config file
 [legalconfig]
+aliases=1
 cgidir=1
 cgiurl=1
 catuser=1

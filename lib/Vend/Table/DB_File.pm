@@ -1,6 +1,6 @@
 # Table/DB_File.pm: access a table stored in a DB file hash
 #
-# $Id: DB_File.pm,v 1.12 1998/05/02 03:06:52 mike Exp $
+# $Id: DB_File.pm,v 1.13 1998/09/01 13:15:22 mike Exp mike $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -21,7 +21,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::DB_File;
-$VERSION = substr(q$Revision: 1.12 $, 10);
+$VERSION = substr(q$Revision: 1.13 $, 10);
 use Carp;
 use strict;
 use Fcntl;
@@ -135,8 +135,9 @@ sub open_table {
 
 sub close_table {
     my ($s) = @_;
-
-    untie %{$s->[$TIE_HASH]} or die "Could not close '$s->[$FILENAME]': $!\n";
+	pop(@$s);
+	my $ref = pop(@$s);
+    untie %$ref or die "Could not close DB_File table $s->[$FILENAME]: $!\n";
 }
 
 
