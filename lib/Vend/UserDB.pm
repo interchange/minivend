@@ -1116,7 +1116,7 @@ sub new_account {
 				if $self->{OPTIONS}{ignore_case};
 		}
 		die "Must have longer username.\n" unless length($self->{USERNAME}) > 1;
-		die "Can't have '$1' as username, unsafe characters.\n"
+		die "Can't have '$self->{USERNAME}' as username, unsafe characters.\n"
 			if $self->{USERNAME} !~ m{^$GOOD_CHARS+$};
 #::logDebug("new_account username: '$self->{USERNAME}'");
 		if ($self->{DB}->record_exists($self->{USERNAME})) {
