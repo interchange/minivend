@@ -1433,11 +1433,11 @@ sub conditional {
 
 	RUNSAFE: {
 		last RUNSAFE if defined $status;
-		last RUNSAFE if $status = ($noop && $op);
+		last RUNSAFE if $status = ($noop && $op) ? 1 : 0;
 		$ready_safe->trap(@{$Global::SafeTrap});
 		$ready_safe->untrap(@{$Global::SafeUntrap});
-		$status = $ready_safe->reval($op)
-			unless ($@ or $status);
+		$status = $ready_safe->reval($op) ? 1 : 0
+			unless $@;
 		if ($@) {
 			logError qq%Bad if '@_': $@%;
 			$status = 0;
@@ -1449,7 +1449,7 @@ sub conditional {
 	for(@addl) {
 		my $chain = /^\[[Aa]/;
 		last if ($chain ^ $status);
-		$status = ${(new Vend::Parse)->parse($_)->{OUT}};
+		$status = ${(new Vend::Parse)->parse($_)->{OUT}} ? 1 : 0;
 	}
 #::logDebug("if status=$status");
 
