@@ -2,7 +2,7 @@
 #
 # stop - stops all MiniVend sessions when in multiple server mode
 
-$VendRoot = '/home/minivend';
+$VendRoot = '/usr/local/lib/minivend';
 $ConfDir = "$VendRoot/etc";
 $PidFile = "$ConfDir/minivend.pid";
 

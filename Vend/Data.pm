@@ -1,4 +1,4 @@
-# $Id: Data.pm,v 1.3 1996/08/22 17:35:08 mike Exp mike $
+# $Id: Data.pm,v 2.2 1996/09/08 08:27:58 mike Exp mike $
 
 package Vend::Data;
 require Exporter;
@@ -234,6 +234,8 @@ sub close_database {
 
 ## PRODUCTS
 sub close_products {
+		undef $Product_price;
+		undef $Product_desc;
     	$Products->close_table()
 			or die "Could not untie products database.\n";
 }
@@ -366,7 +368,7 @@ sub quantity_price {
 	}
 
 	my ($break,$i,$price,$scratch);
-	my $price = $one;
+	$price = $one;
 
 	# Use the passed quantity if there
 	unless(defined $quan) {

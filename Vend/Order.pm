@@ -2,7 +2,7 @@
 #
 # MiniVend version 1.04
 #
-# $Id: Order.pm,v 1.3 1996/08/22 17:35:08 mike Exp mike $
+# $Id: Order.pm,v 2.1 1996/09/08 08:27:58 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -30,7 +30,7 @@
 package Vend::Order;
 require Exporter;
 
-$VERSION = substr(q$Revision: 1.3 $, 10);
+$VERSION = substr(q$Revision: 2.1 $, 10);
 $DEBUG = 0;
 
 @ISA = qw(Exporter);
@@ -161,7 +161,7 @@ sub get_ignored {
 	my $ignore = {};
 	my $field;
 
-	@ignore = split(/\s*,\s*/, $Vend::Cfg->{'ReportIgnore'});
+	@ignore = split(/[\s,]+/, $Vend::Cfg->{'ReportIgnore'});
 	foreach $field (@ignore) {
 		$ignore->{$field} = 1;
 	}
@@ -173,20 +173,33 @@ sub get_ignored {
 sub mail_order {
     my($body, $i, $code, $ok, $seen, $blankline);
     my($values, $key, $value, $order_no, $pgp, $subject);
+	my(%modifiers);
 	my $new = 0;
     $seen = get_ignored();
     $body = order_report($seen);
     return undef unless defined $body;
+
+	# To ignore the modifiers in the mailed report
+	if($Vend::Cfg->{UseModifier}) {
+		for (@{$Vend::Cfg->{UseModifier}}) {
+			$modifiers{$_} = 1;
+		}
+	}
 
     $values = $Vend::Session->{'values'};
 
     $blankline = 0;
     while (($key, $value) = each %$values) {
 		next if $key =~ /^mv_/i;
+		if($key =~ /\d+$/) {
+			$tmpkey = $key;
+			$tmpkey =~ s/\d+$//;
+			next if $modifiers{$tmpkey};
+		}
 		if (!$new && !$$seen{$key}) {
 			if (!$blankline) {
-			$body .= "\n";
-			$blankline = 1;
+				$body .= "\n";
+				$blankline = 1;
 			}
 			$body .= "$key: $value\n";
 		}

@@ -1,7 +1,7 @@
 /* vlink.c:  runs as a cgi program and passes request to Vend server
 			 starts MiniVend or Vend server if not running
 
-   $Id: vlink.c,v 1.2 1996/07/13 20:08:34 mike Exp mike $
+   $Id: vlink.c,v 2.0 1996/08/30 08:47:04 mike Exp mike $
 
    Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 
@@ -65,8 +65,8 @@ extern char** environ;
  *
  */
 
-#define LINK_FILE "/home/minivend/etc/socket"
-#define LINK_TIMEOUT 10
+#define LINK_FILE "/usr/local/lib/minivend/etc/socket"
+#define LINK_TIMEOUT 45
 #define PERL     "/usr/bin/perl"
 #define VEND     "/c/multi/minivend.pl"
 #define ERROR_ACTION   "-test"

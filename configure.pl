@@ -1109,6 +1109,29 @@ print <<EOF;
 
 That takes care of the program configuration.
 
+EOF
+
+if($Config{osname} eq 'sunos' or $Config{osname} eq 'dec_osf' ) {
+	my $tmp;
+	$Config{osname} eq 'sunos' and $tmp = 'SunOS 4.X';
+	$Config{osname} eq 'dec_osf' and $tmp = 'Digital UNIX';
+	open(MVCFG, ">>minivend.cfg")
+		or die "Couldn't append to minivend.cfg: $!\n";
+	print MVCFG "\nForkSearches   NO\n";
+	close MVCFG;
+
+	print <<EOF;
+Since you are running $tmp, you cannot fork search
+operations -- the locking is not up to it.  It was
+disabled in minivend.cfg.
+
+
+EOF
+
+}
+
+print <<EOF;
+
 To configure the demo catalogs, run the following commands:
 
 EOF

@@ -4,7 +4,7 @@
 # Modded to just stop and start
 # Support may come for multi-server
 #
-$VendRoot = '/home/minivend';
+$VendRoot = '/usr/local/lib/minivend';
 ## END CONFIGURABLE VARIABLES
 
 $n = shift || 1;

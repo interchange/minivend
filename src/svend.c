@@ -1,7 +1,7 @@
 /* mat.c:  runs as a cgi program and starts up MAT,
 			 MiniVend Administration tool
 
-   $Id: svend.c,v 1.1 1996/07/13 20:08:34 mike Exp mike $
+   $Id: svend.c,v 2.0 1996/08/30 08:47:04 mike Exp mike $
 
    Copyright 1996 by Mike Heins <mikeh@iac.net>
 
@@ -20,6 +20,9 @@
    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
    $Log: svend.c,v $
+   Revision 2.0  1996/08/30 08:47:04  mike
+   MiniVend 2.0 release version
+
    Revision 1.1  1996/07/13 20:08:34  mike
    Initial revision
 

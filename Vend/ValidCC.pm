@@ -1,29 +1,13 @@
-# $Id: ValidCC.pm,v 1.1 1996/08/09 22:20:51 mike Exp $
+# $Id: ValidCC.pm,v 1.2 1996/09/08 08:08:21 mike Exp $
 #
 # ValidCC.pm - validate credit card numbers
-#
-# $Log: ValidCC.pm,v $
-# Revision 1.1  1996/08/09 22:20:51  mike
-# Initial revision
-#
-# Revision 1.4  1996/05/24 07:58:52  mike
-# Tested and works with [if validcc ] tag
-#
-# Revision 1.2  1996/05/09 18:54:52  mike
-# minor change ( 1; at end)
-#
-# Revision 1.1  1996/05/08 22:10:15  mike
-# Initial revision
-#
-#
-#
 #
 # Contributed by Bruce Albrecht, <bruce.albrecht@seag.fingerhut.com>
 #
 # Modified by Mike to make more forgiving in the parameters.
 
 package Vend::ValidCC;
-$VERSION = substr(q$Revision: 1.1 $, 10);
+$VERSION = substr(q$Revision: 1.2 $, 10);
 require 5.000;
 require Exporter;
 use Carp;

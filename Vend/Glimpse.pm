@@ -1,6 +1,6 @@
 # Vend/Glimpse.pm:  Search indexes with Glimpse
 #
-# $Id: Glimpse.pm,v 1.2 1996/08/10 22:25:59 mike Exp $
+# $Id: Glimpse.pm,v 2.0 1996/08/30 08:26:58 mike Exp $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::Glimpse
 #
@@ -28,7 +28,7 @@ package Vend::Glimpse;
 require Vend::Search;
 @ISA = qw(Vend::Search);
 
-$VERSION = substr(q$Revision: 1.2 $, 10);
+$VERSION = substr(q$Revision: 2.0 $, 10);
 use Text::ParseWords;
 use strict;
 

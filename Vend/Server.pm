@@ -1,6 +1,6 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.3 1996/08/22 17:35:08 mike Exp mike $
+# $Id: Server.pm,v 1.5 1996/09/08 08:27:58 mike Exp mike $
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -141,7 +141,13 @@ sub connection {
     read_cgi_data(\@argv, \%env, \$entity);
 
     my $http = new Vend::Http::Server \*Vend::Server::MESSAGE, \%env, $entity;
-    my $forked = ::dispatch($http,$socket,$debug);
+    my $forked;
+    eval {$forked = ::dispatch($http,$socket,$debug);};
+	if($@) {
+		::logGlobal("Error in '$Vend::Cfg->{CatalogName}': $@");
+		::logError($@);
+		$forked = 0;
+	}
     $forked;
 }
 

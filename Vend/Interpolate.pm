@@ -1,31 +1,8 @@
 # Interpolate.pm - Interpret MiniVend tags
 # 
-# $Id: Interpolate.pm,v 1.3 1996/08/22 17:35:08 mike Exp mike $
+# $Id: Interpolate.pm,v 2.2 1996/09/08 08:27:58 mike Exp mike $
 #
 # Copyright 1996 by Michael J. Heins <mikeh@iac.net>
-#
-# $Log: Interpolate.pm,v $
-# Revision 1.3  1996/08/22 17:35:08  mike
-# Save solid snapshot of multiple catalog Vend
-#
-# Revision 1.2  1996/08/10 22:25:59  mike
-# First working version of MiniVend 2.0
-#
-# Revision 1.1  1996/08/09 22:20:51  mike
-# Initial revision
-#
-# Revision 1.1  1996/07/17 16:08:53  mike
-# Initial revision
-#
-# Revision 1.3  1996/05/18 20:02:39  mike
-# Minivend 1.03 Beta 1
-#
-# Revision 1.2  1996/05/09 18:54:52  mike
-# Initial integration of Search::Glimpse
-#
-# Revision 1.1  1996/05/08 22:10:15  mike
-# Initial revision
-#
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -45,7 +22,7 @@ package Vend::Interpolate;
 require Exporter;
 @ISA = qw(Exporter);
 
-$VERSION = substr(q$Revision: 1.3 $, 10);
+$VERSION = substr(q$Revision: 2.2 $, 10);
 
 @EXPORT = qw (
 
@@ -73,7 +50,6 @@ use strict;
 use Vend::Util;
 use Vend::Data;
 use Vend::Server;
-use Vend::User;
 use Vend::ValidCC;
 use Vend::PageBuild;
 use Text::ParseWords;
@@ -103,12 +79,13 @@ sub tag_accessories {
 sub tag_checked {
 	my $field = shift;
 	my $value = shift || 'on';
+	$field = lc $field;
+	my $ref = $Vend::Session->{'values'}->{$field};
+	$ref = lc $ref;
+	
 	my $r;
 
-	#eval {/^$value$/} ;
-	#return '' if $@;
-
-	if($Vend::Session->{'values'}->{"\L$field"} =~ /^$value$/i) {
+	if( $ref eq "\L$value" ) {
 		$r = 'CHECKED';
 	}
 	else {$r = ''}
@@ -117,20 +94,21 @@ sub tag_checked {
 
 # Returns 'SELECTED' when a value is present on the form
 # Must match exactly, but NOT case-sensitive
-# Silently returns null string if illegal regex
 
 sub tag_selected {
 	my $field = shift;
 	my $value = shift || '';
+	$field = lc $field;
+	my $ref = $Vend::Session->{'values'}->{$field};
+	$ref = lc $ref;
 	my $r;
 
-	eval {/^$value$/} ;
-	return '' if ( $@ or ! $value);
-
-	if($Vend::Session->{'values'}->{$field} =~ /^$value$/i) {
+	if( $ref eq "\L$value" ) {
 		$r = 'SELECTED';
 	}
-	else {$r = ''}
+	else {
+		$r = ''
+	}
 	$r;
 }
 
@@ -653,6 +631,7 @@ sub tag_if {
 		$op =~ s/[^rwxezfdTsB]//g;
 		$op = substr($op,0,1) || 'f';
 		$op = qq|-$op "$term"|;
+		$status = eval {$op};
 	}
 	elsif($base eq 'validcc') {
 		no strict 'refs';

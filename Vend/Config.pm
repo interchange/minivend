@@ -1,4 +1,4 @@
-# $Id: Config.pm,v 1.3 1996/08/22 17:35:08 mike Exp mike $
+# $Id: Config.pm,v 2.1 1996/09/08 08:27:58 mike Exp mike $
 
 package Vend::Config;
 require Exporter;
@@ -580,6 +580,7 @@ sub config {
     my($directive);
 
 	$C = {};
+	$C->{'CatalogName'} = $catalog;
 	$C->{'VendRoot'} = $dir;
 	$C->{'ConfDir'} = $confdir;
 	$C->{'ErrorFile'} = $Global::ErrorFile;

@@ -18,7 +18,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-$VendRoot = '/home/minivend';
+$VendRoot = '/usr/local/lib/minivend';
 
 # Set this to '' if your system doesn't support mkdir -p
 $mkdirgood = '-p';
@@ -432,11 +432,15 @@ EOF
 
 );
 
-@AskBase = qw( vendroot basedir minivenduser minivendgroup
-				documentroot cgidir cgibase );
+@AskBase	= qw(	vendroot basedir minivenduser minivendgroup
+					documentroot cgidir cgibase
+				);
 
-@AskConfig = qw( demotype servername minivenduser minivendgroup catuser
-                mailorderto catroot cgidir cgiurl samplehtml imagedir imageurl);
+
+@AskConfig	= qw(	demotype servername minivenduser minivendgroup
+					catuser mailorderto catroot cgidir cgiurl
+					documentroot samplehtml imagedir imageurl
+				);
 
 for(@AskBase, 'sampledir') {
 	if(! ref $Prefix{$_}) {
@@ -497,7 +501,7 @@ WRITEMASTER: {
 	$yes = is_yes(prompt ("\nSave master configuration? ", 'y'));
 	if($yes) {
 		open(OUT, ">$basefile") or die "Couldn't write $basefile: $!\n";
-		for(keys %LegalBase) {
+		for(@AskBase) {
 			print OUT $Desc{$_};
 			printf OUT "%-16s%s\n\n", $Pretty{$_}, $Config{$_};
 		}
@@ -525,21 +529,12 @@ for(@AskConfig) {
 	$checkconfig += ($Config{$_} ne $val and defined $LegalConfig{$_});
 }
 
-# Try and get the URL we will use to access the catalog
-$guessdir = $Config{samplehtml};
-$guessdir =~ s/^$Config{documentroot}//;
-$guessdir =~ s:^/+::;
-$guessdir = "$Tilde/$guessdir" if defined $Tilde;
-$guessdir =~ s:^/+::;
-$Config{sampleurl} = "http://$Config{servername}/$guessdir"
-	unless defined $Config{sampleurl};
-
 WRITECONFIG: {
 	last WRITECONFIG unless $checkconfig;
 	$yes = is_yes(prompt ("\nSave demo configuration '$configname' to $configfile? ", 'y'));
 	if($yes) {
 		open(OUT, ">$configfile") or die "Couldn't write $configfile: $!\n";
-		for(sort keys %LegalConfig) {
+		for(@AskConfig) {
 			print OUT $Desc{$_};
 			printf OUT "%-16s%s\n\n", $Pretty{$_},
 									ref $Config{$_}
@@ -547,6 +542,53 @@ WRITECONFIG: {
 									: $Config{$_}		;
 		}
 		close OUT;
+	}
+}
+
+# Try and get the URL we will use to access the catalog
+GUESS: {
+
+    $guessdir = $Config{samplehtml};
+
+    unless($guessdir =~ s/^$Config{documentroot}//) {
+        print <<EOF;
+\a
+The specified HTML directory, $Config{samplehtml},
+is not a subdirectory of DocumentRoot. This will make it
+hard for us to guess the URL needed to access pages from
+the catalog. Please re-specify your HTML document root.
+
+# The base directory for HTML for the catalog, the DocumentRoot.
+# This is a UNIX file name, not a URL.
+
+EOF
+        $val = '';
+        $Config{documentroot} = prompt ("\n$Pretty{documentroot}? ", '');
+        redo GUESS;
+    }
+
+    $guessdir =~ s:^/+::;
+    $guessdir = "$Tilde/$guessdir" if defined $Tilde;
+    $guessdir =~ s:^/+::;
+    if (defined $Config{sampleurl} and 
+    	$Config{sampleurl} ne "http://$Config{servername}/$guessdir") {
+		print <<EOF;
+
+We were given a previous value for the URL that will run the catalog
+(from the catalog configuration file $configfile):
+
+    $Config{sampleurl}
+
+This conflicts with what we guess from what you have just
+entered:
+
+   	http://$Config{servername}/$guessdir
+
+EOF
+
+	$Config{sampleurl} = prompt ("\nPlease re-enter or confirm: ",
+						"http://$Config{servername}/$guessdir");
+
 	}
 }
 
@@ -704,6 +746,10 @@ sub wanted {
 	my $name = $File::Find::name;
 	EDIT: {
      	return if        (-l $file);
+
+	# Ugly, but necessary on BSDI
+	$File::Find::prune = 1 if -f _;
+
         last EDIT unless (-f _);
         last EDIT unless (-T _);
   

@@ -2,7 +2,7 @@
 #
 # MiniVend version 2.00
 #
-# $Id: minivend.pl,v 1.3 1996/08/22 17:38:01 mike Exp mike $
+# $Id: minivend.pl,v 2.2 1996/09/08 08:27:13 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -30,7 +30,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 BEGIN {
-$Global::VendRoot = '/home/minivend';
+$Global::VendRoot = '/usr/local/lib/minivend';
 $Global::ConfDir = "$Global::VendRoot/etc";
 }
 $Global::ConfigFile = 'minivend.cfg';
@@ -92,7 +92,6 @@ use Vend::Imagemap;
 use Vend::Glimpse;
 use Vend::Scan;
 use Vend::TextSearch;
-use Vend::User;
 use Vend::Order;
 use Vend::Data;
 use Vend::Util;
@@ -432,7 +431,8 @@ sub update_quantity {
 					$modifier =~ s/^\0//;
 					$modifier =~ s/\0/, /g;
 					$Vend::Items->[$i]->{$h} = $modifier;
-					delete $Vend::Session->{'values'}->{"$h$i"};
+					$Vend::Session->{'values'}->{"$h$i"} = $modifier;
+					#delete $Vend::Session->{'values'}->{"$h$i"};
 				}
 			}
 		}
@@ -1297,9 +1297,15 @@ sub main {
 			die "Two catalogs with same script name $g->{'script'}.\n"
 				if exists $Global::Selector{$g->{'script'}};
 			$conf = $g->{'dir'} . '/etc';
-			$Global::Selector{$g->{'script'}} = 
-				config($g->{'name'}, $g->{'dir'}, $conf);
-			print "done.\n";
+			eval {
+				$Global::Selector{$g->{'script'}} = 
+					config($g->{'name'}, $g->{'dir'}, $conf);
+				};
+			if($@) {
+				print "\n$@\n\a$g->{'name'}: error in configuration file. Skipping.\n";
+				undef $Global::Selector{$g->{'script'}};
+			}
+			else { print "done.\n"; }
 		}
 	}
 

@@ -1,6 +1,6 @@
 # Vend/Scan.pm:  Prepare searches for MiniVend
 #
-# $Id: Scan.pm,v 1.3 1996/08/22 17:35:08 mike Exp mike $
+# $Id: Scan.pm,v 2.0 1996/08/30 08:26:58 mike Exp $
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@ require Exporter;
 @ISA = qw(Exporter);
 @EXPORT = qw(perform_search find_search_params);
 
-$VERSION = substr(q$Revision: 1.3 $, 10);
+$VERSION = substr(q$Revision: 2.0 $, 10);
 
 use strict;
 use Vend::Util;

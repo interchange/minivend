@@ -1,7 +1,7 @@
-#!/usr/bin/perl -w
+#!/usr/local/bin/perl -w
 # start - starts Vend in server mode
-$VendRoot = '/home/minivend';
-$PERL = '/usr/bin/perl';
+$VendRoot = '/usr/local/lib/minivend';
+$PERL = '/usr/local/bin/perl';
 $VEND = "$VendRoot/minivend.pl";
 $PerlFlags = '-w';
 ## END CONFIGURABLE VARIABLES

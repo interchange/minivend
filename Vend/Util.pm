@@ -1,4 +1,4 @@
-# $Id: Util.pm,v 1.3 1996/08/22 17:35:08 mike Exp mike $
+# $Id: Util.pm,v 2.1 1996/09/08 08:52:31 mike Exp mike $
 
 package Vend::Util;
 require Exporter;
@@ -603,7 +603,7 @@ my $unlock_function;
 unless (defined $use) {
     my $os = $Vend::Util::Config{'osname'};
     warn "lock.pm: os is $os\n" if $debug;
-    if ($os eq 'solaris' or $os eq 'irix') {
+    if ($os eq 'solaris') {
         $use = 'fcntl';
     }
     else {

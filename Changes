@@ -1,3 +1,12 @@
+MiniVend 2.01 - Maintenance Release
+* Added modifier variables to user values
+* Encapsulated code to prevent dying on catalog config and execution
+* Improved makecat scripts
+* Corrected silly duplication of files
+* Improved [selected] and [checked]
+* Fixed minor demo problems
+* Changed IRIX locking to flock()
+* Changed configure to set ForkSearches to NO on SunOS and OSF/Alpha
 
 MiniVend 2.0 - The ISP release
 * Multiple independent and shared catalogs

@@ -1,10 +1,8 @@
 # PageBuild.pm - Interpret MiniVend tags
 # 
-# $Id: PageBuild.pm,v 1.3 1996/08/22 17:35:08 mike Exp mike $
+# $Id: PageBuild.pm,v 2.1 1996/09/08 08:08:21 mike Exp $
 #
 # Copyright 1996 by Michael J. Heins <mikeh@iac.net>
-#
-# $Log: PageBuild.pm,v $
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,7 +22,7 @@ package Vend::PageBuild;
 require Exporter;
 @ISA = qw(Exporter);
 
-$VERSION = substr(q$Revision: 1.3 $, 10);
+$VERSION = substr(q$Revision: 2.1 $, 10);
 
 @EXPORT = qw ( fake_html );
 
@@ -34,7 +32,6 @@ use strict;
 use Vend::Util;
 use Vend::Data;
 use Vend::Server;
-use Vend::User;
 use Vend::ValidCC;
 use Vend::Interpolate;
 use Text::ParseWords;

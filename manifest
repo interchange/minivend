@@ -2,7 +2,7 @@
 ###                        ###
 ###   DON'T edit this !!!  ###
 ###                        ###
-### $Revision: 1.2 $
+### $Revision: 2.0 $
 ##############################
 
 File dir 0755
@@ -38,7 +38,6 @@ Vend/Table/InMemory.pm script 0644
 Vend/Table/Quoted.pm script 0644
 Vend/Table/Update.pm script 0644
 Vend/TextSearch.pm script 0644 modules;Search::Dict
-Vend/User.pm script 0644
 Vend/Util.pm script 0644 modules;File::Lock
 Vend/ValidCC.pm script 0644
 bin/buildtree script 0755 shbang,vars:VendRoot:PERL

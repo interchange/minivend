@@ -2,7 +2,7 @@
 #
 # MiniVend session dumper
 #
-# $Id: expire,v 1.1 1996/08/22 17:40:11 mike Exp mike $
+# $Id: dump,v 2.0 1996/08/30 08:23:47 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -30,7 +30,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 BEGIN {
-$Global::VendRoot = '/home/minivend';
+$Global::VendRoot = '/usr/local/lib/minivend';
 }
 ### END CONFIGURABLE VARIABLES
 

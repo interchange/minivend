@@ -1,10 +1,13 @@
 # Table/Import.pm: import a table
 #
-# $Id: Import.pm,v 1.1 1996/08/09 22:21:11 mike Exp $
+# $Id: Import.pm,v 1.3 1996/09/08 08:29:46 mike Exp mike $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
 # $Log: Import.pm,v $
+# Revision 1.3  1996/09/08 08:29:46  mike
+# Removed hiding scope declaration
+#
 # Revision 1.1  1996/08/09 22:21:11  mike
 # Initial revision
 #
@@ -30,7 +33,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::Import;
-$VERSION = substr(q$Revision: 1.1 $, 10);
+$VERSION = substr(q$Revision: 1.3 $, 10);
 
 require Exporter;
 @ISA = qw(Exporter);
@@ -64,7 +67,7 @@ sub import_quoted { return import_csv(@_) }
 
 sub import_ascii_delimited {
     my ($infile, $delimiter, $create) = @_;
-    my $delimiter = quotemeta($delimiter);
+    $delimiter = quotemeta($delimiter);
 
     open(IN, $infile) or die "Couldn't open '$infile': $!\n";
     

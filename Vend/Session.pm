@@ -1,4 +1,4 @@
-# $Id: Session.pm,v 1.3 1996/08/22 17:35:08 mike Exp mike $
+# $Id: Session.pm,v 1.5 1996/09/08 08:27:58 mike Exp mike $
 
 package Vend::Session;
 require Exporter;
@@ -226,6 +226,7 @@ sub expire_sessions {
 		}
 		$session = eval($s);
 		die "Could not eval '$s' from session dbm: $@\n" if $@;
+		next if is_yes($session->{'values'}->{'mv_save_session'});
 		if ( (! defined $session) ||
 			 $time - $session->{'time'} > $Vend::Cfg->{'SessionExpire'}) {
 			push @delete, $session_name;
