@@ -109,7 +109,7 @@ sub writefile {
 				$@,
 				$file,
 				$!,
-				$data,
+				substr(ref($data) ? $$data : $data,0,120),
 				);
 		$status = 0;
     }
