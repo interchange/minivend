@@ -485,6 +485,7 @@ sub catalog_directives {
 	['StaticDir',		 undef,     	     ''],
 	['StaticIndex',		 undef,     	     ''], 					  
 	['StaticSessionDefault',	 'hash',     ''],
+	['StaticTrack',		 undef,     	     ''],
 	['SOAP',			 'yesno',			 'No'],
 	['SOAP_Enable',		 'hash',			 ''],
 	['UserDB',			 'locale',	     	 ''], 
