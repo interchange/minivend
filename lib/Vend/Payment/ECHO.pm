@@ -64,8 +64,7 @@ sign up for a test account at the following URL:
 	http://www.echo-inc.com/echotestapp.php
 
 This subroutine uses the OpenECHO module.  Make sure OpenECHO.pm is in your @INC
-array.  For your convenience, version 1.2 has been included with Interchange, 
-but you can get updated versions from:
+array.  It is available for download, see the following URLs:
   
   http://www.openecho.com/
   http://www.echo-inc.com/
