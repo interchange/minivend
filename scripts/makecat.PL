@@ -507,7 +507,7 @@ my %Prefix = (
 							return $ENV{MVC_SHAREURL} if $ENV{MVC_SHAREURL};
 							my $url = '';
 							$url = $Tilde if defined $Tilde;
-							$url .= '/';
+							$url .= '/akopia/ui/';
 							return $url;
 						},
 
