@@ -1162,6 +1162,8 @@ my @scratches = qw/
 sub vendUrl {
     my($path, $arguments, $r, $opt) = @_;
 
+	$opt ||= {};
+
 	if($opt->{auto_format}) {
 		return $path if $path =~ m{^/};
 		$path =~ s:#([^/.])+$::
@@ -1180,7 +1182,6 @@ sub vendUrl {
 		$r = $Vend::Cfg->{SecureURL};
 	}
 
-	$opt ||= {};
 	my %skip = qw/form 1 href 1 reparse 1/;
 
 	for(@scratches) {
