@@ -2220,10 +2220,32 @@ sub add_items {
 					my ($table,$key) = split /:/, $i;
 					unless ($key) {
 						$key = $table;
-						$table = $base;
+						$item->{$key} = item_common($item, $key, $code)
 					}
-					$item->{$key} = tag_data($table, $key, $code);
+					else {
+						$item->{$key} = tag_data($table, $key, $code);
+					}
 				}
+			}
+			if(my $oe = $Vend::Cfg->{OptionsAttribute}) {
+			  eval {
+				my $loc = $Vend::Cfg->{Options_repository}{$item->{$oe}};
+				if($loc and $loc->{item_add_routine}) {
+					no strict 'refs';
+					my $sub = \&{"$loc->{item_add_routine}"}; 
+					if(defined $sub) {
+						$sub->($item, $loc);
+					}
+				}
+			  };
+			  if($@) {
+			  	::logError(
+					"error during %s (option type %s) item_add_routine: %s",
+					$code,
+					$item->{$oe},
+					$@,
+				);
+			  }
 			}
 			if($lines[$j] =~ /^\d+$/ and defined $cart->[$lines[$j]] ) {
 				$cart->[$lines[$j]] = $item;

@@ -772,6 +772,7 @@ EOF
 							dir_only	=> 1,
 							secure		=> $Vend::admin && $::Variable->{UI_SECURE},
 						});
+	$opt->{clear_image} ||= 'bg.gif';
 	my $clear = "$ibase/$opt->{clear_image}";
 	my @dntabs;
 	my @uptabs;
