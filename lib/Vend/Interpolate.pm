@@ -3694,7 +3694,7 @@ sub tag_more_list {
 		$last = $next + $chunk - 1;
 		$last = $last > ($total - 1) ? $total - 1 : $last;
 		$arg = "$session:$next:$last:$chunk";
-		$next_tag .= more_link_template($next_anchor, $arg, $form_arg) . ' ';
+		$next_tag .= more_link_template($next_anchor, $arg, $form_arg);
 	}
 	else {
 		$r =~ s:\[next[-_]anchor\]($All)\[/next[-_]anchor\]::i;
