@@ -1612,7 +1612,7 @@ sub set_field {
 		@args = ($value, $key);
 	}
 	else {
-		@args = ($key, $key);
+		@args = ($key, $value);
 	}
 	my $sth = $s->[$DBI]->prepare($q)
 		or $s->log_error("%s prepare error for %s: %s", 'set_field', $q, $DBI::errstr)
