@@ -89,7 +89,7 @@ sub reset_order_vars {
 	undef $No_error;
 
 	# copy global order check routines
-	$OrderCheck = { %$Global::OrderCheck };
+	$OrderCheck = { %{$Global::OrderCheck || {} }};
 
 	# overlay any catalog order check routines
 	my $r;
