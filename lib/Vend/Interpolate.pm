@@ -88,7 +88,6 @@ BEGIN {
 		$hole = new Safe::Hole;
 	};
 }
-my $tag_wrapped;
 
 use strict;
 use Vend::Util;
@@ -1836,7 +1835,7 @@ sub tag_perl {
 		}
 	}
 
-	$Tag = $hole->wrap($Tag) if $hole and ! $tag_wrapped++;
+	$Tag = $hole->wrap($Tag) if $hole and ! $Vend::TagWrapped++;
 
 	init_calc() if ! $Vend::Calc_initialized;
 	$ready_safe->share(@share) if @share;
