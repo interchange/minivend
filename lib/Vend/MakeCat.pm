@@ -504,7 +504,7 @@ eval {
 	$term = new Term::ReadLine::Perl 'Interchange Configuration';
 	die "No Term::ReadLine::Perl" unless defined $term;
 
-	readline::rl_set('EditingMode', '');
+	readline::rl_set('EditingMode', 'emacs');
 	readline::rl_bind('C-B', 'catch_at');
 	$Prompt_sub = sub {
 		my ($prompt, $default) = @_;
