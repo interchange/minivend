@@ -1199,7 +1199,7 @@ sub do_tag {
 			my $base = $1;
 			my $db = database_exists_ref($base) 
 				or do {
-					logError("tag each: unknown database '$base'");
+					logError("tag touch: unknown database '$base'");
 					return '';
 				};
 			$db = $db->ref();

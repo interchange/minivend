@@ -1,0 +1,185 @@
+#!__MVC_PERL__
+# report_problem - Assembles info needed for any support question
+
+BEGIN {
+
+	$VendRoot       = "__MVC_VENDROOT__";
+	$CatRoot        = "__MVC_CATROOT__";
+	$PERL           = "__MVC_PERL__";
+	$REPORT_ADDRESS = 'minivend@minivend.com';
+
+
+}
+
+## END CONFIGURABLE VARIABLES
+
+use lib "$VendRoot/lib";
+
+use Config;
+use Vend::Config;
+use Getopt::Std;
+
+$PERL = (-x $Config{perlpath} and $Config{perlpath}) || $PERL || 'perl';
+
+	$USAGE = <<EOF;
+usage: report_problem [-sh] [-x sendmail_program] [-d cat_directory]
+
+With no arguments, just gives a report of the information needed to
+
+OPTIONS
+	-d  Catalog directory (full path)
+	-h  Print this message and exit
+	-s  Send emailed problem report to $REPORT_ADDRESS
+	-x  Location of sendmail executable (full path)
+
+EOF
+
+getopts('hsx:d:');
+if($@) {
+	die "$@\n$USAGE\n";
+}
+
+if($opt_h) {
+	$opt_h = 'help';
+	print "$USAGE\n";
+	exit 2
+}
+
+if(-x "/usr/sbin/sendmail") {
+	$SENDMAIL_PROGRAM = "/usr/sbin/sendmail -t";
+}
+elsif (-x "/usr/lib/sendmail") {
+	$SENDMAIL_PROGRAM = "/usr/lib/sendmail -t";
+}
+else {
+	$SENDMAIL_PROGRAM = "/bin/mail";
+}
+
+if($opt_x) {
+	$SENDMAIL_PROGRAM = $opt_x;
+}
+
+if($opt_d) {
+	$CatRoot = $opt_d;
+}
+
+my $msg;
+
+if($opt_s) {
+	$mailing = $opt_s;
+	warn "\aMailing...\n";
+	sleep 1;
+	my $prog = $SENDMAIL_PROGRAM;
+	$prog =~ s/\s+.*//;
+	die "Sendmail program $SENDMAIL_PROGRAM not executable.\n"
+		unless -x $prog;
+	$msg = <<EOF;
+Enter some text to describe the problem. Be concise and complete,
+if that is possible. 8-)
+
+To end, place a period (.) on a line by itself.
+EOF
+	warn "$msg\n";
+	$msg = "#### Description of problem\n\n";
+	while(<>) {
+		last if /^\.\s*$/;
+		$msg .= $_;
+	}
+	$msg .= "\n\n";
+
+	open(MAIL, "|$SENDMAIL_PROGRAM $REPORT_ADDRESS")
+		or die "Couldn't fork: $!\n";
+	select MAIL;
+
+}
+
+$| = 1;
+
+chdir $CatRoot or die "Couldn't change directory to $CatRoot: $!\n";
+
+print "To: $REPORT_ADDRESS\n";
+print "Subject: Problem report\n\n";
+
+print "$msg\n" if $mailing;
+
+print "#### Perl version\n";
+$out = qx%$PERL -V%;
+if($?) {
+	die "Your perl version ($PERL) is too low. Perhaps that is your problem?\n";
+}
+print "$out\n";
+
+print "#### OS version\n";
+$out = qx%uname -a%;
+if($?) {
+	$out = $Config{osname};
+}
+print "$out\n";
+
+print "#### Main server config\n";
+$out = qx%$PERL -ne 'print if /^[^#]../' $VendRoot/minivend.cfg%;
+print "$out\n";
+
+print "#### Catalog config differences\n";
+if(-d "pages/srch") {
+	$out = qx%diff -I'^#' $VendRoot/sample/catalog.cfg catalog.cfg%;
+	$out .= qx%diff $VendRoot/sample/etc/order.profiles etc/order.profiles%;
+	$out .= qx%diff $VendRoot/sample/etc/search.profiles etc/search.profiles%;
+}
+else {
+	$out = qx%diff -I'^#' $VendRoot/simple/catalog.cfg catalog.cfg%;
+	$out .= qx%diff $VendRoot/simple/etc/order.profiles etc/order.profiles%;
+	$out .= qx%diff $VendRoot/simple/etc/search.profiles etc/search.profiles%;
+}
+print "$out\n";
+
+print "#### Main MiniVend error.log (last 50 lines)\n";
+$out = qx%tail -50 $VendRoot/error.log%;
+print "$out\n";
+
+print "#### Catalog error.log (last 50 lines)\n";
+if( -f "error.log") {
+	$out = qx%tail -50 error.log%;
+}
+else { $out = "No entries.\n"; }
+
+print "$out\n";
+
+print "#### DBM Status\n";
+$no_dbm = 1;
+eval {require GDBM_File};
+unless($@) {
+	print "Have GDBM_File.\n";
+	$no_dbm = 0;
+}
+
+eval {require DB_File};
+unless($@) {
+	print "Have DB_File.\n";
+	$no_dbm = 0;
+}
+
+print "No usable DBM.\n" if $no_dbm;
+
+print "\n";
+
+if ($mailing) {
+	close MAIL;
+	die "Mail not sent -- error using $SENDMAIL_PROGRAM\n"
+		if $?;
+	exit 0;
+}
+else {
+	print <<EOF;
+
+After you have examined this output for possible error indications, please
+send it, along with a description of the problem, to:
+
+	$REPORT_ADDRESS
+
+You might be able to do that with:
+	
+	$0 -s
+
+EOF
+}

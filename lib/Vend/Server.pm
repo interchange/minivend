@@ -240,6 +240,7 @@ my $Last_housekeeping;
 sub housekeeping {
 	my ($tick) = @_;
 	my $now = time;
+	rand();
 
 	# Always do it if called without argument, otherwise
 	# only after $tick seconds

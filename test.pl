@@ -1,4 +1,5 @@
 use Cwd;
+use Config;
 
 $cur_dir = cwd();
 $failed = 0;
@@ -49,7 +50,7 @@ EOF
 close CONFIG;
 
 print "server.......";
-if ( system "dist/bin/minivend -serve -u >/dev/null" ) {
+if ( system "$Config{'perlpath'} dist/bin/minivend -serve -u >/dev/null" ) {
 	print "not ok 1\n";
 }
 else {

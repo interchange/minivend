@@ -39,22 +39,22 @@ backward compatibility.
 
 Changes include:
 
-	* Installation has been changed to fit the Perl model
-	  of 'perl Makefile.PL; make; make test; make install'.
-	  You can also just type './configure' to perform this
-	  in one step.
+    * Installation has been changed to fit the Perl model
+      of 'perl Makefile.PL; make; make test; make install'.
+      You can also just type './configure' to perform this
+      in one step.
 
-	  Perl 5.004 allows retrieval and installation of MiniVend
-	  with 'perl -MCPAN -e 'install Vend::Cart' at the 
-	  command line.
+      Perl 5.004 allows retrieval and installation of MiniVend
+      with 'perl -MCPAN -e 'install Vend::Cart' at the 
+      command line.
 
-	* Catalog builder program improved to read Apache/NCSA-style
-	  configuration files and supply some intelligent defaults.
-	  Command-line editing and history are supported when teh
-	  Term::Readline package is available.
+    * Catalog builder program improved to read Apache/NCSA-style
+      configuration files and supply some intelligent defaults.
+      Command-line editing and history are supported when the
+      Term::ReadLine package is available.
 
-	* Optional modules automatically fetched with CPAN module
-	  if available.
+    * Optional modules automatically fetched with CPAN module
+      if available.
 
     * A powerful static page building capability is in place.
       This allows completely automated generation of static HTML
@@ -71,7 +71,7 @@ Changes include:
       item in the shopping cart, so items ordered with the same part
       number from different databases will not overwrite each other.
 
-    * Database tables are now writeable.  Atomic incrementation is
+    * Database tables are now writable.  Atomic incrementation is
       supported, which means that reliable inventory counts can be
       kept.  Form-based database updates are expanded to encompass
       all databases, not just mSQL.
@@ -83,7 +83,7 @@ Changes include:
       [/tag] construct.
 
     * Shipping is much improved, with built-in subroutine calls, 
-      error messages for out of bounds condtions, drop-in UPS zone
+      error messages for out of bounds conditions, drop-in UPS zone
       files, configurable handling charges, UPS cost rounding, geographic
       qualification, and more regular syntax.
 
@@ -121,7 +121,7 @@ Changes include:
       inherent in the old-style tags. It can be invoked on individual
       pages with the [new] tag.
 
-    * Search cacheing is much improved, and searches can be pre-built
+    * Search caching is much improved, and searches can be pre-built
       when using the static page build capability.
 
     * Pages can be cached, which especially improves performance of
@@ -138,7 +138,7 @@ Changes include:
     * Improved handling of cookies, with savable sessions and dynamic
       expire times.
 
-    * Mailed orders may have MIME attachements. Though the author
+    * Mailed orders may have MIME attachments. Though the author
       loathes routinely-used MIME, it has value as a way to attach
       an encrypted credit card number for easy processing by an
       order entry workstation.
@@ -187,8 +187,8 @@ Here is the short version:
     perl Makefile.PL
     make
     make test
-	make install
-	(change directory to MiniVend root)
+    make install
+    (change directory to MiniVend root)
     bin/makecat simple
     bin/start
 
@@ -218,16 +218,16 @@ With comments:
     #
     perl Makefile.PL
 
-	# Make the library modules and docs
-	make
+    # Make the library modules and docs
+    make
 
-	# Run a rudimentary test to ensure the server and sockets
-	# run on your system
-	make test
+    # Run a rudimentary test to ensure the server and sockets
+    # run on your system
+    make test
 
-	# Install the files and compile the link programs
-	#
-	make install
+    # Install the files and compile the link programs
+    #
+    make install
 
     ####
 
@@ -340,7 +340,7 @@ IRIX, Solaris, Digital UNIX:
            The server may not terminate immediately,
            as the select() call blocks signals. It
            will stop at the next request, or at the
-           end of the occasional houskeeping
+           end of the occasional housekeeping
            cycle, set by the directive HouseKeeping in
            minivend.cfg.  If you want it to stop more
            quickly than the default (up to) 60 seconds,
@@ -372,7 +372,7 @@ Solaris:   You must use the File::Lock module -- flock()
 
            If you have Perl 5.004, you may be able to
            disregard File::Lock -- MiniVend will try if
-           appropriage.
+           appropriate.
 
            GCC compilation problems should disappear in this
            release.
@@ -398,7 +398,7 @@ Solaris:   You must use the File::Lock module -- flock()
 
        * Users maintain a "shopping cart" for ordered items
        * Multiple independent or shared catalogs allow one server
-         to run many storefronts or a "mall"
+         to run many store fronts or a "mall"
        * SSL support means secure and practical credit card ordering
        * PGP support for secure off-site mailing of orders
        * Catalogs can be of almost unlimited size with excellent
@@ -458,7 +458,7 @@ Solaris:   You must use the File::Lock module -- flock()
         * Runs under Perl 5 and almost any UNIX
         * Designed to be secure
         * Built-in online help capability
-        * Offline database builds
+        * Off line database builds
         * Static page build option for high performance
         * Works well with all browsers
 
@@ -471,7 +471,7 @@ Solaris:   You must use the File::Lock module -- flock()
     utility, and continues to be free under the GNU copyleft.
 
     To learn more about MiniVend, see the HTML documentation, visit
-    the offical MiniVend site, or download it.
+    the official MiniVend site, or download it.
 
 -------------------------------------------------------------------
 

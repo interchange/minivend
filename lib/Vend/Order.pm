@@ -129,27 +129,27 @@ $Vend::CyberCash = ! $@;
 
 # Uncomment this to test CyberCash
 # in debug mode (start -D)
-$Vend::CyberCash = 1;
-sub SetServer {
-	my %options = @_;
-	if ($Global::DEBUG) {
-		for(sort keys %options) {
-			print "$_=$options{$_}\n";
-		}
-	}
-	1;
-}
-
-sub sendmserver {
-	my ($type, %options) = @_;
-print "type=$type\n" if $Global::DEBUG;
-	if ($Global::DEBUG) {
-		for(sort keys %options) {
-			print "$_=$options{$_}\n";
-		}
-	}
-	return ('MStatus', 'success', 'order-id', 1);
-}
+#$Vend::CyberCash = 1;
+#sub SetServer {
+#	my %options = @_;
+#	if ($Global::DEBUG) {
+#		for(sort keys %options) {
+#			print "$_=$options{$_}\n";
+#		}
+#	}
+#	1;
+#}
+#
+#sub sendmserver {
+#	my ($type, %options) = @_;
+#print "type=$type\n" if $Global::DEBUG;
+#	if ($Global::DEBUG) {
+#		for(sort keys %options) {
+#			print "$_=$options{$_}\n";
+#		}
+#	}
+#	return ('MStatus', 'success', 'order-id', 1);
+#}
 
 
 sub cyber_charge {

@@ -1,4 +1,4 @@
-# $Id: Session.pm,v 1.11 1997/06/17 04:22:52 mike Exp $
+# $Id: Session.pm,v 1.13 1997/08/26 20:45:39 mike Exp mike $
 
 package Vend::Session;
 require Exporter;
@@ -146,10 +146,10 @@ sub new_session {
 		undef $seed;
 		$name = session_name();
 		unless ($File_sessions) { 
-			last unless defined $Vend::SessionDBM{$Vend::SessionID};
+			last unless defined $Vend::SessionDBM{$name};
 		}
 		else {
-			last unless exists $Vend::SessionDBM{$Vend::SessionID};
+			last unless exists $Vend::SessionDBM{$name};
 		}
     }
 	$CGI::cookie = '';
@@ -303,6 +303,7 @@ sub read_session {
 
 #print("read session id=$Vend::SessionID  name=$Vend::SessionName\n") if $Global::DEBUG;
 	$s = $Vend::SessionDBM{$Vend::SessionName};
+#print("Session:\n$s\n") if $Global::DEBUG;
 	return new_session($Vend::SessionID) unless $s;
     $Vend::Session = eval($s);
     die "Could not eval '$s' from session dbm: $@\n" if $@;

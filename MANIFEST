@@ -159,6 +159,7 @@ dist/sample/products/upsb.csv
 dist/sample/products/upsg.csv
 dist/sample/products/upsr.csv
 dist/sample/reconfig
+dist/sample/report_problem
 dist/sample/session/.empty
 dist/simple/catalog.cfg
 dist/simple/config/.empty
@@ -257,6 +258,7 @@ dist/simple/products/products.asc
 dist/simple/products/salestax.asc
 dist/simple/products/shipping.asc
 dist/simple/reconfig
+dist/simple/report_problem
 dist/simple/session/.empty
 dist/src/config.h.in
 dist/src/configure

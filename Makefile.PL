@@ -2,7 +2,7 @@ use ExtUtils::MakeMaker;
 require ExtUtils::Install;
 use Config;
 use Cwd;
-require 5.003;
+require 5.002;
 
 use strict;
 
@@ -11,6 +11,7 @@ use vars (qw($VERSION));
 my $TermRead;
 my $Prompt_sub;
 my @mods_to_get;
+my $Lock_troubles;
 
 # See if we have the CPAN module
 my $Cpan = 0;
@@ -48,6 +49,15 @@ if($TermRead) {
 		return $term->readline($prompt, $default);
 	};
 }
+
+if($Config{osname} eq 'solaris') {
+			eval { require 5.004 or require File::Lock };
+			if($@) {
+				push @mods_to_get, "File::Lock";
+				$Lock_troubles = 1;
+			}
+}
+	
 
 sub my_prompt {
     return &$Prompt_sub(@_)
@@ -112,10 +122,22 @@ sub initialize {
 
 	unless ($install) {
 		my @mvdir = (
-						"/usr/local/lib/minivend",
-						"/home/minivend",
+						"$ENV{HOME}/mvend",
 						"$ENV{HOME}/minivend",
+						"/home/minivend",
+						"/usr/local/lib/minivend",
 					);
+		if(defined $Lock_troubles) {
+				print <<EOF;
+Since you are on Solaris, you need either to update to Perl 5.004
+or obtain the File::Lock module from CPAN. "make test" will fail if
+you don't have one of the above.
+
+If you have the CPAN module installed, MiniVend will try to get and
+install File::Lock for you.
+
+EOF
+		}
 		my $mvdir;
 
 		for $mvdir (@mvdir) {

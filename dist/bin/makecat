@@ -43,6 +43,7 @@ $| = 1; select STDOUT;
 #$Data::Dumper::Terse = 1;
 #$Data::Dumper::Indent = 3;
 
+use Config;
 use File::Find;
 use File::Copy;
 use File::Path;
@@ -90,7 +91,7 @@ if ($< == 0) {
 	$isroot = 1;
 }
 
-my %Config;
+my %Conf;
 my %Initial;
 
 my %IfRoot = (qw( minivenduser 1 minivendgroup 1 catuser 1));
@@ -100,32 +101,32 @@ my %Prefix = (
 	basedir      =>  sub { $isroot ? '' : "$ENV{HOME}/catalogs" },
 	minivenduser =>  sub { $isroot ? '' : get_id(); },
 	minivendgroup=>  sub {
-						my $gid = (getpwnam($Config{minivenduser}))[3];
+						my $gid = (getpwnam($Conf{minivenduser}))[3];
 						(getgrgid($gid))[0];
 					 },
     documentroot =>  "$ENV{HOME}/www",
 	cgidir       =>  "$ENV{HOME}/cgi-bin",
 	cgibase      =>  '/cgi-bin',
 	demotype     =>  'simple',
-    catuser      =>  sub { $isroot ? '' : $Config{'minivenduser'} },
-    mailorderto  =>  sub {  if($Config{servername} =~ s:(/~[^/]+)$:: ) {
+    catuser      =>  sub { $isroot ? '' : $Conf{'minivenduser'} },
+    mailorderto  =>  sub {  if($Conf{servername} =~ s:(/~[^/]+)$:: ) {
 								$Tilde = $1;
 							}
-    						$Config{catuser} },
-	catroot      =>  sub { $Config{basedir} . "/" . $catalog_name },
+    						$Conf{catuser} },
+	catroot      =>  sub { $Conf{basedir} . "/" . $catalog_name },
 	cgiurl       =>  sub { my $url = '';
-							if ($Config{cgibase} eq '') {
+							if ($Conf{cgibase} eq '') {
 								$url =	$Tilde if defined $Tilde;
 								$url .=	'/' .
 										$catalog_name .
 										'.cgi';
 							}
 							else {
-								$url .= $Config{cgibase} . '/' . $catalog_name;
+								$url .= $Conf{cgibase} . '/' . $catalog_name;
 							}
 							$url;
 						  },
-	imagedir     =>  sub { $Config{samplehtml} . '/' . 'images' },
+	imagedir     =>  sub { $Conf{samplehtml} . '/' . 'images' },
 	imageurl     =>  sub {  my $url = '';
 	                        if(defined $Tilde) {
 								$url = $Tilde;
@@ -133,12 +134,12 @@ my %Prefix = (
 							$url .= '/' . $catalog_name . '/' . 'images';
 							$url;
 						},
-	samplehtml   =>  sub { $Config{documentroot} . '/' . $catalog_name },
+	samplehtml   =>  sub { $Conf{documentroot} . '/' . $catalog_name },
 
 );
 
 sub prefix {
-	return $Config{$p} if $Config{$p};
+	return $Conf{$p} if $Conf{$p};
 	if(ref $Prefix{$_[0]}) { 
 		return &{ $Prefix{$_[0]} };
 	}
@@ -370,7 +371,7 @@ SETDEFAULTS: {
 	unless ($Reconfigure) {
 		my @parms = $Cfg->Parameters('base');
 		for(@parms) {
-			$Config{$_} = $Cfg->val('base', $_) || undef;
+			$Conf{$_} = $Cfg->val('base', $_) || undef;
 		}
 		last SETDEFAULTS;
 	}
@@ -424,12 +425,12 @@ on this server.
 
 EOF
 			sethistory("MULTIPLE GROUP", "GROUP", "USER");
-			$Config{permtype} = prompt("Permission Mode? ", "");
-			unless($Config{permtype} =~ s/^\s*([mgu]).*/lc $1/ie) {
+			$Conf{permtype} = prompt("Permission Mode? ", "");
+			unless($Conf{permtype} =~ s/^\s*([mgu]).*/lc $1/ie) {
 				warn "Must be one of M(ULTIPLE), G(ROUP), or U(SER).\n";
 				redo PERMS;
 			}
-			$Cfg->setval('base', 'permtype', $Config{permtype});
+			$Cfg->setval('base', 'permtype', $Conf{permtype});
 
 		}
 
@@ -472,8 +473,8 @@ servers.
 EOF
 
 	sethistory(@Servers);
-	$Config{servername} = prompt('Default server? ', $Servers[0]);
-	$Servername = $Config{servername};
+	$Conf{servername} = prompt('Default server? ', $Servers[0]);
+	$Servername = $Conf{servername};
 
 	}
 	############
@@ -508,13 +509,13 @@ EOF
 		print description($p);
 		print "\n\n";
 		my $msg = pretty($p) . "? ";
-		$Config{$p} = prompt ($msg, $val);
-		if($Config{$p} eq '@') {
+		$Conf{$p} = prompt ($msg, $val);
+		if($Conf{$p} eq '@') {
 			$i--;
 			$i = 0 if $i < 0;
 			redo;
 		}
-		$Cfg->setval('base', $p, $Config{$p});
+		$Cfg->setval('base', $p, $Conf{$p});
 	}
 
 	$Cfg->WriteConfig("$Configfile.new")
@@ -539,8 +540,8 @@ EOF
 SETSERVER: {
 	sethistory(@Servers);
 	print description('servername');
-	$Servername = $Config{servername} = prompt("Server name? ", $Servers[0]);
-	$Cfg->setval("catalog $catalog_name", 'servername', $Config{servername});
+	$Servername = $Conf{servername} = prompt("Server name? ", $Servers[0]);
+	$Cfg->setval("catalog $catalog_name", 'servername', $Conf{servername});
 }
 
 @ask = $Cfg->val('global', 'askconfig');
@@ -556,21 +557,21 @@ SETSERVER: {
 		$val = $Cfg->val("catalog $catalog_name", $p);
 		$val = $val || prefix($p);
 		if (! $isroot and defined $IfRoot{$p}) {
-			$Config{$p} = $val;
+			$Conf{$p} = $val;
 			next;
 		}
 		print "\n";
 		print description($p);
 		print "\n\n";
 		my $msg = pretty($p) . "? ";
-		$Config{$p} = prompt ($msg, $val);
-		if($Config{$p} eq '@') {
-			$Config{$p} = $val;
+		$Conf{$p} = prompt ($msg, $val);
+		if($Conf{$p} eq '@') {
+			$Conf{$p} = $val;
 			$i--;
 			$i = 0 if $i < 0;
 			redo;
 		}
-		$Cfg->setval("catalog $catalog_name", $p, $Config{$p});
+		$Cfg->setval("catalog $catalog_name", $p, $Conf{$p});
 	}
 
 $Cfg->WriteConfig("$Configfile.new")
@@ -580,12 +581,12 @@ $Cfg->WriteConfig("$Configfile.new")
 GUESS: {
 
 	my $tempurl;
-    $guessdir = $Config{samplehtml};
+    $guessdir = $Conf{samplehtml};
 
-    unless($guessdir =~ s/^$Config{documentroot}//) {
+    unless($guessdir =~ s/^$Conf{documentroot}//) {
         print <<EOF;
 \a
-The specified HTML directory, $Config{samplehtml},
+The specified HTML directory, $Conf{samplehtml},
 is not a subdirectory of DocumentRoot. This will make it
 hard for us to guess the URL needed to access pages from
 the catalog. Please re-specify your HTML document root.
@@ -596,21 +597,21 @@ the catalog. Please re-specify your HTML document root.
 EOF
         $val = '';
 		my $msg = pretty('documentroot');
-        $Config{documentroot} = prompt ("\n$msg? ", '');
+        $Conf{documentroot} = prompt ("\n$msg? ", '');
         redo GUESS;
     }
 
     $guessdir =~ s:^/+::;
     $guessdir = "$Tilde/$guessdir" if defined $Tilde;
     $guessdir =~ s:^/+::;
-    $tempurl = "http://$Config{servername}/$guessdir";
-    if (defined $Config{sampleurl} and $Config{sampleurl} ne $tempurl) {
+    $tempurl = "http://$Conf{servername}/$guessdir";
+    if (defined $Conf{sampleurl} and $Conf{sampleurl} ne $tempurl) {
 		print <<EOF;
 
 We were given a previous value for the URL that will run the catalog
 (from the catalog configuration file $Configfile):
 
-    $Config{sampleurl}
+    $Conf{sampleurl}
 
 This conflicts with what we guess from what you have just
 entered:
@@ -620,17 +621,17 @@ entered:
 EOF
 
 	$tempurl  = prompt ("\nPlease re-enter or confirm: ",
-						"http://$Config{servername}/$guessdir");
+						"http://$Conf{servername}/$guessdir");
 
 	}
 
-	$Config{sampleurl} = $tempurl;
+	$Conf{sampleurl} = $tempurl;
 
 }
 
-$mvuid = getpwnam($Config{minivenduser});
+$mvuid = getpwnam($Conf{minivenduser});
 unless (defined $mvuid) {
-	die "$Config{minivenduser} is not a valid user name on this machine.\n";
+	die "$Conf{minivenduser} is not a valid user name on this machine.\n";
 }
 
 if($isroot) {
@@ -638,30 +639,33 @@ if($isroot) {
 		or warn "\nCouldn't set ownership of $configfile: $!\n";
 }
 
-if ($Config{minivendgroup}) {
-	$mvgid = getgrnam($Config{minivendgroup});
+if ($Conf{minivendgroup}) {
+	$mvgid = getgrnam($Conf{minivendgroup});
 	unless (defined $mvgid) {
-		die "$Config{minivendgroup} is not a valid group name on this machine.\n";
+		die "$Conf{minivendgroup} is not a valid group name on this machine.\n";
 	}
 }
 else {
-	$mvgid = (getpwnam($Config{minivenduser}))[3];
+	$mvgid = (getpwnam($Conf{minivenduser}))[3];
 }
 
-($catuid,$catgid) = (getpwnam($Config{catuser}))[2,3];
+($catuid,$catgid) = (getpwnam($Conf{catuser}))[2,3];
 unless (defined $catuid) {
-	die "$Config{catuser} is not a valid user name on this machine.\n";
+	die "$Conf{catuser} is not a valid user name on this machine.\n";
 }
+
+# Find the perl path
+$Conf{'perl'} = $Config{perlpath};
 
 # Now change to the directory defined as VendRoot
-chdir $Config{vendroot}
-	or die "Couldn't change directory to $Config{vendroot}: $!\n";
+chdir $Conf{vendroot}
+	or die "Couldn't change directory to $Conf{vendroot}: $!\n";
 
 
 $warn = 0;
 $msg = q# supposed to be a directory, not a file. Can't continue.#;
-for ( $Config{catroot}, $Config{documentroot}, $Config{basedir},
-	$Config{samplehtml}, $Config{imagedir} ) {
+for ( $Conf{catroot}, $Conf{documentroot}, $Conf{basedir},
+	$Conf{samplehtml}, $Conf{imagedir} ) {
 	next unless -f $_;
 	warn "$_ $msg\n";
 	$warn++;
@@ -695,7 +699,7 @@ FINDPROG: {
 	Please give the complete path to the link program.
 
 EOF
-		if($Config{osname} =~ /win32/i) {
+		if($Conf{osname} =~ /win32/i) {
 			# do nothing
 		}
 		elsif(findexe('locate')) {
@@ -714,7 +718,7 @@ $warn = 0;
 print do_msg("Checking directories");
 
 $msg = q#directory exists!#;
-for($Config{catroot}, $Config{samplehtml}) {
+for($Conf{catroot}, $Conf{samplehtml}) {
 	next unless -d $_;
 	print "\n$_: $msg\n";
 	$warn++;
@@ -726,19 +730,19 @@ if($warn) {
 }
 
 $warn = 0;
-for($Config{documentroot}, $Config{basedir}) {
+for($Conf{documentroot}, $Conf{basedir}) {
 	next if -d $_;
 	$warn++;
 }
 
-for($Config{catroot}, $Config{samplehtml}, $Config{imagedir}) {
+for($Conf{catroot}, $Conf{samplehtml}, $Conf{imagedir}) {
 	next if -d $_;
 	$warn++;
 }
 
 if($warn) {
 	for(qw(catroot samplehtml imagedir)) {
-		$dir = $Config{$_};
+		$dir = $Conf{$_};
 		(warn "\n$_ is empty, skipping.\n", next)
 			unless $dir =~ /\S/;
 		unless(-d $dir) {
@@ -753,7 +757,7 @@ if($warn) {
 }
 
 for(qw(catroot samplehtml imagedir)) {
-		$dir = $Config{$_};
+		$dir = $Conf{$_};
 		die "Directory $dir not writable, can't continue.\n"
 			unless -w $dir;
 }
@@ -761,20 +765,20 @@ print "done.\n";
 
 # Now change to the directory defined as VendRoot if the checks
 # have left us elsewhere
-chdir $Config{vendroot}
-	or die "Couldn't change directory to $Config{vendroot}: $!\n";
+chdir $Conf{vendroot}
+	or die "Couldn't change directory to $Conf{vendroot}: $!\n";
 
 print do_msg("Copying demo files");
-unless (-d $Config{'demotype'}) {
-	print "No $Config{vendroot}/$Config{'demotype'} directory is present,\n";
+unless (-d $Conf{'demotype'}) {
+	print "No $Conf{vendroot}/$Conf{'demotype'} directory is present,\n";
 	$dir = prompt("where should the files come from? ", '');
 }
 else {
-	$dir = $Config{'demotype'};
+	$dir = $Conf{'demotype'};
 }
 chdir $dir || die "Couldn't change directory to $dir: $!\n";
 
-system "tar -cf - * | (cd $Config{catroot}; tar -xf -)";
+system "tar -cf - * | (cd $Conf{catroot}; tar -xf -)";
 
 if($?) {
 	die <<EOF . "\n";
@@ -785,14 +789,13 @@ that the 'tar' program is available.
 EOF
 }
 
-File::Copy::copy( $prog, "$Config{catroot}/executable")
+File::Copy::copy( $prog, "$Conf{catroot}/executable")
 	or die "Couldn't copy link program from $prog: $!\n";
 
 print "done.\n";
 
-
-chdir $Config{catroot} 
- 	|| die "Couldn't change directory to $Config{catroot}: $!\n";
+chdir $Conf{catroot} 
+ 	|| die "Couldn't change directory to $Conf{catroot}: $!\n";
 
 %Mfile = ( qw(
                 catalog.cfg     1
@@ -809,7 +812,7 @@ chdir $Config{catroot}
 
 my ($umode, $gmode);
 
-if($Config{permtype} =~ /^[mg]/i) {
+if($Conf{permtype} =~ /^[mg]/i) {
 	$umode = 0; $gmode = 1;
 }
 else {
@@ -831,10 +834,10 @@ else {
 sub substitute {
 	my($parm,$new) = @_;
 	if($new) {
-		return $Config{lc $parm} || '';
+		return $Conf{lc $parm} || '';
 	}
 	else {
-		return $Config{$MacroString{"__MVC_$parm"}}
+		return $Conf{$MacroString{"__MVC_$parm"}}
 			if defined $MacroString{"__MVC_$parm"};
 	}
 	return "__MVC_$parm";
@@ -879,7 +882,7 @@ sub wanted {
 			
 	}
 	else {
-		chmod(0755, $file) if $file =~ /reconfig$/;
+		chmod(0755, $file) if $file =~ /reconfig$|report_problem$/;
 		if($isroot) {
 			chown ($catuid, $catgid, $file)
 				or die "\nCouldn't set ownership on $name: $!\n";
@@ -888,20 +891,20 @@ sub wanted {
 }
 	
 	$File::Find::dont_use_nlink = 1;
-	File::Find::find(\&wanted, $Config{catroot});
+	File::Find::find(\&wanted, $Conf{catroot});
 
 	if($isroot) {
-		chown ($mvuid, $mvgid, $Config{catroot})
-			or warn "\nCouldn't set ownership of $Config{catroot}: $!\n";
+		chown ($mvuid, $mvgid, $Conf{catroot})
+			or warn "\nCouldn't set ownership of $Conf{catroot}: $!\n";
 	}
 
-	$cginame = $Config{cgiurl};
+	$cginame = $Conf{cgiurl};
 	$cginame =~ s:.*/::;
-	$cginame = "$Config{cgidir}/$cginame";
+	$cginame = "$Conf{cgidir}/$cginame";
 
 	print do_msg("Moving link program to $cginame");
 	
-	system "mv $Config{catroot}/executable $cginame";
+	system "mv $Conf{catroot}/executable $cginame";
 	if($?) {
 		die "Couldn't move link executable from $prog to $cginame: $!\n";
 	}
@@ -932,35 +935,35 @@ EOF
 	print "done.\n";
 
 	
-	print do_msg("Moving HTML files to $Config{samplehtml}");
-	system "mv html/* $Config{samplehtml}";
+	print do_msg("Moving HTML files to $Conf{samplehtml}");
+	system "mv html/* $Conf{samplehtml}";
 	if($?) {
-		die "Couldn't move HTML files $Config{samplehtml}: $!\n";
+		die "Couldn't move HTML files $Conf{samplehtml}: $!\n";
 	}
 	rmdir 'html'
 		or die "Couldn't remove HTML directory: $!\n";
 	print "done.\n";
 
-	print do_msg("Moving image files to $Config{imagedir}");
-	system "mv images/* $Config{imagedir}";
+	print do_msg("Moving image files to $Conf{imagedir}");
+	system "mv images/* $Conf{imagedir}";
 	if($?) {
-		die "Couldn't move image files to $Config{imagedir}: $!\n";
+		die "Couldn't move image files to $Conf{imagedir}: $!\n";
 	}
 	if($isroot) {
-		opendir(CHGIT,$Config{imagedir})
-			or die "couldn't open $Config{imagedir}: $!\n";
+		opendir(CHGIT,$Conf{imagedir})
+			or die "couldn't open $Conf{imagedir}: $!\n";
         my (@files) = grep !/^\./, readdir CHGIT;
 		closedir CHGIT;
 		for(@files) {
-			chown ($catuid, $catgid, "$Config{imagedir}/$_")
-				or die "Couldn't chown image files in $Config{imagedir}: $!\n";
+			chown ($catuid, $catgid, "$Conf{imagedir}/$_")
+				or die "Couldn't chown image files in $Conf{imagedir}: $!\n";
 		}
 	}
 	rmdir 'images'
 		or die "Couldn't remove image directory: $!\n";
 	print "done.\n";
 
-	chdir $Config{vendroot}
+	chdir $Conf{vendroot}
 		or die "Couldn't change directory to $VendRoot: $!\n";
 
 	$yes = prompt "Add catalog to minivend.cfg? ", 'y';
@@ -978,7 +981,7 @@ EOF
 		open(CFG, $tmpfile)
 			or die "Couldn't open $tmpfile: $!\n";
 		$newcfgline = sprintf "%-19s %s %s %s\n", 'Catalog',
-				$catalog_name, $Config{catroot}, $Config{cgiurl};
+				$catalog_name, $Conf{catroot}, $Conf{cgiurl};
 		while(<CFG>) {
 			$mark = $. if /^#?\s*catalog\s+/i;
 			warn "\nDeleting old configuration $catalog_name.\n"
@@ -1008,7 +1011,7 @@ EOF
 	}
 	else {
 		my $newcfgline = sprintf "%-19s %s %s %s\n", 'Catalog',
-				$catalog_name, $Config{catroot}, $Config{cgiurl};
+				$catalog_name, $Conf{catroot}, $Conf{cgiurl};
 		print <<EOF;
 You will need to add the following line to your minivend.cfg file
 to activate the catalog.
@@ -1023,16 +1026,16 @@ EOF
 Done with installation. If my reading of your input is correct, you
 should be able to access the demo catalog with the following URL:
 
-	$Config{sampleurl}
+	$Conf{sampleurl}
 
 In any case, you should get direct access at:
 
-	http://$Config{servername}$Config{cgiurl}
+	http://$Conf{servername}$Conf{cgiurl}
 
 That is, after you START or RESTART the MiniVend server.  8-)
 It is best done with:
 
-	$Config{vendroot}/bin/restart
+	$Conf{vendroot}/bin/restart
 
 EOF
 	print "Good luck with MiniVend 2.0!\n" if defined $newconfig;

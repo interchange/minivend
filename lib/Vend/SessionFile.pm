@@ -1,6 +1,6 @@
 # SessionFile.pm:  stores session information in files
 #
-# $Id: SessionFile.pm,v 1.2 1997/06/17 04:22:52 mike Exp $
+# $Id: SessionFile.pm,v 1.3 1997/08/26 20:45:39 mike Exp mike $
 #
 # Copyright 1996 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996 by Michael J. Heins <mikeh@iac.net>
@@ -20,7 +20,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
-# $Id: SessionFile.pm,v 1.2 1997/06/17 04:22:52 mike Exp $
+# $Id: SessionFile.pm,v 1.3 1997/08/26 20:45:39 mike Exp mike $
 
 package Vend::SessionFile;
 require Tie::Hash;
@@ -47,6 +47,7 @@ sub FETCH {
 	my($self, $key) = @_;
     $SessionFile = $SessionDir . "/$key";
     $SessionLock = $SessionDir . "/LOCK_$key";
+	return undef unless -f $SessionFile;
 	my $str;
     open(SESSIONLOCK, "+>>$SessionLock")
         or die "Can't open '$SessionLock': $!\n";
@@ -93,6 +94,8 @@ sub DELETE {
 
 sub STORE {
 	my($self, $key, $val) = @_;
+    $SessionFile = $SessionDir . "/$key";
+    $SessionLock = $SessionDir . "/LOCK_$key";
 	close(SESSION);
     unlink $SessionFile;
     open(SESSION, "+>$SessionFile")
