@@ -687,7 +687,7 @@ sub config {
 		}
 	}
 
-	my(@include) = ($passed_file || $C->{ConfigFile});
+	my(@include) = my $catalogcfg = ($passed_file || $C->{ConfigFile});
 	my $done_one;
 	my ($db, $dname, $nm);
 	my ($before, $after);
@@ -1014,7 +1014,7 @@ EOF
 				my $msg = errmsg(
 					"Please specify the %s directive in the configuration file '%s'",
 					$CDname{$var},
-					$configfile,
+					$catalogcfg,
 				);
 
 				die "$msg\n";
