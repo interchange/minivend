@@ -5360,6 +5360,11 @@ sub tag_sql_list {
 	if($opt->{ma}) {
 		# Find the sort field and alpha options....
 		Vend::Scan::parse_profile_ref($object, $opt);
+		# Contents of mv_return_fields must be of the same type
+		# (numeric here) as the contents of mv_sort_field
+		@{$object->{mv_return_fields}} = map {$nh->{$_}} @{$object->{mv_return_fields}};
+		# We need to turn the hash reference into a search object
+		$object = new Vend::Search (%$object);
 		# Delete this so it will meet conditions for creating a more
 		delete $object->{mv_matchlimit};
 	}
