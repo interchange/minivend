@@ -123,7 +123,7 @@ sub setup_escape_chars {
     }
 
 	my $string = "[^$ESCAPE_CHARS::ok_in_filename]";
-	$need_escape = qr{"$string="};
+	$need_escape = qr{$string=};
 
 }
 
@@ -1631,15 +1631,16 @@ sub errmsg {
 	elsif($Global::Locale and defined $Global::Locale->{$fmt}) {
 	 	$location = $Global::Locale;
 	}
-	return sprintf $fmt, @strings if ! $location;
-	if(ref $location->{$fmt}) {
-		$fmt = $location->{$fmt}[0];
-		@strings = @strings[ @{ $location->{$fmt}[1] } ];
+	if($location) {
+		if(ref $location->{$fmt}) {
+			$fmt = $location->{$fmt}[0];
+			@strings = @strings[ @{ $location->{$fmt}[1] } ];
+		}
+		else {
+			$fmt = $location->{$fmt};
+		}
 	}
-	else {
-		$fmt = $location->{$fmt};
-	}
-	return sprintf $fmt, @strings;
+	scalar(@strings) ? sprintf $fmt, @strings : $fmt;
 }
 
 *l = \&errmsg;
