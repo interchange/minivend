@@ -127,11 +127,7 @@ sub stuff {
     return $val;
 }
 
-sub unstuff {
-    my ($val) = @_;
-    $val =~ s,%(..),chr(hex($1)),eg;
-    return $val;
-}
+*unstuff = \&Vend::Util::unhexify;
 
 sub autonumber {
 	my $s = shift;
