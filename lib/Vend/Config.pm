@@ -265,7 +265,7 @@ sub global_directives {
 	['HouseKeeping',     'integer',          60],
 	['Mall',	          'yesno',           'No'],
 	['TagGroup',		 'tag_group',		 $StdTags],
-	['TagInclude',		 'tag_include',		 ':core'],
+	['TagInclude',		 'tag_include',		 'ALL'],
 	['ActionMap',		 'action',			 ''],
 	['FormAction',		 'action',			 ''],
 	['MaxServers',       'integer',          10],
@@ -1493,6 +1493,12 @@ sub parse_tag_include {
 	$setting =~ s/^\s+//;
 	$setting =~ s/\s+$//;
 	$setting =~ s/[,\s]+/ /g;
+
+	if($setting eq 'ALL') {
+		return { ALL => 1 };
+	}
+
+	delete $c->{ALL};
 
 	my @incs = Text::ParseWords::shellwords($setting);
 
@@ -3252,7 +3258,7 @@ sub parse_tag {
 	}
 
 	if($CodeDest and $CodeDest eq 'CoreTag') {
-		return $c unless $Global::TagInclude->{$tag};
+		return $c unless $Global::TagInclude->{$tag} || $Global::TagInclude->{ALL};
 	}
 
 	if($p eq 'Routine' or $p eq 'PosRoutine') {
