@@ -67,26 +67,26 @@ $Force = 0;
 $History = 0;
 my %Pretty = qw(
 
-	aliases         Aliases
-	basedir         BaseDir
-	catuser			CatUser
-	cgibase         CgiBase
-	cgidir          CgiDir
-	cgiurl          CgiUrl
-	demotype        DemoType
-	documentroot    DocumentRoot
-	imagedir        ImageDir
-	imageurl        ImageUrl
-	mailorderto     MailOrderTo
-	interchangeuser	InterchangeUser
-	nterchangegroup	InterchangeGroup
-	samplehtml      SampleHtml
-	sampledir       SampleDir
-	sampleurl       SampleUrl
-	serverconf      ServerConf
-	servername      ServerName
-	catroot         CatRoot
-	vendroot        VendRoot
+	aliases				Aliases
+	basedir				BaseDir
+	catuser				CatUser
+	cgibase				CgiBase
+	cgidir				CgiDir
+	cgiurl				CgiUrl
+	demotype			DemoType
+	documentroot		DocumentRoot
+	imagedir			ImageDir
+	imageurl			ImageUrl
+	mailorderto			MailOrderTo
+	interchangeuser		InterchangeUser
+	interchangegroup	InterchangeGroup
+	samplehtml			SampleHtml
+	sampledir			SampleDir
+	sampleurl			SampleUrl
+	serverconf			ServerConf
+	servername			ServerName
+	catroot				CatRoot
+	vendroot			VendRoot
 
 );
  
