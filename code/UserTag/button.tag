@@ -31,6 +31,14 @@ Name of the variable, by default mv_click.
 Image source file. If it is a relative image, the existence
 of the file is checked for.
 
+If your images stop showing up on pages that use SSL, use an absolute
+link to the image file.
+
+Instead of,
+	src="__THEME__/placeorder.gif"
+try:
+	src="/yourstore/images/blueyellow/placeorder.gif"
+
 =item text             
 
 The text of the button, also the name of the scratch action
