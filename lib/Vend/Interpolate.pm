@@ -6763,8 +6763,8 @@ sub levies {
 					$sub = $Global::UserTag->{Routine}{$mode};
 				};
 			}
-			if( ref($sub) ne 'CODE') {
-				($cost, $desc, $sort) = $sub->($opt);
+			if( ref($sub) eq 'CODE') {
+				($cost, $desc, $sort) = $sub->($l);
 			}
 			else {
 				logError("No subroutine found for custom levy '%s'", $name);
