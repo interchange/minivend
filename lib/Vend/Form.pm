@@ -525,7 +525,7 @@ sub option_widget {
 	my $width = $opt->{width} || 16;
 	$opt->{filter} = 'option_format'
 		unless length($opt->{filter});
-	$val = Vend::Interpolate::filter_value('option_format', $val);
+	$val = Vend::Interpolate::filter_value($opt->{filter}, $val);
 	my @opts = split /\s*,\s*/, $val;
 	my $out = "<TABLE CELLPADDING=0 CELLSPACING=0><TR><TH><SMALL>Value</SMALL></TH><TH ALIGN=LEFT COLSPAN=2><SMALL>Label</SMALL></TH></TR>";
 	my $done;
