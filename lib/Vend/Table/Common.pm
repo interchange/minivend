@@ -585,9 +585,9 @@ sub each_nokey {
 			my (@row) = $s->row($key);
 ##::logDebug("each_nokey: '$row[$rfield]' eq '$rsession' ??");
 			next if $row[$rfield] ne $rsession;
-			return @row;
+			return \@row;
 		}
-		return $s->row($key);
+		return [ $s->row($key) ];
     }
 }
 

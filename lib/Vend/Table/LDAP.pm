@@ -422,7 +422,7 @@ sub each_record {
 sub each_nokey {
 	my (@ary) = each_record(@_);
 	shift @ary;
-	return @ary;
+	return \@ary;
 }
 
 sub record_exists {
