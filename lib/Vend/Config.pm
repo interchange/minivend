@@ -2800,6 +2800,11 @@ sub parse_database {
 				);
 			$d->{$p} = $val;
 		}
+		if ($p eq 'MAP') {
+			$d->{OrigClass} = $d->{Class};
+			$d->{Class} = 'SHADOW';
+			$d->{type} = 10;
+		}
 		$d->{HOT} = 1 if $d->{Class} eq 'MEMORY';
 	}
 

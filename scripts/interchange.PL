@@ -192,6 +192,7 @@ BEGIN {
 # SQL
 	$Global::DBI =
 # END SQL
+    $Global::Shadow = 
 	0;
 
 # SQL
@@ -253,6 +254,7 @@ BEGIN {
 	$Global::Default_database = 'MEMORY'
 			unless defined $Global::Default_database;
 	require Vend::Table::InMemory;
+	require Vend::Table::Shadow;
 }
 
 

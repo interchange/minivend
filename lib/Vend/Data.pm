@@ -83,6 +83,7 @@ BEGIN {
 		require Vend::Table::DB_File;
 	}
 	require Vend::Table::InMemory;
+	require Vend::Table::Shadow;
 }
 
 my ($Products, $Item_price);
@@ -599,6 +600,13 @@ use vars '%db_config';
 				/
 				},
 # END SQL
+		'SHADOW' => {
+				qw/
+					Extension			 shadow
+					RestrictedImport	 1
+					Class                Vend::Table::Shadow
+				/
+				},
 		'MEMORY' => {
 				qw/
 					Cacheable			 1
