@@ -99,7 +99,12 @@ sub parse
 	# tokens from the beginning of $$buf until we can't deside whether
 	# it is a token or not, or the $$buf is empty.
 	while (1) {  # the loop will end by returning when text is parsed
-		# First we try to pull off any plain text (anything before a '[')
+		# If a preceding routine sent the response, stop 
+		if ($Vend::Sent) {
+			$self->{OUT} = $self->{_buf} = '';
+			return $self;
+		}
+		# We try to pull off any plain text (anything before a '[')
 		if ($$buf =~ s/^([^[]+)// ) {
 #my $eat = $1;
 #::logDebug("plain eat='$eat'");

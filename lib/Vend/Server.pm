@@ -408,6 +408,7 @@ sub respond {
     my ($s, $body) = @_;
 #show_times("begin response send") if $Global::ShowTimes;
 	my $status;
+	return if $Vend::Sent;
 	if($Vend::StatusLine) {
 		$status = $Vend::StatusLine =~ /(?:^|\n)Status:\s+(.*)/i
 				? "$1"

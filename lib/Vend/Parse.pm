@@ -501,7 +501,6 @@ sub eval_die {
 # syntax color '"
 
 sub start {
-	return html_start(@_) if $_[0]->{HTML};
     my($self, $tag, $attr, $attrseq, $origtext, $empty_container) = @_;
 	$tag =~ tr/-/_/;   # canonical
 	$Vend::CurrentTag = $tag = lc $tag;
