@@ -2951,6 +2951,7 @@ my %tagCanon = ( qw(
 	order			Order
 	posnumber		PosNumber
 	posroutine		PosRoutine
+	maproutine		MapRoutine
 	replaceattr		replaceAttr
 	replacehtml		replaceHTML
 	required		Required
@@ -3050,6 +3051,14 @@ sub parse_tag {
 			) unless ref($sub) =~ /CODE/;
 		}
 		$c->{$p}{$tag} = $sub;
+		$c->{Order}{$tag} = []
+			unless defined $c->{Order}{$tag};
+	}
+	elsif (! $C and $p eq 'MapRoutine') {
+		$val =~ s/^\s+//;
+		$val =~ s/\s+$//;
+		no strict 'refs';
+		$c->{Routine}{$tag} = \&{"$val"};
 		$c->{Order}{$tag} = []
 			unless defined $c->{Order}{$tag};
 	}
