@@ -515,9 +515,6 @@ sub vars_and_comments {
 	return if $Vend::restricted;
 	local($^W) = 0;
 
-	# Remove Minivend 3 legacy [new] tags
-	$$html =~ s/\[new\]//g;
-
 	# Set whole-page pragmas from [pragma] tags
 	1 while $$html =~ s/\[pragma\s+(\w+)(?:\s+(\w+))?\]/
 		$::Pragma->{$1} = (length($2) ? $2 : 1), ''/ige;
