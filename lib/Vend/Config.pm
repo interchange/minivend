@@ -1167,6 +1167,8 @@ sub config_named_catalog {
 
 	dump_structure($c, $g->{name}) if $Global::DumpStructure;
 
+	delete $c->{Source};
+
 	my $stime = scalar localtime();
 	Vend::Util::writefile(">$Global::RunDir/status.$g->{name}", "$stime\n");
 	Vend::Util::writefile(">$c->{ConfDir}/status.$g->{name}", "$stime\n");
@@ -1555,6 +1557,8 @@ GLOBLOOP:
 
 	dump_structure($Global::Structure, "$Global::RunDir/$Global::ExeName")
 		if $Global::DumpStructure and ! $Vend::ExternalProgram;
+
+	delete $Global::Structure->{Source};
 
 	%CDname = ();
 	return 1;

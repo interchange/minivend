@@ -32,7 +32,6 @@ require Exporter;
 	absolute_or_relative
 	allowed_file
 	catfile
-	check_security
 	exists_filename
 	file_allow
 	file_modification_time
@@ -505,21 +504,6 @@ sub canonpath {
 #print "file_name_is_absolute a/b/c --> " . file_name_is_absolute('a/b/c') . "\n";
 #print "file_name_is_absolute a:b/c --> " . file_name_is_absolute('a:b/c') . "\n";
 #print "file_name_is_absolute /a/b/c --> " . file_name_is_absolute('/a/b/c') . "\n";
-
-sub check_user_read {
-	my $fn = shift;
-	my $un = $Global::CatalogUser->{$Vend::Cat}
-		or return undef;
-	my ($own, $grown) = (stat($fn))[4,5];
-	return 0 unless defined $own;
-	my $uid = getpwnam($un);
-	return 1 if $uid eq $own;
-	my @members = split /\s+/, (getgrgid($grown))[3];
-	for(@members) {
-		return 1 if $un eq $_;
-	}
-	return 0;
-}
 
 my %intrinsic = (
 	ic_super => sub { return 1 if $Vend::superuser; },

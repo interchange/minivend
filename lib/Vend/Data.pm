@@ -2317,8 +2317,6 @@ sub update_data {
 	return;
 }
 
-*dbref = \&database_exists_ref;
-
 1;
 
 __END__

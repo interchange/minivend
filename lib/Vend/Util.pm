@@ -58,7 +58,6 @@ require Exporter;
 	logGlobal
 	logOnce
 	logtime
-	parse_locale
 	random_string
 	readfile
 	readin
@@ -115,9 +114,7 @@ $ESCAPE_CHARS::ok_in_url =
 	;
 
 ## This is an alias for a commonly-used function
-sub dbref {
-	return Vend::Data::database_exists_ref(@_);
-}
+*dbref = \&Vend::Data::database_exists_ref;
 
 ## This is a character class for HTML::Entities
 $ESCAPE_CHARS::std = "^\n\t !\#\$%\'-;=?-Z\\\]-~";
@@ -470,7 +467,6 @@ sub currency {
 	}
 
 	return $amount if $noformat;
-	my $loc;
 	my $sep;
 	my $dec;
 	my $fmt;

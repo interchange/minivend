@@ -54,6 +54,7 @@ BEGIN {
 	($Global::VendRoot = $ENV{MINIVEND_ROOT})
 		if defined $ENV{MINIVEND_ROOT};
 
+	no warnings 'void';
 	## This should only happen in "make test"
 	if($Global::VendRoot =~ m{/blib$}) {
 		shift @INC;
@@ -331,27 +332,10 @@ undef $Vend::ExternalProgram;
 
 sub dontwarn {
 
-# STATICPAGE
-	$File::Find::name +
-	$File::Find::prune +
-	$File::Find::prune +
-	<DATA> + 
-# END STATICPAGE
-	$Global::AdminSub +
-	$Global::DomainTail +
-	$Global::FullUrl +
-    $Global::HitCount +
-    $Global::ProfilesName +
-    $Global::Profiles +
-    $Global::LockoutCommand +
-    $Global::LockoutCommand +
-	$Global::IpHead +
-	$Vend::CheckHTML +
-	$Vend::Action +
-	$Vend::CC3 +
-	$CGI::server_name +
-	$CGI::content_type +
-	$CGI::http_host +
+	$Global::Shadow +
+	$Vend::JobsJob +
+	$Vend::Interpolate::MAIL +
+	$Vend::Server::RUNDIR +
 
 	1;
 }
