@@ -627,6 +627,7 @@ sub filter_value {
 				$value = join(' ', @str[0..--$num]);
 				$value .= $2 ? '...' : '';
 			}
+			next;
 		}
 		unless (defined $Filter{$_}) {
 			logError ("Unknown filter '%s'", $_);
