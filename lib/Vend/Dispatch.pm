@@ -846,6 +846,15 @@ sub adjust_cgi {
 	}
 }
 
+use vars qw/@NoHistory/;
+
+@NoHistory= qw/
+					mv_credit_card_number
+					mv_credit_card_cvv2
+					mv_password
+					mv_verify
+				/;
+
 sub url_history {
 	$Vend::Session->{History} = []
 		unless defined $Vend::Session->{History};
@@ -855,11 +864,17 @@ sub url_history {
 		push (@{$Vend::Session->{History}},  [ 'expired', {} ]);
 	}
 	else {
-		my $save_number = delete $CGI::values{mv_credit_card_number};
-		my $save_cvv2   = delete $CGI::values{mv_credit_card_cvv2};
+		my @save;
+		for(@NoHistory) {
+			push @save, delete $CGI::values{$_};
+		}
+
 		push (@{$Vend::Session->{History}},  [ $CGI::path_info, { %CGI::values } ]);
-		$CGI::values{mv_credit_card_number} = $save_number if length($save_number);
-		$CGI::values{mv_credit_card_cvv2}   = $save_cvv2   if length($save_cvv2);
+
+		for(my $i = 0; $i < @NoHistory; $i++) {
+			next unless defined $save[$i];
+			$CGI::values{$NoHistory[$i]} = $save[$i];
+		}
 	}
 	return;
 }
