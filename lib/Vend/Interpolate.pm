@@ -5208,6 +5208,38 @@ sub tag_loop_list {
 						defined $opt->{lr}
 						or $opt->{quoted};
 	}
+	elsif ($opt->{extended}) {
+		###
+		### This returns
+		###
+		my ($view, $tab, $key) = split /:+/, $opt->{extended}, 3;
+		if(! $key) {
+			$key = $tab;
+			$tab = $view;
+			undef $view;
+		}
+		my $id = $tab;
+		$id .= "::$key" if $key;
+		my $meta = Vend::Table::Editor::meta_record($id, $view, $opt->{table});
+
+		if(! $meta) {
+			$opt->{object} = {
+					matches		=> 1,
+					mv_results	=> [],
+					mv_field_names => [],
+			};
+		}
+		else {
+			my @keys = grep $_ ne 'code', keys %$meta;
+			unshift @keys, 'code';
+			$opt->{object} = {
+					matches		=> 1,
+					mv_results	=> [ [ @{$meta}{@keys} ] ],
+					mv_field_names => \@keys,
+			};
+		}
+		return region($opt, $text);
+	}
 
 	if ($fn = $opt->{fn} || $opt->{mv_field_names}) {
 		$fn = [ grep /\S/, split /[\s,]+/, $fn ];
