@@ -402,7 +402,7 @@ sub create_db {
 
 sub log {
 	my $self = shift;
-	my $time = $self->{OPTIONS}{UNIX_TIME} ?  time() :
+	my $time = $self->{OPTIONS}{unix_time} ?  time() :
 				POSIX::strftime("%Y%m%d%H%M", localtime());
 	my $msg = shift;
 	logData( ($self->{OPTIONS}{logfile} || $Vend::Cfg->{LogFile}),
