@@ -128,6 +128,7 @@ my %HashDefaultBlank = (qw(
 					SOAP			1
 					Mail			1
 					DatabaseDefault	1
+					SQL_Ledger		1
 				));
 
 my %DumpSource = (qw(
@@ -484,6 +485,7 @@ sub catalog_directives {
 	['PriceDefault',	 undef,              'price'],
 	['PriceField',		 undef,              'price'],
 	['Shipping',         'locale',           ''],
+	['SQL_Ledger',	 	 'hash',     	 	 ''],
 	['AutoVariable',	 'autovar',     	 ''],
 
 	];
@@ -1950,7 +1952,7 @@ sub parse_special {
 sub parse_hash {
 	my($item,$settings) = @_;
 	if (! $settings) {
-		return $HashDefaultBlank{$item} ? '' : {} if ! $settings;
+		return $HashDefaultBlank{$item} ? '' : {};
 	}
 
 	my $c;
