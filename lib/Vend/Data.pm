@@ -1542,11 +1542,11 @@ CHAIN:
 					$test =~ s/\D+//;
 					redo CHAIN if $quantity < $test;
 
-					my $row = database_row(
-						($table || $item->{mv_ib} || $Vend::Cfg->{ProductFiles}[0]),
-						($key || $item->{code}),
-					);
-#::logDebug("database reference to price breaks found table=$table key=$key|$item->{$key}|$item->{code} row=" . ::uneval($row));
+					my $t = $table || $item->{mv_ib} || $Vend::Cfg->{ProductFiles}[0];
+					my $k = $key || $item->{code};
+					my $row = database_row($t, $k);
+#::logDebug("database reference to price breaks found table=$t key=$k row=" . ::uneval($row));
+					redo CHAIN if ref $row ne 'HASH';
 
 					my $keep;
 					$keep = $row->{$field} if $row->{$field} != 0;
