@@ -1,4 +1,4 @@
-# MiniVend V3.12
+# MiniVend V3.15
 # 
 # Copyright 1996-1999 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -30,7 +30,7 @@ interested in problems, suggestions, or comments, but does not have time
 to offer free individual support in most cases. See the MiniVend website at
 http://www.minivend.com/minivend/ for more information.
 
-   IMPORTANT NOTE:  MiniVend 3.12 requires Perl 5.004 or higher. It will
+   IMPORTANT NOTE:  MiniVend 3.15 requires Perl 5.004 or higher. It will
                     run on no earlier version, period. 5.005 is recommended.
 
 The information you need is in the following files:
@@ -198,7 +198,7 @@ standard distribution. You can get it at http://www.perl.com/CPAN-local
 WINDOWS INSTALLATION
 --------------------
 
-    Obtain the self-extracting executable minivend-3.12.exe
+    Obtain the self-extracting executable minivend-3.15.exe
     and double-click on it. You MUST already have Perl 5.004
     INSTALLED and in your PATH.
 
@@ -209,8 +209,8 @@ UNIX INSTALLATION
 ------------------
 Here is the short version:
 
-    gzip -dc minivend-3.12.tar.gz | tar xvf -
-    cd minivend-3.12
+    gzip -dc minivend-3.15.tar.gz | tar xvf -
+    cd minivend-3.15
     ./configure
 
 More information is in the file INSTALL.
@@ -252,7 +252,7 @@ RedHat Linux 5.0:
         latest.tar.gz file:
 
             tar xzf latest.tar.gz
-            cd perl5.004*
+            cd perl5.005*
             perl -pi.dist -e \
                 "s:/ bsd / /:/ net / /' | sed -e 's/ bsd / c g /:; \
                 s/^#(POSIX_cflags)/POSIX_cflags/" \
@@ -294,24 +294,7 @@ BSDI, FreeBSD:
        SO_MAXCONN and some other kernel parameters. 
 
 Solaris:
-       If you are trying to run with Perl 5.003, which is
-       NOT recommended, you must use the File::Lock
-       module -- flock() emulation in Perl 5.003 does not
-       work properly, and fcntl() locking must be used.
-       This version of MiniVend includes File::Lock,
-       and attempts to install it.
-
-       Solaris 2.4 has problems with UNIX-domain sockets
-       and you can expect problems.  Bottom line is that
-       I will not support Solaris releases before 2.5, nor
-       Perl before 5.004.
-
-       You may not use OrderCounter when running Perl
-       5.003 and Solaris.
-
-       If you have Perl 5.004 you can disregard File::Lock.
-
-       It is STRONGLY RECOMMENDED that you update to Perl 5.004
+       It is STRONGLY RECOMMENDED that you update to Perl 5.005
        when running on Solaris.
 
 Windows:

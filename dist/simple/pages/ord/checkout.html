@@ -583,12 +583,14 @@ name=required
 address=required
 city=required
 country=required
-[calc]
-	my $country = q{[cgi country]};
-	$country =~ s/\W+//g;
-	return 'phone_day=phone' unless $country =~ /^(US|CA|USA|UnitedStates|Canada)$/i;
-	return "state=state_province\nzip=zip\nphone_day=phone_us";
-[/calc]
+[if value country =~ /^(US|CA)$/i]
+	state=state_province "[value state]" is not a valid US/Canada state or province.
+	zip=postcode "[value zip]" is not a valid US/Canada postal code.
+	phone_day=phone_us
+[else]
+	phone_day=phone
+[/else]
+[/if]
 email=required
 email=email
 &fatal = yes

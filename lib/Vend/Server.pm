@@ -1,6 +1,6 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.55 1999/06/07 08:07:47 mike Exp mike $
+# $Id: Server.pm,v 1.56 1999/07/16 11:05:41 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
@@ -24,7 +24,7 @@ require Vend::Http;
 @ISA = qw(Vend::Http::CGI);
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.55 $, 10);
+$VERSION = substr(q$Revision: 1.56 $, 10);
 
 use Vend::Util qw(strftime);
 use POSIX qw(setsid);
@@ -75,6 +75,7 @@ sub create_cookie {
 sub canon_status {
 	local($_);
 	$_ = shift;
+	s:^\s+::;
 	s:\s+$::;
 	s:\s*\n:\r\n:mg;
 	return "$_\r\n";

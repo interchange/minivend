@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 #
-# $Id: Search.pm,v 1.28 1999/02/15 08:51:18 mike Exp mike $
+# $Id: Search.pm,v 1.33 1999/07/16 11:05:29 mike Exp $
 #
 # Vend::Search -- Base class for search engines
 #
@@ -27,7 +27,7 @@
 #
 package Vend::Search;
 
-$VERSION = substr(q$Revision: 1.28 $, 10);
+$VERSION = substr(q$Revision: 1.33 $, 10);
 $DEBUG = 0;
 
 my $Joiner;
@@ -216,6 +216,31 @@ Vend::Util::logDebug
 ("spec='" . (join "','", @specs) . "'\n")
 	if ::debug(0x10 );
 # END DEBUG
+
+	if(! scalar @specs or ! $g->{coordinate}) {
+		my $passed;
+		my $msg;
+		for (@specs) {
+			$passed = 1;
+		    next if length($_) >= $g->{min_string};
+			$msg = <<EOF;
+Search strings must be at least $g->{min_string} characters.
+You had '$_' as one of your search strings.
+EOF
+			undef $passed;
+			last;
+		}
+		$passed = 1 if ! $g->{min_string};
+		if(! defined $passed) {
+			$msg = <<EOF if ! $msg;
+Search strings must be at least $g->{min_string} characters.
+You had no search string specified.
+EOF
+			&{$g->{error_routine}}($g->{error_page}, $msg);
+			$g->{matches} = -1;
+			return undef;
+		}
+	}
 
 	# untaint
 	for(@specs) {

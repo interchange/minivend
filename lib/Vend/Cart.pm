@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# MiniVend version 3.12
+# MiniVend version 3.15
 #
 # $Id: Cart.pm,v 1.14 1999/06/07 08:03:57 mike Exp $
 #

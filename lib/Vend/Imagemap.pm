@@ -2,7 +2,7 @@
 #
 # Imagemap.pm -- interpret NCSA imagemap in CGI program
 #
-# $Id: Imagemap.pm,v 1.7 1999/06/07 08:07:01 mike Exp mike $
+# $Id: Imagemap.pm,v 1.7 1999/06/07 08:07:01 mike Exp $
 #
 # This module adapted from the Perl imagemap program by:
 #

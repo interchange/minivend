@@ -14,7 +14,7 @@ MiniVend -- multi-catalog shopping cart and mall
 <A NAME="minivend_version_0">
 Version</A>
 </H2>
-This document describes MiniVend 3.12, based originally on Andrew Wilcox's
+This document describes MiniVend 3.15, based originally on Andrew Wilcox's
 1995 <I>Vend</I>.
 <p><p><hr>
 <!-- INDEX BEGIN -->
@@ -103,7 +103,8 @@ This document describes MiniVend 3.12, based originally on Andrew Wilcox's
 	<LI><A HREF="#MINIVEND_TAG_REFERENCE">MINIVEND TAG REFERENCE</A>
 	<UL>
 
-		<LI><A HREF="#New_and_Old_Style_tags">New and Old Style tags</A>
+		<LI><A HREF="#Tag_syntax">Tag syntax</A>
+		<LI><A HREF="#The_OLD_Tag_Parser">The OLD Tag Parser</A>
 		<LI><A HREF="#DATA_and_FIELD">DATA and FIELD</A>
 		<LI><A HREF="#SET_and_SCRATCH">SET and SCRATCH</A>
 		<LI><A HREF="#DEFAULT_and_LOOKUP">DEFAULT and LOOKUP</A>
@@ -117,6 +118,7 @@ This document describes MiniVend 3.12, based originally on Andrew Wilcox's
 		<LI><A HREF="#Tags_for_summarizing_shopping_ba">Tags for summarizing shopping basket/cart</A>
 		<LI><A HREF="#Item_Lists">Item Lists</A>
 		<LI><A HREF="#Embedded_Perl_Code">Embedded Perl Code</A>
+		<LI><A HREF="#ASP_like_Perl">ASP-like Perl</A>
 		<LI><A HREF="#On_the_fly_Catalog_Pages">On-the-fly Catalog Pages</A>
 		<LI><A HREF="#Tags_for_controlling_old_syntax_">Tags for controlling old syntax interpolation order</A>
 		<LI><A HREF="#Required_Pages">Required Pages</A>
@@ -453,7 +455,7 @@ MiniVend -- shopping cart and electronic catalog system
 <HR>
 <H2><A NAME="Version">Version</A></H2>
 <P>
-This document describes MiniVend 3.12, based on Andrew Wilcox's original
+This document describes MiniVend 3.15, based on Andrew Wilcox's original
 Vend, Version 0.2, with portions from Vend 0.3. This is the third major
 revision of MiniVend.
 
@@ -744,7 +746,7 @@ You can also go to any
 <HR>
 <H2><A NAME="Perl">Perl</A></H2>
 <P>
-You will need Perl version 5.004 or higher to run MiniVend 3.12. Many sites are still running lower Perl versions. In addition, on systems that do not have 
+You will need Perl version 5.004 or higher to run MiniVend 3.15. Many sites are still running lower Perl versions. In addition, on systems that do not have 
 <FONT SIZE=-1>GDBM</FONT> or DB_File installed, memory problems may occur. Large catalogs will use large amounts of memory if the databases must all reside there.
 
 <P>
@@ -869,7 +871,7 @@ the <EM>Catalog</EM> directive to enable access. See <EM>TcpMap</EM> for more de
 Obtain, decompress and untar the distribution:
 
 <P>
-<PRE>    gzip -dc minivend-3.12.tar.gz | tar xvf -
+<PRE>    gzip -dc minivend-3.15.tar.gz | tar xvf -
 </PRE>
 <P>
 
@@ -885,7 +887,7 @@ patches that might have been issued since the release.
 Change to the created directory, something like:
 
 <P>
-<PRE>    cd minivend-3.12
+<PRE>    cd minivend-3.15
 </PRE>
 <P>
 Run the configure script with:
@@ -3294,14 +3296,109 @@ computers and networks.
 
 <P>
 <HR>
-<H2><A NAME="New_and_Old_Style_tags">New and Old Style tags</A></H2>
+<H2><A NAME="Tag_syntax">Tag syntax</A></H2>
 <P>
-There are two styles of tag -- HTML/new, and old. Old style is a legacy
-from prior versions of MiniVend and is no longer in standard use, but its
-positional syntax can <EM>usually</EM> still be used in New/HTML mode for convenience.
+MiniVend uses a style similar to 
+<FONT SIZE=-1>HTML,</FONT> but with [square brackets] replacing
+&lt;chevrons&gt;. The parameters that can be passed are much the same,
+where a parameter=``paramter value'' can be passed.
 
 <P>
-In the new style, you can specify constructs inside an 
+
+<FONT SIZE=-1>IMPORTANT</FONT> 
+<FONT SIZE=-1>NOTE:</FONT> You must set the
+ <EM>NewTags</EM> catalog directive to <CODE>Yes</CODE>
+in <CODE>catalog.cfg</CODE>, which should be the default in any catalog template starting at MiniVend
+3.07. If it is not set, or is set to <CODE>No</CODE>, you will find that the behavior will not match this documentation!
+
+<P>
+Summary:
+
+<P>
+<PRE>        [tag parameter]             Tag called with positional parameter
+        [tag parameter=value]       Tag called with named parameter
+        [tag parameter=&quot;the value&quot;] Tag called with space in parameter
+        [tag 1 2 3]                 Tag called with multiple positional parameters
+        [tag foo=1 bar=2 baz=3]     Tag called with multiple named parameters
+        [tag foo=`2 + 2`]           Tag called with calculated parameter
+        [tag foo=&quot;[value bar]&quot;]     Tag called with tag inside parameter
+        [tag foo=&quot;[value bar]&quot;]
+                Container text.         Container tag.
+    [/tag]
+</PRE>
+<P>
+Most tags can accept positional parameters; this speeds up parsing and is
+simpler to write in many cases.
+
+<P>
+Here is an example tag:
+
+<P>
+<PRE>        [value name=city]
+</PRE>
+<P>
+That will cause MiniVend to look in the user form value array and return
+the value of the form parameter <CODE>city</CODE>, which might have been set with:
+
+<P>
+<PRE>        City: &lt;INPUT TYPE=text NAME=city VALUE=&quot;[value city]&quot;&gt;
+</PRE>
+<P>
+Note that we pre-set the value with the previous value of <CODE>city</CODE> (if any). It uses the positional style -- <A HREF="#item_name">name</A> is the first positional parameter for the [value ...] tag.
+
+<P>
+Positional parameters cannot be derived from other MiniVend tags; for
+instance [value [value formfield]] will not work. But if you use the named
+parameter syntax, the parameters can contain other tags, i.e.:
+
+<P>
+<PRE>        [value name=&quot;[value formfield]&quot;]
+</PRE>
+<P>
+There is one exception to the above rule when using the [item-list], [loop
+...], [sql ...], and other list tags. We will examine that in their
+individual sections.
+
+<P>
+Many MiniVend tags are container tags:
+
+<P>
+<PRE>        [set Checkout]
+                mv_nextpage=ord/checkout
+                mv_todo=return
+        [/set]
+</PRE>
+<P>
+Tags and parameter names are not case sensitive, so 
+<FONT SIZE=-1>[VALUE</FONT> NAME=something] would work just as well. MiniVend convention is to place 
+<FONT SIZE=-1>HTML</FONT> tags in upper case and MiniVend tags in lower case so pages are easier to read, but you could easily reverse the sense.
+
+<P>
+Single quotes work just as well as double quotes, and can prevent
+ambiguity.
+
+<P>
+<PRE>        [value name=b_city set='[value city]']
+</PRE>
+<P>
+works just as well.
+
+<P>
+Backticks, the other single quote, cause the parameter contents to be
+evaluated as Perl code via the <CODE>[calc]</CODE> tag. (This is in 
+<FONT SIZE=-1>MV3.15</FONT> and above.) So
+
+<P>
+<PRE>        [value name=row_value set=`$row_value += 1`] 
+</PRE>
+<P>
+is the same as
+
+<P>
+<PRE>        [value name=row_value set=&quot;[calc]$row_value += 1[/calc]&quot;] 
+</PRE>
+<P>
+You can also specify constructs inside an 
 <FONT SIZE=-1>HTML</FONT> tag:
 
 <P>
@@ -3314,47 +3411,27 @@ In the new style, you can specify constructs inside an
 </PRE>
 <P>
 The above will loop over any items in the shopping cart, displaying their part number, description, and price, but only 
-<FONT SIZE=-1>IF</FONT> there are items in the cart.
+<FONT SIZE=-1>IF</FONT> there are items in the cart. It is equivalent to:
 
 <P>
-The same thing can be achieved with:
-
-<P>
-<PRE>    [if items]
+<PRE>        [if items]
     &lt;TABLE&gt;
-    [item-list]
+        [item-list]
     &lt;TR&gt;
     &lt;TD&gt; [item-code] &lt;/TD&gt;
     &lt;TD&gt; [item-description] &lt;/TD&gt;
     &lt;TD&gt; [item-price] &lt;/TD&gt;
     &lt;/TR&gt;
-    [/item-list]&lt;/TABLE&gt;
-    [/if]
+        [/item-list]
+        &lt;/TABLE&gt;
+        [/if]
 </PRE>
 <P>
-To use the new more regular syntax by default, set the <EM>NewTags</EM>
-directive to <CODE>Yes</CODE>. The demo catalog is distributed with <CODE>NewTags Yes</CODE>
-starting at MiniVend 3.07.
+This is provided to allow 
+<FONT SIZE=-1>HTML</FONT> editors to work with MiniVend if they wish. One
+common tag that is best specified in this fashion is <CODE>[body n]</CODE>, which would be best done as 
+<FONT SIZE=-1>&lt;BODY</FONT> MV=``body 1''&gt;.
 
-<P>
-In most cases, tags specified in the old positional fashion will work the
-same in the new style. The only time you will need to modify them is when
-there is some ambiguity as to which parameter is which (usually due to
-whitespace), or when you need to use the output of a tag as the attribute
-parameter for another tag.
-
-<P>
-<STRONG>TIP:</STRONG> This will not work in the new style as it did in the old:
-
-<P>
-<PRE>    [page scan se=[scratch somevar]]
-</PRE>
-<P>
-To get the output of the <CODE>[scratch somevar]</CODE> interpreted, you must place it within a named and quoted attribute:
-
-<P>
-<PRE>    [page href=&quot;scan&quot; arg=&quot;se=[scratch somevar]&quot;]
-</PRE>
 <P>
 What is done with the results of the tag depends on whether it is a 
 <EM>container</EM> or <EM>standalone</EM> tag. 
@@ -3379,24 +3456,21 @@ Most container tags will not have their contents interpreted before being
 passed the container text. Exceptions include <CODE>[calc]</CODE> .. <CODE>[/calc]</CODE> and
 <CODE>[currency]</CODE> ... <CODE>[/currency]</CODE>. All tags accept the 
 <FONT SIZE=-1>INTERPOLATE=1</FONT> tag modifier, which causes the
-interpretation to take place. It is frequent that you will <STRONG>not</STRONG> want to interpret the contents of a <CODE>[set variable]</CODE>
-
-<FONT SIZE=-1>TAGS</FONT> <CODE>[/set]</CODE> pair, as that might contain tags which should only be upon evaluating an
+interpretation to take place. It is frequent that you will <STRONG>not</STRONG> want to interpret the contents of a <CODE>[set variable]</CODE> 
+<FONT SIZE=-1>TAGS</FONT>
+<CODE>[/set]</CODE> pair, as that might contain tags which should only be upon evaluating an
 order profile, search profile, or <CODE>mv_click</CODE> operation. If you wish to perform the evaluation at the time a variable is
-set, you would use <CODE>[set name=variable interpolate=1] TAGS [/set]</CODE>.
+set, you would use
+<CODE>[set name=variable interpolate=1] TAGS [/set]</CODE>.
 
 <P>
-To use the new syntax only on a particular page, place <STRONG>one</STRONG>  <CODE>[new]</CODE>
-tag in your page. Likewise, to use old syntax when new is the default,
-place <STRONG>one</STRONG>  <CODE>[old]</CODE> tag in the page.
+<HR>
+<H2><A NAME="The_OLD_Tag_Parser">The OLD Tag Parser</A></H2>
+<P>
+If you started using MiniVend prior to version 3.07, you may find that your
+catalog is structured in the [old] style.
 
 <P>
-If you have regions of the page which work under the old style and fail
-with the new style, you can surround them with <CODE>[compat] [/compat]</CODE> tag pair. This will evaluate that region only with the old style repeated
-interpolation.
-
-<P>
-<STRONG>NOTE WHEN USING THE OLD TAG PARSER (NewTags No) or [compat][/compat]:</STRONG>
 MiniVend in old mode interpolates tags in a highly ordered fashion, with
 each tag having a precedence. The order of the tag interpolation can be
 changed by enclosing the tag in a set of double square brackets, bringing
@@ -3411,6 +3485,20 @@ it forward in the process. The order of interpolation is:
   salestax total_cost price currency description row process_order
   process_search process_target
 </PRE>
+<P>
+Using the old parser is now strongly discouraged. You will find that you
+cannot use <STRONG>many</STRONG> of MiniVend's features.
+
+<P>
+If you have regions of the page which work under the old style and fail
+with the new style, you can surround them with <CODE>[compat] [/compat]</CODE> tag pair. This will evaluate that region only with the old style repeated
+interpolation.
+
+<P>
+To use the new syntax only on a particular page, place <STRONG>one</STRONG>  <CODE>[new]</CODE>
+tag in your page. Likewise, to use old syntax when new is the default,
+place <STRONG>one</STRONG>  <CODE>[old]</CODE> tag in the page.
+
 <P>
 <HR>
 <H2><A NAME="DATA_and_FIELD">DATA and FIELD</A></H2>
@@ -3428,6 +3516,12 @@ The following are equivalent for attribute names:
     name  ---&gt; field --&gt; column --&gt; col
     code  ---&gt; key   --&gt; row
 </PRE>
+<P>
+The [field ...] tag is special in that it looks in any of the tables
+defined as <CODE>ProductFiles</CODE>, in that order, for the data, returning the first non-empty value. In most
+catalogs, where <CODE>ProductFiles</CODE> is not defined (i.e. the demo), <CODE>[field title 00-0011]</CODE> is equivalent to
+<CODE>[data products title 00-0011]</CODE>.
+
 <DL>
 <DT><STRONG><A NAME="item__data">[data area field key &quot;value&quot;* increment*]</A></STRONG><DD>
 
@@ -3718,6 +3812,12 @@ current item.
 
 <P><DT><STRONG><A NAME="item__loop_field">[loop-field fieldname]</A></STRONG><DD>
 
+The [loop-field ...] tag is special in that it looks in any of the tables
+defined as <CODE>ProductFiles</CODE>, in that order, for the data, returning the value only if that key is
+defined. In most catalogs, where <CODE>ProductFiles</CODE> is not defined (i.e. the demo), <CODE>[loop-field title]</CODE> is equivalent to
+<CODE>[loop-data products title]</CODE>.
+
+<P>
 Evaluates to the field name <EM>fieldname</EM> in the database, for the current item.
 
 <P><DT><STRONG><A NAME="item__loop_increment_">[loop-increment]</A></STRONG><DD>
@@ -5142,6 +5242,12 @@ current item.
 
 <P><DT><STRONG><A NAME="item__item_field">[item-field fieldname]</A></STRONG><DD>
 
+The [item-field ...] tag is special in that it looks in any of the tables
+defined as <CODE>ProductFiles</CODE>, in that order, for the data, returning the value only if that key is
+defined. In most catalogs, where <CODE>ProductFiles</CODE> is not defined (i.e. the demo), <CODE>[item-field title]</CODE> is equivalent to
+<CODE>[item-data products title]</CODE>.
+
+<P>
 Evaluates to the field name <EM>fieldname</EM> in the products database, for the current item. If the item is not found in
 the first of the
 <EM>ProductFiles</EM>, all will be searched in sequence.
@@ -5472,6 +5578,323 @@ To show the user their name, and the current time:
 <P>
 <PRE>    [/perl]
 </PRE>
+<P>
+<HR>
+<H2><A NAME="ASP_like_Perl">ASP-like Perl</A></H2>
+<P>
+MiniVend 3.15 supports an ASP-like syntax using the <CODE>mvasp</CODE> tag.
+
+<P>
+<PRE>        [mvasp]
+        &lt;HTML&gt;&lt;BODY&gt; 
+                This is HTML.&lt;BR&gt;
+</PRE>
+<P>
+<PRE>        &lt;% $Document-&gt;write(&quot;This is code&lt;BR&gt;&quot;) %&gt;
+                More HTML.&lt;BR&gt;
+        &lt;% $Document-&gt;write(&quot;Code again.&lt;BR&gt;&quot;) %&gt;
+        [/mvasp]
+</PRE>
+<P>
+If no closing <CODE>[/mvasp]</CODE> tag is present, the remainder of the page will be seen as 
+<FONT SIZE=-1>ASP.</FONT>
+
+<P>
+
+<FONT SIZE=-1>ASP</FONT> is simple. Anything between &lt;% and %&gt; is code, and the string %&gt; is not allowed anywhere inside. Anything not between those anchors is plain 
+<FONT SIZE=-1>HTML</FONT> that will be placed unchanged on the page. MiniVend variables and 
+<FONT SIZE=-1>[L][/L]</FONT> and 
+<FONT SIZE=-1>[LC][/LC]</FONT> areas will still be inserted, but any MiniVend tags will not be.
+
+<P>
+<PRE>        [mvasp]
+        &lt;HTML&gt;&lt;BODY&gt; 
+                This is HTML.&lt;BR&gt;
+                [value name] will show up as &amp;#91;value name].&lt;BR&gt;
+</PRE>
+<P>
+<PRE>                &amp;#95_VARIABLE__ value is equal to: __VARIABLE__
+</PRE>
+<P>
+<PRE>        &lt;% $Document-&gt;write(&quot;This is code&lt;BR&gt;&quot;) %&gt;
+</PRE>
+<P>
+The 
+<FONT SIZE=-1>__VARIABLE__</FONT> will be replaced by the value of <CODE>Variable VARIABLE</CODE>, but [value name] will be shown unchanged.
+
+<P>
+There is a complete object structure for use by the 
+<FONT SIZE=-1>ASP:</FONT>
+
+<DL>
+<DT><STRONG><A NAME="item__CGI">$CGI</A></STRONG><DD>
+
+This is a hash reference to <CODE>%CGI::values</CODE>, the value of user variables as submitted in the current page/form. To get
+the value of a variable submitted as
+
+<P>
+<PRE>        &lt;INPUT TYPE=hidden NAME=foo VALUE=bar&gt;
+</PRE>
+<P>
+use 
+
+<P>
+<PRE>        &lt;% $Document-&gt;write(&quot;Value of foo is $CGI-&gt;{'foo'}&quot;); %&gt;
+</PRE>
+<P><DT><STRONG><A NAME="item__Document">$Document</A></STRONG><DD>
+
+This is an object that has several routines associated with it.
+
+<P>
+<PRE> $Document-&gt;write($foo);        # Append $foo to the write buffer array
+ $Document-&gt;insert($foo);       # Insert $foo to front of write buffer array
+ $Document-&gt;header($foo, $opt); # Append $foo to page header
+ $Document-&gt;send();             # Send write buffer array to output, done
+                                # automatically upon end of ASP, clears buffer
+                                # and invalidates $Document-&gt;header()
+ $Document-&gt;hot(1);             # Cause writes to send immediately
+ $Document-&gt;hot(0);             # Stop immediate send
+ @ary = $Document-&gt;review();    # Place contents of write buffer in @ary
+ $Document-&gt;replace(@ary)       # Replace contents of write buffer with @ary
+ $ary_ref = $Document-&gt;ref();   # Return ref to output buffer
+</PRE>
+<P><DT><STRONG><A NAME="item__Document_write_foo_">$Document-&gt;write($foo)</A></STRONG><DD>
+
+Write <CODE>$foo</CODE> to the page in a buffered fashion. The buffer is an
+array that is the results of all previous <CODE>$Document-</CODE>&gt;<CODE>write()</CODE> operations. If $Document-&gt;hot(1) has been set, the output immediately
+goes to the user.
+
+<P><DT><STRONG><A NAME="item__Document_insert_foo_">$Document-&gt;insert($foo)</A></STRONG><DD>
+
+Insert <CODE>$foo</CODE> to the page buffer.
+
+<P>
+<PRE>        $Document-&gt;write(&quot;23&quot;);
+        $Document-&gt;insert(&quot;1&quot;);
+        $Document-&gt;send();
+</PRE>
+<P>
+will output ``123'', while
+
+<P>
+<PRE>        $Document-&gt;write(&quot;23&quot;);
+        $Document-&gt;write(&quot;1&quot;);
+        $Document-&gt;send();
+</PRE>
+<P>
+will output ``231''.
+
+<P><DT><STRONG><A NAME="item__Document_header_foo_">$Document-&gt;header($foo, $opt)</A></STRONG><DD>
+
+Add the header line <CODE>$foo</CODE> to the 
+<FONT SIZE=-1>HTTP</FONT> header. You can use this to change the page
+content type, cache options, or other attributes.
+
+<P>
+The below code changes the content type 
+<FONT SIZE=-1>(MIME</FONT> type) to text/plain:
+
+<P>
+<PRE>        $Document-&gt;header(&quot;Content-type: text/plain&quot;);
+</PRE>
+<P>
+There is an option hash that can be sent, with the only valid value being
+``replace''. The below code scrubs all previous header lines:
+
+<P>
+<PRE>        $Document-&gt;header(&quot;Content-type: text/plain&quot;, { replace =&gt; 1 } );
+</PRE>
+<P>
+Once you have sent output with $Document-&gt;send(), this can no longer be
+done.
+
+<P><DT><STRONG><A NAME="item__Document_hot_foo_">$Document-&gt;hot($foo)</A></STRONG><DD>
+
+If the value of <CODE>$foo</CODE> is true (in a Perl sense), then all
+$Document-&gt;write() operations will be immediately sent until a
+$Document-&gt;hot(0) is executed.
+
+<P><DT><STRONG><A NAME="item__Document_send_">$Document-&gt;send()</A></STRONG><DD>
+
+Causes the document write buffer to be sent to the browser and empties the
+buffer. Any further $Document-&gt;header() calls will be ignored.
+
+<P>
+Can be used to implement non-parsed-header operation.
+
+<P><DT><STRONG><A NAME="item__Document_review_">$Document-&gt;review()</A></STRONG><DD>
+
+Returns the value of the write buffer.
+
+<P>
+<PRE>        @ary = $Document-&gt;review();
+</PRE>
+<P><DT><STRONG><A NAME="item__Document_replace_new_">$Document-&gt;replace(@new)</A></STRONG><DD>
+
+Completely replaces the write buffer with the arguments.
+
+<P><DT><STRONG><A NAME="item__Document_ref_">$Document-&gt;ref()</A></STRONG><DD>
+
+Returns a reference to the write buffer.
+
+<P>
+<PRE>        # Remove the first item in the write buffer
+        my $ary_ref = $Document-&gt;ref();
+        shift @$ary_ref;
+</PRE>
+<P><DT><STRONG><A NAME="item__Carts">$Carts</A></STRONG><DD>
+
+<FONT SIZE=-1>A</FONT> reference to the shopping cart hash
+$Vend::Session-&gt;{carts}. The normal default cart is ``main''. An alias
+for that is $Items.
+
+<P>
+Shopping carts are an array of hash references. Here is an example of a
+session cart array containing a <CODE>main</CODE> and a <CODE>layaway</CODE> cart.
+
+<P>
+<PRE>        {
+                'main' =&gt; [ 
+                                        {
+                                                'code' =&gt; '00-0011',
+                                                'mv_ib' =&gt; 'products',
+                                                'quantity' =&gt; 1,
+                                                'size' =&gt; undef,
+                                                'color' =&gt; undef
+                                        },
+                                        {
+                                                'code' =&gt; '99-102',
+                                                'mv_ib' =&gt; 'products',
+                                                'quantity' =&gt; 2,
+                                                'size' =&gt; 'L',
+                                                'color' =&gt; 'BLUE'
+                                        }
+                                ],
+                'layaway' =&gt; [ 
+                                        {
+                                                'code' =&gt; '00-341',
+                                                'mv_ib' =&gt; 'products',
+                                                'quantity' =&gt; 1,
+                                                'size' =&gt; undef,
+                                                'color' =&gt; undef
+                                        }
+                                ]
+        }
+</PRE>
+<P>
+In this cart array $Carts-&gt;{main}[1]{'code'} is equal to <CODE>99-102</CODE>. In the normal course of events, it would be equivalent to
+$Items-&gt;[1]{'code'}.
+
+<P><DT><STRONG><A NAME="item__Config">$Config</A></STRONG><DD>
+
+<FONT SIZE=-1>A</FONT> reference to the $Vend::Cfg array. Normally you
+should use this with a liberal dose of the MiniVend source code, but for
+simple things you can use something like:
+
+<P>
+<PRE>        # Turn off CyberCash for this user
+        $Config-&gt;{CyberCash} = 0;
+</PRE>
+<P>
+Changes are not persistent except when running in the foreground (Debug
+mode or on Windows).
+
+<P><DT><STRONG><A NAME="item__Items">$Items</A></STRONG><DD>
+
+<FONT SIZE=-1>A</FONT> reference to the <EM>current</EM> shopping cart. Unless you have used a MiniVend
+<CODE>[cart ...]</CODE> tag, it is normally the same as $Carts-&gt;{main}.
+
+<P><DT><STRONG><A NAME="item__Scratch">$Scratch</A></STRONG><DD>
+
+<FONT SIZE=-1>A</FONT> reference to the scratch values ala <CODE>[scratch foo]</CODE>.
+
+<P>
+<PRE>        &lt;% $Scratch-&gt;{foo} = 'bar'; %&gt;
+</PRE>
+<P>
+is equivalent to:
+
+<P>
+<PRE>        [set foo]bar[/set]
+</PRE>
+<P><DT><STRONG><A NAME="item__Session">$Session</A></STRONG><DD>
+
+<FONT SIZE=-1>A</FONT> reference to the session values ala <CODE>[data session username]</CODE>.
+
+<P>
+<PRE>        &lt;%
+                my $out = $Session-&gt;{browser};
+                $Document-&gt;write($out);
+        %&gt;
+</PRE>
+<P>
+is equivalent to:
+
+<P>
+<PRE>        [data session browser]
+</PRE>
+<P>
+You can also set values. If you wanted to change the value of 
+<CODE>[data session source]</CODE>, for example, you could do:
+
+<P>
+<PRE>        &lt;%
+                $Session-&gt;{source} = 'New_partner';
+        %&gt;
+</PRE>
+<P><DT><STRONG><A NAME="item__Tag">$Tag</A></STRONG><DD>
+
+Using the <CODE>$Tag</CODE> object, you can access any MiniVend tag
+including user-defined tags.
+
+<P>
+<PRE>        &lt;%
+                my $user = $Session-&gt;{username};
+                my $name_from_db = $Tag-&gt;data('userdb', 'name', $user );
+                $Document-&gt;write($name_from_db);
+        %&gt;
+</PRE>
+<P>
+is the same as:
+
+<P>
+<PRE>        [data table=userdb column=name key=&quot;[data session username]&quot;]
+</PRE>
+<P><DT><STRONG><A NAME="item__Values">$Values</A></STRONG><DD>
+
+<FONT SIZE=-1>A</FONT> reference to the user form values ala <CODE>[value foo]</CODE>.
+
+<P>
+<PRE>        &lt;% $Document-&gt;write($Values-&gt;{foo}); %&gt;
+</PRE>
+<P>
+is equivalent to:
+
+<P>
+<PRE>        [value foo]
+</PRE>
+<P><DT><STRONG><A NAME="item__amp_Log">&amp;amp;Log</A></STRONG><DD>
+
+Send a message to the error log (same as ::logError in GlobalSub or global
+UserTag).
+
+<P>
+<PRE>        &lt;% 
+                Log(&quot;error log entry&quot;);
+        %&gt;
+</PRE>
+<P>
+It prepends the normal timestamp with user and page information. To supress
+that information, begin the message with a backslash (<CODE>\</CODE>).
+
+<P>
+<PRE>        &lt;% 
+                Log(&quot;\\error log entry without timestamp&quot;);
+                Log('\another error log entry without timestamp');
+                Log(&quot;error log entry with timestamp&quot;);
+        %&gt;
+</PRE>
+<P></DL>
 <P>
 <HR>
 <H2><A NAME="On_the_fly_Catalog_Pages">On-the-fly Catalog Pages</A></H2>

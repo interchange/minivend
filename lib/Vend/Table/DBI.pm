@@ -1,6 +1,6 @@
 # Table/DBI.pm: access a table stored in an DBI/DBD Database
 #
-# $Id: DBI.pm,v 1.25 1999/02/15 08:51:44 mike Exp mike $
+# $Id: DBI.pm,v 1.29 1999/07/16 10:59:02 mike Exp $
 #
 # Copyright 1996-1999 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -19,7 +19,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::DBI;
-$VERSION = substr(q$Revision: 1.25 $, 10);
+$VERSION = substr(q$Revision: 1.29 $, 10);
 
 use strict;
 

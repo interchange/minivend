@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # Interpolate.pm - Interpret MiniVend tags
 # 
-# $Id: Interpolate.pm,v 1.80 1999/02/28 18:30:31 mike Exp $
+# $Id: Interpolate.pm,v 1.87 1999/08/05 03:51:31 mike Exp $
 #
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
 #
@@ -24,7 +24,7 @@ package Vend::Interpolate;
 require Exporter;
 @ISA = qw(Exporter);
 
-$VERSION = substr(q$Revision: 1.80 $, 10);
+$VERSION = substr(q$Revision: 1.87 $, 10);
 
 @EXPORT = qw (
 
@@ -67,11 +67,16 @@ my $wantref = 1;
 my $CacheInvalid = 1;
 my $ready_safe = new Safe;
 $ready_safe->untrap(qw/sort ftfile/);
-$ready_safe->share('$s', '$q', '$item', '&tag_data');
+$ready_safe->share( qw/
+						$mv_filter_value $mv_filter_name $s $q $item &tag_data
+						/);
 
 sub reset_calc {
 	undef $ready_safe;
 	$ready_safe = new Safe;
+	$ready_safe->share( qw/
+						$mv_filter_value $mv_filter_name $s $q $item &tag_data
+						/);
 	$ready_safe->share('$s', '$q', '$item', '&tag_data');
 }
 
@@ -859,6 +864,123 @@ sub tag_data {
 	}
 }
 
+use vars qw/%Filters/;
+
+%Filters = (
+	
+	'uc' =>		sub {
+					return uc(shift);
+				},
+	'lc' =>		sub {
+					return lc(shift);
+				},
+	'digits_dot' => sub {
+					my $val = shift;
+					$val =~ s/[^\d.]+//g;
+					return $val;
+				},
+	'digits' => sub {
+					my $val = shift;
+					$val =~ s/\D+//g;
+					return $val;
+				},
+	'length' =>	sub {
+					my ($val, $len) = (@_);
+					$val = substr($val, 0, $len);
+					return $val;
+				},
+	'word' =>	sub {
+					my $val = shift;
+					$val =~ s/\W+//g;
+					return $val;
+				},
+	'unix' =>	sub {
+					my $val = shift;
+					$val =~ s/\r?\n/\n/g;
+					return $val;
+				},
+	'dos' =>	sub {
+					my $val = shift;
+					$val =~ s/\r?\n/\r\n/g;
+					return $val;
+				},
+	'mac' =>	sub {
+					my $val = shift;
+					$val =~ s/\r?\n|\r\n?/\r/g;
+					return $val;
+				},
+	'gate' =>	sub {
+					my ($val, $var) = @_;
+					return '' unless $::Scratch->{$var};
+					return $val;
+				},
+	'no_white' =>	sub {
+					my $val = shift;
+					$val =~ s/\s+//g;
+					return $val;
+				},
+	'strip' =>	sub {
+					my $val = shift;
+					$val =~ s/^\s+//;
+					$val =~ s/\s+$//;
+					return $val;
+				},
+	'urlencode' => sub {
+					my $val = shift;
+					$val =~ s|[^\w:/.@]|sprintf "%02x", ord $1|eg;
+					return $val;
+				},
+	'entities' => sub {
+					return HTML::Entities::encode(shift);
+				},
+	);
+
+sub input_filter_do {
+	my($varname, $opt, $routine) = @_;
+::logGlobal("filter var=$varname opt=" . Vend::Util::uneval($opt));
+	return undef unless defined $CGI::values{$varname};
+::logGlobal("before filter=$CGI::values{$varname}");
+	$routine = $opt->{routine} || ''
+		if ! $routine;
+	if($routine =~ /\S/) {
+		$Vend::Interpolate::mv_filter_value = $CGI::values{$varname};
+		$Vend::Interpolate::mv_filter_name = $varname;
+		$routine = interpolate_html($routine);
+		$CGI::values{$varname} = tag_calc($routine);
+	}
+	if ($opt->{op}) {
+		my @ops = grep /\S/, split /\s+/, $opt->{op};
+		for(@ops) {
+::logGlobal("filter op=$_ found");
+			if(/^\d+$/) {
+				$CGI::values{$varname} = substr($CGI::values{$varname} , 0, $_);
+				next;
+			}
+			next unless defined $Filters{$_};
+::logGlobal("filter op=$_ exists");
+			$CGI::values{$varname} = &{$Filters{$_}}(
+										$CGI::values{$varname},
+										$varname,
+										);
+		}
+	}
+::logGlobal("after filter=$CGI::values{$varname}");
+	return;
+}
+
+sub input_filter {
+	my ($varname, $opt, $routine) = @_;
+	if($opt->{remove}) {
+		return if ! ref $Vend::Session->{Filter};
+		delete $Vend::Session->{Filter}{$_};
+		return;
+	}
+	$opt->{routine} = $routine if $routine =~ /\S/;
+	$Vend::Session->{Filter} = {} if ! $Vend::Session->{Filter};
+	$Vend::Session->{Filter}{$varname} = $opt;
+	return;
+}
+
 sub conditional {
 	my($base,$term,$operator,$comp, @addl) = @_;
 	my $reverse;
@@ -1439,11 +1561,35 @@ sub safe_tag {
 	return do_tag ('', @_);
 }
 
+sub mvasp {
+	my ($text) = @_;
+	my @code;
+	while ( $text =~ s/(.*?)<%//s || $text =~ s/(.+)//s ) {
+		push @code, <<EOF;
+; my \$html = <<'_MV_ASP_EOF$^T';
+$1
+_MV_ASP_EOF$^T
+chop(\$html);
+		\$Document->write( \$html );
+EOF
+		$text =~ s/(.*?)%>//s
+			or last;;
+		push @code, $1, ";\n";
+		last if ! $text;
+	}
+	my $asp = join "", @code;
+#::logError("ASP CALL:\n$asp\n");
+	return tag_perl ('new', $asp);
+}
+
+
 sub tag_perl {
 	my($args,$body,@args) = @_;
 	my ($result,$file, $sub);
 	my $code = '';
 	my(@share);
+
+	my $new;
 
 	%Vend::Interpolate::Safe = ();
 	@share = split /\s+/, $args if $args;
@@ -1455,6 +1601,43 @@ sub tag_perl {
 		}
 		elsif($_ eq 'scratch') {
 			$Vend::Interpolate::Safe{'scratch'} = $::Scratch;
+		}
+		elsif($_ eq 'new') {
+			$new = 1;
+			use vars qw/
+					$CGI
+					$Carts
+					$Config
+					$Document
+					$Items
+					$Scratch
+					$Session
+					$Tag
+					$Values
+					/;
+			$CGI     = \%CGI::values;
+			$Carts   = $Vend::Session->{carts};
+			$Config  = $Vend::Cfg;
+			$Document = new Vend::Tags::Document;
+			$Scratch = $::Scratch;
+			$Session = $Vend::Session;
+			*Log = \&Vend::Util::logError;
+			$Tag = new Vend::Tags;
+			$Values  = $::Values;
+			$safe->share(qw/
+					$CGI
+					$Document
+					$Carts
+					$Config
+					$Items
+					$Scratch
+					$Session
+					$Tag
+					$Values
+					&tag_data
+					&Log
+					&interpolate_html
+					/);
 		}
 		elsif($_ eq 'sub') {
 			$sub = 1;
@@ -1500,66 +1683,73 @@ sub tag_perl {
 		}
 	}
 
-	$safe->share(qw/
-			%Safe	&safe_tag	&Vend::Parse::parse
-			&do_tag	&tag_data	&interpolate_html
-			/);
-	$safe->share(@other);
 	$safe->untrap(@{$Global::SafeUntrap})
 		if $Global::SafeUntrap;
 
 	$body =~ tr/\r//d if $Global::Windows;
 
-	unless (defined $file or defined $sub) {
-		$result = $safe->reval($code . $body);
-	}
-	elsif (defined $sub) {
-		$body =~ s/\s*(\w+)\s*//;
-		my $name = $1;
-
-
-		if(@args) {
-			$body .= ',' if $body =~ /\S/;
-			$body = "($body";
-			for(@args) {
-				$body .= uneval($_);
-				$body .= ',';
-			}
-			$body .= ')';
-		}
-
-		eval {@_ = eval $body};
-
-		if($@) {
-			logError("Bad args to perl sub $name for page $CGI::path_info: $@");
-			return '';
-		}
-
-		if (defined $::Scratch->{$name}) {
-			$result = $safe->reval( '@_ = ' . $body . ';' . $code .
-						$::Scratch->{$name});
-		}
-		elsif (defined $Vend::Cfg->{Sub}->{$name}) {
-			if($Global::AllowGlobal->{$Vend::Cfg->{CatalogName}}) {
-				$result = &{$Vend::Cfg->{Sub}->{$name}};
-			}
-			else {
-				$body = '()' unless $body =~ /\S/;
-				$result = $safe->reval( '@_ = ' . $body . ';' . $code .
-						$Vend::Cfg->{Sub}->{$name} );
-			}
-		}
-		elsif (defined $Global::GlobalSub->{$name}) {
-			$result = &{$Global::GlobalSub->{$name}};
-		}
-		else {
-			logError("Undefined perl sub $name");
-			return '';
-		}
-			
+	if($new) {
+		$safe->reval($body);
+		$result = join "", @Vend::Tags::Out;
 	}
 	else {
-		$result = $safe->rdo($body);
+		$safe->share(qw/
+				%Safe	&safe_tag	&Vend::Parse::parse
+				&do_tag	&tag_data	&interpolate_html
+				/);
+		$safe->share(@other);
+
+		unless (defined $file or defined $sub) {
+			$result = $safe->reval($code . $body);
+		}
+		elsif (defined $sub) {
+			$body =~ s/\s*(\w+)\s*//;
+			my $name = $1;
+
+
+			if(@args) {
+				$body .= ',' if $body =~ /\S/;
+				$body = "($body";
+				for(@args) {
+					$body .= uneval($_);
+					$body .= ',';
+				}
+				$body .= ')';
+			}
+
+			eval {@_ = eval $body};
+
+			if($@) {
+				logError("Bad args to perl sub $name for page $CGI::path_info: $@");
+				return '';
+			}
+
+			if (defined $::Scratch->{$name}) {
+				$result = $safe->reval( '@_ = ' . $body . ';' . $code .
+							$::Scratch->{$name});
+			}
+			elsif (defined $Vend::Cfg->{Sub}->{$name}) {
+				if($Global::AllowGlobal->{$Vend::Cfg->{CatalogName}}) {
+					$result = &{$Vend::Cfg->{Sub}->{$name}};
+				}
+				else {
+					$body = '()' unless $body =~ /\S/;
+					$result = $safe->reval( '@_ = ' . $body . ';' . $code .
+							$Vend::Cfg->{Sub}->{$name} );
+				}
+			}
+			elsif (defined $Global::GlobalSub->{$name}) {
+				$result = &{$Global::GlobalSub->{$name}};
+			}
+			else {
+				logError("Undefined perl sub $name");
+				return '';
+			}
+				
+		}
+		else {
+			$result = $safe->rdo($body);
+		}
 	}
 		
 	if ($@) {
@@ -2158,7 +2348,7 @@ EOF
 sub tag_page {
     my($page, $arg, $secure, $opt) = @_;
 
-	return '<A HREF=' . form_link(@_) . '">' if defined $opt and $opt->{form};
+	return '<A HREF="' . form_link(@_) . '">' if defined $opt and $opt->{form};
 
 	if ($page eq 'scan') {
 		$page = escape_scan($arg);
@@ -3496,10 +3686,10 @@ sub tag_item_list {
 						discount_price($item, item_price($item,$1), $1)
 						, $2
 						)!geo;
-		$run =~ s!$T{'item-discount'}$Opt$T!
+		$run =~ s!$T{'item-discount'}(?:\s+(?:quantity=)?"?(\d+)"?)?$Optx$T!
 					currency(item_discount($item->{code},
-											item_price($item),
-											$item->{quantity}), $1)!geo;
+											item_price($item, $1),
+											$item->{quantity}), $2)!geo;
 		$run =~ s#$T{'item-last'}\]
                     \s* ($Some) \s*
                 $T{'/item-last'}\]#
@@ -3830,6 +4020,9 @@ sub search_page {
 				  !xgeo;
 		$page =~ s:$T{'no-match'}\]($Some)$T{'/no-match'}\]:$1:geo
 					or ! $q or do {
+                        if(! ref $q->{specs}) {
+                            $q->{specs} = [ $q->{specs} ];
+                        }
 						my $subj = join "|", @{$q->{specs}};
 						::display_special_page(
 							find_special_page('nomatch'), $subj);
@@ -3970,7 +4163,7 @@ sub order_page {
 
 sub item_discount {
 	my($code,$price,$q) = @_;
-	return $price - discount_price($code,$price,$q);
+	return ($price * $q) - discount_price($code,$price,$q);
 }
 
 sub discount_price {
@@ -4763,6 +4956,87 @@ sub tag_lookup {
 	my($selector,$field,$key,$rest) = @_;
 	return $rest if (defined $rest and $rest);
 	return tag_data($selector,$field,$key);
+}
+
+package Vend::Tags;
+
+require Exporter;
+require AutoLoader;
+
+use vars qw($AUTOLOAD @ISA);
+@ISA = qw(Exporter);
+
+sub new {
+	return bless {}, shift;
+}
+
+sub AUTOLOAD {
+	shift;
+	my $routine = $AUTOLOAD;
+	$routine =~ s/.*:://;
+	return Vend::Parse::do_tag($routine, @_);
+}
+
+1;
+
+package Vend::Tags::Document;
+
+my $Hot;
+
+sub new { return bless {}, shift }
+
+sub hot {
+	shift;
+	$Hot = shift;
+}
+
+sub send {
+	shift;
+	::response(undef, join "", @_);
+}
+
+sub header {
+	return undef if $Vend::ResponseMade;
+	shift;
+	my ($text, $opt) = @_;
+	$Vend::StatusLine = '' if ref $opt and $opt->{replace};
+	$Vend::StatusLine = '' if !defined $Vend::StatusLine;
+	$Vend::StatusLine .= shift;
+}
+
+sub insert {
+	shift;
+	unshift(@Vend::Tags::Out, @_);
+	return;
+}
+
+sub ref {
+	return \@Vend::Tags::Out;
+}
+
+sub review {
+	shift;
+	my $idx;
+	if( defined ($idx = shift) ) {
+		return $Vend::Tags::Out[$idx];
+	}
+	else {
+		return @Vend::Tags::Out;
+	}
+}
+
+sub replace {
+	shift;
+	@Vend::Tags::Out = @_;
+	return;
+}
+
+sub write {
+	shift;
+::logError("writing @_");
+	push @Vend::Tags::Out, @_;
+	return if ! $Hot;
+	Vend::Tags::Document::send( undef, join("", splice(@Vend::Tags::Out, 0)) );
 }
 
 1;

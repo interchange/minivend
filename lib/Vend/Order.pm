@@ -2,7 +2,7 @@
 #
 # MiniVend version 1.04
 #
-# $Id: Order.pm,v 1.34 1999/02/15 08:51:07 mike Exp mike $
+# $Id: Order.pm,v 1.39 1999/07/16 11:04:13 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -33,7 +33,7 @@
 package Vend::Order;
 require Exporter;
 
-$VERSION = substr(q$Revision: 1.34 $, 10);
+$VERSION = substr(q$Revision: 1.39 $, 10);
 $DEBUG = 0;
 
 @ISA = qw(Exporter);
@@ -526,7 +526,7 @@ sub mail_order {
     my($body, $i, $code, $ok, $seen, $blankline);
     my($values, $key, $value, $pgp, $subject);
 	my(%modifiers);
-	my $new = 0;
+	my $new = $Vend::Cfg->{NewReport};
     $seen = get_ignored();
     $body = order_report($seen);
     return undef unless defined $body;

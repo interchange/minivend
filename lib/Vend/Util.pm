@@ -1,6 +1,6 @@
 # Util.pm - Minivend utility functions
 #
-# $Id: Util.pm,v 1.51 1999/06/07 08:08:04 mike Exp mike $
+# $Id: Util.pm,v 1.52 1999/08/05 03:51:52 mike Exp $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
@@ -69,7 +69,7 @@ use Config;
 use Fcntl;
 use subs qw(logError logGlobal);
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.51 $, 10);
+$VERSION = substr(q$Revision: 1.52 $, 10);
 
 BEGIN {
 	eval {
@@ -1381,7 +1381,7 @@ sub logError {
 
 	$Vend::Session->{'last_error'} = $msg;
 
-    $msg = format_log_msg($msg) unless $msg =~ /^\\/;
+    $msg = format_log_msg($msg) unless $msg =~ s/^\\//;
 
 	$Vend::Errors .= $msg if ($Vend::Cfg->{DisplayErrors} ||
 							  $Global::DisplayErrors);

@@ -1,6 +1,6 @@
 # Vend/Glimpse.pm:  Search indexes with Glimpse
 #
-# $Id: Glimpse.pm,v 1.20 1999/06/07 08:06:32 mike Exp mike $
+# $Id: Glimpse.pm,v 1.20 1999/06/07 08:06:32 mike Exp $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::Glimpse
 #

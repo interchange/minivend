@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# $Id: FlyCat.pm,v 1.5 1999/06/07 08:06:28 mike Exp mike $
+# $Id: FlyCat.pm,v 1.5 1999/06/07 08:06:28 mike Exp $
 #
 # Copyright 1998-1999 by Michael J. Heins <mikeh@iac.net>
 #

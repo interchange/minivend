@@ -1,6 +1,6 @@
 # Config.pm - Configure Minivend
 #
-# $Id: Config.pm,v 1.56 1999/02/15 08:50:46 mike Exp mike $
+# $Id: Config.pm,v 1.64 1999/08/05 03:51:17 mike Exp $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
@@ -40,7 +40,7 @@ use Fcntl;
 use Vend::Parse;
 use Vend::Util;
 
-$VERSION = substr(q$Revision: 1.56 $, 10);
+$VERSION = substr(q$Revision: 1.64 $, 10);
 
 for( qw(search refresh cancel return secure unsecure submit control checkout) ) {
 	$Global::LegalAction{$_} = 1;
@@ -257,6 +257,7 @@ sub catalog_directives {
     ['ReportIgnore',     undef, 			 'credit_card_no,credit_card_exp'],
     ['OrderCounter',	 undef,     	     ''],
     ['ImageAlias',	 	 'hash',     	     ''],
+    ['Filter',		 	 'hash',     	     ''],
     ['ImageDirSecure',   undef,     	     ''],
     ['ImageDirInternal', undef,     	     ''],
     ['ImageDir',	 	 undef,     	     ''],
@@ -593,8 +594,8 @@ CONFIGLOOP: {
 		};
     while(<Vend::CONFIG>) {
 		chomp;			# zap trailing newline,
-		if(/^\s*#include\s+(\S+)/) {
-			push @include, $1;
+		if(/^\s*#include\s+(.+)/) {
+			push @include, glob($1);
 			next;
 		}
 		s/^\s*#.*//;    # comments,
@@ -899,8 +900,8 @@ sub global_config {
                 $configfile . "':\n$!\n";
     while(<Vend::GLOBAL>) {
 		chomp;			# zap trailing newline,
-        if(/^\s*#include\s+(\S+)/) {
-            push @include, $1;
+		if(/^\s*#include\s+(.+)/) {
+			push @include, glob($1);
             next;
         }
 		s/^\s*#.*//;            # comments,
@@ -1260,7 +1261,7 @@ sub parse_special {
 
 sub parse_hash {
 	my($item,$settings) = @_;
-	my(@setting) = grep /\S/, split /[\s,]+/, $settings;
+	my(@setting) = Text::ParseWords::shellwords($settings);
 
 	my $c;
 

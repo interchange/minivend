@@ -1,6 +1,6 @@
 # Vend/Scan.pm:  Prepare searches for MiniVend
 #
-# $Id: Scan.pm,v 1.46 1999/02/15 08:51:16 mike Exp mike $
+# $Id: Scan.pm,v 1.52 1999/07/16 11:05:19 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
@@ -29,7 +29,7 @@ require Exporter;
 			perform_search
 			);
 
-$VERSION = substr(q$Revision: 1.46 $, 10);
+$VERSION = substr(q$Revision: 1.52 $, 10);
 
 use strict;
 use Vend::Util;
@@ -801,11 +801,12 @@ sub perform_search {
 		$delay = 1;
 	}
 	elsif ($c->{mv_search_immediate}) {
-		unless($c->{mv_cache_key}) {
-			Vend::Scan::create_last_search($c);
-			$c->{mv_cache_key} = generate_key($Vend::Session->{last_search});
-		}
-		$delay = 1;
+        unless($c->{mv_cache_key}) {
+            undef $c->{mv_search_immediate};
+            Vend::Scan::create_last_search($c);
+            $c->{mv_cache_key} = generate_key($Vend::Session->{last_search});
+        }
+        $delay = 1 if $c->{mv_delay_page};
 	}
 	# Here we redirect back to the main page delivery mechanism
 	# We will come back with the above when [search-region] is called

@@ -1,6 +1,6 @@
 # Parse.pm - Parse MiniVend tags
 # 
-# $Id: Parse.pm,v 1.50 1999/06/07 08:07:27 mike Exp mike $
+# $Id: Parse.pm,v 1.53 1999/08/05 05:47:25 mike Exp mike $
 #
 # Copyright 1997-1999 by Michael J. Heins <mikeh@iac.net>
 #
@@ -20,12 +20,12 @@
 
 package Vend::Parse;
 
-# $Id: Parse.pm,v 1.50 1999/06/07 08:07:27 mike Exp mike $
+# $Id: Parse.pm,v 1.53 1999/08/05 05:47:25 mike Exp mike $
 
 require Vend::Parser;
 
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.50 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.53 $ =~ /(\d+)\.(\d+)/);
 
 use Safe;
 use Vend::Util;
@@ -40,7 +40,7 @@ require Exporter;
 
 @ISA = qw(Exporter Vend::Parser);
 
-$VERSION = substr(q$Revision: 1.50 $, 10);
+$VERSION = substr(q$Revision: 1.53 $, 10);
 @EXPORT = ();
 @EXPORT_OK = qw(find_matching_end);
 
@@ -67,6 +67,7 @@ my %PosNumber =	( qw!
                 default          2
                 discount         1
                 description      2
+				ecml			 2
                 field            2
                 file             2
                 finish_order     1
@@ -77,6 +78,7 @@ my %PosNumber =	( qw!
                 if               1
                 import           2
                 include          1
+                input_filter     1
                 index            1
                 label            1
                 last_page        2
@@ -130,6 +132,7 @@ my %Order =	(
 				default			=> [qw( name default set)],
 				description		=> [qw( code base )],
 				discount		=> [qw( code  )],
+				ecml			=> [qw( name function )],
 				field			=> [qw( name code )],
 				file			=> [qw( name type )],
 				finish_order	=> [qw( href )],
@@ -144,6 +147,7 @@ my %Order =	(
 				'and'			=> [qw( type term op compare )],
 				index  			=> [qw( table )],
 				import 			=> [qw( table type )],
+				input_filter 	=> [qw( name )],
 				include			=> [qw( file )],
 				item_list		=> [qw( name )],
 				label			=> [qw( name )],
@@ -156,6 +160,7 @@ my %Order =	(
 				page			=> [qw( href arg secure)],
 				pagetarget		=> [qw( href target arg secure)],
 				perl			=> [qw( arg )],
+				mvasp			=> [],
 				post			=> [],
 				price			=> [qw( code quantity base noformat)],
 				process_order	=> [qw( target secure )],
@@ -199,6 +204,7 @@ my %InvalidateCache = (
 				item_list	1
 				import		1
 				index		1
+				input_filter		1
 				if          1
 				last_page	1
 				lookup		1
@@ -311,6 +317,7 @@ my %Routine = (
 				default			=> \&Vend::Interpolate::tag_default,
 				description		=> \&Vend::Data::product_description,
 				discount		=> \&Vend::Interpolate::tag_discount,
+				ecml			=> \&Vend::ECML::ecml,
 				field			=> \&Vend::Data::product_field,
 				file			=> \&Vend::Interpolate::tag_file,
 				finish_order	=> \&Vend::Interpolate::tag_finish_order,
@@ -330,6 +337,7 @@ my %Routine = (
 											($_[0], $Global::NoAbsolute)
 										  );
 									},
+				input_filter	=> \&Vend::Interpolate::input_filter,
 				item_list		=> \&Vend::Interpolate::tag_item_list,
 				'if'			=> \&Vend::Interpolate::tag_self_contained_if,
 				'or'			=> sub { return &Vend::Interpolate::tag_self_contained_if(@_, 1) },
@@ -349,6 +357,7 @@ my %Routine = (
 				page			=> \&Vend::Interpolate::tag_page,
 				pagetarget		=> \&Vend::Interpolate::tag_pagetarget,
 				perl			=> \&Vend::Interpolate::tag_perl,
+				mvasp			=> \&Vend::Interpolate::mvasp,
 				post			=> sub { return $_[0] },
 				price        	=> \&Vend::Interpolate::tag_price,
 				process_order	=> \&Vend::Interpolate::tag_process_order,
@@ -401,6 +410,11 @@ my %attrAlias = (
 	 import          	=> { 
 	 						'database' => 'table',
 	 						'base' => 'table',
+						},
+	 input_filter          	=> { 
+	 						'ops' => 'op',
+	 						'var' => 'name',
+	 						'variable' => 'name',
 						},
 	 data          	=> { 
 	 						'database' => 'table',
@@ -470,8 +484,10 @@ my %canNest = (
 
 my %addAttr = (
 				qw(
+					ecml      1
 					userdb    1
 					import    1
+					input_filter  1
 					index     1
 					page	  1
 					area	  1
@@ -555,9 +571,11 @@ my %hasEndTag = (
 						if			1
 						import		1
 						item_list	1
+						input_filter  1
 						loop		1
 						sql			1
 						perl		1
+						mvasp		1
 						post		1
 						row			1
 						set			1
@@ -580,6 +598,8 @@ my %Interpolate = (
 						row			1
 				)
 			);
+
+my %Gobble = ( qw/ mvasp 1/ );
 
 my %isEndAnchor = (
 
@@ -640,6 +660,25 @@ my %myRefs = (
 	 replaceHTML     => \%replaceHTML,
 	 Routine         => \%Routine,
 );
+
+sub do_tag {
+	my $tag = shift;
+	if (! defined $Routine{tag}) {
+		::logError("Tag '$tag' not defined.");
+		return undef;
+	};
+	if(ref $_[-1] && scalar @{$Order{$tag}}) {
+		my $text;
+		my $ref = pop(@_);
+		$text = shift if $hasEndTag{$tag};
+		my @args = @$ref{ @{$Order{$tag}} };
+		push @args, $ref if $addAttr{$tag};
+		return &{$Routine{$tag}}(@args, $text || undef);
+	}
+	else {
+		return &{$Routine{$tag}}(@_);
+	}
+}
 
 sub add_tags {
 	return unless @_;
@@ -1234,19 +1273,23 @@ sub find_matching_end {
     $$buf =~ s!\[$canon\s![$tag !ig;
     $$buf =~ s!\[/$canon\]![/$tag]!ig;
     my $first = index($$buf, $close);
-    return undef if $first < 0;
+    if ($first < 0) {
+		if($Gobble{$tag}) {
+			$out = $$buf;
+			$$buf = '';
+			return $out;
+		}
+		return undef;
+	}
     my $int = index($$buf, $open);
     my $pos = 0;
-#::logGlobal("find_matching_end: tag=$tag open=$open close=$close $first=$first pos=$pos int=$int");
     while( $int > -1 and $int < $first) {
         $pos   = $int + 1;
         $first = index($$buf, $close, $first + 1);
         $int   = index($$buf, $open, $pos);
-#::logGlobal("find_matching_end: tag=$tag open=$open close=$close $first=$first pos=$pos int=$int");
     }
     $out = substr($$buf, 0, $first);
     $first = $first < 0 ? $first : $first + length($close);
-#::logGlobal("find_matching_end (add close): tag=$tag open=$open close=$close $first=$first pos=$pos int=$int");
     substr($$buf, 0, $first) = '';
     return $out;
 }

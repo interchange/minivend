@@ -1,4 +1,4 @@
-# MiniVend V3.12
+# MiniVend V3.15
 # 
 # Copyright 1996-1999 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -12,14 +12,22 @@ System          DBM      Tested on     Notes
 --------   -------------------------  -----------------------
 Linux         GDBM       2.0.x & up    This is what MiniVend is
                                        developed on -- all features
-                                       should work normally.
+                                       should work normally provided
+									   you have a good Perl. The
+									   best thing to do is install
+									   Perl 5.005 *without removing
+									   any RPM packages*.
+									  
 
     IMPORTANT NOTE FOR REDHAT 5.0:
     If MiniVend fails "make test" this usually means that the POSIX
     library is broken on the distributed Perl. You should update
     Perl.
 
-Windows 95    DB_File    ?????         MiniVend may not stand up
+	And RedHat 5.1 and earlier have *gaping* security holes,
+	so you should update your operating system.
+
+Windows 9x    DB_File    ?????         MiniVend may not stand up
                                        well for high-use
                                        catalogs. Some features
                                        cannot be used because
@@ -38,26 +46,25 @@ Windows NT    DB_File    ?????         Some features of MiniVend
                                        modifying $Safe{config}.
 
 
-FreeBSD       DB_File    2.x, 3.0.x    Many users run MiniVend on
+FreeBSD       DB_File     all          Many users run MiniVend on
                                        this OS. You need Perl 5.004,
                                        which not all BSD distributions
                                        provide (some have Perl 4 as
                                        the default Perl!).
 
-BSDI          DB_File    2.1, 3.0      Many users run MiniVend on
+BSDI          DB_File     all          Many users run MiniVend on
                                        this OS. You need Perl 5.004,
                                        which not all BSD distributions
                                        provide (some have Perl 4 as
                                        the default Perl!).
 
-
-Solaris 2     GDBM       2.4,2.5       Many users run MiniVend on
+Solaris 2     GDBM       2.x           Many users run MiniVend on
                                        this OS, no known problems.
                                        Problems with installation
                                        are usually due to poor or
                                        missing development tools.
 
-SunOS 4.1.x   DB_File    4.1.x         Some users run MiniVend on
+SunOS 4.1.x   DB_File    4.1.x         Has been known to run on
                                        this OS, no known problems.
 
 
@@ -77,10 +84,10 @@ HP/UX          -         10.1          A few users, may be some
                                        trouble with vlink/tlink
                                        compilation.
 
-SCO            -         3.2           Should work fine as of 3.05
+SCO            -         3.2           Should work fine as of MV3.05
 
 AIX            -         4.1           Reported to work with little
                                        difficulty
 
-UNIXware       -         2.1           Should work fine as of 3.05
+UNIXware       -         2.1           Should work fine as of MV3.05
 

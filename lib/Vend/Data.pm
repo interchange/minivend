@@ -1,6 +1,6 @@
 # Data.pm - Minivend databases
 #
-# $Id: Data.pm,v 1.52 1999/02/15 08:50:59 mike Exp mike $
+# $Id: Data.pm,v 1.58 1999/07/16 11:02:15 mike Exp $
 # 
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -297,7 +297,7 @@ sub import_text {
 	}
 
 	my $save = $/;
-	$/ = $record_delim if defined $record_delim;
+	local($/) = $record_delim if defined $record_delim;
 	$options->{Object} = $db;
 	if($delimiter ne 'CSV') {
 		import_ascii_delimited($fn, $options);
@@ -912,7 +912,7 @@ sub import_database {
 #	if ::debug(0x4);
 # END DEBUG
 		my $save = $/;
-		$/ = $record_delim if defined $record_delim;
+		local($/) = $record_delim if defined $record_delim;
         $db = $delimiter ne 'CSV'
 			? import_ascii_delimited($database_txt, $obj, $new_table_name)
         	: import_quoted($database_txt, $obj, $new_table_name);

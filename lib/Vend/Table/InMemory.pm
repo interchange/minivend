@@ -1,6 +1,6 @@
 # Table/InMemory.pm: store a table in memory
 #
-# $Id: InMemory.pm,v 1.16 1999/06/07 08:08:31 mike Exp mike $
+# $Id: InMemory.pm,v 1.16 1999/06/07 08:08:31 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1998 by Mike Heins <mikeh@minivend.com>

@@ -1,6 +1,140 @@
 
                   W H A T ' S   N E W 
 
+MiniVend 3.15 incorporates some new features -- I couldn't resist. 8-)
+
+    * A new ASP-style syntax is supported:
+
+        <HTML MV=mvasp><BODY>This is HTML</BODY>
+        <%
+            $Document->write('This is code');
+        %>
+        HTML again.
+        <%
+            $Document->write('Code again.');
+        %>
+
+    * A new Perl object set is there to support the ASP, but
+      it also is available via
+
+        [perl arg=new]
+            $Document->write("Your name is $Values->{name}");
+        [/perl]
+
+      Objects supported are:
+
+            $CGI->{key}              Hash reference to submitted values
+            $Document->write()       Writes to page
+            $Carts->{cartname}       Direct reference to shopping carts
+            $Config->{key}           Direct reference to $Vend::Cfg
+            $Items->[n]              Direct reference to current cart
+            $Scratch->{key}          Direct reference to scratch area
+            $Session->{key}          Direct reference to session area
+            $Tag->tagname(@args)     Call a tag as a routine (UserTag too!)
+            $Values->{key}           Direct reference to user form values
+            &Log($msg)               Log to the error log
+
+    * Tag parameters quoted with parameter=`code` are the equivalent of 
+      parameter="[calc]code[/calc]".
+
+    * Tag parameters can be quoted with | to strip whitespace:
+    
+        [page  href=|
+                    [value name="whatever"]
+                    |]
+
+        is equivalent to 
+
+        [page  href="[value name="whatever"]"]
+
+    * Tag parameters can be quoted with | to strip whitespace:
+    
+        [page  href=|
+                    [value name="whatever"]
+                    |]
+
+        is equivalent to 
+
+        [page  href="[value name="whatever"]"]
+
+    * Tag parameters can be quoted with @ to insert a scratch
+      value:
+    
+        [value name=foo set=@bar@]
+        [value name=foo set="[scratch bar]"]
+
+      This can be useful when setting large values into variables,
+      as it is much more efficient than the previous method.
+
+    * Input values filters can be set up by quoting with ! and
+      an operation:
+    
+        <INPUT TYPE=text NAME=phone VALUE="[value name=!phone:digits!]">
+
+      This guarantees that the value of "phone" will be digits only
+      when sent to MiniVend. Filters include:
+
+          uc          UPPER CASE 
+          lc          lower case 
+          digits      only digits
+          word        only A-Z a-z _ 0-9
+          urlencode   space becomes %20
+          entities    < becomes &lt;
+          strip       strip leading/trailing whitespace
+          no_white    strip all whitespace
+          gate        set to blank unless scratch variable
+                       with same name is non-blank
+          n           (where n is an integer) length limit
+          remove      delete existing filter (if any)
+
+       Filters can also be created with Filter directive
+       and/or [input-filter op="uc"][/input-filter]
+
+    * Filter directive allows filtering of certain CGI variables
+      for input conditioning; this is not session dependent and
+      automatically operates on any iteration of the variable...
+
+        Filter  phone  digits 10
+
+      That removes all non-digit values from the variable "phone",
+      then limits length to 10. Any session-based filters are applied
+      after this one.
+
+    * [input-filter name=foo] CODE [/input-filter]
+
+      Sets a routine passed to the equivalent of a "[calc]" tag.
+      The value to be filtered is placed in the variable "$mv_filter_value",
+      and the name is set to "$mv_filter_name". It is possible to
+      do something like:
+
+          [input-filter name=country]
+            my $touched = '[tag touch country][/tag]';
+            my $val = $mv_filter_value;
+            my $prospect = &tag_data('country', 'name', $val);
+            return $prospect || $val;
+          [/input-filter]
+
+      That will return the name of a country if it is found as a key
+      in the database (assuming the simple demo country definitions).
+
+    * Small improvements in the parser, notably optimization when
+      positional parameters are used.
+
+    * ECML is supported via the Vend::ECML module. To map the 
+      checkout form values from MiniVend UserDB names, with an [ecml ...]
+      tag:
+
+            [ecml state]
+
+      is equivalent to:
+
+            <INPUT TYPE=text
+                   VALUE="[value state]"
+                   NAME=Ecom_ShipTo_Postal_StateProv
+                   SIZE=2>
+
+     
+
 MiniVend 3.14 is a bug fix release with a couple of new features:
 
     * You can now specify a database in minivend.cfg. It becomes
@@ -39,16 +173,16 @@ MiniVend 3.14 is a bug fix release with a couple of new features:
 
         Database   products  WRITE_ALWAYS  1
 
-	  The default behavior of SQL datbases is equivalent to
-	  WRITE_ALWAYS, while the default for GDBM_File, DB_File,
-	  and Memory databases is equivalent to:
+      The default behavior of SQL datbases is equivalent to
+      WRITE_ALWAYS, while the default for GDBM_File, DB_File,
+      and Memory databases is equivalent to:
 
         Database   products  WRITE_CONTROL 1
         Database   products  WRITE_TAGGED  1
 
-	  As a side effect, I also removed the server error if a write
-	  fails on a DBM database. It simply doesn't write and logs
-	  the problem.
+      As a side effect, I also removed the server error if a write
+      fails on a DBM database. It simply doesn't write and logs
+      the problem.
 
     * Added a DbSearch.pm module which adds a new search type called
       "db". This searches a SQL database with MiniVend search types,
@@ -69,23 +203,23 @@ MiniVend 3.14 is a bug fix release with a couple of new features:
       are the same. It will not work well if they are different, so it will
       be rare when you want to search multiple tables.
 
-	Bug fixes:
+    Bug fixes:
 
-	* Set default for NewReport to "yes", which prevents the occasional
-	  problem with returning a bogus error report if mv_order_report is
-	  not set.
-	
-	* Fixed some weirdness in parsing certain search parameters, notably
-	  mv_sql_query and index search specifications.
+    * Set default for NewReport to "yes", which prevents the occasional
+      problem with returning a bogus error report if mv_order_report is
+      not set.
+    
+    * Fixed some weirdness in parsing certain search parameters, notably
+      mv_sql_query and index search specifications.
 
-	* Changed sort variables to globals so that sorting should be
-	  reliable. I hope.
+    * Changed sort variables to globals so that sorting should be
+      reliable. I hope.
 
-	* Fixed quantity problem for [price code].
+    * Fixed quantity problem for [price code].
 
-	* Made mv_order_subject work for order routing.
+    * Made mv_order_subject work for order routing.
 
-	* Order tracking now can be done in order routing.
+    * Order tracking now can be done in order routing.
 
 MiniVend 3.12 is a major release with multiple new features,
 particularly in the area of user access control.

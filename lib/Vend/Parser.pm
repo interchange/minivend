@@ -1,6 +1,6 @@
 package Vend::Parser;
 
-# $Id: Parser.pm,v 1.16 1999/06/07 08:07:30 mike Exp mike $
+# $Id: Parser.pm,v 1.18 1999/08/05 03:49:42 mike Exp $
 
 =head1 NAME
 
@@ -106,7 +106,7 @@ use strict;
 
 use HTML::Entities ();
 use vars qw($VERSION);
-$VERSION = sprintf("%d.%02d", q$Revision: 1.16 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.18 $ =~ /(\d+)\.(\d+)/);
 
 
 sub new
@@ -180,6 +180,11 @@ sub parse
 				$self->text($$buf);
 				$$buf = "";
 			}
+		# Find the most common tags
+		} elsif ($$buf =~ s|^(\[([-a-zA-Z_]+)[^"'=\]>]*\])||) {
+#::logDebug("tag='$tag' eat='$eat'\n");
+				undef $self->{HTML};
+				$self->start($2, {}, [], $1);
 		# Then, finally we look for a start tag
 		} elsif ($$buf =~ s|^([<\[])||) {
 			# start tag
@@ -247,17 +252,33 @@ sub parse
 					
 					# The attribute might take an optional value (first we
 					# check for an unquoted value)
-					if ($$buf =~ s|(^=\s*([^\"\'\]\s][^\]>\s]*)\s*)||) {
+					if ($$buf =~ s~(^=\s*([^\!\|\@\"\'\`\]\s][^\]>\s]*)\s*)~~) {
 						$eaten .= $1;
 						next unless defined $attr;
 						$val = $2;
 						HTML::Entities::decode($val);
-					# or quoted by " or '
-					} elsif ($$buf =~ s|(^=\s*([\"\'])(.*?)\2\s*)||s) {
+					# or quoted by " or ' or # or $ or |
+					} elsif ($$buf =~ s~(^=\s*(["\'\`])(.*?)\2\s*)~~s) {
 						$eaten .= $1;
 						next unless defined $attr;
 						$val = $3;
 						HTML::Entities::decode($val);
+					# or quoted by `` to send to [calc]
+					} elsif ($$buf =~ s~(^=\s*([\`\!\@\|])(.*?)\2\s*)~~s) {
+						$eaten .= $1;
+						if    ($2 eq '`') { $val = "[calc]${3}[/calc]" }
+						elsif ($2 eq '|') {
+								$val = $3;
+								$val =~ s/^\s+//;
+								$val =~ s/\s+$//;
+						}
+						elsif ($2 eq '~') { $val = $::Scratch->{$3}   }
+						elsif ($2 eq '!') {
+							$val = $3;
+							my($var, $op) = split /:+/, $val, 2;
+							Vend::Interpolate::input_filter($var, { op => $op });
+							$val = $var;
+						}
 					# truncated just after the '=' or inside the attribute
 					} elsif ($$buf =~ m|^(=\s*)$|s or
 							 $$buf =~ m|^(=\s*[\"\'].*)|s) {

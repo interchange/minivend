@@ -1,6 +1,6 @@
 # PageBuild.pm - Interpret MiniVend tags
 # 
-# $Id: PageBuild.pm,v 1.6 1999/06/07 08:07:23 mike Exp mike $
+# $Id: PageBuild.pm,v 1.6 1999/06/07 08:07:23 mike Exp $
 #
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
 #
