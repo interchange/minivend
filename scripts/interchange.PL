@@ -1355,9 +1355,6 @@ EOF
 
 	my $from_cookie;
 	$sessionid = $CGI::values{mv_session_id} || undef;
-	$Vend::OnlyProducts = defined $Vend::Cfg->{ProductFiles}->[1]
-						  ? undef
-						  : $Vend::Cfg->{ProductFiles}->[0];
 
 	if (defined $CGI::cookie and
 		 $CGI::cookie =~ /\bMV_SESSION_ID=(\w{8,32})

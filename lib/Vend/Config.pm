@@ -1650,14 +1650,6 @@ my %Default = (
 							for(@$setting) {
 								next unless defined $C->{Database}{$_}{'file'};
 								push @out, $C->{Database}{$_}{'file'};
-								if( defined $Vend::Cfg->{OnlyProducts} ) {
-									undef $Vend::Cfg->{OnlyProducts};
-									next;
-								}
-								else {
-									$Vend::Cfg->{OnlyProducts} = 
-										$C->{Database}{$_}{'name'};
-								}
 							}
 							unless (scalar @out) {
 								return 1 if $C->{BaseCatalog};
