@@ -1,6 +1,6 @@
 # Table/Msql.pm: access a table stored in an Msql Database
 #
-# $Id: Msql.pm,v 1.3 1996/11/04 09:04:36 mike Exp mike $
+# $Id: Msql.pm,v 1.4 1996/12/16 08:53:44 mike Exp $
 #
 
 # Basic schema
@@ -24,7 +24,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::Msql;
-$VERSION = substr(q$Revision: 1.3 $, 10);
+$VERSION = substr(q$Revision: 1.4 $, 10);
 
 use Carp;
 use strict;
@@ -135,6 +135,7 @@ sub open_table {
 		# to behave exactly the same way
 		if ($sth_listf->is_pri_key()->[$_]) {
 			$key = $sth_listf->name()->[$_];
+			last;
 		} 
     }
 	croak "Msql: no primary key for $tablename\n"
@@ -326,7 +327,7 @@ sub field_settor {
     my ($s, $column) = @_;
     return sub {
         my ($key, $value) = @_;
-        $s->[2]->query("insert into $s->[0] ($column) VALUES ($value) where $s->[1] = '$key'");
+        $s->[2]->query("update $s->[0] $column='$value' where $s->[1] = '$key'");
     };
 }
 
@@ -349,7 +350,7 @@ sub field {
 
 sub set_field {
     my ($s, $key, $column, $value) = @_;
-    my $sth = $s->[2]->query("insert into $s->[0] ($column) VALUES ($value) where $s->[1] = '$key'");
+    my $sth = $s->[2]->query("update $s->[0] $column='$value' where $s->[1] = '$key'");
 	$value;
 }
 
@@ -364,7 +365,7 @@ sub record_exists {
 sub delete_record {
     my ($s, $key) = @_;
 
-    $s->[2]->query("delete from $s->[0] where $s-[1] = '$key'");
+    $s->[2]->query("delete from $s->[0] where $s->[1] = '$key'");
 }
 
 sub version { $Vend::Table::Msql::VERSION }

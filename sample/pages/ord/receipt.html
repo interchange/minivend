@@ -1,47 +1,54 @@
-<HTML>
-<HEAD><TITLE>Thank you for your order!</TITLE></HEAD>
+<HTML><HEAD><TITLE>Art Store -- Receipt</TITLE>
+</HEAD>
 [body 1]
-<IMG  WIDTH=307 HEIGHT=153 SRC="artstore.gif"> <hr>
-
+<IMG SRC="artstore.gif"><BR>
+<FONT SIZE="-1">
+<IMG VSPACE=5 HSPACE=50 SRC="bg.gif"><B>The Art Store</B><BR>
+<IMG VSPACE=5 HSPACE=50 SRC="bg.gif">123 Your St.<BR>
+<IMG VSPACE=5 HSPACE=50 SRC="bg.gif">Yourtown, U.S. 00000
 <P>
-<FONT SIZE=-1>
-<IMG  WIDTH=50 HEIGHT=2 SRC="bg.gif">131 Willow Lane<BR>
-<IMG  WIDTH=50 HEIGHT=2 SRC="bg.gif">Oxford, OH  45056-1340<BR>
-<IMG  WIDTH=50 HEIGHT=2 SRC="bg.gif">(513) 523-7621  (FAX 7501)<BR>
+<IMG VSPACE=5 HSPACE=50 SRC="bg.gif">Phone <B>(800) 555-5555</B><BR>
+<IMG VSPACE=5 HSPACE=50 SRC="bg.gif">FAX 513-555-5555
 </FONT>
 
-<CENTER>
-<H1>R E C E I P T</H1>
-
-<H2>Sold to:</H2>
+<CENTER><H2>Receipt</H2>
+<P>
+<H2>SOLD TO:</H2>
 </CENTER>
+
 <PRE>
 
             Name: [value name]
          Company: [value company]
    Email address: [value email]
 
- Billing address: [value address]
+         Address: [value address]
 City, State, Zip: [value city], [value state]  [value zip]
          Country: [value country]
 
-  Payment Method: [value cc_type]
- Shipping Method: [shipping-desc]
+  Payment Method: [value mv_payment]
+ Shipping Method: [shipping_desc]
 
    Daytime Phone: [value phone_day]
    Evening Phone: [value phone_night]
 
+[if value s_address]
+   Shipping Name: [value s_name]
 Shipping Address: [value s_address]
 City, State, Zip: [value s_city], [value s_state]  [value s_zip]
 Shipping Country: [value s_country]
+[/if]
 
-Quan  Code        Description                     Price        Extension
----- -------- ------------------------------- ------------- --------------- 
+Quan  Item No.    Description                           Price      Extension
+---- ----------- ------------------------------- ------------- --------------- 
 [item-list][row 80]
 [column width=5 gutter=1 align=right]  [item-quantity] [/column]
-[column width=9 gutter=1]  [item-code] [/column]
+[column width=12 gutter=1]  [item-code] [/column]
 [column width=32 gutter=1 align=left wrap=1]
-[item-description]
+[item-field title], [item-field artist]
+[if explicit "[item-modifier size]"]
+SIZE: [item-modifier size]
+[/if]
 [/column]
 [column width=14 gutter=1 align=r]  [item-price] [/column]
 [column width=15 gutter=0 align=r] [item-subtotal] [/column]
@@ -50,41 +57,47 @@ Quan  Code        Description                     Price        Extension
 [/item-list]
 [row 80]
 [column width=5 align=right][/column]
-[column width=9 gutter=1][/column]
-[column width=32 align=R wrap=1]SUBTOTAL[/column]
-[column width=14 gutter=1][/column]
+[column width=12 gutter=1][/column]
+[column width=32 align=R wrap=1][/column]
+[column width=14 gutter=1]SUBTOTAL[/column]
 [column width=15 gutter=0 align=r][subtotal][/column]
 [/row]
 [row 80]
 [column width=5 align=right][/column]
-[column width=9 gutter=1][/column]
-[column width=32 align=R wrap=1]SALES TAX[/column]
-[column width=14 gutter=1][/column]
+[column width=12 gutter=1][/column]
+[column width=32 align=R wrap=1][/column]
+[column width=14 gutter=1]SALES TAX[/column]
 [column width=15 align=right gutter=0][salestax][/column]
 [/row]
 [row 80]
 	[column width=5 align=right][/column]
-	[column width=9 gutter=1][/column]
-	[column width=32 align=R wrap=1][shipping_desc] SHIPPING[/column]
-	[column width=14 gutter=1][/column]
+	[column width=12 gutter=1][/column]
+	[column width=32 align=R wrap=1][/column]
+	[column width=14 gutter=1]SHIPPING[/column]
 	[column width=15 align=right gutter=0][shipping][/column]
 [/row]
 
 [row 80]
 [column width=5 align=right][/column]
-[column width=9 gutter=1][/column]
-[column width=32 align=R wrap=1]ORDER TOTAL[/column]
-[column width=14 gutter=1][/column]
+[column width=12 gutter=1][/column]
+[column width=32 align=R wrap=1][/column]
+[column width=14 gutter=1]ORDER TOTAL[/column]
 [column width=15 align = right gutter=0][total-cost][/column]
 [/row]
+
 </PRE>
-<FORM ACTION="[process-target _self]"><INPUT TYPE=HIDDEN NAME=mv_submit VALUE=JUNK>
-</FORM>
+
+[if value gift_note]
+<B>Note for Gift:</B><BR>
+<PRE>
+[value gift_note]
+</PRE>
+[/if]
 <P>
+
 <CENTER>
-<I>(Please print this receipt for your records.
-Thank you for your order!)</I>
+<I>(Please print this receipt for your records. Thank you for your order!)</I>
 <P>
-[[buttonbar 0]]
+[buttonbar 0]
 </CENTER>
 </body> </html>

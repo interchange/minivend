@@ -1,0 +1,30 @@
+<HTML>
+<HEAD>
+<TITLE>Select Payment Methods</TITLE>
+</HEAD>
+
+[set Pay by Credit Card]
+mv_orderpage=ord/enter_cc
+[/set]
+
+[set Call Us]
+mv_orderpage=ord/callus
+[/set]
+
+<BODY BGCOLOR=white>
+<CENTER>
+<H1>Select Payment Method</H1>
+<FORM ACTION="[process-order]" METHOD="POST">
+<input type="hidden" name="mv_doit" value="refresh">
+<HR><BR><BR>
+[page ord/enter_non]<I>Non-secure browsers use this link for credit cards</I>[/page]<P>
+
+<input type=submit name="mv_click" value="Pay by Credit Card">
+<input type=submit name="mv_click" value="Call Us">
+<P> 
+<BR>
+
+</form>
+[buttonbar 0]
+</CENTER>
+</body> </html>

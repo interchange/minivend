@@ -28,13 +28,6 @@ fr_greet
 	    pages
 	<LI>Help messages (like this one) can be turned off in Control
 
-nf_greet
-	<LI>Name: nf_greet.html - disable frames or catalog for standard browsers
-	<LI>The frames-off element disabled frames
-    <LI>The Control page will allow the user to go back to frames if they wish
-    <LI>The background and/or color scheme was placed with the &#91;body&#93; element
-    <LI>The buttonbar below was placed with a &#91;buttonbar&#93; element
-
 random
 [random]
 
@@ -46,14 +39,6 @@ basket
 	variables
 	<LI>Order information is tracked, and can be entered automatically in
 	your order entry software with the Tracking and AsciiBackend capabilities
-
-reframe
-	<LI>Name: reframe.html - re-makes the frame set if a frame-based
-	browser turns frames back on
-	<LI>If a non-frame browser tries to enable frames, this page will
-	be displayed
-	<LI>The background and/or color scheme was placed with the &#91;body&#93; element
-	<LI>The buttonbar below was placed with a &#91;buttonbar&#93; element
 
 search
 	<LI>This page returns the search results
@@ -73,15 +58,6 @@ control
 footer
 </UL></H5><P>
 
-fr_main
-	<LI>Name: fr_main.html - example of how to give some directions
-	on using the catalog
-	<LI>Its frame name is 'main'
-	<LI>When searches are done, results are put here
-	<LI>All this can be structured differently, this
-	is just an example
-	<LI>This is for frames browsers only
-
 checkout
 	<LI>This is where the user goes when they click <STRONG>CheckOut</STRONG>,
 	which is placed with the &#91;finish_order] tag
@@ -94,7 +70,7 @@ checkout
 	<LI>Order information is tracked, and can be entered
 	automatically in your order entry software
 
-fr_comb
+query
 	<LI>Name: fr_comb.html - example search form for frame-based browsers
 	<LI>It is designed to let the user search the database for any text
 	<LI>Or select from a series of pre-defined categories
@@ -103,25 +79,6 @@ fr_comb
 	<LI>You can customize if you wish, but make sure you don't
 	change the variable names beginning with 'mv_' unless you read the
 	documentation thoroughly
-
-nf_search
-	<LI>Name: nf_search.html - example search form for standard browsers
-	<LI>It is designed to let the user search the database for any text
-	<LI>You can customize if you wish, but make sure you don't
-	change the variable names beginning with 'mv_' unless you read
-	the documentation thoroughly
-	<LI>The background and/or color scheme was placed with the &#91;body&#93; element
-	<LI>The buttonbar was placed with a &#91;buttonbar&#93; element
-
-nf_sel
-	<LI>Name: nf_sel.html - example category selection form for
-	standard browsers
-	<LI>This page is designed to search through the catalog for
-	a series of fixed search strings
-	<LI>You can customize if you wish, but make sure you don't change the
-	variable names beginning with 'mv_'
-	<LI>The background and/or color scheme was placed with the &#91;body&#93; element
-	<LI>The buttonbar was placed with a &#91;buttonbar&#93; element
 
 country_select
 <SELECT NAME="country">
@@ -141,3 +98,15 @@ country_select
 	<OPTION> Sweden
 	<OPTION> United Kingdom
 </SELECT>
+
+mc
+Mastercard
+
+amex
+American Express
+
+visa
+Visa
+
+discover
+Discover/Novus

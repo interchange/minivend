@@ -1,3 +1,77 @@
+MiniVend 2.03 - User reconfiguration and internet-domain server,
+
+* Re-configuring a catalog can now be done on an individual
+  basis.  No more server re-starts for a user to change their
+  configuration.
+
+* MiniVend no longer requires DBM, though it is still best to use
+  GDBM or DB_File if available. There is a file-based session
+  storage message mechanism, and product databases can
+  be stored in memory.  This is automatically selected if
+  appropriate.
+
+* Multi-server mechanism changed completely.  Only one
+  server runs when in quiescent state -- it forks additional
+  servers as necessary, up to a limit you decide.  This works
+  around a memory leak in Safe.pm, the server can now run for
+  months on end.
+
+* Runs on just about any Unix operating system with
+  no changes, providing Perl 5.002 is available.  This
+  includes IRIX, which formerly would not run MiniVend.
+
+* Perl subroutines can now be defined on three levels, and
+  directly called from MiniVend pages. Two use the Safe.pm module
+  for enforcing security, while an administrator-enabled GlobalSub
+  routine can run external programs for complete control.
+
+* mSQL support is now considered stable, and the databases
+  can be updated by forms from within MiniVend.
+
+* The link CGI program may now use TCP-based sockets, which
+  allows the link CGI to be located on a different machine than
+  the MiniVend server.  Be careful of security, though!
+
+* Perl link programs are provided for systems without a C compiler.
+  (Solaris still needs a C compiler for File::Lock, unless it is
+  already installed on Perl.) Not production quality -- user
+  help would be appreciated.
+
+* Search sorting can be done right on the page from returned
+  fields, and be sorted by field based on form options.
+
+* The [if ...] conditionals are much improved.  Contained
+  HTML can now be deferred until the last interpolation pass
+  with the [post] [/post] tag pair.
+
+* New mv_click and mv_check special variables set multiple
+  form parameters with a single form button.
+
+* Cookies are only sent once if enabled, preventing annoying
+  multiple warnings if the user has them turned on.
+
+* If the user is going through multiple proxy servers (as
+  AOL users do), the session will be stable.
+
+* If REMOTE_USER is present, the IP address will not be
+  used for the session name, allowing the same user to connect
+  to a saved session from any machine.
+
+* Many other minor bug fixes, improvements, and changes.
+
+  - Server now runs on either UNIX-domain or internet domain sockets
+  - mSQL arrayhash primitive added
+  - More backend support hooks, can be integrated with Cybercash
+  - Order quantities optionally fractional
+  - Shopping carts can be manipulated by Perl [perl carts]
+  - [uniq] and [sort opt] constructs added to search lists
+  - Rudimentary search caching
+  - Improved demo
+  - Fixed [if explicit ...] tag (again)
+  - Added TcpHost, TcpPort, HouseKeeping, SearchCache, Password,
+	MasterHost, RemoteUser, FractionalItems, GlobalSub, Sub
+	directives
+
 MiniVend 2.02 - Multiple Shopping Carts and mSQL
 * mSQL support
 * Added [msql hash|array|html|param] SQL code [/msql] , [msql list SQL code]

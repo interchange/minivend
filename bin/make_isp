@@ -18,7 +18,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-$VendRoot = '/home/minivend';
+$VendRoot = '/home/mvend203';
 
 # Set this to '' if your system doesn't support mkdir -p
 $mkdirgood = '-p';
@@ -255,6 +255,7 @@ else {
 %MacroString = qw(
 
 	__MVC_CGIURL		cgiurl
+	__MVC_CGIDIR		cgidir
 	__MVC_MAILORDERTO	mailorderto
 	__MVC_IMAGEURL		imageurl
 	__MVC_SAMPLEURL		sampleurl
@@ -724,6 +725,7 @@ chdir $Config{catroot}
                 products        1
                 products.db     1
                 products.gdbm   1
+                session         1
                 session.db      1
                 session.gdbm    1
                 session.lock    1
@@ -768,6 +770,7 @@ sub wanted {
 			
 	}
 	else {
+		chmod(0755, $file) if $file =~ /reconfig$/;
 		if($isroot) {
 			chown ($catuid, $catgid, $file)
 				or die "\nCouldn't set ownership on $name: $!\n";

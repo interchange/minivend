@@ -1,8 +1,8 @@
-#!/usr/bin/perl
+#!/usr/local/bin/perl
 
-$Script     = '/cgi/revenda';
-$ScriptPath = '/h/cgi-bin/revenda';
-#$Path = '/c/hfe/compradores';
+$Script     = '/cgi-bin/sample';
+$ScriptPath = '/usr/local/apache/cgi-bin/sample';
+#$Path = "$ENV{HOME}/catalogs/sample/users";
 $Path = '';
 $Suffix = '';
 

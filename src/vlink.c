@@ -1,7 +1,7 @@
 /* vlink.c:  runs as a cgi program and passes request to Vend server
 			 starts MiniVend or Vend server if not running
 
-   $Id: vlink.c,v 2.0 1996/08/30 08:47:04 mike Exp mike $
+   $Id: vlink.c,v 2.2 1997/01/07 01:40:44 mike Exp mike $
 
    Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 
@@ -45,40 +45,23 @@ extern char** environ;
  * 
  * LINK_FILE
  * Location of the unix socket file for communication with the server.
- * This must be in the local filesystem, not an NFS mounted one.
+ * This must be in the local filesystem, not an NFS mounted one. The
+ * configure script will normally set this for you.
  *
  * LINK_TIMEOUT
  * Define timeout in seconds to wait for the server to start listening
  * on the socket.
  *
- * PERL
- * Location of perl on your system
- *
- * VEND
- * Location of minivend on your system
  * 
- * ERROR_ACTION
- * Set to "-notify" (the default) to send mail to the
- * admin address that the server is not running
- * A value of "-test" will send an innocuous message 
- * that we are "doing development"
- *
  */
 
 #define LINK_FILE "/usr/local/lib/minivend/etc/socket"
 #define LINK_TIMEOUT 45
-#define PERL     "/usr/bin/perl"
-#define VEND     "/c/multi/minivend.pl"
-#define ERROR_ACTION   "-test"
 
 
 /* CGI output to the server is on stdout, fd 1.
  */
 #define CGIOUT 1
-
-/* Define as x to enable verbose debugging output.
- */
-#define DEBUG(x)
 
 #ifdef sun
 #define USE_PUTENV
@@ -104,29 +87,12 @@ extern char** environ;
  */
 void server_not_running()
 {
-  char opt;
-
-  opt = 0;
-
   printf("Content-type: text/html\r\n\r\n");
-  printf("<H3>We're sorry, the MiniVend server was not running...\r\n");
-
-  if (!strncmp("-not", ERROR_ACTION, 4)) opt = 1;
-  if (!strncmp("-net", ERROR_ACTION, 4)) opt = 2;
-
-  switch (opt) {
-      case 1: 
-	  	printf("We notified the administrator.</H3>\r\n");
-		break;
-      case 2: 
-      	printf("We started it for you. Click reload to begin.</H3>\r\n");
-		break;
-	  default:
-      	printf("We are probably doing development!</H3>\r\n");
-		exit(1);
-  }
-  fflush(stdout);
-  return;
+  printf("<HTML><TITLE>No response</TITLE></HEAD><BODY  BGCOLOR=\"#FFFFFF\">");
+  printf("<H3>We're sorry, the MiniVend server is unavailable...</H3>\r\n");
+  printf("We are out of service or may be experiencing high system\r\n");
+  printf("demand, please try again soon.</BODY></HTML>\r\n");
+  exit(1);
 }
 
 /* Return this message to the browser when a system error occurs.
@@ -187,8 +153,6 @@ static char* bufp;		/* current position in output buffer */
 static int buf_left;		/* space left in output buffer */
 static int sock;		/* socket fd */
 
-DEBUG(static FILE* debug);
-
 /* Open the unix file socket and make a connection to the server.  If
  * the server isn't listening on the socket, retry for LINK_TIMEOUT
  * seconds.
@@ -230,37 +194,7 @@ static void open_socket()
     sleep(1);
   }
   if (s < 0) {
-
-	/* If ERROR_ACTION not "-notify", this will exit */
     server_not_running();
-
-
-  /* Prevend Vend from thinking it is being called as CGI */
-
-#ifdef USE_PUTENV
-  putenv("GATEWAY_INTERFACE=");
-#else
-  setenv("GATEWAY_INTERFACE", "", 1);
-#endif
-
-  euid = geteuid();
-  r = setreuid( euid, euid );
-  if (r == -1) {
-    printf("Content-type: text/plain\n\n");
-    printf("Could not set uid: %s\n", ERRMSG(errno));
-    exit(1);
-  }
-
-  egid = getegid();
-  r = setregid( egid, egid );
-  if (r == -1) {
-    printf("Content-type: text/plain\n\n");
-    printf("Could not set gid: %s\n", ERRMSG(errno));
-    exit(1);
-  }
-	fclose(stdout);
-	execl(PERL, PERL, VEND, ERROR_ACTION, 0); 
-	fprintf(stderr, "Could not exec %s: %s", PERL, ERRMSG(errno));
     exit(1);
   }
 }
@@ -426,7 +360,6 @@ static struct buffer* new_buffer()
   struct buffer* buf = (struct buffer*) malloc(sizeof(struct buffer));
   if (buf == 0)
     die(0, "malloc");
-  DEBUG(fprintf(debug, "new buffer %p\n", buf));
   buf->len = 0;
   buf->written = 0;
   buf->nextbuf = 0;
@@ -441,23 +374,15 @@ static int read_from_server(bp)
   char* a;
 
   b = BUFSIZE - bp->len;
-  DEBUG(fprintf(debug, "read %d bytes into buffer %p at %d", b, bp, bp->len));
   a = (bp->buf) + bp->len;
-  DEBUG(fprintf(debug, " addr is %p", a));
   do {
     n = read(sock, a, b);
   } while (n < 0 && errno == EINTR);
   if (n < 0)
     die(errno, "read");
   if (n == 0) {
-    DEBUG(fprintf(debug, " eof\n"));
-    DEBUG(fflush(debug));
     return 0;
   }
-  DEBUG(fprintf(debug, "  got %d <", n));
-  DEBUG(fwrite(bp->buf + bp->len, n, 1, debug));
-  DEBUG(fprintf(debug, ">\n"));
-  DEBUG(fflush(debug));
   bp->len += n;
   return 1;
 }
@@ -468,8 +393,6 @@ static int write_to_client(bp)
   int b = bp->len - bp->written;
   int n;
 
-  DEBUG(fprintf(debug, "write %d bytes from buf %p at %d", b, bp, bp->written));
-  DEBUG(fflush(debug));
   do {
     n = write(CGIOUT, bp->buf + bp->written, b);
   } while (n < 0 && errno == EINTR);
@@ -477,10 +400,6 @@ static int write_to_client(bp)
     return 0;
   if (n < 0)
     die(errno, "write");
-  DEBUG(fprintf(debug, "  wrote %d <", n));
-  DEBUG(fwrite(bp->buf + bp->written, n, 1, debug));
-  DEBUG(fprintf(debug, ">\n"));
-  DEBUG(fflush(debug));
   bp->written += n;
   return (bp->written == bp->len);
 }
@@ -501,7 +420,6 @@ static void return_response()
   if (fcntl(CGIOUT, F_SETFL, O_NONBLOCK) < 0)
     die(errno, "fcntl");
   f = fcntl(CGIOUT, F_GETFL);
-  DEBUG(fprintf(debug, "CGIOUT nonblock flag %d\n", f & O_NONBLOCK));
 
   reading = 1;
   readbuf = writebuf = new_buffer();
@@ -509,13 +427,11 @@ static void return_response()
   for (;;) {
     if (writebuf->written == BUFSIZE && writebuf->nextbuf != 0) {
       newbuf = writebuf->nextbuf;
-      DEBUG(fprintf(debug, "new writebuf %p, free old writebuf %p\n", newbuf, writebuf));
       free(writebuf);
       writebuf = newbuf;
     }
 
     writing = (writebuf->written < writebuf->len);
-    DEBUG(fprintf(debug, "writebuf %p, written %d, len %d: writing %d\n", writebuf, writebuf->written, writebuf->len, writing));
 
     if (!reading && !writing)
       break;
@@ -550,7 +466,6 @@ static void return_response()
 
     if (writing && FD_ISSET(CGIOUT, &writefds)) {
       r = write_to_client(writebuf);
-      DEBUG(fprintf(debug, "after write, writebuf %p, written %d, len %d\n", writebuf, writebuf->written, writebuf->len));
     }
   }
 }
@@ -594,8 +509,6 @@ int main(argc, argv)
      int argc;
      char** argv;
 {
-  DEBUG(debug = fopen("/tmp/link.debug", "w"));
-  DEBUG(if (debug == 0) die(errno, "open"));
 
   /* Give us an EPIPE error instead of a SIGPIPE signal if the server
    * closes the socket on us.

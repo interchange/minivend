@@ -1,0 +1,23 @@
+#!/usr/local/bin/perl
+# restart - restarts Vend in UNIX server mode
+# 
+# Modded to just stop and start
+# Support may come for multi-server
+#
+$VendRoot = '/home/mvend203';
+## END CONFIGURABLE VARIABLES
+
+$ENV{PATH} = "/bin:/usr/bin:$VendRoot/bin";
+$ENV{IFS}  = " ";
+
+$n = shift || 1;
+
+# Untaint a single digit from $n;
+$n =~ /(\d)/;
+$n = $1;
+
+system("$VendRoot/bin/stop");
+
+sleep 1;
+
+system("$VendRoot/bin/start $n");

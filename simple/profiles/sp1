@@ -1,8 +1,0 @@
-mv_search_page=srch/mvfaq
-mv_search_field=0
-mv_case=yes
-mv_substring_match=yes
-mv_index_delim=&#10;%%&#10;
-mv_record_delim=&#10;%%%&#10;
-mv_search_file=minivend.asc
-mv_last=1

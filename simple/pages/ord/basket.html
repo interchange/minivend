@@ -1,65 +1,100 @@
 <HTML>
 <HEAD>
-<TITLE>Art Store Shopping Cart</TITLE>
+<TITLE>Shopping Cart Contents</TITLE>
 </HEAD>
 
 [body 1]
 <CENTER>
-<IMG   WIDTH=153 HEIGHT=76 SRC="artsmall.gif">
 <FORM ACTION="[process-target _self]" METHOD=POST>
 <input type="hidden" name="mv_doit" value="refresh">
 <input type="hidden" name="mv_orderpage" value="ord/basket">
 <input type="hidden" name="mv_checkout" value="ord/checkout">
 <input type="hidden" name="mv_nextpage" value="catalog">
-
-<TABLE BORDER=2>
-<CAPTION><H1>Shopping Cart Contents</H1></CAPTION>
+<IMG SRC="artsmall.gif" ALT="- Art Store Logo -">
+<TABLE BORDER=0>
+<CAPTION><FONT SIZE=7>Shopping Cart Contents</FONT><BR></CAPTION>
 <TR>
 <P>
-	<TH WIDTH=70 VALIGN=BOTTOM ALIGN=LEFT>
-	Part No.
+	<TH BGCOLOR="#00F0F0" WIDTH=70 VALIGN=BOTTOM>
+	ISBN
 	</TH>
-	<TH VALIGN=BOTTOM ALIGN=LEFT>
+	<TH BGCOLOR="#00F0F0" VALIGN=BOTTOM ALIGN=LEFT>
 	Description
 	</TH>
-	<TH WIDTH=70 VALIGN=BOTTOM ALIGN=RIGHT>
+	<TH BGCOLOR="#00F0F0" WIDTH=70 VALIGN=BOTTOM ALIGN=center>
 	Quantity
 	</TH>
-	<TH WIDTH=90 VALIGN=BOTTOM ALIGN=RIGHT>
+	<TH BGCOLOR="#00F0F0" WIDTH=90 VALIGN=BOTTOM ALIGN=center>
 	Price
 	</TH>
 </TR>
 [item-list]
 <TR>
 <P>
-	<TD VALIGN=TOP>[item-code]</TD>
-	<TD VALIGN=TOP MARGINWIDTH=12 MARGINHEIGHT=12>
+	<TD BGCOLOR="#FFFFFF" VALIGN=TOP align=center>[item-code]</TD>
+	<TD BGCOLOR="#FFFFFF" VALIGN=TOP MARGINWIDTH=12 MARGINHEIGHT=12>
 	[item-description]
+[if explicit items scratch]
+[condition]
+$no = $Safe{scratch}->{"nodisplay_[item-code]"};
+return 1 unless $no;
+foreach $item (reverse @{$Safe{items}}) {
+	return '' if $no eq $item->{'code'};
+}
+1;
+[/condition]
+	<BR><FONT SIZE="-1">[item-accessories]</FONT>	
 	</TD>
-	<TD VALIGN=TOP>
+[/if]
+	<TD BGCOLOR="#FFFFFF" VALIGN=TOP ALIGN=CENTER>
 	<input type="text" name=[quantity-name] value="[item-quantity]" size=3>
 	</TD>
-	<TD VALIGN=TOP ALIGN=RIGHT>$[item-price]<p></TD>
+	<TD BGCOLOR="#FFFFFF" VALIGN=TOP ALIGN=RIGHT>$[item-price]<p></TD>
 </TR>
 [/item-list]
 <TR>
-<TD COLSPAN=3 ALIGN=RIGHT VALIGN=TOP>
-<input type="image" name="mv_submit" BORDER=0 SRC="recalc.gif">
-<IMG BORDER=0   WIDTH=50 HEIGHT=2 SRC="bg.gif" ALT=" . . ">
-<IMG BORDER=0   WIDTH=50 HEIGHT=2 SRC="bg.gif" ALT=" . . ">
-	Subtotal
-<TD ALIGN=RIGHT VALIGN=CENTER>$[subtotal]</TD>
+<TD BGCOLOR="#00F0F0" COLSPAN=3 ALIGN=RIGHT VALIGN=CENTER>
+<input type="submit" name="mv_submit" value="Recalculate">
+<IMG BORDER=0 WIDTH=50 HEIGHT=2 SRC="bg.gif" ALT=" . . ">
+<IMG BORDER=0 WIDTH=50 HEIGHT=2 SRC="bg.gif" ALT=" . . ">
+	<B>Subtotal</B>
+<TD BGCOLOR="#FFFFFF" ALIGN=RIGHT VALIGN=CENTER>$[subtotal]</TD>
+</TR>
+<TR>
+<TD BGCOLOR="#00F0F0" COLSPAN=4 ALIGN=CENTER>
+<input type="submit" name="mv_todo" value="Check out">
+<input type="submit" name="mv_click" value="Search">
+<input type="submit" name="mv_click" value="Browse">
+<input type="submit" name="mv_click" value="Home">
+<input type="submit" name="mv_click" value="Stop shopping">
+</TD>
 </TR>
 </TABLE>
 
 
 <P>
-<center>
-<input type="image" name="mv_todo.checkout" BORDER=0 SRC="checkout.gif">
-<input type="image" name="mv_todo.return"   BORDER=0 SRC="home.gif">
-[page canceled]<IMG BORDER=0 SRC="stopshop.gif">[/page]
+
+[set Stop shopping]
+mv_todo=return
+mv_nextpage=canceled
+[/set]
+
+[set Home]
+mv_todo=return
+mv_nextpage=catalog
+[/set]
+
+[set Search]
+mv_todo=return
+mv_nextpage=srchform
+[/set]
+
+[set Browse]
+mv_todo=return
+mv_nextpage=browse
+[/set]
 
 <BR>
 
-</CENTER>
+</FORM>
 </body> </html>

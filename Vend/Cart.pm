@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 #
-# MiniVend version 2.02
+# MiniVend version 2.03
 #
-# $Id: Cart.pm,v 1.1 1996/10/30 04:22:28 mike Exp $
+# $Id: Cart.pm,v 1.2 1996/12/16 08:53:44 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -32,7 +32,7 @@ package Vend::Cart;
 @EXPORT = qw(get_cart set_cart sort_cart toss_cart);
 @EXPORT_OK = qw(create add set);
 
-$VERSION = substr(q$Revision: 1.1 $, 10);
+$VERSION = substr(q$Revision: 1.2 $, 10);
 $DEBUG   = 0;
 
 use Carp;

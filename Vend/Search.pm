@@ -19,10 +19,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
 
+#
+##  vi regex to delete debugs     %s/^\(.*$s->debug\)/#\1/
+##  vi regex to restore debugs     %s/^\([^#]*\)#\(.*$s->debug\)/\1\2/
+#
 package Vend::Search;
 
-$VERSION = substr(q$Revision: 1.2 $, 10);
+$VERSION = substr(q$Revision: 1.6 $, 10);
 $DEBUG = 0;
 
 =head1 NAME
@@ -577,6 +582,7 @@ sub new {
 		sort_field			=> '',
 		sort_option			=> '',
 		session_id			=> '',
+		session_key			=> '',
 		spelling_errors		=> 0,
 		substring_match		=> 0,
 		uneval_routine		=> '\&Vend::Util::uneval',
@@ -743,12 +749,12 @@ sub field_order {
 }
 
 sub more_matches {
-	my($self,$next,$last,$mod) = @_;
+	my($self,$session,$next,$last,$mod) = @_;
 	my $g = $self->{'global'};
 	my @out;
 	my $count = 0;
 	my ($filemod,$first,$save);
-	my $id = $g->{session_id};
+	my $id = $session || $g->{session_id};
 	$mod = defined $mod ? $mod : 1;
 	$g->{search_mod} = $mod;
 	$id = ref $id ? $$id : $id;
@@ -945,9 +951,9 @@ sub range_check {
 	my($s,$index_delim,$line) = @_;
 	my $g = $s->{'global'};
 	my @fields = (split /$index_delim/, $line)[@{$g->{range_look}}];
-	#$s->debug("range_look: '" . join("','", @fields) . "'\n");
-	#$s->debug("range_min:  '" . join("','", @{$g->{range_min}}) . "'\n");
-	#$s->debug("range_max:  '" . join("','", @{$g->{range_max}}) . "'\n");
+#	$s->debug("range_look: '" . join("','", @fields) . "'\n");
+#	$s->debug("range_min:  '" . join("','", @{$g->{range_min}}) . "'\n");
+#	$s->debug("range_max:  '" . join("','", @{$g->{range_max}}) . "'\n");
 	my $i = 0;
 	for(@fields) {
 		no strict 'refs';

@@ -1,5 +1,6 @@
 
       ORDER DATE: $date
+    ORDER NUMBER: [value mv_order_number]
 
             Name: $name
          Company: $company
@@ -9,22 +10,34 @@
 City, State, Zip: $city, $state  $zip
          Country: $country
 
+  Payment Method: [value mv_payment]
+        Shipping: [value mv_shipmode] ([shipping_desc])
+
    Daytime Phone: $phone_day
    Evening Phone: $phone_night
 
-   Shipping Mode: code: [value mv_shipmode] ([shipping-desc])
+[if value s_address]
+    Billing Name: $b_name
+ Billing Address: $b_address
+City, State, Zip: $b_city, $b_state  $b_zip
+Shipping Country: $b_country
+[/if]
 
-Shipping Address: $s_address
-City, State, Zip: $s_city, $s_state  $s_zip
-Shipping Country: $s_country
+[if value mv_credit_card_info]
+Credit Card Information
+[value mv_credit_card_info]
+[/if]
 
-Quan  Code        Description                     Price        Extension
----- -------- ------------------------------- ------------- --------------- 
+Quan  Item No.    Description                           Price      Extension
+---- ----------- ------------------------------- ------------- --------------- 
 [item-list][row 80]
 [column width=5 gutter=1 align=right]  [item-quantity] [/column]
-[column width=9 gutter=1]  [item-code] [/column]
+[column width=12 gutter=1]  [item-code] [/column]
 [column width=32 gutter=1 align=left wrap=1]
-[item-description]
+[item-field title], [item-field artist]
+[if explicit "[item-modifier size]"]
+SIZE: [item-modifier size]
+[/if]
 [/column]
 [column width=14 gutter=1 align=r]  [item-price] [/column]
 [column width=15 gutter=0 align=r] [item-subtotal] [/column]
@@ -33,34 +46,37 @@ Quan  Code        Description                     Price        Extension
 [/item-list]
 [row 80]
 [column width=5 align=right][/column]
-[column width=9 gutter=1][/column]
-[column width=32 align=R wrap=1]SUBTOTAL[/column]
-[column width=14 gutter=1][/column]
+[column width=12 gutter=1][/column]
+[column width=32 align=R wrap=1][/column]
+[column width=14 gutter=1]SUBTOTAL[/column]
 [column width=15 gutter=0 align=r][subtotal][/column]
 [/row]
 [row 80]
 [column width=5 align=right][/column]
-[column width=9 gutter=1][/column]
-[column width=32 align=R wrap=1]SALES TAX[/column]
-[column width=14 gutter=1][/column]
+[column width=12 gutter=1][/column]
+[column width=32 align=R wrap=1][/column]
+[column width=14 gutter=1]SALES TAX[/column]
 [column width=15 align=right gutter=0][salestax][/column]
 [/row]
 [row 80]
 	[column width=5 align=right][/column]
-	[column width=9 gutter=1][/column]
-	[column width=32 align=R wrap=1][shipping_desc] SHIPPING[/column]
-	[column width=14 gutter=1][/column]
+	[column width=12 gutter=1][/column]
+	[column width=32 align=R wrap=1][/column]
+	[column width=14 gutter=1]SHIPPING[/column]
 	[column width=15 align=right gutter=0][shipping][/column]
 [/row]
 
 [row 80]
 [column width=5 align=right][/column]
-[column width=9 gutter=1][/column]
-[column width=32 align=R wrap=1]ORDER TOTAL[/column]
-[column width=14 gutter=1][/column]
+[column width=12 gutter=1][/column]
+[column width=32 align=R wrap=1][/column]
+[column width=14 gutter=1]ORDER TOTAL[/column]
 [column width=15 align = right gutter=0][total-cost][/column]
 [/row]
 
-  Card Type: $cc_type
-Card Number: $cc_no
- Expiration: $cc_exp_m/$cc_exp_y
+[if value gift_note]
+Gift Note:
+---------------------------------------------------
+[value gift_note]
+[/if]
+

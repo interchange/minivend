@@ -1,8 +1,8 @@
-### MiniVend 2.02 Manifest ###
+### MiniVend 2.03 Manifest ###
 ###                        ###
 ###   DON'T edit this !!!  ###
 ###                        ###
-### $Revision: 2.2 $
+### $Revision: 2.3 $
 ##############################
 
 File dir 0755
@@ -33,6 +33,7 @@ Vend/Scan.pm script 0644
 Vend/Search.pm script 0644
 Vend/Server.pm script 0644
 Vend/Session.pm  script 0644
+Vend/SessionFile.pm  script 0644
 Vend/Table/DB_File.pm script 0644
 Vend/Table/GDBM.pm script 0644
 Vend/Table/Import.pm script 0644
@@ -44,27 +45,28 @@ Vend/TextSearch.pm script 0644 modules;Search::Dict
 Vend/Util.pm script 0644 modules;File::Lock
 Vend/ValidCC.pm script 0644
 bin/buildtree script 0755 shbang,vars:VendRoot:PERL
+bin/checkstat.sh script 0755
 bin/dump script 0755 shbang,vars:VendRoot
 bin/expire script 0755 shbang,vars:VendRoot
-bin/htpasswd.pl script 0744 shbang
+bin/htpasswd.pl script 0755 shbang
 bin/make_isp script 0755 shbang,vars:VendRoot
 bin/make_user script 0755 shbang,vars:VendRoot
 bin/make_virtual script 0755 shbang,vars:VendRoot
 bin/makecat script 0755 shbang
-bin/restart script 0755 shbang,vars:VendRoot
+bin/reconfig script 0755 shbang
+bin/restart_inet script 0755 shbang,vars:VendRoot
+bin/restart_unix script 0755 shbang,vars:VendRoot
 bin/offline script 0755 shbang,vars:VendRoot
-bin/start script 0755 shbang,vars:VendRoot:PERL
+bin/start_inet script 0755 shbang,vars:VendRoot:PERL
+bin/start_unix script 0755 shbang,vars:VendRoot:PERL
 bin/stop script 0755 shbang,vars:VendRoot
 configure script 0755
 configure.pl script 0755 shbang
 doc/intro.html html 0644
 doc/minivend.html html 0644
-doc/svend.html html 0644
-doc/tags.html html 0644
 doc/toc.html html 0644
 error.log static 0644 chown,backup
 etc/mvconf.cmt static 0644
-etc/report static 0644
 manifest static 0644
 minivend.cfg static 0644 backup
 minivend.pl script 0644 shbang,vars:VendRoot:SendMailLocation,modules;File::CounterFile
@@ -74,8 +76,10 @@ src/config.h.in csrc 0644
 src/configure script 0755
 src/configure.in static 0644
 src/submitter script 0755 shbang
-src/svend.c csrc 0644
 src/File-Lock-0.9.tar static 0644
 src/syscfg.in static 0644
 src/testcgi script 0755
+src/tlink.c csrc 0644
+src/tlink.pl script 0755
 src/vlink.c csrc 0644 defs:LINK_FILE
+src/vlink.pl script 0755 vars:LINK_FILE

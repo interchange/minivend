@@ -1,6 +1,6 @@
 # Vend/TextSearch.pm:  Search indexes with Perl
 #
-# $Id: TextSearch.pm,v 1.3 1996/08/24 17:55:42 mike Exp mike $
+# $Id: TextSearch.pm,v 1.7 1997/01/05 09:11:01 mike Exp $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::TextSearch
 #
@@ -28,7 +28,7 @@ package Vend::TextSearch;
 require Vend::Search;
 @ISA = qw(Vend::Search);
 
-$VERSION = substr(q$Revision: 1.3 $, 10);
+$VERSION = substr(q$Revision: 1.7 $, 10);
 
 use Text::ParseWords;
 use Search::Dict;
@@ -88,6 +88,21 @@ sub search {
 	while (($key,$val) = each %options) {
 		$g->{$key} = $val;
 	}
+
+	if(ref($g->{search_file}) =~ /^ARRAY/) {
+		@searchfiles = @{$g->{search_file}};
+	}
+	elsif ($g->{search_file}) {
+		@searchfiles = $g->{search_file};
+	}
+	else {
+		&{$g->{error_routine}}($g->{error_page},
+			"{search_file} must be array reference or scalar.\n");
+		$g->{matches} = -1;
+		return undef; # If it makes it this far
+	}
+	@searchfiles = grep s!^([^/])!$g->{base_directory}/$1!, @searchfiles
+			if $g->{base_directory};
 
  	$return_file_name = $g->{return_file_name};
  	$index_delim = $g->{index_delim};
@@ -220,22 +235,6 @@ EOF
 			};
 		}
 	}
-		
-
-	if(ref($g->{search_file}) =~ /^ARRAY/) {
-		@searchfiles = @{$g->{search_file}};
-	}
-	elsif (! ref($g->{search_file})) {
-		@searchfiles = $g->{search_file};
-	}
-	else {
-		&{$g->{error_routine}}($g->{error_page},
-			"{search_file} must be array reference or scalar.\n");
-		$g->{matches} = -1;
-		return undef; # If it makes it this far
-	}
-	@searchfiles = grep s!^([^/])!$g->{base_directory}/$1!, @searchfiles
-			if $g->{base_directory};
 
     my $sort_string = $s->find_sort();
 	# If the string is set, append the joined searcfiles;
@@ -253,11 +252,21 @@ EOF
 		open(Vend::TextSearch::SEARCH, $searchfile)
 			or &{$g->{log_routine}}( "Couldn't open $searchfile: $!\n"), next;
 		my $line;
-		if($g->{head_skip} > 0) {
-			while(<Vend::TextSearch::SEARCH>) {
-				last if $. >= $g->{head_skip};
-			}
-		}
+
+		# Get field names only if no sort (will throw it off) or
+		# not already defined
+        if($g->{head_skip} == 1) {
+            my $field_names;
+            chomp($field_names = <Vend::TextSearch::SEARCH>);
+            $g->{field_names} = [ split /$index_delim/, $field_names]
+                unless defined $g->{field_names} || $sort_string;
+        }
+        elsif($g->{head_skip} > 1) {
+            while(<Search::TextSearch::SEARCH>) {
+                last if $. >= $g->{head_skip};
+            }
+        }
+
 		if($g->{dict_look}) {
 #			$s->debug("Dict search:  look='$g->{dict_look}'");
 #			$s->debug("Dict search:   end='$g->{dict_end}'");
@@ -314,7 +323,8 @@ EOF
 	if ($g->{matches} > $g->{match_limit}) {
 		$matches_to_send = $g->{match_limit};
 		my $file;
-		my $id = $g->{session_id} . ':' . $g->{search_mod};
+		my $id = $g->{session_key} || $g->{session_id};
+		$id .=  ':' . $g->{search_mod};
 		$g->{overflow} = 1;
 		$g->{next_pointer} = $g->{match_limit};
 		my $save = $s->save_context( @{$g->{'save_context'}} )

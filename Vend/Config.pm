@@ -1,4 +1,4 @@
-# $Id: Config.pm,v 2.5 1996/11/04 08:59:50 mike Exp $
+# $Id: Config.pm,v 2.14 1997/01/05 02:02:24 mike Exp $
 
 package Vend::Config;
 require Exporter;
@@ -11,6 +11,7 @@ my $C;
 
 use strict;
 use Carp;
+use Fcntl;
 use Vend::Util;
 
 for( qw(search refresh cancel return secure unsecure submit control checkout) ) {
@@ -28,8 +29,13 @@ sub global_directives {
 
     ['PageCheck',		 'yesno',     	     'no'],
     ['DisplayErrors',    'yesno',            'Yes'],
+    ['TcpPort',           undef,             '7786'],
+    ['TcpHost',           undef,             'localhost'],
 	['SendMailProgram',  'executable',       $Global::SendMailLocation],
-    ['ForkSearches',	 'yesno',     	     'yes'],
+    ['ForkSearches',	 'yesno',     	     'no'],
+	['HouseKeeping',      undef,             60],
+	['MaxServers',        undef,             2],
+	['GlobalSub',		 'subroutine',       ''],
     ['LogFile', 		  undef,     	     'etc/log'],
     ['SafeUntrap',		 'array',     	     '249 148'],
 	['MailErrorTo',		  undef,			 'webmaster'],
@@ -65,6 +71,8 @@ sub catalog_directives {
 	['SessionDatabase',  'relative_dir',     'session'],
 	['SessionLockFile',  undef,     		 'etc/session.lock'],
 	['Database',  		 'database',     	 ''],
+	['Sub',			  	 'variable',     	 ''],
+	['Variable',	  	 'variable',     	 ''],
 	['WritePermission',  'permission',       'user'],
 	['ReadPermission',   'permission',       'user'],
 	['SessionExpire',    'time',             '1 day'],
@@ -75,7 +83,7 @@ sub catalog_directives {
     ['Locale',           'locale',           ''],
     ['RequiredFields',   undef,              ''],
     ['MsqlProducts',   	 'yesno',            'No'],
-    ['MsqlDB',   		 undef,              ''],
+    ['MsqlDB',   		 undef,              'minivend'],
     ['ReceiptPage',      'valid_page',       ''],
     ['ReportIgnore',     undef, 			 'credit_card_no,credit_card_exp'],
     ['OrderCounter',	 undef,     	     ''],
@@ -91,12 +99,16 @@ sub catalog_directives {
 	['Password',         undef,              ''],
     ['ExtraSecure',		 'yesno',     	     'No'],
     ['Cookies',			 'yesno',     	     'No'],
+    ['MasterHost',		 undef,     	     ''],
+    ['RemoteUser',		 undef,     	     ''],
     ['TaxShipping',		 undef,     	     ''],
+	['FractionalItems',  'yesno',			 'No'],
 	['SeparateItems',    'yesno',			 'No'],
     ['PageSelectField',  undef,     	     ''],
     ['NonTaxableField',  undef,     	     ''],
     ['CreditCardAuto',	 'yesno',     	     'No'],
     ['CreditCards',		 'yesno',     	     'No'],
+    ['SearchCache',	     'cache',     	     ''],
     ['EncryptProgram',	 undef,     	     ''],
     ['AsciiTrack',	 	 undef,     	     ''],
     ['AsciiBackend',	 undef,     	     ''],
@@ -169,8 +181,9 @@ sub get_global_default {
 
 sub config_error {
     my($msg) = @_;
+	my $name = defined $C ? $C->{ConfigFile} : 'minivend.cfg';
 
-    die "$msg\nIn line $. of the configuration file '$C->{'ConfigFile'}':\n" .
+    die "$msg\nIn line $. of the configuration file '$name':\n" .
 	"$Vend::config_line\n";
 }
 
@@ -178,9 +191,10 @@ sub config_error {
 
 sub config_warn {
     my($msg) = @_;
+	my $name = defined $C ? $C->{ConfigFile} : 'minivend.cfg';
 
     logGlobal("$msg\nIn line $. of the configuration file '" .
-	     $C->{'ConfigFile'} . "':\n" . $Vend::config_line . "\n");
+	     $name . "':\n" . $Vend::config_line . "\n");
 }
 
 # Each of the parse functions accepts the value of a directive from the
@@ -511,21 +525,77 @@ sub parse_database {
 
 sub parse_profile {
 	my ($var, $value) = @_;
-	my ($c);
+	my ($c, $n, $i);
 	unless (defined $value && $value) { 
 		$c = [];
+		$C->{"${var}Name"} = {};
 		return $c;
 	}
-	if ($var =~ /search/i) {
-		$c = $C->{'SearchProfile'};
-	}
-	else {
-		$c = $C->{'OrderProfile'};
-	}
+
+	$c = $C->{$var};
+
+	$n = $C->{"${var}Name"};
+
 	my (@files) = split /[\s,]+/, $value;
 	for(@files) {
 		push @$c, (split /\s*[\r\n]+__END__[\r\n]+\s*/, readfile($_));
 	}
+	for($i = 0; $i < @$c; $i++) {
+		if($c->[$i] =~ s/(^|\n)__NAME__\s+(.+)\n//) {
+			my $name = $2;
+			$n->{$name} = $i;
+		}
+	}
+
+	return $c;
+}
+
+# Designed to parse catalog subroutines and vars
+sub parse_variable {
+	my ($var, $value) = @_;
+	my ($c, $name, $param);
+	unless (defined $value and $value) { 
+		$c = {};
+		return $c;
+	}
+
+	$c = $C->{$var};
+
+	if($value =~ s/^\s*sub\s+(\w+)\s*{\s*//) {
+		$name = $1;
+		($param = $value) =~ s/}\s*$//;
+	}
+	elsif($value =~ /\n/) {
+		($name, $param) = split /\r?\n/, $value, 2;
+		$name =~ s/^\s+//;
+		$name =~ s/\s+$//;
+		chomp $param;
+	}
+	else {
+		($name, $param) = split /\s+/, $value, 2;
+	}
+	$c->{$name} = $param;
+	return $c;
+}
+
+
+# Designed to parse Global subroutines only
+sub parse_subroutine {
+	my ($var, $value) = @_;
+	my ($c, $name);
+	unless (defined $value and $value) { 
+		$c = {};
+		return $c;
+	}
+
+	no strict 'refs';
+	$c = ${"Global::$var"};
+
+	$value =~ s/\s*sub\s+(\w+)\s*{/sub {/;
+	config_error("Bad $var: no subroutine name? ") unless $name = $1;
+
+	$c->{$name} = eval $value;
+	config_error("Bad $var '$name'") if $@;
 	return $c;
 }
 
@@ -673,31 +743,46 @@ sub config {
 	|| die "Could not open configuration file '" . $C->{ConfigFile} .
                 "' for catalog '" . $catalog . "':\n$!\n";
     while(<Vend::CONFIG>) {
-	chomp;			# zap trailing newline,
-	s/^\s*#.*//;            # comments,
-				# mh 2/10/96 changed comment behavior
-				# to avoid zapping RGB values
-				#
-	s/\s+$//;		#  trailing spaces
-	next if $_ eq '';
-	$Vend::config_line = $_;
-	# lines read from the config file become untainted
-	m/^(\w+)\s+(.*)/ or config_error("Syntax error");
-	$var = $1;
-	$value = $2;
-	($lvar = $var) =~ tr/A-Z/a-z/;
+		chomp;			# zap trailing newline,
+		s/^\s*#.*//;    # comments,
+		s/\s+$//;		#  trailing spaces
+		next if $_ eq '';
+		$Vend::config_line = $_;
+		# lines read from the config file become untainted
+		m/^(\w+)\s+(.*)/ or config_error("Syntax error");
+		$var = $1;
+		$value = $2;
+		($lvar = $var) =~ tr/A-Z/a-z/;
 
-	# Don't error out on Global directives if we are standalone, just skip
-	next if defined $Global::Standalone && defined $SetGlobals{$lvar};
+		if ($value =~ /^<<(.*)/) {                  # "here" value
+			my $eotmark  = $1;
+			my $foundeot = 0;
+			my $startline = $.;
+			$value = '';
+			while (<Vend::CONFIG>) {
+				if ($_ =~ m{^$eotmark$}) {
+				  $foundeot = 1;
+				  last;
+				}
+			    $value .= $_;
+			}
+			unless ($foundeot) {
+				config_error (sprintf('%d: %s', $startline,
+					qq#no end marker ("$eotmark") found#));
+			}
+		}
 
-	# Now we can give an unknown error
-	config_error("Unknown directive '$var'") unless defined $name{$lvar};
+		# Don't error out on Global directives if we are standalone, just skip
+		next if defined $Global::Standalone && defined $SetGlobals{$lvar};
 
-	$parse = $parse{$lvar};
-				# call the parsing function for this directive
-	$value = &$parse($name{$lvar}, $value) if defined $parse;
-				# and set the $C->directive variable
-	$C->{$name{$lvar}} = $value;
+		# Now we can give an unknown error
+		config_error("Unknown directive '$var'") unless defined $name{$lvar};
+
+		$parse = $parse{$lvar};
+					# call the parsing function for this directive
+		$value = &$parse($name{$lvar}, $value) if defined $parse;
+					# and set the $C->directive variable
+		$C->{$name{$lvar}} = $value;
     }
     close Vend::CONFIG;
 
@@ -724,6 +809,9 @@ sub global_config {
     no strict 'refs';
 
     $directives = global_directives();
+
+	# Prevent parsers from thinking it is a catalog
+	undef $C;
 
     foreach $d (@$directives) {
 	($directive = $d->[0]) =~ tr/A-Z/a-z/;
@@ -759,6 +847,24 @@ sub global_config {
 	$value = $2;
 	($lvar = $var) =~ tr/A-Z/a-z/;
 
+	if ($value =~ /^<<(.*)/) {                  # "here" value
+		my $eotmark  = $1;
+		my $foundeot = 0;
+		my $startline = $.;
+		$value = '';
+		while (<Vend::GLOBAL>) {
+			if ($_ =~ m{^$eotmark$}) {
+			  $foundeot = 1;
+			  last;
+			}
+			$value .= $_;
+		}
+		unless ($foundeot) {
+			config_error (sprintf('%d: %s', $startline,
+				qq#no end marker ("$eotmark") found#));
+		}
+	}
+
 	# Error out on extra parameters only if we know
 	# we are not standalone
 	unless (defined $name{$lvar}) {
@@ -793,6 +899,60 @@ sub global_config {
 			 config('standalone', $Global::VendRoot, $Global::ConfDir);
 		print "done.\n";
 	}
+}
+
+sub parse_cache {
+
+	my ($var,$file) = @_;
+	return '' unless defined $file && $file;
+	my ($ref,$sub);
+
+	my %tie;
+
+	no strict 'refs';
+	if($Global::GDBM) {
+		require GDBM_File;
+		import GDBM_File;
+        unlink $file . '.gdbm';
+        $sub = sub { my %tie;
+					 if(defined $_[1]) {
+						tie(%tie, 'GDBM_File', $file . '.gdbm',
+								&GDBM_WRCREAT | &GDBM_FAST, 0600)
+							or return undef;
+					 	$tie{$_[0]} = $_[1];
+						untie %tie;
+					 }
+					 tie(%tie, 'GDBM_File', $file . '.gdbm', &GDBM_READER, 0600)
+							or return undef;
+					 my $key = $tie{$_[0]};
+					 untie %tie or return undef;
+					 $key;
+					 };
+    }
+    elsif($Global::DB_File) {
+		require DB_File;
+		import DB_File;
+        unlink $file . '.db';
+        $sub = sub { my %tie;
+					 if(defined $_[1]) {
+						 tie(%tie, 'DB_File', $file . '.db', &O_RDWR|&O_CREAT, 0600)
+							or return undef;
+					 	$tie{$_[0]} = $_[1];
+						untie %tie;
+					 }
+					 tie(%tie, 'DB_File', $file . '.db', &O_RDONLY, 0600)
+							or return undef;
+					 my $key = $tie{$_[0]};
+					 untie %tie or return undef;
+					 $key;
+					 };
+    }
+	else { return '' }  # If no large DBM, return with nada
+
+	$ref = &$sub("1", "1") || config_error "Unable to tie search cache.\n";
+	untie $ref;
+
+	$sub;
 }
 
 1;

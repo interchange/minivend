@@ -2,7 +2,7 @@
 #
 # MiniVend version 1.04
 #
-# $Id: Order.pm,v 2.1 1996/09/08 08:27:58 mike Exp mike $
+# $Id: Order.pm,v 2.8 1997/01/07 01:16:56 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -30,7 +30,7 @@
 package Vend::Order;
 require Exporter;
 
-$VERSION = substr(q$Revision: 2.1 $, 10);
+$VERSION = substr(q$Revision: 2.8 $, 10);
 $DEBUG = 0;
 
 @ISA = qw(Exporter);
@@ -190,6 +190,8 @@ sub mail_order {
 
     $values = $Vend::Session->{'values'};
 
+	$order_no = update_order_number();
+
 	if(defined $values->{'mv_order_report'}
 		and $values->{'mv_order_report'}) {
 		$new = 1;
@@ -214,12 +216,12 @@ sub mail_order {
 
 	$body = interpolate_html($body) if $new;
 
+	track_order($order_no, $body);
+
     $body .= "\n" . order_list()
 		unless $new;
 
 	$subject = $CGI::values{mv_order_subject} || "ORDER %n";
-
-	$order_no = track_order($body);
 
 	if(defined $order_no) {
 	    $subject =~ s/%n/$order_no/;
@@ -260,8 +262,14 @@ sub check_order {
 	my ($profile) = @_;
 	my $ref = \%CGI::values;
     my($codere) = '[\w-_#/.]+';
-	my($params) = $Vend::Cfg->{'OrderProfile'}->[$profile];
+	unless($profile =~ /^\d+$/) {
+		return undef
+			unless defined $Vend::Cfg->{'OrderProfileName'}->{$profile};
+		$profile = $Vend::Cfg->{'OrderProfileName'}->{$profile};
+	}
+	my $params = $Vend::Cfg->{'OrderProfile'}->[$profile];
 	return undef unless $params;
+	$params = interpolate_html($params);
 	@Errors = ();
 	$Fatal = $Final = 0;
 
@@ -287,7 +295,6 @@ sub check_order {
 					$Vend::Session->{'values'}->{$k} );
 		}
 		$val =~ s/&#(\d+);/chr($1)/ge;
-		$val = interpolate_html($val);
 
 		if (defined $Parse{$var}) {
 			($val, $var, $message) = &{$Parse{$var}}($ref, $val);
@@ -398,43 +405,50 @@ sub _required {
 	return (undef, $var, "blank");
 }
 
+sub update_order_number {
+
+	my($c,$order_no);
+
+	if($Vend::Cfg->{'OrderCounter'}) {
+		$File::CounterFile::DEFAULT_DIR = $Vend::Cfg->{'VendRoot'}
+			unless $Vend::Cfg->{'OrderCounter'} =~ m!^/!;
+		my $c = new File::CounterFile $Vend::Cfg->{'OrderCounter'}, "000000";
+		$order_no = $c->inc;
+		undef $c;
+	}
+	else {
+		$order_no = $Vend::SessionID . '.' . time;
+	}
+
+	$Vend::Session->{'values'}->{'mv_order_number'} = $order_no;
+	$order_no;
+}
+
 # Places the order report in the Tracking file
 sub track_order {
-	my $order_report = shift;
+	my ($order_no,$order_report) = @_;
 	my ($c,$i);
-	my $order_no;
 	my (@backend);
 	
 	if($Vend::Cfg->{'Tracking'}) {
 		open_tracking();
-		$order_no = $Vend::Tracking{'mv_next_order'};
+		my $track_no = $Vend::Tracking{'mv_next_order'};
 
 		# See if we have an order number already
-		unless (defined $order_no) {
-			$order_no = $Vend::Cfg->{'Tracking'};
-			$order_no =~ s/[^A-Za-z0-9]//g &&
+		unless (defined $track_no) {
+			$track_no = $Vend::Cfg->{'Tracking'};
+			$track_no =~ s/[^A-Za-z0-9]//g &&
 				logError("Removed non-letter/non-digit chars from Order number");
 		}
 
 		# Put the text of the order in tracking
-		$Vend::Tracking{$order_no} = $order_report;
+		$Vend::Tracking{$track_no} = $order_report;
+		$Vend::Tracking{'mv_next_order'} = $track_no + 1;
+		close_tracking();
 	}
-	elsif ($Vend::Cfg->{'AsciiTrack'}) {
-		if($Vend::Cfg->{'OrderCounter'}) {
-			$File::CounterFile::DEFAULT_DIR = $Vend::Cfg->{'VendRoot'}
-				unless $Vend::Cfg->{'OrderCounter'} =~ m!^/!;
-			my $c = new File::CounterFile $Vend::Cfg->{'OrderCounter'}, "000000";
-			$order_no = $c->inc;
-			undef $c;
-			$Vend::Session->{'values'}->{'mv_order_number'} = $order_no;
-			logData ($Vend::Cfg->{'AsciiTrack'}, "ORDER $order_no\n$order_report");
-		}
-		else {
-			$order_no = $Vend::SessionID . '.' . time;
-		}
-	}
-	else {
-		return;		# Nothing to do!
+
+	if ($Vend::Cfg->{'AsciiTrack'}) {
+		logData ($Vend::Cfg->{'AsciiTrack'}, "ORDER $order_no\n$order_report");
 	}
 
 	@backend = split /\s*,\s*/, $Vend::Cfg->{'BackendOrder'};
@@ -463,7 +477,8 @@ sub track_order {
 				$Vend::Session->{'values'}->{'credit_card_exp'};
 		}
 	}
-	elsif(@backend and $Vend::Cfg->{'AsciiBackend'}) {
+
+	if(@backend and $Vend::Cfg->{'AsciiBackend'}) {
 		my(@ary);
 		push @ary, $order_no;
 		for(@backend) {
@@ -481,15 +496,6 @@ sub track_order {
 		logData ($Vend::Cfg->{'AsciiBackend'}, @ary);
 	}
 
-	my $this_order = $order_no;
-
-	if($Vend::Cfg->{'Tracking'}) {
-		$order_no++;
-		$Vend::Tracking{'mv_next_order'} = $order_no;
-		close_tracking();
-	}
-
-	$this_order;
 }
 
 1;

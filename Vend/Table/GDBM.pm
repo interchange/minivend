@@ -1,20 +1,9 @@
 # Table/GDBM.pm: access a table stored in a GDBM file
 #
-# $Id: GDBM.pm,v 1.2 1996/08/22 17:35:08 mike Exp $
+# $Id: GDBM.pm,v 1.4 1997/01/07 01:34:10 mike Exp $
 #
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
-#
-# $Log: GDBM.pm,v $
-# Revision 1.2  1996/08/22 17:35:08  mike
-# Save solid snapshot of multiple catalog Vend
-#
-# Revision 1.1  1996/08/09 22:21:11  mike
-# Initial revision
-#
-# Revision 1.11  1996/05/18 20:02:39  mike
-# Minivend 1.03 Beta 1
-#
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -31,7 +20,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::GDBM;
-$VERSION = substr(q$Revision: 1.2 $, 10);
+$VERSION = substr(q$Revision: 1.4 $, 10);
 use Carp;
 use strict;
 use GDBM_File;
@@ -116,12 +105,12 @@ sub open_table {
 
     my $tie = {};
 
-    my $flags;
+    my $flags = GDBM_WRITER;
+
     if ($Read_only) {
         $flags = GDBM_READER;
     }
     else {
-        my $flags = GDBM_WRITER;
         $flags |= GDBM_FAST if $Fast_write;
     }
 

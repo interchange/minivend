@@ -1,6 +1,6 @@
 # Vend/Glimpse.pm:  Search indexes with Glimpse
 #
-# $Id: Glimpse.pm,v 2.4 1996/11/04 09:03:34 mike Exp mike $
+# $Id: Glimpse.pm,v 2.5 1996/12/16 08:53:44 mike Exp $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::Glimpse
 #
@@ -28,7 +28,7 @@ package Vend::Glimpse;
 require Vend::Search;
 @ISA = qw(Vend::Search);
 
-$VERSION = substr(q$Revision: 2.4 $, 10);
+$VERSION = substr(q$Revision: 2.5 $, 10);
 use Text::ParseWords;
 use strict;
 
@@ -328,7 +328,8 @@ EOF
 	if ($g->{matches} > $g->{match_limit}) {
 		$matches_to_send = $g->{match_limit};
 		my $file;
-		my $id = $g->{session_id} . ':' . $g->{search_mod};
+        my $id = $g->{session_key} || $g->{session_id}; 
+		$id .=  ':' . $g->{search_mod};
 		$g->{overflow} = 1;
 		$g->{next_pointer} = $g->{match_limit};
 		my $save = $s->save_context( @{$g->{'save_context'}} )

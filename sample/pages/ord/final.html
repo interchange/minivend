@@ -4,7 +4,7 @@
 <TITLE>Please check your order</TITLE>
 </HEAD>
 
-[body 1]
+<BODY BGCOLOR=white>
 <CENTER>
 <H1>Please check your order</H1>
 </CENTER>
@@ -16,6 +16,7 @@
 <A NAME="billing">
 <H2>Shipping and Billing Information</H2>
 </A>
+<B>Shipping Address</B>
 <PRE>
            Name: [value name]
    Company Name: [value company]
@@ -35,21 +36,22 @@ Billing address: [value address]
 	</TD>
 	<TD>    
 		<INPUT TYPE=RADIO NAME=mv_shipmode
-			VALUE="upsg" [checked mv_shipmode upsg]> UPS Ground
+			VALUE="supsg" [checked mv_shipmode supsg]> UPS Ground
 		<INPUT TYPE=RADIO NAME=mv_shipmode
-			VALUE="upsb" [checked mv_shipmode upsb]> UPS Blue
+			VALUE="supsb" [checked mv_shipmode supsb]> UPS Blue
 		<INPUT TYPE=RADIO NAME=mv_shipmode
-			VALUE="upsr" [checked mv_shipmode upsr]> UPS Red
+			VALUE="supsr" [checked mv_shipmode supsr]> UPS Red
 	</TD>
 </TABLE>
 
-[if value s_address]
+[if value b_address]
+<B>Bill to:</B>
 <PRE>
-  Address          <input type="text" name="s_address" value="[value s_address]" size=40>
-  City             <input type="text" name="s_city" value="[value s_city]" size=20>
-  State/Province   <input type="text" name="s_state" value="[value s_state]" size=10>
-  Zip/Postal Code  <input type="text" name="s_zip" value="[value s_zip]" size=10>
-  Country          <input type="text" name="s_country" value="[value s_country]" size=20><p>
+  Address          <input type="text" name="b_address" value="[value b_address]" size=40>
+  City             <input type="text" name="b_city" value="[value b_city]" size=20>
+  State/Province   <input type="text" name="b_state" value="[value b_state]" size=10>
+  Zip/Postal Code  <input type="text" name="b_zip" value="[value b_zip]" size=10>
+  Country          <input type="text" name="b_country" value="[value b_country]" size=20><p>
 
 </PRE>
 [/if]
@@ -139,5 +141,4 @@ TOTAL
 
 <P ALIGN=CENTER>
 
-[[buttonbar 4]]
 </body> </html>

@@ -1,6 +1,6 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.5 1996/09/08 08:27:58 mike Exp $
+# $Id: Server.pm,v 1.8 1997/01/07 01:16:56 mike Exp $
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -41,7 +41,7 @@ sub read_entity_body {
 sub respond {
     my ($s, $content_type, $body) = @_;
     my $fh = $s->{fh};
-	if ($Vend::Cfg->{'Cookies'}) {
+	if (! $CGI::cookie and $Vend::Cfg->{'Cookies'}) {
 		print $fh "Set-Cookie: MV_SESSION_ID=" . $Vend::SessionID . "; path=/\r\n";
     }
     print $fh "Content-type: $content_type\r\n\r\n";
@@ -56,6 +56,7 @@ require Exporter;
 @Vend::Server::EXPORT = qw(run_server);
 
 use Fcntl;
+use Config;
 use Socket;
 use strict;
 use Vend::Util;
@@ -134,7 +135,7 @@ sub get_socketname {
 	"$dir/$base";
 }
 
-sub connection {
+sub unix_connection {
     my ($socket,$debug) = @_;
 
     my (@argv, %env, $entity);
@@ -145,12 +146,22 @@ sub connection {
     eval {$forked = ::dispatch($http,$socket,$debug);};
 	if($@) {
 		::logGlobal("Error in '$Vend::Cfg->{CatalogName}': $@");
-		::logError($@);
+		::logError("Error in '$Vend::Cfg->{CatalogName}': $@");
 		$forked = 0;
 	}
     $forked;
 }
 
+sub inet_connection {
+    my ($handle,$debug) = @_;
+
+    my (@argv, %env, $entity);
+    read_cgi_data(\@argv, \%env, \$entity);
+
+    my $http = new Vend::Http::Server \*Vend::Server::MESSAGE, \%env, $entity;
+    
+    ::dispatch($http,$handle,$debug);
+}
 
 ## Signals
 
@@ -159,48 +170,269 @@ my $Signal_Debug;
 my $Signal_Locking;
 my %orig_signal;
 my @trapped_signals = qw(HUP INT TERM USR1 USR2);
+$Vend::Server::Num_servers = 0;
 
 # might also trap: QUIT USR1 USR2
+
+my $DEBUG = 0;
+
+my ($Routine_USR1, $Routine_USR2, $Routine_TERM, $Routine_INT);
+
+$Routine_USR1 = sub { $SIG{USR1} = $Routine_USR1; $Vend::Server::Num_servers++};
+$Routine_USR2 = sub { $SIG{USR2} = $Routine_USR2; $Vend::Server::Num_servers--};
+$Routine_TERM = sub { $SIG{TERM} = $Routine_TERM; $Signal_Terminate = 1 };
+$Routine_INT  = sub { $SIG{INT} = $Routine_INT; $Signal_Terminate = 1 };
 
 sub setup_signals {
     @orig_signal{@trapped_signals} =
         map(defined $_ ? $_ : 'DEFAULT', @SIG{@trapped_signals});
-    $Signal_Terminate = $Signal_Locking = $Signal_Debug = '';
+    $Signal_Terminate = $Signal_Debug = '';
     $SIG{'HUP'}  = 'IGNORE';
-    $SIG{'INT'}  = sub { $Signal_Terminate = 1; };
-    $SIG{'TERM'} = sub { $Signal_Terminate = 1; };
-    # $SIG{'QUIT'} = sub { $Signal_Debug = 1; };
-    $SIG{'USR1'} = sub { $Signal_Locking = 'short term'; };
-    $SIG{'USR2'} = sub { $Signal_Locking = 'long term'; };
     $SIG{'PIPE'} = 'IGNORE';
+
+	if($Config{'osname'} eq 'irix' or ! $Config{d_sigaction}) {
+		::logGlobal ("using stupid SYSV signal semantics...");
+		$SIG{'INT'}  = $Routine_INT;
+		$SIG{'TERM'} = $Routine_TERM;
+		$SIG{'USR1'} = $Routine_USR1;
+		$SIG{'USR2'} = $Routine_USR2;
+	}
+
+	else {
+		$SIG{'INT'}  = sub { $Signal_Terminate = 1; };
+		$SIG{'TERM'} = sub { $Signal_Terminate = 1; };
+		$SIG{'USR1'} = sub { $Vend::Server::Num_servers++; };
+		$SIG{'USR2'} = sub { $Vend::Server::Num_servers--; };
+	}
+
 }
 
 sub restore_signals {
     @SIG{@trapped_signals} = @orig_signal{@trapped_signals};
 }
 
-sub server {
+
+# Reconfigure any catalogs that have requested it, and 
+# check to make sure we haven't too many running servers
+sub housekeeping {
+
+	my ($c, $num,$reconfig, @files);
+
+		opendir(Vend::Server::CHECKRUN, $Global::ConfDir)
+			or die "opendir $Global::ConfDir: $!\n";
+		@files = readdir Vend::Server::CHECKRUN;
+		closedir(Vend::Server::CHECKRUN)
+			or die "closedir $Global::ConfDir: $!\n";
+		($reconfig) = grep $_ eq 'reconfig', @files;
+		if (defined $reconfig) {
+			open(Vend::Server::RECONFIG, "+<$Global::ConfDir/reconfig")
+				or die "open $Global::ConfDir/reconfig: $!\n";
+			lockfile(\*Vend::Server::RECONFIG, 1, 1)
+				or die "lock $Global::ConfDir/reconfig: $!\n";
+			while(<Vend::Server::RECONFIG>) {
+				chomp;
+				my $script_name = $_;
+				next unless defined $Global::Selector{$script_name};
+				$c = ::config_named_catalog($script_name, "master server");
+				if (defined $c) {
+					$Global::Selector{$script_name} = $c;
+				}
+				else {
+					logGlobal("Error reconfiguring catalog $script_name" .
+				                    ' from master server.');
+				}
+			}
+			unlockfile(\*Vend::Server::RECONFIG)
+				or die "unlock $Global::ConfDir/reconfig: $!\n";
+			unlink "$Global::ConfDir/reconfig"
+				or die "close $Global::ConfDir/reconfig: $!\n";
+			close(Vend::Server::RECONFIG)
+				or die "close $Global::ConfDir/reconfig: $!\n";
+		}
+		@files = grep /^mvrunnin/, @files;
+		my $pdata;
+		for(@files) {
+			open(CHECKIT, "$Global::ConfDir/$_") or die "open $_: $!\n";
+			chop($pdata = <CHECKIT>);
+			close(CHECKIT) or die "close $_: $!\n";
+			my($pid, $time) = split /\s+/, $pdata;
+			if((time - $time) > 180) {
+				kill(9, $pid);
+				unlink "$Global::ConfDir/$_";
+			}
+		}
+
+}
+
+
+sub server_inet {
+    my ($debug) = @_;
+    my ($n, $rin, $rout, $ok, $pid, $max_servers, $tick, $count);
+
+	my $port = $Global::TcpPort || 7786;
+	my $host = $Global::TcpHost || '127.0.0.1';
+	my $proto = getprotobyname('tcp');
+
+	# We are already forking, so no need to fork searches
+	$Global::ForkSearches = 0;
+
+	$Vend::MasterProcess = $$;
+
+	$tick = $Global::HouseKeeping || 60;
+
+	$max_servers = $Global::MaxServers || 4;
+
+	setup_signals();
+
+	#open DEBUG, ">>/tmp/debug.mv" or die;
+	#my $save = select DEBUG; $| = 1; select $save;
+
+	socket(Vend::Server::SOCKET, PF_INET, SOCK_STREAM, $proto)
+			|| die "socket: $!";
+	#print DEBUG "socket created\n";
+	setsockopt(Vend::Server::SOCKET, SOL_SOCKET, SO_REUSEADDR, pack("l", 1))
+			|| die "setsockopt: $!";
+	bind(Vend::Server::SOCKET, sockaddr_in($port, INADDR_ANY))
+			|| die "bind: $!";
+	#print DEBUG "socket bound\n";
+	listen(Vend::Server::SOCKET,5)
+			|| die "listen: $!";
+	#print DEBUG "socket listen\n";
+
+	for (;;) {
+
+        $rin = '';
+        vec($rin, fileno(Vend::Server::SOCKET), 1) = 1;
+
+        $n = select($rout = $rin, undef, undef, $tick);
+		#print DEBUG "select $n\n";
+
+        if ($n == -1) {
+            if ($! =~ m/^Interrupted/) {
+                if ($Signal_Terminate) {
+                    last;
+                }
+				#print DEBUG "interrupted $n\n";
+            }
+            else {
+                die "select: $!\n";
+            }
+        }
+        elsif (vec($rout, fileno(Vend::Server::SOCKET), 1)) {
+
+			#print DEBUG "selected SOCKET $rout\n";
+			$ok = accept(Vend::Server::MESSAGE, Vend::Server::SOCKET);
+			die "accept: $!" unless defined $ok;
+		
+			my($port,$iaddr) = sockaddr_in($ok);
+			my $name = gethostbyaddr($iaddr,AF_INET);
+
+			if($DEBUG) {
+				::logGlobal("connection from $name [" . 
+						   inet_ntoa($iaddr) . "] at port $port");
+			}
+
+			#print DEBUG "accepted $ok $name\n";
+
+			unless ($host =~ /\b$name\b/io
+						or do {
+							my $ad = inet_ntoa($iaddr); $host=~ /\b$ad\b/o
+							} )
+			{
+				::logGlobal("ALERT: attempted connection from $name ($port)\n");
+				close(Vend::Server::MESSAGE) || die "close socket: $!\n";
+				next;
+			}
+
+			my $handle = get_socketname("$Global::ConfDir/mvrunning");
+
+			if(! defined ($pid = fork) ) { 
+				::logGlobal ("Can't fork: $!\n");
+			}
+			elsif (! $pid) {
+				#print DEBUG "fork 1\n";
+				#fork again
+				unless ($pid = fork) {
+					#print DEBUG "fork 2\n";
+					kill "USR1", $Vend::MasterProcess;
+					open(Vend::Server::PIDFILE, ">$handle")
+						or die "create pidfile $handle: $!\n";
+					print Vend::Server::PIDFILE "$$ " . time . "\n";
+					close(Vend::Server::PIDFILE)
+						or die "close pidfile $handle: $!\n";
+
+					select(undef,undef,undef,0.050) until getppid == 1;
+					#print DEBUG "going to connection\n";
+					eval { inet_connection(undef, $debug) };
+					if ($@) {
+						::logGlobal("Error in '$Vend::Cfg->{CatalogName}': $@");
+						::logError("Error: $@")
+					}
+					unlink $handle;
+					kill "USR2", $Vend::MasterProcess;
+					#print DEBUG "back from connection\n";
+					exit(0);
+				}
+				#print DEBUG "fork 2 master\n";
+				exit(0);
+			}
+			close(Vend::Server::MESSAGE) || die "close socket: $!\n";
+			#print DEBUG "fork 1 master\n";
+			wait;
+			#print DEBUG "waited successfully\n";
+
+		}
+		elsif($n == 0) {
+			housekeeping();
+		}
+		else {
+			die "Why did select return with $n?";
+		}
+
+		#print DEBUG "servers:";
+		$count = 0;
+		for(;;) {
+			#print DEBUG " $Vend::Server::Num_servers";
+			last if $Vend::Server::Num_servers < $max_servers;
+			select(undef,undef,undef,0.300);
+			last if $Signal_Terminate || $Signal_Debug;
+			housekeeping() if (++$count % 10) == 0;
+		}
+		#print DEBUG "\n";
+
+        last if $Signal_Terminate || $Signal_Debug;
+		
+	}
+
+    close(Vend::Server::SOCKET);
+	restore_signals();
+
+   	if ($Signal_Terminate) {
+       	::logGlobal("\nServer terminating on signal TERM\n\n");
+       	return 'terminate';
+   	}
+
+    return '';
+}
+
+
+sub server_unix {
     my ($socket_filename, $debug) = @_;
-    my ($n, $rin, $rout, $forked);
+    my ($n, $rin, $rout, $pid, $tick, $max_servers, $count);
 
     my $AF_UNIX = 1;
     my $SOCK_STREAM = 1;
     my $SOCK_DGRAM = 2;
 
 
-    setup_signals();
-    $forked = 0;
-    for (;;) {
-        last if $Signal_Terminate || $Signal_Debug;
+	$Vend::MasterProcess = $$;
 
-		if($Global::MultiServer) {
-			open(Vend::Server::SOCKET_LOCK,"+>>$socket_filename.lock")
-				or die "Couldn't open $socket_filename.lock: $!";
-			fcntl(Vend::Server::SOCKET_LOCK, F_SETFD, 0)
-				or die "Can't fcntl close-on-exec flag for socket lock: $!";
-			lockfile(\*Vend::Server::SOCKET_LOCK,1,1)
-				or die "Couldn't lock $socket_filename.lock: $!";
-		}
+	$max_servers = $Global::MaxServers   || 4;
+	$tick        = $Global::HouseKeeping || 60;
+
+    setup_signals();
+    for (;;) {
+
 		unlink $socket_filename;
 		socket(Vend::Server::SOCKET, AF_UNIX, SOCK_STREAM, 0) || die "socket: $!";
 		bind(Vend::Server::SOCKET, pack("S", AF_UNIX) . $socket_filename . chr(0))
@@ -209,26 +441,10 @@ sub server {
 		chmod 0600, $socket_filename;
 		listen(Vend::Server::SOCKET, 5) or die "listen: $!";
 
-		if ($Signal_Locking) {
-			my $sleep = 1;
-			if ($Signal_Locking =~ /short/i) {
-            	::logGlobal("\nUnlock for $sleep seconds on pid $$\n\n");
-			}
-			elsif ($Signal_Locking =~ /long/i) {
-            	::logGlobal("\nUnlock for 120 seconds on pid $$\n\n");
-				$sleep = 120;
-			}
-			$SIG{'USR1'} = $SIG{'USR2'} = 'IGNORE';
-			::close_session();
-			sleep $sleep;
-			::read_products();
-			::open_session();
-			setup_signals();
-		}
-
         $rin = '';
         vec($rin, fileno(Vend::Server::SOCKET), 1) = 1;
-        $n = select($rout = $rin, undef, undef, undef);
+
+        $n = select($rout = $rin, undef, undef, $tick);
 
         if ($n == -1) {
             if ($! =~ m/^Interrupted/) {
@@ -252,36 +468,57 @@ sub server {
 			my $new_socket = get_socketname $socket_filename;
 			rename $socket_filename, $new_socket;
 
-			if($Global::MultiServer) {
-				# unlock the socketlock so a new server can get it
-				unlockfile(\*Vend::Server::SOCKET_LOCK)
-					or die "Couldn't unlock socket lock: $!";;
-				close Vend::Server::SOCKET_LOCK
-					or die "Couldn't close socket lock: $!";;
-			}
+       		my $handle = get_socketname("$Global::ConfDir/mvrunning");
 
-			# Pass the socket name so that a child can unlink it
-            $forked = connection($new_socket, $debug);
+            if(! defined ($pid = fork) ) {
+                ::logGlobal ("Can't fork: $!\n");
+            }
+            elsif (! $pid) {
+                #fork again
+                unless ($pid = fork) {
+
+					kill "USR1", $Vend::MasterProcess;
+                    open(Vend::Server::PIDFILE, ">$handle")
+                        or die "create pidfile $handle: $!\n";
+                    print Vend::Server::PIDFILE "$$ " . time . "\n";
+                    close(Vend::Server::PIDFILE)
+                        or die "close pidfile $handle: $!\n";
+
+                    select(undef,undef,undef,0.050) until getppid == 1;
+                    eval { inet_connection(undef, $debug) };
+                    if ($@) {
+                        ::logGlobal("Error in '$Vend::Cfg->{CatalogName}': $@");
+                        ::logError("Error: $@")
+                    }
+                    unlink $handle, $new_socket;
+					kill "USR2", $Vend::MasterProcess;
+                    exit(0);
+                }
+                exit(0);
+            }
+
             close Vend::Server::SOCKET;
             close Vend::Server::MESSAGE;
+			wait;
 
-			# Here we are using $forked to tell us
-			# if we have forked. It will have a PID in it
-			# if we did (that won't be 1!). If we really want
-			# to add abort later, then we can make an abort be 1.
-			# If we forked, we don't want to unlink the socket,
-			# the child will do that in minivend.pl
-			if ($forked == 0) {
-				unlink $new_socket;
-			}
-			else {
-				$forked = 0;
-			}
         }
-
+		elsif($n == 0) {
+			housekeeping();
+		}
         else {
-            die "Why did select return?";
+            die "Why did select return with $n?";
         }
+
+        $count = 0;
+        for(;;) {
+           last if $Vend::Server::Num_servers < $max_servers;
+           select(undef,undef,undef,0.300);
+           last if $Signal_Terminate || $Signal_Debug;
+           housekeeping() if (++$count % 10) == 0;
+        }
+
+        last if $Signal_Terminate || $Signal_Debug;
+
     }
 
     close(Vend::Server::SOCKET);
@@ -314,6 +551,7 @@ sub server {
 
 
 my $Print_errors;
+
 sub grab_pid {
     my $ok = lockfile(\*Vend::Server::Pid, 1, 0);
     if (not $ok) {
@@ -428,14 +666,20 @@ sub run_server {
                 $| = 1;
                 open(STDERR, ">&Vend::DEBUG");
                 select(STDERR); $| = 1; select(STDOUT);
-
-                ::logGlobal("\nServer running on pid $$\n\n");
+				my $type = defined $Global::Inet_Mode ? "INET" : "UNIX";
+                ::logGlobal("\nServer running on pid $$ ($type)\n\n");
                 setsid();
 
                 fcntl(Vend::Server::Pid, F_SETFD, 1)
                     or die "Can't fcntl close-on-exec flag for '$pidfile': $!\n";
 
-                $next = server($LINK_FILE, $debug);
+				unless (defined $Global::Inet_Mode) {
+					$next = server_unix($LINK_FILE, $debug);
+				}
+				else {
+					$next = server_inet($debug);
+				}
+				unlockfile(\*Vend::Server::Pid);
 				unlink $pidfile;
                 exit 0;
             }

@@ -27,12 +27,14 @@
 		<TD COLSPAN=2>
 		<INPUT TYPE=text NAME="mv_searchspec" SIZE=20>
 		<INPUT TYPE="submit" NAME="mv_todo" VALUE="Search">
-		<INPUT TYPE="hidden" NAME="mv_search_page" VALUE="srch/results">
+		<INPUT TYPE="hidden" NAME="mv_search_page" VALUE="srch/sortresults">
 		<INPUT TYPE="hidden" NAME="mv_doit" VALUE="search">
+		<INPUT TYPE="hidden" NAME="mv_range_look" VALUE="price">
 		</TD>
 	<TR>
 	<TD VALIGN=TOP>
 		<INPUT TYPE="radio" NAME="mv_orsearch" VALUE="no" CHECKED>Must match all
+		<INPUT TYPE="hidden" NAME="mv_return_fields" VALUE="0,title,artist,price">
 		<INPUT TYPE="hidden" NAME="mv_searchtype" VALUE="glimpse">
 		<INPUT TYPE="radio" NAME="mv_orsearch" VALUE="yes">Match any<BR>
 		<INPUT TYPE="checkbox" NAME="mv_case" VALUE="yes">Case sensitive<BR>
@@ -45,15 +47,42 @@
 			Artist<BR>
 		<INPUT TYPE="checkbox" NAME="mv_search_field" VALUE="title" CHECKED>
 			Title<BR>
-		<INPUT TYPE="checkbox" NAME="mv_search_field" VALUE="display" CHECKED>
-			Museum<BR>
 	</TD>
 	</TR>
+	<TR>
+	<TD VALIGN=CENTER COLSPAN=2>
+        <CENTER><B>Sort order<B></CENTER><BR>
+        <FONT SIZE=-1>
+        <SELECT NAME="sort_field1">
+            <OPTION VALUE="title:"> Title
+            <OPTION VALUE="artist:"> Artist
+            <OPTION VALUE="price:n"> Price
+            <OPTION VALUE="title:r"> Reverse Title
+            <OPTION VALUE="artist:r"> Reverse Artist
+            <OPTION VALUE="price:nr"> Reverse Price
+        </SELECT>
+        <SELECT NAME="sort_field2">
+            <OPTION VALUE="artist:"> Artist
+            <OPTION VALUE="price:n"> Price
+            <OPTION VALUE="title:"> Title
+            <OPTION VALUE="artist:r"> Reverse Artist
+            <OPTION VALUE="price:rn"> Reverse Price
+            <OPTION VALUE="title:r"> Reverse Title
+        </SELECT>
+        <SELECT NAME="sort_field3">
+            <OPTION VALUE="price:n"> Price
+            <OPTION VALUE="title:"> Title
+            <OPTION VALUE="artist:"> Artist
+            <OPTION VALUE="price:nr"> Reverse Price
+            <OPTION VALUE="title:r"> Reverse Title
+            <OPTION VALUE="artist:r"> Reverse Artist
+        </SELECT>
+        </FONT>
+    </TD>
+	</TR>
 	</TABLE>
-	</FORM>
 		</TD>
 		<TD>
-<FORM ACTION="[process-search]" METHOD=POST>
 		<TABLE>
 		<TR>
 			<TD>
@@ -61,8 +90,6 @@
 			<TD>
 			<B>Search by Price</B><BR>
 			</TD>
-			<INPUT TYPE="hidden" NAME="mv_range_look" VALUE="price">
-			<INPUT TYPE="hidden" NAME="mv_return_all" VALUE="yes">
 		</TR>
 		<TR>
 			<TD>
@@ -96,9 +123,8 @@
 			<TD>
 			</TD>
 			<TD>
-				<INPUT TYPE=HIDDEN NAME="mv_searchtype" VALUE="text">
-				<INPUT TYPE="submit" NAME="mv_todo" VALUE="Search">
-				<INPUT TYPE="hidden" NAME="mv_doit" VALUE="search"><BR>
+				<INPUT TYPE="submit" NAME="mv_check" VALUE="Search">
+				<BR>
 			</TD>
 		</TR>
 		</TABLE>
@@ -107,5 +133,11 @@
 		</TD>
 	</TR>
 </TABLE>
+[set Search]
+mv_todo=search
+[if value mv_searchspec]
+[else]mv_return_all=yes[/else]
+[/if]
+[/set]
 [help header][help nf_sel][help footer]
 </body> </html>

@@ -1,0 +1,61 @@
+__NAME__                            invalid
+&fatal     = yes
+mv_failpage= interact
+&set       = mv_junk 0
+__END__
+
+__NAME__                            billing
+
+&set=bill_done 1
+name=required
+address=required
+city=required
+state=required
+zip=required
+email=required
+phone_day=phone
+&fatal=yes
+email=email
+&set=mv_email [value email]
+&set=bill_done 2
+__END__
+
+__NAME__                            shipping
+&fatal	=	yes
+mv_shipmode = mandatory
+
+__END__
+
+__NAME__                            credit_card
+
+&fatal = yes
+&set = pay_done [value mv_credit_card_valid]
+&set = mv_payment Credit Card
+
+__END__
+
+__NAME__                            alt_card
+valid_cc	= yes
+cc_no		= required
+cc_exp_m	= required
+cc_exp_y	= required
+cc_type		= required
+&fatal		= yes
+&set =valid_cc [if validcc [value cc_no] [value cc_type] [value cc_exp_m]/[value cc_exp_y]]1[/if]
+&set        = mv_successpage ord/final
+
+__END__
+
+__NAME__                            final
+&set 	    =mv_billing [if value bill_done == 2]1[/if]
+mv_billing  =required
+mv_shipmode =required
+&fatal=yes
+&final=yes
+mv_payment  =required
+__END__
+
+
+__NAME__                            address
+
+&set = addr_done 2

@@ -1,4 +1,4 @@
-# $Id: Util.pm,v 2.1 1996/09/08 08:52:31 mike Exp mike $
+# $Id: Util.pm,v 2.9 1996/12/16 08:53:44 mike Exp $
 
 package Vend::Util;
 require Exporter;
@@ -34,6 +34,7 @@ tabbed
 tag_nitems
 tag_item_quantity
 tainted
+trim_desc
 uneval
 vendUrl
 wrap
@@ -110,20 +111,31 @@ sub tabbed {
                           } @_);
 }
 
+my(%Tab);
+
 sub international_number {
     return $_[0] unless $Vend::Cfg->{Locale};
-    local($_) = shift;
-    s/(\.\d+)$//;
-    my $dec = $1 || '';
-    $dec =~ s/\./$Vend::Cfg->{Locale}->{decimal_point}/;
-    s/,/$Vend::Cfg->{Locale}->{mon_thousands_sep}/g;
-    return $_ . $dec;
+	unless (%Tab ||= () ) {
+		%Tab = (	',' => $Vend::Cfg->{Locale}->{mon_thousands_sep},
+					'.' => $Vend::Cfg->{Locale}->{mon_decimal_point}  );
+	}
+    $_[0] =~ s/([^0-9])/$Tab{$1}/g;
+	return $_[0];
 }
 
 sub commify {
     local($_) = shift;
     1 while s/^(-?\d+)(\d{3})/$1,$2/;
     return $_;
+}
+
+# Trims the description output for the order and search pages
+# Trims from $Vend::Cfg->{'DescriptionTrim'} onward
+sub trim_desc {
+	return $_[0] unless $Vend::Cfg->{'DescriptionTrim'};
+	my($desc) = @_;
+	$desc =~ s/$Vend::Cfg->{'DescriptionTrim'}(.*)//;
+	$desc;
 }
 
 # Return AMOUNT formatted as currency.
@@ -382,7 +394,6 @@ push(@fields, $+) while $text =~ m{
         }gx;
     @fields;
 }
-
 
 
 # Returns its arguments as a string of comma separated and quoted

@@ -16,7 +16,7 @@ var delay = 90;
 var message = "Bonus! By finding this page, you have qualified for "
             + "a special discount of 30% on all items! Plus, if you "
             + "order one of our featured artists you will receive an "
-            + "additional discount of 25%.   ";
+            + "additional discount of 10-25%.   ";
 
 for(var count=width; count>0; --count)
   message = " " + message + " ";
@@ -47,12 +47,15 @@ function scroll()
 <H2>The Art Store Catalog</H2>
 (The MiniVend Demonstration System)
 <P>
-<I>[pagetarget help/helpframe _top]Search for help[/page]
+<I><A HREF="__MVC_SAMPLEURL/toc.html" TARGET="_top">Help</A>
 on setting up a MiniVend catalog</I>
 <P>
 	[discount ALL_ITEMS]$s * .70[/discount]
 	[discount 19-202] $s * .75[/discount]
-	[discount 34-101] $s * .75[/discount]
+	[discount 34-101] $s * .80[/discount]
+	[discount 00-0011] $s * .90[/discount]
+	[discount 00-342] $s * .90[/discount]
+	[discount 99-102] $s * .85[/discount]
 	<FORM NAME="scrollbox" ACTION="#">
 	<INPUT TYPE=text name=display SIZE=30>
 	</FORM>

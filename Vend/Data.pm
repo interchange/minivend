@@ -1,4 +1,4 @@
-# $Id: Data.pm,v 2.6 1996/10/30 04:22:28 mike Exp $
+# $Id: Data.pm,v 2.11 1997/01/07 01:16:56 mike Exp $
 
 package Vend::Data;
 require Exporter;
@@ -21,6 +21,7 @@ product_field
 product_price
 products_ref
 read_accessories
+read_pricing
 read_salestax
 read_shipping
 
@@ -37,17 +38,14 @@ BEGIN {
 	if(defined $Msql::Version or $Global::Msql) {
 		require Vend::Table::Msql;
 	}
-	if(defined $GDBM_File::VERSION or $Global::GDBM) {
+	if($Global::GDBM) {
 		require Vend::Table::GDBM;
 	}
-	elsif(defined $DB_File::VERSION or $Global::DB_File) {
+	elsif($Global::DB_File) {
 		require Vend::Table::DB_File;
 	}
-	elsif(defined $NDBM_File::VERSION or $Global::NDBM) {
-		require Vend::Table::InMemory;
-	}
 	else {
-		die "No DBM defined! Data.pm can't run.\n";
+		require Vend::Table::InMemory;
 	}
 }
 
@@ -83,12 +81,16 @@ sub product_price {
 }
 
 sub open_databases {
-	my ($file,$type);
+	my ($file);
+	my $type = '';
 	my $d = $Vend::Cfg->{'Database'};
     for (keys %{$d}) {
 		$file = $d->{$_}->{'file'};
 		$type = $d->{$_}->{'type'};
+		my $save = $;
+		$ = 0;
 		$Vend::Database{$_} = import_database($file, $type);
+		$ = $save;
 	}
 }
 
@@ -211,12 +213,9 @@ sub import_products {
 
     my $product_txt = "$data/products.asc";
 	my $product_dbm;
+	my $memory;
 	my $create_sub;
 	my $no_import = 0;
-
-	if($Vend::Cfg->{'PriceBreaks'}) {
-		read_pricing();
-	}
 
 	if($Global::Msql and $Vend::Cfg->{MsqlProducts} ) {
 		$New_table_msql = 'product';
@@ -244,6 +243,11 @@ sub import_products {
     	$create_sub = \&create_product_dbfile;
 	}
     else {
+    	$New_product_dbm = "$data/product.mem";
+		if($Products = $Vend::Cfg->{MemoryDatabase}->{$New_product_dbm}) {
+			$no_import = 1;
+		}
+		$memory = 1;
     	$create_sub = \&create_product_mem;
 	}
 
@@ -254,11 +258,17 @@ sub import_products {
         or file_modification_time($product_txt) >
             file_modification_time($product_dbm)) {
 
-        warn "Importing product table from $product_txt\n";
+        warn ("Importing product table from $product_txt\n");
         $Products = import_ascii_delimited($product_txt, $delimiter, $create_sub)
 			unless $delimiter eq 'CSV';
         $Products = import_quoted($product_txt, $create_sub)
 			if $delimiter eq 'CSV';
+		if(defined $memory) {
+			unless (ref $Vend::Cfg->{MemoryDatabase}) {
+				$Vend::Cfg->{MemoryDatabase} = {};
+			}
+			$Vend::Cfg->{MemoryDatabase}->{$New_product_dbm} = $Products;
+		}
 		if(defined $product_dbm) {
         	rename($New_product_dbm, $product_dbm)
             	or die "Couldn't move '$New_product_dbm' to '$product_dbm': $!\n";
@@ -382,6 +392,7 @@ sub read_salestax {
 
 # Read in the pricing file, if it exists
 sub read_pricing {
+	return undef unless $Vend::Cfg->{'PriceBreaks'};
     my($code, @breaks);
 	my($test);
 
@@ -454,6 +465,9 @@ sub import_pricing {
 
 	my $delimiter = "\t";
 
+	my $no_import;
+	my $memory;
+
 	my $data = $Vend::Cfg->{'ProductDir'};
 
     my $database_txt = "$Vend::Cfg->{'ProductDir'}/pricing.asc";
@@ -482,21 +496,32 @@ sub import_pricing {
     	$create_sub = \&create_database_dbfile;
 	}
     else {
+		$New_database_dbm = "$data/new.$base.mem";
+		if(ref ($db = $Vend::Cfg->{MemoryDatabase}->{$New_database_dbm})) {
+			$no_import = 1;
+		}
+		$memory = 1;
     	$create_sub = \&create_database_mem;
 	}
 
+   IMPORTPRICE: {
+   	last IMPORTPRICE if $no_import;
     if (! defined $database_dbm
 		or ! -e $database_dbm
         or file_modification_time($database_txt) >
             file_modification_time($database_dbm)) {
 
-        warn "Importing Pricing table from $database_txt\n";
+        warn "Importing pricing table from $database_txt\n";
         $db = import_ascii_delimited($database_txt, $delimiter, $create_sub);
 		if(defined $database_dbm) {
         	rename($New_database_dbm, $database_dbm)
             	or die "Couldn't move '$New_database_dbm' to '$database_dbm': $!\n";
 		}
+		if(defined $memory) {
+			$Vend::Cfg->{MemoryDatabase}->{$New_database_dbm} = $db;
+		}
     }
+   }
 
 
     if($Global::GDBM) {
@@ -516,30 +541,36 @@ sub import_pricing {
 }   
 
 
+my %Delimiter = (
+	2 => "\n",
+	3 => "\n%%\n",
+	4 => "CSV",
+	5 => '\|',
+	6 => "\t",
+	7 => "\t",
+	);
+	
+
 sub import_database {
     my ($database,$type) = @_;
 	my $delimiter = $Vend::Cfg->{'Delimiter'};
 	my $record_delim;
+	my $memory;
 
 	croak "import_database: No database name!\n"
 		unless $database;
 
-	$type = 1 unless defined $type;
 
-	$delimiter = "\n" 
-		if $type == 2;
-	$record_delim = ""
-		if $type == 2;
-	$delimiter = "\n%%\n"
-		if $type == 3;
-	$record_delim = "\n%%%\n"
-		if $type == 3;
-	$delimiter = "CSV" 
-		if $type == 4;
-	$delimiter = '\|' 
-		if $type == 5;
-	$delimiter = "\t" 
-		if $type == 6;
+	$type = 1 unless $type;
+
+	unless ($type == 1) {
+		$record_delim = ""
+			if $type == 2;
+		$record_delim = "\n%%%\n"
+			if $type == 3;
+		$delimiter = $Delimiter{$type}
+			or croak "Unknown database type $type.\n";
+	}
 
 	my $data;
 
@@ -585,6 +616,11 @@ sub import_database {
     	$create_sub = \&create_database_dbfile;
 	}
     else {
+    	$New_database_dbm = "$data/$base.mem";
+		if(ref ($db = $Vend::Cfg->{MemoryDatabase}->{$New_database_dbm})) {
+			$no_import = 1;
+		}
+		$memory = 1;
     	$create_sub = \&create_database_mem;
 	}
 
@@ -606,6 +642,9 @@ sub import_database {
 		if(defined $database_dbm) {
         	rename($New_database_dbm, $database_dbm)
             	or die "Couldn't move '$New_database_dbm' to '$database_dbm': $!\n";
+		}
+		if(defined $memory) {
+			$Vend::Cfg->{MemoryDatabase}->{$New_database_dbm} = $db;
 		}
     }
   }
@@ -636,7 +675,6 @@ sub tag_msql_list {
     my($r, $i, $item, $code, $db, $link);
 	my($linkvalue, $run, $count);
     my($codere) = '[\w-_#/.]+';
-	my(@fields);
 
 	# get the number to start the increment from
 	$count = 0;

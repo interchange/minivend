@@ -339,7 +339,6 @@ sub adjustmodules {
 		}
 		$line = $_;
 		foreach $mod (@modules) {
-			$RedoModule = 0;
 			$found = 0;
 			if ($line =~ /^\s*#*use\s+$mod\s?;?/ ) {
 				eval { eval "require $mod" and $found = 1};
@@ -649,7 +648,7 @@ sub checkmanifest {
 
 	unless (scalar(@types)) {
 		@types = grep !$types{$_}++, values %Type;
-		delete $types{'placeholder'};
+		delete $types{'link'};
 	}
 	else {
 		for(@types) { $types{$_} = 1 }
@@ -936,7 +935,6 @@ HOSTNAME: {
 	my $host;
 	my $domain;
 	# Have to skip this for NT
-	last HOSTNAME if $Config{'osname'} =~ /(win32|mswin)/;
 	unless (defined $Initial{'HostName'}) {
 		$Initial{'HostName'} = '';
 		chop($host = `hostname`);
@@ -1114,8 +1112,9 @@ print "done.\n";
 $default = $Upgrade ? 'no' : 'yes';
 print "\nYou only need to re-make vlink if you have changed directories.\n\n"
 	if $Upgrade;
-$ans = prompt "\nMake the dispatch program vlink? ", $default;
+$ans = prompt "\nMake the dispatch programs vlink and tlink? ", $default;
 if (is_yes($ans)) {
+	my($vfail, $tfail);
 	my $CC = findexe('cc') || findexe('gcc');
 	warn "No C compiler found, this phase will not be successful, I bet...\n"
 		unless $CC;
@@ -1132,14 +1131,58 @@ if (is_yes($ans)) {
 		system "$CC -o vlink vlink.c";
 		if($?) {
 			warn "\nCompiliation of vlink.c FAILED.\n";
+			$vfail = 1;
+		}
+		system "$CC -o tlink tlink.c";
+		if($?) {
+			warn "\nCompiliation of tlink.c FAILED.\n";
+			$tfail = 1;
+		}
+		if (defined $vfail and $Config{'osname'} eq 'solaris') {
+			print "Trying Solaris compile of vlink with GCC....";
+			system "gcc -DSVR4 -lsocket -o vlink vlink.c";
+			if($?) {
+				warn "\nCompiliation of vlink.c FAILED again.\n";
+			}
+			else {
+				print "succeeded!\n";
+			}
+		}
+		if (defined $tfail and $Config{'osname'} eq 'solaris') {
+			print "Trying Solaris compile of tlink with GCC....";
+			system "gcc -DSVR4 -lsocket -o tlink tlink.c";
+			if($?) {
+				warn "\nCompiliation of tlink.c FAILED again.\n";
+			}
+			else {
+				print "succeeded!\n";
+			}
 		}
 	}
 	else {
-		warn "\nConfiguration of vlink.c FAILED.\n";
+		$vfail = 1; 
+		$tfail = 1; 
+		warn "\nConfiguration of link programs FAILED.\n";
 	}
 	print "done.\n";
 	chdir '..' || die "Couldn't change back to $Initial{'VendRoot'}: $!\n";
+	$Compile_failed = 1 if (defined $vfail or defined $tfail);
 }
+
+
+chdir 'bin' || die "Couldn't cd to $Initial{'VendRoot'}/bin: $!\n";
+
+##  UGLY
+if(! -f 'start') {
+	eval { symlink 'start_unix', 'start' };
+	link ('start_unix', 'start') if $@;
+}
+if(! -f 'restart') {
+	eval { symlink 'restart_unix', 'restart' };
+	link ('restart_unix', 'restart') if $@;
+}
+
+chdir '..' || die "Couldn't change back to $Initial{'VendRoot'}: $!\n";
 
 print <<EOF;
 
@@ -1147,23 +1190,19 @@ That takes care of the program configuration.
 
 EOF
 
-if($Config{osname} eq 'sunos' or $Config{osname} eq 'dec_osf' ) {
-	my $tmp;
-	$Config{osname} eq 'sunos' and $tmp = 'SunOS 4.X';
-	$Config{osname} eq 'dec_osf' and $tmp = 'Digital UNIX';
-	open(MVCFG, ">>minivend.cfg")
-		or die "Couldn't append to minivend.cfg: $!\n";
-	print MVCFG "\nForkSearches   NO\n";
-	close MVCFG;
+if (defined $Compile_failed and $Compile_failed) {
+print <<EOF;
 
-	print <<EOF;
-Since you are running $tmp, you cannot fork search
-operations -- the locking is not up to it.  It was
-disabled in minivend.cfg.
+The compilation of one or both link programs (tlink and/or
+vlink) failed.  You may be able to use the Perl-based tlink.pl
+program along with starting the server in INET mode (start_inet)
+to make MiniVend work.
 
+Using vlink.pl requires either that your installation use
+CGIWRAP or that you compile it with a wrapper such as the Perl
+example 'wrapsuid' program.
 
 EOF
-
 }
 
 print <<EOF;

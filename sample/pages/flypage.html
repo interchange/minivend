@@ -15,31 +15,7 @@
 <P>
 Catalog No.: [item_code]
 <P>
-[[if scratch rotate == 1]
-[file pages/effects/rotate[scratch rotate].html]
-[set rotate_tmp]2[/set]
-[/if]
-
-[if scratch rotate == 2]
-[file pages/effects/rotate[scratch rotate].html]
-[set rotate_tmp]3[/set]
-[/if]
-
-[if scratch rotate == 3]
-[file pages/effects/rotate[scratch rotate].html]
-[set rotate_tmp]4[/set]
-[/if]
-
-[if scratch rotate == 4]
-[file pages/effects/rotate[scratch rotate].html]
-[set rotate_tmp]5[/set]
-[/if]
-
-[if scratch rotate == 5]
-[file pages/effects/rotate[scratch rotate].html]
-[set rotate_tmp]1[/set][/if]]
-
-[set rotate][scratch rotate_tmp][/set]
+[rotate]
 
 <P>
 [if config PriceBreaks]
@@ -93,8 +69,8 @@ Price: [item_price]
 [/if]
 </CENTER>
 <P>
-Extra data: [data Arbitrary field1 [item_code]]<BR>
-Extra data: [item_data Arbitrary field2]
+Extra data: [item_data Arbitrary field1]<BR>
+Extra data: [data Arbitrary field2 [item_code]]
 
 <P ALIGN=CENTER>
 [order [item_code]]<STRONG>Order Now!</STRONG>[/order]

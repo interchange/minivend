@@ -1,0 +1,194 @@
+#!/usr/local/bin/perl
+#
+# reconfigure - script for user reconfiguration of MiniVend catalog
+# 
+# 
+
+# Replace this with the URL PATH for the CGI calling an
+# individual catalog -- makecat will do this for you if you
+# copy this file to the template directory (the demos have it).
+#
+# Value for simple demo might be '/cgi-bin/simple'
+#
+$Script    = '__MVC_CGIURL';
+
+# Replace this with the DIRECTORY containing the CGI calling an
+# individual catalog -- makecat will do this for you if you
+# copy this file to the template directory (the demos have it).
+#
+# Value for a standard Apache configuration might be
+# '/usr/local/apache/cgi-bin'
+#
+$ScriptDir = '__MVC_CGIDIR';
+
+# Set this to 0 if you don't want the user to be prompted 
+# for a password in command line mode
+$Prompt = 1;
+
+# Values for the demo, refresh is almost always right.
+# You could put in some other stuff here to save a
+# reconfiguration report in the session database. The
+# defaults should work well unless you have heavily
+# reconfigured the catalog
+my %preset = (
+			mv_doit => 'refresh',
+			remote_host => $ENV{REMOTE_HOST},
+			remote_addr => $ENV{REMOTE_ADDR},
+			remote_user => $ENV{REMOTE_USER},
+			user_agent => $ENV{HTTP_USER_AGENT},
+			mv_orderpage => 'special/reconfig',
+			);
+
+### END CONFIGURABLE VARIABLES
+
+use FileHandle;
+use POSIX 'tmpnam';
+use strict;
+use vars qw($ScriptDir $ScriptPath $Script $Prompt);
+
+my %env = (
+	REQUEST_METHOD			=> 'POST',
+	CONTENT_TYPE			=> 'application/x-www-form-urlencoded',
+	SCRIPT_NAME				=> $Script,
+	PATH_INFO				=> '/process',
+	REMOTE_USER				=> 'LOCAL',
+	REMOTE_ADDR				=> 'LOCAL',
+);
+
+
+# 
+# Must generate one with htpasswd.pl or the like and install it
+# as Password directive in catalog.cfg for it to work
+#
+
+GETPASS: {
+
+	my $pass;
+
+	if (defined $ENV{GATEWAY_INTERFACE}) {
+	# Allow passing of the password with query string parameter 
+	# 'password' if CGI.
+	#
+	# Not very secure -- HTTP basic auth is better, as is POST.
+	# You can add in the POST code if you wish.
+		my $pass = $ENV{QUERY_STRING};
+		$pass =~ s!^.*password=!!;
+		$pass =~ s!&.*!!;
+		$env{RECONFIGURE_MINIVEND} = $pass;
+	}
+	else {
+		last GETPASS unless $Prompt;
+		system("stty -echo"); 				 # Turn off echo
+		print				"Password:";     # Prompt
+		chop				($pass = <>);    # Get new password
+		system("stty echo"); 				 # Turn echo back on
+		print 				"\n";			 # Return wasn't echoed, supply
+		$env{RECONFIGURE_MINIVEND} = $pass;
+	}
+
+}
+
+$ScriptPath = $Script;
+$ScriptPath =~ s:.*/::;
+$ScriptPath = "$ScriptDir/$ScriptPath";
+
+my %Data;
+
+my($user,$path);
+
+my $tried = 0;
+
+sub die_page {
+	my $string = shift;
+	print <<EOF;
+Content-type: text/html
+
+<HTML>
+<HEAD><TITLE>Error: $string</TITLE></HEAD>
+<BODY BGCOLOR=WHITE>
+
+<H2>Error: $string</H2>
+
+</BODY>
+</HTML>
+EOF
+	exit 0;
+}
+
+
+# Taken from URI::Escape to avoid distributing a module
+# Thanks, libwww team!
+sub uri_escape
+{
+    my($text, $patn) = @_;
+	my %escapes;
+
+	no strict 'vars';  # URI::Escape non-strict
+	# Build a char->hex map
+	for (0..255) {
+		$escapes{chr($_)} = sprintf("%%%02X", $_);
+	}
+    return undef unless defined $text;
+    if (defined $patn){
+    unless (exists  $subst{$patn}) {
+        # Because we can't compile regex we fake it with a cached sub
+        $subst{$patn} =
+          eval "sub {\$_[0] =~ s/([$patn])/\$escapes{\$1}/g; }";
+        Carp::croak("uri_escape: $@") if $@;
+    }
+    &{$subst{$patn}}($text);
+    } else {
+    # Default unsafe characters. (RFC1738 section 2.2)
+    $text =~ s/([\x00-\x20"#%;<>?{}|\\\\^~`\[\]\x7F-\xFF])/$escapes{$1}/g; #"
+    }
+    $text;
+}
+
+# Main program
+	my ($var,$value);
+	my $out = '';
+	my @out;
+	my $join = '';
+
+	# Put in the preset values
+	for (keys %preset) {
+		push @out, "$_=" . uri_escape($preset{$_});
+	}
+
+	$out = join '&', @out;
+
+	$env{CONTENT_LENGTH} = length $out;
+
+	for(keys %env) {
+		$ENV{$_} = $env{$_};
+	}
+
+	my $tmpfile = POSIX::tmpnam();
+
+	open(VLINK, "|$ScriptPath > $tmpfile") or die "Couldn't return data: $!\n";
+	print VLINK $out;
+	close VLINK;
+
+
+	if(! -s $tmpfile) {
+		unlink $tmpfile;  # Need to duplicate
+
+		if (defined $ENV{GATEWAY_INTERFACE}) {
+			# For calling by CGI
+			die_page "Reconfiguration failed.\n";
+		}
+		else {
+			# For calling from command line
+			die "Reconfiguration failed.\n";
+		}
+	}
+	elsif (defined $ENV{GATEWAY_INTERFACE}) {
+		open(OUTPUT, "$tmpfile") or die "Couldn't return data: $!\n";
+		while(<OUTPUT>) { print }
+		close OUTPUT;
+	}
+
+	unlink $tmpfile;
+
+	exit 0;
+

@@ -2,7 +2,7 @@
 #
 # MiniVend version 2.00
 #
-# $Id: minivend.pl,v 2.5 1996/11/04 09:02:50 mike Exp mike $
+# $Id: minivend.pl,v 2.15 1997/01/07 01:35:23 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -30,8 +30,16 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 BEGIN {
-$Global::VendRoot = '/home/mike/mvend202';
+$Global::VendRoot = '/home/minivend';
 $Global::ConfDir = "$Global::VendRoot/etc";
+
+# Uncomment next line if you want to guarantee use of DB_File
+#$ENV{MINIVEND_DB_FILE} = 1;
+
+# Uncomment next line if you want to use no DBM, sessions
+# stored in files and databases in memory (or mSQL)
+#$ENV{MINIVEND_NODBM} = 1;
+
 }
 $Global::ConfigFile = 'minivend.cfg';
 $Global::ErrorFile = 'error.log';
@@ -44,8 +52,7 @@ use lib $Global::VendRoot;
 $Global::SendMailLocation = '/usr/lib/sendmail';
 
 # For the order counter, no huge deal if not there.  Included
-# with the distribution, but will go bye-bye if you only have
-# Perl 5.001
+# with the distribution.
 use File::CounterFile;
 
 ### END CONFIGURABLE VARIABLES
@@ -56,28 +63,30 @@ use Fcntl;
 #select a DBM
 
 BEGIN {
-	$Global::GDBM = $Global::DB_File = $Global::NDBM = $Global::Msql = 0;
+	$Global::GDBM = $Global::DB_File = $Global::Msql = 0;
 	eval {require Msql and $Global::Msql = 1};
-	eval {require GDBM_File and $Global::GDBM = 1} ||
-	eval {require DB_File and $Global::DB_File = 1} ||
-	eval {require NDBM_File and $Global::NDBM = 1};
-	if(defined $GDBM_File::VERSION or $Global::GDBM) {
+
+	AUTO: {
+		last AUTO if 
+			(defined $ENV{MINIVEND_DBFILE} and $Global::DB_File = 1);
+		last AUTO if 
+			(defined $ENV{MINIVEND_NODBM} and $Global::Msql == 1);
+		eval {require GDBM_File and $Global::GDBM = 1} ||
+		eval {require DB_File and $Global::DB_File = 1};
+	}
+
+	if($Global::GDBM) {
 		require Vend::Table::GDBM;
 		import GDBM_File;
 		$Global::GDBM = 1;
 	}
-	elsif(defined $DB_File::VERSION or $Global::DB_File) {
+	elsif($Global::DB_File) {
 		require Vend::Table::DB_File;
 		import DB_File;
 		$Global::DB_File = 1;
 	}
-	elsif(defined $NDBM_File::VERSION or $Global::NDBM) {
-		require Vend::Table::InMemory;
-		import NDBM_File;
-		$Global::NDBM = 1;
-	}
 	else {
-		die "No DBM defined! MiniVend can't run.\n";
+		require Vend::Table::InMemory;
 	}
 }
 
@@ -125,16 +134,7 @@ sub response {
 	#}
 
 	$Vend::content_type = $type;
-	if(defined $Vend::ServerMode) {
-		http()->respond("text/$type",$output,$debug);
-	}
-	else {
-		if ($Vend::Cfg->{'Cookies'}) {
-			print "Set-Cookie: MV_SESSION_ID=$Vend::SessionID; path=/\r\n";
-		}
-		print "Content-type: text/$type\r\n\r\n";
-		print $output;
-	}
+	http()->respond("text/$type",$output,$debug);
 }
 
 sub html_header {
@@ -332,23 +332,14 @@ sub untaint {
 sub do_search {
 	my($c) = \%CGI::values;
 
-	if( ! $Global::ForkSearches) {;
-		perform_search($c,@_);
-		return 0;
+	if($Vend::Cfg->{SearchCache}) {
+		my($key,$page) = check_search_cache($c);
+		return response('html',$page) if defined $page;
+		$c->{mv_cache_key} = $key if $key;
 	}
 
-	release_session() if $Vend::HaveSession;
+	perform_search($c,@_);
 
-	unless(fork) { # This is the child
-		unless (fork) { # Grandchild
-			select(undef,undef,undef,0.100) until getppid == 1;
-			perform_search($c,@_);
-			unlink $Vend::ActiveSocket;
-			exit 0;
-		}
-		exit 0;
-	}
-	wait;
 }
 
 sub do_scan {
@@ -356,22 +347,18 @@ sub do_scan {
 	# This is quite tricky -- I would be happy for
 	# suggestions on how to make it more regular 8-)
 	my($argument,$path) = @_;
-	my($c) = {};
+	my ($key,$page);
+
+	if($Vend::Cfg->{SearchCache}) {
+		($key,$page) = check_scan_cache($argument, $path);
+		return response('html',$page) if defined $page;
+	}
+
+	my($c) = { mv_cache_key => $key || '' };
 
 	find_search_params($c,$path);
 
-	return perform_search($c,$argument)
-		if ! $Global::ForkSearches;
-	unless(fork) { # This is the child
-		unless (fork) { # Grandchild
-			select(undef,undef,undef,0.050) until getppid == 1;
-			perform_search($c,$argument);
-			unlink $Vend::ActiveSocket;
-			exit 0;
-		}
-		exit 0;
-	}
-	wait;
+	perform_search($c,$argument);
 }
 
 # Returns undef if interaction error
@@ -402,6 +389,10 @@ sub update_quantity {
 	foreach $i (0 .. $#$cart) {
     	$quantity = $CGI::values{"quantity$i"};
     	if (defined($quantity) && $quantity =~ m/^\d+$/) {
+        	$cart->[$i]->{'quantity'} = $quantity;
+    	}
+    	elsif (defined($quantity) && $quantity =~ m/^[\d.]+$/
+				and $Vend::Cfg->{FractionalItems} ) {
         	$cart->[$i]->{'quantity'} = $quantity;
     	}
 		# This allows a multiple input of item quantity to
@@ -488,7 +479,9 @@ sub add_items {
 					$item->{$i} = '';
 				}
 			}
+			my $next = $#$cart + 1;
 			push @$cart, $item;
+			$CGI::values{"quantity$next"} = $quantity;
 		}
 	}
 }
@@ -503,6 +496,127 @@ sub do_finish {
     order_page($page);
     put_session();
 }
+
+# Update the user-entered fields.
+sub update_data {
+	my($key,$value);
+    # Update a database record
+
+	unless (defined $CGI::values{'mv_data_table'} and 
+		    defined $CGI::values{'mv_data_key'}      ) {
+		logError("Attempted database operation without table or key.\n" .
+				 "Table: '$CGI::values{'mv_data_table'}'\n" .
+				 "Key:   '$CGI::values{'mv_data_key'}'  \n"     );
+		
+		return undef;
+	}
+
+	my $table = $CGI::values{'mv_data_table'};
+	my $function = $CGI::values{'mv_data_function'};
+	my @fields = split /\s*,\s*/, $CGI::values{'mv_data_fields'};
+	my $prikey = $CGI::values{'mv_data_key'};
+
+	$function = $function =~ /insert/i ? 'insert' : 'update';
+
+	my (%data);
+	for(@fields) {
+		$data{$_} = [];
+	}
+
+    while (($key, $value) = each %CGI::values) {
+        next unless defined $data{$key};
+		@{$data{$key}} = split /\0/, $value;
+	}
+
+	unless ($data{$prikey}) {
+		logError("No key '$prikey' found in database $function operation.\n" .
+				 "Table: '$CGI::values{'mv_data_table'}'\n" .
+				 "Key:   '$CGI::values{'mv_data_key'}'  \n"   );
+		return undef;
+	}
+
+	my ($query,$i);
+	my (@k);
+	my (@v);
+	my (@c);
+
+	for($i = 0; $i < @{$data{$prikey}}; $i++) {
+		@k = (); @v = ();
+		for(keys %data) {
+			next unless (($value = $data{$_}->[$i]) || $CGI::values{mv_update_empty});
+			push(@k, $_);
+			$value =~ s/'/\\'/g;
+			push(@v, $value);
+		}
+		if($function eq 'insert') {
+			$query = "insert into $table (";
+			$query .= join ",", @k;
+			$query .= ") VALUES ('";
+			$query .= join "','", @v;
+			$query .= "')";
+		}
+		else {
+			$query = "UPDATE $table SET ";
+			my $what;
+			@c = ();
+			while (@k) {
+				( ($key = shift @k), ($value = shift @v), next )
+					if $k[0] eq $prikey;
+				$what = (shift @k) . "='" . (shift @v) . "'";
+				push @c, $what;
+			}
+			$query .= join ", ", @c;
+			$query .= " WHERE $key = '$value'";
+		}
+		logGlobal("query: $query\n");
+		msql_query('set', $query);
+	}
+
+
+}
+
+sub parse_click {
+	my ($ref, $click, $extra) = @_;
+    my($codere) = '[\w-_#/.]+';
+	my $params = $Vend::Session->{'scratch'}->{$click} || return 1;
+
+	my($var,$val,$parameter);
+	$params = interpolate_html($params);
+	my(@param) = split /\n+/, $params;
+
+	for(@param) {
+		next unless /\S/;
+		next if /^\s*#/;
+		s/^[\r\s]+//;
+		s/[\r\s]+$//;
+		$parameter = $_;
+		($var,$val) = split /[\s=]+/, $parameter, 2;
+		$val =~ s/&#(\d+);/chr($1)/ge;
+		$ref->{$var} = $val;
+		$extra->{$var} = $val
+			if defined $extra;
+	}
+}
+
+# This is the set of CGI-passed variables to ignore, in other words
+# never set in the user session.  If set in the mv_check pass, though,
+# they will stick.
+my %Ignore = qw(
+	mv_todo  1
+	mv_todo.submit.x  1
+	mv_todo.submit.y  1
+	mv_todo.return.x  1
+	mv_todo.return.y  1
+	mv_todo.checkout.x  1
+	mv_todo.checkout.y  1
+	mv_todo.todo.x  1
+	mv_todo.todo.y  1
+	mv_todo.map  1
+	mv_doit  1
+	mv_check  1
+	mv_click  1
+	mv_nextpage  1
+	);
 
 # Update the user-entered fields.
 sub update_user {
@@ -534,15 +648,15 @@ sub update_user {
 			= encrypt_standard_cc(\%CGI::values);
 	}	
 
-    while (($key, $value) = each %CGI::values) {
-        next if ($key =~ m/^quantity\d+/);
-        next if ($key =~ /^mv_(todo|nextpage|doit)/);
 
+    while (($key, $value) = each %CGI::values) {
+        next if defined $Ignore{$key};
+        next if ($key =~ m/^quantity\d+/);
 		# We add any checkbox ordered items, but don't update -- 
 		# we don't want to order them twice
         $Vend::Session->{'values'}->{$key} = $value;
 
-		next unless $value =~ /credit_card/;
+		next unless $key =~ /^credit_card/;
 
 		if(	defined $Vend::Cfg->{'Password'} &&
 			$Vend::Cfg->{'CreditCards'}			)
@@ -560,6 +674,16 @@ sub update_user {
 			undef $CGI::values{$key};
 		}
     }
+
+	if(defined $CGI::values{'mv_check'}) {
+		delete $Vend::Session->{'values'}->{mv_nextpage};
+		my(@checks) = split /\s*[,\0]+\s*/, $CGI::values{'mv_check'};
+		my($check);
+		foreach $check (@checks) {
+				parse_click $Vend::Session->{'values'}, $check, \%CGI::values;	
+		}
+	}
+
 }
 
 ## DO PROCESS
@@ -580,6 +704,7 @@ sub minivend_action {
 	return $todo;
 }
 
+
 # Process the completed order or search page.
 
 sub do_process {
@@ -588,8 +713,17 @@ sub do_process {
 
     expect_form() || return;
 
+	if(defined $CGI::values{'mv_click'}) {
+		my(@clicks) = split /\s*[,\0]+\s*/, $CGI::values{'mv_click'};
+		my($click);
+		foreach $click (@clicks) {
+			parse_click \%CGI::values, $click;	
+		}
+	}
+
     $doit = $CGI::values{'mv_doit'};
     $todo = $CGI::values{'mv_todo'};
+
     $nextpage = $CGI::values{'mv_nextpage'} || $Vend::Session->{'page'};
     $orderpage = $CGI::values{'mv_orderpage'} || $Vend::Cfg->{'Special'}->{'order'};
     $ordered_items = $CGI::values{'mv_order_item'};
@@ -628,7 +762,7 @@ sub do_process {
 		if ($CGI::secure) {
 			$Vend::Session->{'secure'} = 1;
 			update_user();
-			do_page($nextpage);
+			do_page($Vend::Session->{'values'}->{mv_nextpage} || $nextpage);
 			return;
 		}
 		else {
@@ -652,7 +786,7 @@ sub do_process {
 	}
 	elsif ($todo eq 'control') {
 		update_user();
-		do_page($nextpage);
+		do_page($Vend::Session->{'values'}->{mv_nextpage} || $nextpage);
 		return;
 	}
 	elsif ($todo eq 'submit') {
@@ -718,10 +852,14 @@ sub do_process {
 	  }
 
     }
+	elsif ($todo eq 'set') {
+		update_data();
+		display_page($Vend::Session->{'values'}->{mv_nextpage} || $nextpage);
+    }
 	elsif ($todo eq 'return') {
 		update_user();
 		update_quantity() || return; #Return on error
-		display_page($nextpage);
+		display_page($Vend::Session->{'values'}->{mv_nextpage} || $nextpage);
     }
 	elsif ($todo eq 'refresh') {
 		update_user();
@@ -731,8 +869,7 @@ sub do_process {
 	elsif ($todo eq 'search') {
 		update_user();
     	put_session();
-		return do_search(); # Will fork the actual search, session var
-		             		# changes make no difference but shouldn't be done
+		return do_search();
     }
 	elsif ($todo eq 'cancel') {
 		$Vend::Session->{'values'}->{'credit_card_no'} = 'xxxxxxxxxxxxxxxxxxxxxx';
@@ -762,6 +899,46 @@ sub do_msg {
     return "$msg.." if ($len + 2) >= $size;
     $msg .= '.' x ($size - $len);
     return $msg;
+}
+
+
+sub config_named_catalog {
+	my ($script_name, $source) = @_;
+	my ($g,$c,$conf);
+
+	for (keys %Global::Catalog) {
+         next unless $Global::Catalog{$_}->{'script'} eq $script_name;
+         $g = $Global::Catalog{$_};
+    }
+    logGlobal "Re-configuring catalog " . $g->{'name'} .
+            ' from ' . $source;
+    chdir $g->{'dir'}
+            or die "Couldn't change to $g->{'dir'}: $!\n";
+    $conf = $g->{'dir'} . '/etc';
+    eval {
+        $c = config($g->{'name'}, $g->{'dir'}, $conf);
+    };
+    if($@) {
+        logGlobal "\n$@\n\a$g->{'name'}: error in configuration file. Aborting re-configuration.\n";
+        logError "\n$@\n\a$g->{'name'}: error in configuration file. Aborting re-configuration.\n";
+     	undef $c;
+    }
+	else {
+		$Vend::Cfg = $c;	
+		read_accessories();
+		read_salestax();
+		read_shipping();
+		read_pricing();
+		unless($Global::GDBM or $Global::DB_File) {
+			import_products();
+			open_databases();
+			close_products();
+			close_database();
+		}
+		undef $Vend::Cfg;
+	}
+
+	return $c;
 }
 
 sub build_page {
@@ -795,11 +972,18 @@ sub build_page {
 # should work the same.
 sub build_all {
 	my($catalog,$outdir) = @_;
-	my($g, $sub, $p, $key, $val);
+	my($g, $sub, $p, $spec, $key, $val);
 	my(@files);
 	for(keys %Global::Catalog) {
 		next unless $Global::Catalog{$_}->{'name'} eq $catalog;
 		$g = $Global::Catalog{$_}->{'script'};
+	}
+
+	$spec = $Vend::BuildSpec || '';
+	CHECKSPEC: {
+		my $test = 'NevVAIRBbe';
+		eval { $test =~ s:^/tmp/whatever/$spec::; };
+		die "Bad -files spec '$spec'\n" if $@;
 	}
 	die "$catalog: no such catalog!\n"
 		unless defined $g;
@@ -849,12 +1033,18 @@ EOF
 	$Vend::SessionID = '';
 	$Vend::SessionName = '';
 	init_session();
+	$Vend::Session->{'frames'} = 1;
 	my $basedir = $Vend::Cfg->{'PageDir'};
 	require File::Find or die "No standard Perl library File::Find!\n";
 	$sub = sub {
 					my $name = $File::Find::name;
 					die "Bad file name $name\n"
 						unless $name =~ s:^$basedir/?::;
+
+					if ($spec) {
+						return unless $name =~ m!^$spec!o;
+					}
+						
 					if (-d $File::Find::name) {
 						die "$outdir/$name is a file, not a dir.\n"
 							if -f "$outdir/$name";
@@ -883,7 +1073,7 @@ EOF
 		$Vend::Session->{'pageCount'} = -1;
 		print "done.\n";
 	}
-
+	return if $spec;
 	while( ($key,$val) = $p->each_record() ) {
 		print do_msg("Building part number $key ...");
 		build_page($key,$outdir);
@@ -892,11 +1082,11 @@ EOF
 	}
 	$ = 0;
 }
-	
+
 
 sub map_cgi {
 
-    my($cgi, $major, $minor, $host, $user, $secure, $length);
+    my($host, $user);
 
     $CGI::request_method = ::http()->Method;
     die "REQUEST_METHOD is not defined" unless defined $CGI::request_method;
@@ -921,8 +1111,9 @@ sub map_cgi {
     $CGI::useragent = http()->User_Agent;
     $CGI::cookie = http()->Cookie;
 
-    $CGI::content_length = http()->Content_Length;
+    #$CGI::content_length = http()->Content_Length;
     $CGI::content_type = http()->Content_Type;
+    $CGI::reconfigure_catalog = http()->Reconfigure;
     $CGI::query_string = http()->Query;
     $CGI::script_name = http()->Script;
 
@@ -936,30 +1127,93 @@ sub map_cgi {
 
 sub dispatch {
 	my($http, $socket, $debug) = @_;
-	my $forked = 0;
 	$H = $http;
 
-	if( defined $Vend::ServerMode) {
-		map_cgi($H);
-		# We do this so that we can unlink it if we fork an op
-		$Vend::ActiveSocket = $socket;
-	}
-    my($query_string, $script_name, $sessionid, $argument, $path);
+	map_cgi($H);
+
+    my($sessionid, $argument, $path);
 	my(@path);
 	my($g, $action);
 
-    $query_string = $CGI::query_string;
-    $script_name = $CGI::script_name;
-
 	unless (defined $Global::Standalone) {
-		unless (defined $Global::Selector{$script_name}) {
-			logGlobal("Call for undefined catalog from $script_name");
+		unless (defined $Global::Selector{$CGI::script_name}) {
+			logGlobal("Call for undefined catalog from $CGI::script_name");
 			return '';
 		}
-		$Vend::Cfg = $Global::Selector{$script_name}
+		$Vend::Cfg = $Global::Selector{$CGI::script_name}
 	}
 	else {
 		$Vend::Cfg = $Global::Standalone;
+	}
+
+	if (defined $CGI::reconfigure_catalog) {
+
+		# First some security checks
+		# Check if host IP is correct when MasterHost is set to something
+		if ($Vend::Cfg->{MasterHost} and
+			$CGI::host ne $Vend::Cfg->{MasterHost})
+		{
+			logGlobal <<EOF;
+ALERT: Attempt to reconfigure catalog at $CGI::script_name from:
+
+	REMOTE_ADDR  $CGI::host
+	REMOTE_USER  $CGI::user
+	USER_AGENT   $CGI::useragent
+	SCRIPT_NAME  $CGI::script_name
+	PATH_INFO    $CGI::path_info
+EOF
+			return '';
+		}
+
+		# Check to see if password enabled, then check
+		if ($Vend::Cfg->{Password} and
+			crypt($CGI::reconfigure_catalog, $Vend::Cfg->{Password})
+			ne  $Vend::Cfg->{Password})
+		{
+			logGlobal <<EOF;
+ALERT: Password mismatch on reconfigure of $CGI::script_name from $CGI::host
+EOF
+			return '';
+		}
+
+		# Finally ceck to see if remote_user match enabled, then check
+		if ($Vend::Cfg->{RemoteUser} and
+			$CGI::user ne $Vend::Cfg->{RemoteUser})
+		{
+			logGlobal <<EOF;
+ALERT: Attempt to reconfigure catalog at $CGI::script_name from:
+
+	REMOTE_ADDR  $CGI::host
+	REMOTE_USER  $CGI::user
+	USER_AGENT   $CGI::useragent
+	SCRIPT_NAME  $CGI::script_name
+	PATH_INFO    $CGI::path_info
+EOF
+			return '';
+		}
+
+		# Don't allow random reconfigures without one of the three checks
+		unless ($Vend::Cfg->{MasterHost} or $Vend::Cfg->{Password}
+				or $Vend::Cfg->{RemoteUser}) {
+			logGlobal <<EOF;
+Attempt to reconfigure catalog on $CGI::script_name, reconfiguration disabled.
+EOF
+			return '';
+
+		}
+
+		logData("$Global::ConfDir/reconfig", $CGI::script_name);
+		logGlobal <<EOF;
+Reconfiguring catalog on $CGI::script_name, INET mode:
+
+	REMOTE_ADDR  $CGI::host
+	REMOTE_USER  $CGI::user
+	USER_AGENT   $CGI::useragent
+	SCRIPT_NAME  $CGI::script_name
+	PATH_INFO    $CGI::path_info
+
+EOF
+			
 	}
 
 	chdir $Vend::Cfg->{'VendRoot'} 
@@ -969,8 +1223,8 @@ sub dispatch {
 	open_databases();
 	import_products();
 	
-    if (defined $query_string && $query_string ne '') {
-		($sessionid, $argument) = split(/;/, $query_string);
+    if (defined $CGI::query_string && $CGI::query_string ne '') {
+		($sessionid, $argument) = split(/;/, $CGI::query_string);
     }
 
 	# Get a cookie if we have no session id (and its there)
@@ -982,7 +1236,7 @@ sub dispatch {
 
     if (defined $sessionid && $sessionid ne '') {
 		$Vend::SessionID = $sessionid;
-    		$Vend::SessionName = session_name();
+    	$Vend::SessionName = session_name();
 		get_session();
 		if (time - $Vend::Session->{'time'} > $Vend::Cfg->{'SessionExpire'}) {
 	    	init_session();
@@ -993,9 +1247,6 @@ sub dispatch {
     }
 
     $path = $CGI::path_info;
-
-	# If this is left at 0, then we will try the on-the-fly page
-	$Vend::RegularPage = 0;
 
     # If the cgi-bin program was invoked with no extra path info,
     # just display the catalog page.
@@ -1013,27 +1264,20 @@ sub dispatch {
     @path = split('/', $path, 2);
     $action = shift @path;
 
-	# The do_search routine now forks a process and does
-	# the search in the background. Be careful if you hack
-	# the search routine to use a DBM cache!
-	# Will fork the actual search, session var
-	# changes make no difference but shouldn't be done
-    if    ($action eq 'order')    { do_order($argument,@path);  }
-    elsif ($action eq 'search')   { $forked = do_search($argument); } # forks
-    elsif ($action eq 'scan')     { $forked = do_scan($argument,@path); } # forks
-    elsif ($action eq 'process')  { $forked = do_process(); } # possibly forks
+    if    ($action eq 'order')    { do_order($argument,@path); }
+    elsif ($action eq 'search')   { do_search($argument);      } 
+    elsif ($action eq 'scan')     { do_scan($argument,@path);  } 
+    elsif ($action eq 'process')  { do_process();              }
     else {
-		# try the on-the-fly page if it fails
-		$Vend::RegularPage = 1;
+		# will try the on-the-fly page if it fails
 		do_page($path);
     }
 	release_session() if $Vend::HaveSession;
-	$forked = 0 if $Global::ForkSearches;
 	close_database();
 	close_products();
 	undef $H;
 	undef $Vend::Cfg;
-	return $forked;
+	return 1;
 }
 
 ## DEBUG
@@ -1095,61 +1339,6 @@ sub parse_post {
 	 }
 }
 
-
-# Pull CGI variables from the environment.
-
-sub cgi_environment {
-	my($cgi, $major, $minor, $host, $user, $length);
-
-	($cgi, $major, $minor) =
-		($ENV{'GATEWAY_INTERFACE'} =~ m#^(\w+)/(\d+)\.(\d+)$#);
-	if (!defined $cgi || $cgi ne 'CGI' ||
-		!defined $major || $major < 1 ||
-		!defined $minor || $minor < 0) {
-		die "Need a cgi-bin interface version of at least 1.0\n";
-	}
-
-	$CGI::useragent = $ENV{'HTTP_USER_AGENT'};
-	$CGI::request_method = $ENV{'REQUEST_METHOD'};
-	die "REQUEST_METHOD is not defined" unless defined $CGI::request_method;
-
-	$CGI::path_info = $ENV{'PATH_INFO'};
-	# Commented out by Mike Heins, no need for this trap
-	# die "PATH_INFO is not defined" unless defined $CGI::path_info;
-
-	$host = $ENV{'REMOTE_HOST'};
-	$host = $ENV{'REMOTE_ADDR'} unless (defined $host && $host ne '');
-	$host = '' unless defined $host;
-	$CGI::host = $host;
-
-	$user = $ENV{'REMOTE_USER'};
-	$user = $ENV{'REMOTE_IDENT'} unless (defined $user && $user ne '');
-	$user = '' unless defined $user;
-	$CGI::user = $user;
-
-	$CGI::content_length = $ENV{'CONTENT_LENGTH'};
-	$CGI::content_type = $ENV{'CONTENT_TYPE'};
-	$CGI::query_string = $ENV{'QUERY_STRING'};
-
-	if ($CGI::request_method eq 'POST') {
-		die "CONTENT_LENGTH is not specified with POST method"
-			unless defined $CGI::content_length;
-		$length = read(STDIN, $CGI::post_input, $CGI::content_length);
-		die "Could not read " . $CGI::content_length .
-			" bytes from cgi-bin server: $!\n" 
-				unless $length == $CGI::content_length;
-		parse_post();
-	}
-}
-									
-
-sub dump_post {
-	open(Vend::P, ">$Vend::Cfg->{'VendRoot'}/post") || die;
-	print Vend::P $CGI::post_input;
-	close Vend::P;
-}
-
-
 ## COMMAND LINE OPTIONS
 
 sub parse_options {
@@ -1163,10 +1352,16 @@ sub parse_options {
 		} elsif (m/^-b(uild)?$/i) {
 			$Vend::mode = 'build';
 			$Vend::CatalogToBuild = shift @ARGV;
+		} elsif (m/^-f(iles)?$/i) {
+			$Vend::BuildSpec = shift @ARGV;
+			die "Missing file spec for -files option\n"
+				if blank($Vend::BuildSpec);
 		} elsif (m/^-o(utdir)?$/i) {
 			$Vend::OutputDirectory = shift @ARGV;
 			die "Missing file argument for -outdir option\n"
 				if blank($Vend::OutputDirectory);
+		} elsif (m/^-i(netmode)?$/i) {
+			$Global::Inet_Mode = 1;
 		} elsif (m/^-v(ersion)?$/i) {
 			version();
 			exit 0;
@@ -1186,7 +1381,7 @@ sub parse_options {
 }
 
 sub version {
-	print "MiniVend version 2.00 Copyright 1995 Andrew M. Wilcox\n";
+	print "MiniVend version 2.03 Copyright 1995 Andrew M. Wilcox\n";
 	print "                      Copyright 1996 Michael J. Heins\n";
 }
 
@@ -1200,14 +1395,14 @@ GNU General Public License.
 
 Command line options:
 
-	 -config <file>   specify configuration file
-	 -test            report problems with config file or pages
-	 -version         display program version
-	 -expire          expire old sessions
-	 -serve           start server
-	 -build <catalog> build static page tree for <catalog>
-	 -outdir <dir>    specify output directory for static page tree
-	 -restart         restart server (re-read config file)
+     -build <catalog> build static page tree for <catalog>
+     -config <file>   specify configuration file
+     -files <spec>    filespec (perl regexp OK) for static page tree
+     -inetmode        run with Internet-domain socket (TCP)
+     -outdir <dir>    specify output directory for static page tree
+     -serve           start server
+     -test            report problems with config files
+     -version         display program version
 END
 }
 
@@ -1262,31 +1457,11 @@ sub main {
 	setup_escape_chars();
 	my $status = 0;
 
-	#dump_env();
-
-	# Were we called from an HTTPD server as a cgi-bin program?
-	if (defined $ENV{'GATEWAY_INTERFACE'} && $ENV{'GATEWAY_INTERFACE'}) {
-		$Vend::mode = 'cgi';
-		eval { cgi_environment() };
-		if ($@) {
-			plain_header();
-			print "$@\n";
-			print "while being executed as a cgi-bin program by ";
-			print $ENV{'SERVER_SOFTWARE'}, "\n";
-			exit 1;
-		}
-	} else {
-		# Only parse command line arguments if not being run as a cgi-bin
-		# program.
-		undef $Vend::mode;      # mode will be set by options
-		parse_options();
-		if (!defined $Vend::mode) {
-			print
-"Hmm, since I don't seem to have been invoked as a cgi-bin program,\n",
-"I'll assume I'm being run from the shell command line.\n\n";
+	undef $Vend::mode;      # mode will be set by options
+	parse_options();
+	if (!defined $Vend::mode) {
 			usage();
 			exit 0;
-		}
 	}
 
 	umask 077;
@@ -1304,66 +1479,58 @@ sub main {
 				if exists $Global::Selector{$g->{'script'}};
 			$conf = $g->{'dir'} . '/etc';
 			eval {
-				$Global::Selector{$g->{'script'}} = 
+				$Vend::Cfg = $Global::Selector{$g->{'script'}} = 
 					config($g->{'name'}, $g->{'dir'}, $conf);
 				};
 			if($@) {
 				print "\n$@\n\a$g->{'name'}: error in configuration file. Skipping.\n";
 				undef $Global::Selector{$g->{'script'}};
 			}
-			else { print "done.\n"; }
+			else {
+				read_accessories();
+				read_salestax();
+				read_shipping();
+				read_pricing();
+				unless($Global::GDBM or $Global::DB_File) {
+					import_products();
+					open_databases();
+					close_products();
+					close_database();
+				}
+				undef $Vend::Cfg;
+				print "done.\n";
+			}
 		}
 	}
 
-	if ($Vend::mode eq 'cgi') {
-        open_databases();
-        import_products();
-        undef $Vend::ServerMode;
-        dispatch();
-        close_products();
-        close_database();
-  	}
-	elsif ($Vend::mode eq 'serve') {
+	if ($Vend::mode eq 'serve') {
 		# This should never return unless killed or an error
 		# We set debug mode to -1 to communicate with the server
 		# that no output is desired
 		$0 = 'minivend';
 		scrub_sockets() unless $Global::MultiServer;
-		my $pipestat = $|;
-		my $save = select STDERR; 
-        my $stderr = $|;
-        $| = 1;
-        select STDOUT;
-        my $stdout = $|;
-        $| = 1;
-		my $bad = 0;
-		my $errors;
 
-        no strict 'refs';
         select STDERR; 
-        $| = $stderr;
+        $| = 1;
         select STDOUT;
-        $| = $stdout;
-        select $save;
-        $| = $pipestat;
-        use strict 'refs';
+        $| = 1;
 
-        $Vend::ServerMode = 1;
         Vend::Server::run_server($Global::MultiServer, $Global::DebugMode);
-        undef $Vend::ServerMode;
 	}
 	elsif ($Vend::mode eq 'notify') {
 		send_mail($Global::MailErrorTo, "MiniVend server not responding", <<EOF );
-The MiniVend server serving the catalog named '$Vend::Cfg->{Catalog}' did
+The MiniVend server serving the catalog named '$Vend::Cfg->{CatalogName}' did
 not respond when called by the VLINK executable.
 
 EOF
 	}
 	elsif ($Vend::mode eq 'build') {
-		build_all($Vend::CatalogToBuild, $Vend::OutputDirectory);
+		build_all($Vend::CatalogToBuild,
+		          $Vend::OutputDirectory,
+				  $Vend::BuildSpec);
 	}
 	elsif ($Vend::mode eq 'test') {
-		# Blank
+		# Blank by design, this option only tests config files
 	}
 	else {
 		die "No mode!\n";
@@ -1376,15 +1543,6 @@ if ($@) {
 	my($msg) = ($@);
 	logGlobal( $msg );
 	if (!defined $Global::DisplayError || $Global::DisplayError) {
-		if ($Vend::mode eq 'cgi') {
-			if ($Vend::content_type eq 'plain') {
-				print "\n";
-			} elsif ($Vend::content_type eq 'html') {
-				print "\n<p><pre>\n";
-			} else {
-				print "Content-type: text/plain\n\n";
-			}
-		}
 		print "$msg\n";
 	}
 }

@@ -1,4 +1,4 @@
-# $Id: Session.pm,v 1.6 1996/10/30 04:22:28 mike Exp $
+# $Id: Session.pm,v 1.12 1997/01/05 02:02:24 mike Exp $
 
 package Vend::Session;
 require Exporter;
@@ -26,76 +26,97 @@ use Vend::Util;
 
 
 BEGIN {
-	if(defined $GDBM_File::VERSION or $Global::GDBM) {
+	if($Global::GDBM) {
 		require GDBM_File;
 		import GDBM_File;
 	}
-	elsif(defined $DB_File::VERSION or $Global::DB_File) {
+	elsif($Global::DB_File) {
 		require DB_File;
 		import DB_File;
 	}
-	elsif(defined $NDBM_File::VERSION or $Global::NDBM) {
-		require NDBM_File;
-		import NDBM_File;
-	}
 	else {
-		die "No DBM defined! Session.pm can't run.\n";
+		require Vend::SessionFile;
 	}
 }
+
+
+my ($Session_open, $File_sessions);
+
+
+# Selects based on initial config
+if($Global::GDBM) {
+	$File_sessions = 0;
+	$Session_open = sub {
+		 tie(%Vend::SessionDBM, 'GDBM_File',
+			$Vend::Cfg->{'SessionDatabase'} . ".gdbm",
+			&GDBM_WRCREAT, $Vend::Cfg->{'FileCreationMask'})
+		or die "Could not tie to $Vend::Cfg->{'SessionDatabase'}: $!\n";
+	};
+}
+elsif($Global::DB_File) {
+	$File_sessions = 0;
+	$Session_open = sub {
+		tie(%Vend::SessionDBM, 'DB_File',
+			$Vend::Cfg->{'SessionDatabase'} . ".db",
+			&O_RDWR|&O_CREAT, $Vend::Cfg->{'FileCreationMask'})
+		or die "Could not tie to $Vend::Cfg->{'SessionDatabase'}: $!\n";
+	};
+}
+else {
+	$File_sessions = 1;
+	$Session_open = sub {
+		tie(%Vend::SessionDBM, 'Vend::SessionFile', $Vend::Cfg->{'SessionDatabase'})
+			or die "Could not tie to $Vend::Cfg->{'SessionDatabase'}: $!\n";
+	};
+}
+
 
 ## SESSIONS implemented using DBM
 
 sub get_session {
 	$Vend::HaveSession = 0;
-	open_session();
+	open_session() unless defined $Vend::SessionDBM;
 	read_session();
-	lock_session();
-	close_session();
+	unless($File_sessions) {
+		lock_session();
+		close_session();
+	}
 	$Vend::HaveSession = 1;
 }
 
 sub release_session {
-	open_session();
-	read_session();
-	unlock_session();
-	close_session();
+	unless($File_sessions) {
+		open_session();
+		read_session();
+		unlock_session();
+		close_session();
+	}
 	$Vend::HaveSession = 0;
 }
 
 sub put_session {
-	open_session();
-	write_session();
-	unlock_session();
-	close_session();
+	unless($File_sessions) {
+		open_session();
+		write_session();
+		unlock_session();
+		close_session();
+	}
+	else {
+		write_session();
+	}
 	$Vend::HaveSession = 0;
 }
 
 sub open_session {
 
+	unless($File_sessions) {
     open(Vend::SessionLock, "+>>$Vend::Cfg->{'SessionLockFile'}")
 		or die "Could not open '$Vend::Cfg->{'SessionLockFile'}': $!\n";
     lockfile(\*Vend::SessionLock, 1, 1)
 		or die "Could not lock '$Vend::Cfg->{'SessionLockFile'}': $!\n";
-    
-    # Selects based on initial config
-	if($Global::GDBM) {
-    	tie(%Vend::SessionDBM, 'GDBM_File', $Vend::Cfg->{'SessionDatabase'} . ".gdbm",
-		&GDBM_WRCREAT, $Vend::Cfg->{'FileCreationMask'})
-		or die "Could not tie to $Vend::Cfg->{'SessionDatabase'}: $!\n";
 	}
-	elsif($Global::DB_File) {
-    	tie(%Vend::SessionDBM, 'DB_File', $Vend::Cfg->{'SessionDatabase'} . ".db",
-		&O_RDWR|&O_CREAT, $Vend::Cfg->{'FileCreationMask'})
-		or die "Could not tie to $Vend::Cfg->{'SessionDatabase'}: $!\n";
-	}
-	elsif($Global::NDBM) {
-    	tie(%Vend::SessionDBM, 'NDBM_File', $Vend::Cfg->{'SessionDatabase'},
-		&O_RDWR|&O_CREAT, $Vend::Cfg->{'FileCreationMask'})
-		or die "Could not tie to $Vend::Cfg->{'SessionDatabase'}: $!\n";
-	}
-	else {
-		die "No DBM implementation configured!\n";
-	}
+	
+	&$Session_open;
 
 }
 
@@ -107,10 +128,16 @@ sub new_session {
     for (;;) {
 		$Vend::SessionID = random_string();
 		$name = session_name();
-		last unless defined $Vend::SessionDBM{$name};
+		unless ($File_sessions) { 
+			last unless defined $Vend::SessionDBM{$name};
+		}
+		else {
+			last unless exists $Vend::SessionDBM{$name};
+		}
     }
     $Vend::SessionName = $name;
     init_session();
+	return if $File_sessions;
 	write_session();
 	close_session();
 }
@@ -130,9 +157,13 @@ sub close_tracking {
 sub close_session {
     #pick one
 
+	#write_session() if $File_sessions;
+
     untie %Vend::SessionDBM
 	or die "Could not close $Vend::Cfg->{'SessionDatabase'}: $!\n";
 	
+	return 1 if $File_sessions;
+
 	unlockfile(\*Vend::SessionLock)
 		or die "Could not unlock '$Vend::Cfg->{'SessionLockFile'}': $!\n";
     close(Vend::SessionLock)
@@ -144,17 +175,19 @@ sub write_session {
     $Vend::Session->{'time'} = time;
 	undef $Vend::Session->{'items'};
     $s = uneval($Vend::Session);
-    $Vend::SessionDBM{$Vend::SessionName} = $s;
-    die "Data was not stored in DBM file\n"
-		if $Vend::SessionDBM{$Vend::SessionName} ne $s;
+    $Vend::SessionDBM{$Vend::SessionName} = $s or 
+		die "Data was not stored in DBM file\n";
+		#if $Vend::SessionDBM{$Vend::SessionName} ne $s;
 }
 
 sub unlock_session {
 	#$Vend::SessionDBM{'LOCK_' . $Vend::SessionName} = 0;
-	delete $Vend::SessionDBM{'LOCK_' . $Vend::SessionName};
+	delete $Vend::SessionDBM{'LOCK_' . $Vend::SessionName}
+		unless $File_sessions;
 }
 
 sub lock_session {
+	return 1 if $File_sessions;
 	my $lockname = 'LOCK_' . $Vend::SessionName;
 	my ($tried, $locktime, $sleepleft, $pid, $now, $left);
 	$tried = 0;
@@ -238,7 +271,7 @@ sub expire_sessions {
     foreach $session_name (@delete) {
 		delete $Vend::SessionDBM{$session_name};
 		delete $Vend::SessionDBM{"LOCK_$session_name"}
-				if $Vend::SessionDBM{"LOCK_$session_name"};
+				if ! $File_sessions && $Vend::SessionDBM{"LOCK_$session_name"};
 		my $file = $session_name;
 		$file =~ s/:.*//;
 		opendir(Vend::DELDIR, $Vend::Cfg->{'ScratchDir'}) ||
@@ -254,6 +287,7 @@ sub expire_sessions {
 
 sub dump_sessions {
     my($session_name, $s);
+	die "Can't dump file-based sessions.\n" if $File_sessions;
 
     open_session();
     while(($session_name, $s) = each %Vend::SessionDBM) {
@@ -266,10 +300,14 @@ sub dump_sessions {
 ## SESSIONS
 
 sub session_name {
-    my($host, $user, $fn);
+    my($host, $user, $fn, $proxy);
 
-    $fn = escape_chars($Vend::SessionID) . ':'
-	. escape_chars($CGI::host) . ':' . escape_chars($CGI::user);
+    $host = escape_chars($CGI::host);
+    $proxy = index($host,"proxy");
+    $host = substr($host,$proxy)
+    	if ($proxy >= 0);
+    $user = escape_chars($CGI::user) || $host;
+    $fn = escape_chars($Vend::SessionID) . ':' . $user;
     #escape_chars($CGI::gateway_interface);
     $fn;
 }
@@ -387,12 +425,6 @@ sub open_tracking {
 	elsif ($Global::DB_File) {
 		tie(%Vend::Tracking, 'DB_File',
 				"$Vend::Cfg->{'ProductDir'}/tracking.db",
-				&O_RDWR|&O_CREAT, $Vend::Cfg->{'FileCreationMask'})
-			or die "Could not tie to $Vend::Cfg->{'ProductDir'}/tracking: $!\n";
-	}
-	elsif ($Global::NDBM) {
-		tie(%Vend::Tracking, 'NDBM_File',
-				"$Vend::Cfg->{'ProductDir'}/tracking",
 				&O_RDWR|&O_CREAT, $Vend::Cfg->{'FileCreationMask'})
 			or die "Could not tie to $Vend::Cfg->{'ProductDir'}/tracking: $!\n";
 	}

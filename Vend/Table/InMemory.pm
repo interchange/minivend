@@ -1,10 +1,13 @@
 # Table/InMemory.pm: store a table in memory
 #
-# $Id: InMemory.pm,v 1.2 1996/08/22 17:35:08 mike Exp $
+# $Id: InMemory.pm,v 1.3 1997/01/07 01:34:10 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
 # $Log: InMemory.pm,v $
+# Revision 1.3  1997/01/07 01:34:10  mike
+# MiniVend 2.03 release version
+#
 # Revision 1.2  1996/08/22 17:35:08  mike
 # Save solid snapshot of multiple catalog Vend
 #
@@ -30,7 +33,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::InMemory;
-$VERSION = substr(q$Revision: 1.2 $, 10);
+$VERSION = substr(q$Revision: 1.3 $, 10);
 use Carp;
 use strict;
 
@@ -52,7 +55,7 @@ sub create_table {
 # 1: column_index
 # 2: hash
 
-sub close_table {}
+sub close_table { 1; }
 
 sub columns {
     my ($s) = @_;
@@ -151,6 +154,6 @@ sub clear_table {
     %{$s->[2]} = ();
 }
 
-sub version { $Vend::Table::GDBM::VERSION }
+sub version { $Vend::Table::InMemory::VERSION }
 
 1;

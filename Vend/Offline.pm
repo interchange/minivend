@@ -1,4 +1,4 @@
-# $Id: Offline.pm,v 1.1 1996/10/19 18:54:10 mike Exp $
+# $Id: Offline.pm,v 1.3 1996/12/27 10:00:20 mike Exp $
 #
 # Offline.pm - Offline database build module for Vend
 #              Also builds product indices and the other
@@ -33,17 +33,14 @@ use Vend::Table::Import qw(import_ascii_delimited import_quoted);
 
 
 BEGIN {
-	if(defined $GDBM_File::VERSION or $Global::GDBM) {
+	if($Global::GDBM) {
 		require Vend::Table::GDBM;
 	}
-	elsif(defined $DB_File::VERSION or $Global::DB_File) {
+	elsif($Global::DB_File) {
 		require Vend::Table::DB_File;
 	}
-	elsif(defined $NDBM_File::VERSION or $Global::NDBM) {
-		require Vend::Table::InMemory;
-	}
 	else {
-		die "No DBM defined! Product.pm can't run.\n";
+		die "No DBM defined! Offline import not necessary.\n";
 	}
 }
 

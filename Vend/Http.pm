@@ -1,6 +1,6 @@
 # Http.pm:  interface to cgi protocol
 #
-# $Id: Http.pm,v 1.2 1996/08/10 22:25:59 mike Exp $
+# $Id: Http.pm,v 1.4 1997/01/05 02:02:24 mike Exp $
 #
 package Vend::Http;
 
@@ -33,6 +33,7 @@ sub Client_IP_Address         { $_[0]->{'Client_IP_Address'} }
 sub Client_Ident              { $_[0]->{'Client_Ident'} }
 sub Path_Info                 { $_[0]->{'Path_Info'} }
 sub Path_Translated           { $_[0]->{'Path_Translated'} }
+sub Reconfigure               { $_[0]->{'Reconfigure'} }
 sub Query                     { $_[0]->{'Query'} }
 sub Script                	  { $_[0]->{'Script'} }
 sub Authorization_Type        { $_[0]->{'Authorization_Type'} }
@@ -122,6 +123,7 @@ my @Map =
      'Path_Info' => 'PATH_INFO',
      'Path_Translated' => 'PATH_TRANSLATED',
      'Query' => 'QUERY_STRING',
+     'Reconfigure' => 'RECONFIGURE_MINIVEND',
      'Script' => 'SCRIPT_NAME',
      'Https_on' => 'HTTPS',
      'Authorization_Type' => 'AUTH_TYPE',
@@ -190,10 +192,9 @@ sub read_entity_body {
 sub respond {
     my ($s, $content_type, $body) = @_;
 
-	if ($Vend::Cfg->{'Cookies'}) {
-		print STDOUT
+	print STDOUT
 		"Set-Cookie: MV_SESSION_ID=" . $Vend::SessionID . "; path=/\r\n"
-	}
+		if (! $CGI::cookie and $Vend::Cfg->{'Cookies'});
     print STDOUT "Content-type: $content_type\r\n\r\n";
     print STDOUT $body;
     $s->{'response_made'} = 1;

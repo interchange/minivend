@@ -1,106 +1,76 @@
 <HTML>
 <HEAD>
-[framebase _self]
 <TITLE>Enter your payment info</TITLE>
 </HEAD>
-
+<FONT SIZE=+1 COLOR=RED><B><I>This is not a secure form</I></B></FONT>
 [body 1]
 <CENTER>
 <H1>Credit Card Information</H1>
-<FONT COLOR=RED><I>(This is not a secure form.)</I></FONT>
-<FORM ACTION="[process-target _self]" METHOD="POST">
+<FORM ACTION="[process-target _self secure]" METHOD="POST">
 <input type="hidden" name="mv_doit" value="refresh">
 <input type="hidden" name="mv_orderpage" value="ord/enter_non">
-<input type="hidden" name="mv_order_profile" value="3">
+<input type="hidden" name="mv_successpage" value="ord/checkout">
+<input type="hidden" name="mv_failpage" value="special/cc_not_valid">
+<input type="hidden" name="mv_order_profile" value="credit_card">
 
-[if validcc [value cc_no] [value cc_exp_m]/[value cc_exp_y] [value cc_type]]
-  [set valid_cc]yes[/set]
-[else]
-  [set valid_cc][/set]
-[/else]
+
+[if value mv_credit_card_valid]
+  <P>
+  <I>(A valid <B>[help [value mv_credit_card_type]]</B> number is on file.<BR>
+  If you need to change it, re-enter the number. Otherwise, leave it blank and<BR>
+  press <B>Next Screen</B></I>.
+  <P>
 [/if]
 
-[if scratch valid_cc]
-  <input type=checkbox name=cc_no value=""> Change credit card info<BR>
-  <input type=hidden name=valid_cc value="yes">
-  <P>
-  <I>(A valid <B>[value cc_type]</B> number is on file.<BR>
-  If you need to change it, check the "<B>Change</B>" box <B>above</B><BR>
-  and click the <B>Change</B> button <B>below</B>.)</I>
-  <P>
-
-[else]
-  <input type=hidden name=valid_cc value="no">
-  <B>Credit Card:</B>
-
- 	<input type="radio" name="cc_type"
-	 value="Visa" [checked cc_type visa]>
-	 Visa
-	
-    <input type="radio" name="cc_type"
-	 value="Mastercard" [checked cc_type mastercard]>
-	 Mastercard
-
-    <input type="radio" name="cc_type"
-	 value="Amex" [checked cc_type amex]>
-	 American Express
 
 <P>  
-
-  [[if value cc_no !~ /^$|NOT_VALID/]
-  	<P>
-  	<BLINK><FONT COLOR=RED>
-  	Credit card information not valid<BR>
-	</FONT></BLINK>
-  	<P>
-	Please check the information you entered and see that the correct
-	card type, expiration date, and number are entered.<P>
-  [/if]]
-  Card Number <input type="text" name="cc_no" value="[value cc_no]" size=19>
+  Card Number <input type="text" name="mv_credit_card_number"
+[if value mv_credit_card_valid]
+		value="" size=19>
+[else]
+		value="[value mv_credit_card_number]" size=19>
+[/else]
+[/if]
 
   Expires
-  	<SELECT name="cc_exp_m">
-		<OPTION VALUE=1 [selected cc_exp_m 1]> January
-		<OPTION VALUE=2 [selected cc_exp_m 2]> February
-		<OPTION VALUE=3 [selected cc_exp_m 3]> March
-		<OPTION VALUE=4 [selected cc_exp_m 4]> April
-		<OPTION VALUE=5 [selected cc_exp_m 5]> May
-		<OPTION VALUE=6 [selected cc_exp_m 6]> June
-		<OPTION VALUE=7 [selected cc_exp_m 7]> July
-		<OPTION VALUE=8 [selected cc_exp_m 8]> August
-		<OPTION VALUE=9 [selected cc_exp_m 9]> September
-		<OPTION VALUE=10 [selected cc_exp_m 10]> October
-		<OPTION VALUE=11 [selected cc_exp_m 11]> November
-		<OPTION VALUE=12 [selected cc_exp_m 12]> December
+  	<SELECT name="mv_credit_card_exp_month">
+		<OPTION VALUE=1 [selected mv_credit_card_exp_month 1]> January
+		<OPTION VALUE=2 [selected mv_credit_card_exp_month 2]> February
+		<OPTION VALUE=3 [selected mv_credit_card_exp_month 3]> March
+		<OPTION VALUE=4 [selected mv_credit_card_exp_month 4]> April
+		<OPTION VALUE=5 [selected mv_credit_card_exp_month 5]> May
+		<OPTION VALUE=6 [selected mv_credit_card_exp_month 6]> June
+		<OPTION VALUE=7 [selected mv_credit_card_exp_month 7]> July
+		<OPTION VALUE=8 [selected mv_credit_card_exp_month 8]> August
+		<OPTION VALUE=9 [selected mv_credit_card_exp_month 9]> September
+		<OPTION VALUE=10 [selected mv_credit_card_exp_month 10]> October
+		<OPTION VALUE=11 [selected mv_credit_card_exp_month 11]> November
+		<OPTION VALUE=12 [selected mv_credit_card_exp_month 12]> December
 	</SELECT>
-  	<SELECT name="cc_exp_y">
-		<OPTION VALUE=96 [selected cc_exp_y 96]> 1996
-		<OPTION VALUE=97 [selected cc_exp_y 97]> 1997
-		<OPTION VALUE=98 [selected cc_exp_y 98]> 1998
-		<OPTION VALUE=99 [selected cc_exp_y 99]> 1999
-		<OPTION VALUE=00 [selected cc_exp_y 00]> 2000
-		<OPTION VALUE=01 [selected cc_exp_y 01]> 2001
-		<OPTION VALUE=02 [selected cc_exp_y 02]> 2002
+  	<SELECT name="mv_credit_card_exp_year">
+		<OPTION VALUE=97 [selected mv_credit_card_exp_year 97]> 1997
+		<OPTION VALUE=98 [selected mv_credit_card_exp_year 98]> 1998
+		<OPTION VALUE=99 [selected mv_credit_card_exp_year 99]> 1999
+		<OPTION VALUE=00 [selected mv_credit_card_exp_year 00]> 2000
+		<OPTION VALUE=01 [selected mv_credit_card_exp_year 01]> 2001
+		<OPTION VALUE=02 [selected mv_credit_card_exp_year 02]> 2002
 	</SELECT>
 
-[/else]
-[/if]
 
 <CENTER>
-[if scratch valid_cc]
-<input type="image" name="mv_todo.submit"
-	BORDER=0 SRC="next.gif">
-<input type="image" name="mv_submit"
-	BORDER=0 SRC="change.gif">
-[else]
-<input type="image" name="mv_submit"
-	BORDER=0 SRC="validate.gif">
-[/else]
+[set Validate]
+mv_successpage=ord/enter_cc
+mv_todo=submit
+[/set]
+
+<input type="submit" name="mv_click" value="Validate">
+[if value mv_credit_card_valid]
+<input type="submit" name="mv_todo" value="Next Screen">
 [/if]
+
 </CENTER>
-<form>
+</FORM>
 
 <P ALIGN=CENTER>
-
-[[buttonbar 0]]
+[buttonbar 0]
 </body> </html>

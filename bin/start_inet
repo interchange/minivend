@@ -1,0 +1,144 @@
+#!/usr/local/bin/perl -w
+# start - starts Vend in UNIX server mode
+$VendRoot = '/home/mvend203';
+$PERL = '/usr/local/bin/perl';
+$VEND = "$VendRoot/minivend.pl";
+$PerlFlags = '-w';
+## END CONFIGURABLE VARIABLES
+
+$ENV{'IFS'} = " ";
+$ENV{'PATH'} = "/bin:/usr/bin:$VendRoot/bin";
+
+if($0 =~ /_inet$/) {
+	$Inet_mode = 1;
+}
+$n = shift || 1;
+if ($n < 1 or $n > 9) {
+	die <<EOF;
+usage: start [n]
+
+Starts n minivend servers, where n is a number from 1 to 9.
+EOF
+
+}
+
+if (defined $Inet_mode and $n > 1) {
+	print <<EOF;
+
+NOTE: Only one server is started in inet mode, ignoring '$n'.
+
+EOF
+}
+
+# Untaint a single digit from $n;
+$n =~ /(\d)/;
+$n = $1;
+
+sub prompt {
+    my($pr) = shift || '? ';
+    my($def) = shift;
+    my $ans = '';
+
+    print $pr;
+    print "[$def] " if $def;
+	chop($ans = <STDIN>);
+    $ans ? $ans : $def;
+}
+
+sub get_id {
+	my $file = -f "$VendRoot/error.log"
+				? "$VendRoot/error.log" : '';
+	return '' unless $file;
+	my ($name, $group);
+
+	my($uid) = (stat($file))[4];
+	$name = (getpwuid($uid))[0];
+	return $name;
+}
+
+
+if ($< == 0) {
+	$name = get_id() || 'YOUR_MINIVEND_USER_NAME';
+	my $num = $n > 1 ? $n : '';
+    print <<EOM;
+
+The MiniVend server should not be run as root. It should run
+as a the user name you configured in when you set up the catalogs.
+	
+If you are starting the server from /etc/rc.local or another
+startup file, you can use this:
+
+su $name <<EOF
+$VendRoot/bin/start $num
+EOF
+
+EOM
+	if(-t) {
+		exit 2 if $name eq 'YOUR_MINIVEND_USER_NAME';
+		my $ask = prompt("Do you want me to start it as '$name' now? ", 'y');
+		exit 2 unless $ask =~ /^\s*y/i;
+		$Trysu = 1;
+	}
+	else {
+		exit 2 if $name eq 'YOUR_MINIVEND_USER_NAME';
+		$Trysu = 1;
+	}
+
+}
+
+
+CHECK: {
+	last CHECK if $n == 1;
+	$found = 0;
+	if( open(CFG, "$VendRoot/minivend.cfg") ) {
+		while (<CFG>) {
+			next unless /^multiserver\s+(\S)/i;
+			$found = $1;
+			$found =~ s/[^Yy1tT]//ig;
+			last;
+		}
+		close CFG;
+	}
+	else {	# Assume they know what they are doing
+		$found = 1;
+	}
+	die <<EOF unless $found;
+You aren't in MultiServer mode, you can only start one MiniVend.
+Please try again.
+EOF
+
+}
+
+$n = int($n);
+
+if (defined $Trysu) {
+	exec <<EndOfExec;
+su $name <<EOF
+$0 $n
+EOF
+EndOfExec
+
+}
+
+# Check if we are running from CGI, and undef the key value
+# 
+
+if (defined $ENV{GATEWAY_INTERFACE}) {
+	$ENV{GATEWAY_INTERFACE} = '';
+	my $user = $ENV{REMOTE_USER} || 'none';
+	my $userdata = qq|'$user:$ENV{REMOTE_ADDR}:$ENV{SCRIPT_NAME}'|;
+	#push(@Flags, '-u', $userdata);
+}
+
+for($i = 1; $i <= $n; $i++) {
+
+	if (defined $Inet_mode) {
+		system $PERL, $PerlFlags, $VEND, '-serve', '-i';
+	}
+	else {
+		system $PERL, $PerlFlags, $VEND, '-serve';
+	}
+
+}
+
+sleep 2;
