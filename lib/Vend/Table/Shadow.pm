@@ -212,7 +212,6 @@ sub set_field {
 	$s = $s->import_db() unless defined $s->[$OBJ];
 
 	# usually we want to operate on the original table
-	::logDebug("SET_FIELD: $key $column $value");
 	$s->[$OBJ]->set_field($key, $column, $value);
 }
 
@@ -283,7 +282,7 @@ sub query {
 		my $table = $qref->{tables}->[0];
 		my $db;
 		
-		if ($table ne $s->[$TABLE]) {
+		if ($table ne $s->[$CONFIG]->{name}) {
 			# pass query to other table, but preserve the query info
 			$opt->{queryinfo} = $qref;
 			unless ($db = Vend::Data::database_exists_ref($table)) {
