@@ -63,38 +63,38 @@ is selected by the form values C<s_nickname>, C<b_nickname>, and C<p_nickname>.
 
 User login:
 
-    $obj->login();        # Form values are
-                          # mv_username, mv_password
+	$obj->login();        # Form values are
+	                      # mv_username, mv_password
 
 Create account:
 
-    $obj->new_account();  # Form values are
-                          # mv_username, mv_password, mv_verify
+	$obj->new_account();  # Form values are
+	                      # mv_username, mv_password, mv_verify
 
 Change password:
 
-    $obj->change_pass();  # Form values are
-                          # mv_username, mv_password_old, mv_password, mv_verify(new)
+	$obj->change_pass();  # Form values are
+	                      # mv_username, mv_password_old, mv_password, mv_verify(new)
 
 Get, set user information:
 
-    $obj->get_values();
-    $obj->set_values();
-    $obj->clear_values();
+	$obj->get_values();
+	$obj->set_values();
+	$obj->clear_values();
 
 Save, restore filed user information:
 
-    $obj->get_shipping();
-    $obj->set_shipping();
- 
-    $obj->get_billing();
-    $obj->set_billing();
- 
-    $obj->get_preferences();
-    $obj->set_preferences();
+	$obj->get_shipping();
+	$obj->set_shipping();
 
-    $obj->get_cart();
-    $obj->set_cart();
+	$obj->get_billing();
+	$obj->set_billing();
+
+	$obj->get_preferences();
+	$obj->set_preferences();
+
+	$obj->get_cart();
+	$obj->set_cart();
 
 =head2 Shipping Address Book
 
@@ -135,7 +135,7 @@ qw!
 	country	
 	phone_day
 	mv_shipmode
-  !
+!
 );
 
 =head2 Accounts Book
@@ -179,7 +179,7 @@ qw!
 	country	
 	phone_day
 	mv_shipmode
-  !
+!
 );
 
 @B_FIELDS = ( 
@@ -1032,12 +1032,12 @@ sub change_pass {
 my $GOOD_CHARS = '[-A-Za-z0-9_@.]';
 
 sub assign_username {
-        my $self = shift;
-        my $file = shift || $self->{OPTIONS}{'counter'};
-        my $start = $self->{OPTIONS}{username} || 'U00000';
-        $file = './etc/username.counter' if ! $file;
-        my $ctr = File::CounterFile->new($file, $start);
-        return $ctr->inc();
+	my $self = shift;
+	my $file = shift || $self->{OPTIONS}{'counter'};
+	my $start = $self->{OPTIONS}{username} || 'U00000';
+	$file = './etc/username.counter' if ! $file;
+	my $ctr = File::CounterFile->new($file, $start);
+	return $ctr->inc();
 }
 
 sub new_account {
@@ -1220,8 +1220,6 @@ sub set_cart {
 		if($options{merge}) {
 			$d->{$to} = [] unless ref $d->{$to};
 			push(@{$d->{$to}}, @{$from});
-		}
-		else {
 		}
 
 		$d->{$to} = $from;
