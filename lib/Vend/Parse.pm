@@ -302,7 +302,7 @@ sub new {
 	$Initialized = $self;
 }
 
-my %noRearrange = qw/attr_list/;
+my %noRearrange = qw//;
 
 my %Documentation;
 use vars '%myRefs';

@@ -3092,6 +3092,7 @@ my %tagCanon = ( qw(
 	interpolate		Interpolate
 	invalidatecache	InvalidateCache
 	isendanchor		isEndAnchor
+	norearrange		noRearrange
 	order			Order
 	posnumber		PosNumber
 	posroutine		PosRoutine
@@ -3119,6 +3120,7 @@ my %tagBool = ( qw!
                 isEndAnchor 1
                 isOperator  1
                 ItemAction  1
+				noRearrange	1
                 OrderCheck  1
                 UserTag     1
 				! );
