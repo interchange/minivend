@@ -918,6 +918,7 @@ sub do_process {
 	#Now determine the action on the todo
     if (defined $Vend::Cfg->{FormAction}{$todo}) {
 		$sub = $Vend::Cfg->{FormAction}{$todo};
+		new Vend::Parse;
 	}
     elsif (not $sub = $form_action{$todo} ) {
 		interaction_error("No action passed for processing\n");
@@ -1664,6 +1665,7 @@ EOF
 		Vend::Interpolate::init_calc();
 		$CGI::values{mv_nextpage} = $Vend::FinalPath
 			if ! defined $CGI::values{mv_nextpage};
+		new Vend::Parse;
 	}
 	elsif ( defined ($sub = $action{$Vend::Action}) )  {
 		Vend::Interpolate::init_calc();
