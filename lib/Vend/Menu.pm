@@ -1259,6 +1259,7 @@ sub tree_link {
 							href => $row->{page},
 							form => $row->{form},
 							add_dot_html => $add,
+							auto_format => 1,
 						});
 	}
 	$row->{name} =~ s/ /&nbsp;/g;
@@ -1365,7 +1366,8 @@ sub tree_line {
 								form => $form,
 								no_count => $opt->{timed},
 								add_dot_html => $add,
-								no_session_id => $opt->{timed}
+								no_session_id => $opt->{timed},
+								auto_format => 1,
 							});
 
 		unless($opt->{no_open}) {
@@ -1451,6 +1453,7 @@ EOF
 									href => $row->{page},
 									form => $row->{form},
 									add_dot_html => $add,
+									auto_format => 1,
 								});
 	}
 	extra_value($opt->{extra_value}, $row)

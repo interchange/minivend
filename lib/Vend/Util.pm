@@ -1155,6 +1155,15 @@ my @scratches = qw/
 
 sub vendUrl {
     my($path, $arguments, $r, $opt) = @_;
+
+	if($opt->{auto_format}) {
+		return $path if $path =~ m{^/};
+		$path =~ s:#([^/.])+$::
+            and $opt->{anchor} = $1;
+		$path =~ s/\.html?$//i
+			and $opt->{add_dot_html} = 1;
+	}
+
     $r = $Vend::Cfg->{VendURL}
 		unless defined $r;
 
