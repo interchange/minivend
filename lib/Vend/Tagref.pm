@@ -3271,7 +3271,7 @@ END
 =head1 User-defined Tags
 
 To define a tag that is catalog-specific, place I<UserTag> directives in
-your catalog.cfg file. For server-wide tags, define them in minivend.cfg.
+your catalog.cfg file. For server-wide tags, define them in interchange.cfg.
 Catalog-specific tags take precedence if both are defined -- in fact,
 you can override the base Interchange tag set with them. The directive
 takes the form:
@@ -3542,7 +3542,7 @@ Tags not in the list will not be stripped:
 
 An inline subroutine that will be used to process the arguments of the tag. It
 must not be named, and will be allowed to access unsafe elements only if
-the C<minivend.cfg> parameter I<AllowGlobal> is set for the catalog.
+the C<interchange.cfg> parameter I<AllowGlobal> is set for the catalog.
 
     UserTag tagname Routine  sub { "your perl code here!" }
 
