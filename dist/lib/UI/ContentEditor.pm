@@ -1900,6 +1900,7 @@ sub format_page {
 		push @sets, "<!-- BEGIN PREAMBLE -->";
 		$ref->{PREAMBLE} =~ s/^\s*\n//;
 		$ref->{PREAMBLE} =~ s/\n\s*$//;
+		$ref->{PREAMBLE} =~ s/\r\n|\r/\n/g;
 		push @sets, $ref->{PREAMBLE};
 		push @sets, "<!-- END PREAMBLE -->";
 	}
@@ -1988,6 +1989,7 @@ sub format_page {
 		push @bods, "<!-- BEGIN POSTAMBLE -->";
 		$ref->{POSTAMBLE} =~ s/^\s*\n//;
 		$ref->{POSTAMBLE} =~ s/\n\s*$//;
+		$ref->{POSTAMBLE} =~ s/\r\n|\r/\n/g;
 		push @bods, $ref->{POSTAMBLE};
 		push @bods, "<!-- END POSTAMBLE -->";
 	}
