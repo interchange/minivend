@@ -1841,11 +1841,6 @@ EOF
 		and ! defined $Vend::InternalHTTP                 )
 	{
 		my $real = $Global::SelectorAlias{$CGI::script_name};
-		if(defined $Vend::NoFork) {
-			$Vend::Save = {} unless $Vend::Save;
-			$Vend::Save->{VendURL}   = $Vend::Cfg->{VendURL};
-			$Vend::Save->{SecureURL} = $Vend::Cfg->{SecureURL};
-		}
 		unless (	$CGI::secure                                        or
 					$Vend::Cfg->{SecureURL} =~ m{$CGI::script_name$}     and
 					$Vend::Cfg->{VendURL}   !~ m{/nph-[^/]+$} 		     and
@@ -1910,7 +1905,7 @@ EOF
 		$Vend::Cookie = 1;
 	}
 	elsif ($::Instance->{CookieName} and defined $CGI::cookie) {
-		$CGI::cookie =~ m{$Vend::CookieName=($Vend::Cfg->{CookiePattern})};
+		$CGI::cookie =~ m{$::Instance->{CookieName}=($Vend::Cfg->{CookiePattern})};
 		$seed = $sessionid = $1;
 		$::Instance->{ExternalCookie} = $sessionid || 1;
 		$Vend::CookieID = $Vend::Cookie = 1;
@@ -2056,7 +2051,7 @@ EOF
 
 #::logDebug("session name='$Vend::SessionName'\n");
 
-	$Vend::Interpolate::Calc_initialized = 0;
+	$Vend::Calc_initialized = 0;
 	$CGI::values{mv_session_id} = $Vend::Session->{id} = $Vend::SessionID;
 
 	if($Vend::Cfg->{CookieLogin}) {
@@ -2829,8 +2824,6 @@ sub main_loop {
 	eval {
 		require Vend::Payment::CyberCash;
 	};
-
-	$Vend::CyberCash = ! $@;
 
 	# These modules no longer necessary, why take up memory?
 	delete $INC{'Getopt/Long.pm'};
