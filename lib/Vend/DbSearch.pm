@@ -66,9 +66,14 @@ my %Default = (
 sub init {
 	my ($s, $options) = @_;
 
+	# autovivify references of nested data structures we use below, since they
+	# don't yet exist at daemon startup time before configuration is done
+	$Vend::Cfg->{ProductFiles}[0];
+	$::Variable->{MV_DEFAULT_SEARCH_TABLE};
+
 	@{$s}{keys %Default} = (values %Default);
 	$s->{mv_all_chars}	        = [1];
-	$s->{mv_base_directory}     = $Vend::Cfg->{ProductFiles}[0];
+	$s->{mv_base_directory}     = $Vend::Cfg->{ProductDir};
 	$s->{mv_begin_string}       = [];
 	$s->{mv_case}               = [];
 	$s->{mv_column_op}          = [];
