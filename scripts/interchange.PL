@@ -43,7 +43,8 @@ BEGIN {
 	}
 }
 
-no Config;
+## Comment this back in when we remove support for Perl 5.6.0
+#no Config;
 
 BEGIN {
 	$Global::Foreground = 1;
