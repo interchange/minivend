@@ -1549,9 +1549,14 @@ sub run_in_catalog {
 	my $out = join "", @out;
 	$out =~ s/^\s+//;
 	$out =~ s/\s+$/\n/;
-	$out .= full_dump() if $croncfg->{add_session}; 
-
+	$out .= full_dump() if $croncfg->{add_session};
+	
 	close_cat();
+
+	# don't send email and/or write log entry if cron job returns
+	# no output (in spirit of the real cron)
+	return unless $out;
+	
 	if(my $addr = $Vend::CronEmail || $croncfg->{email}) {
 		my $subject = $croncfg->{subject} || 'Interchange cron results for job: %s';
 		$subject = errmsg($subject, $job);
