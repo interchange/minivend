@@ -3836,6 +3836,7 @@ sub labeled_list {
 				$fh->{$_} = $idx++;
 			}
 		}
+		$opt->{mv_return_fields} = $fa;
 #::logDebug("Missing mv_field_hash and/or mv_field_names in Vend::Interpolate::labeled_list") unless ref $fh eq 'HASH';
 		$r = iterate_array_list($i, $end, $count, $text, $ary, $opt_select, $fh, $opt);
 	}
@@ -4196,10 +4197,9 @@ my $once = 0;
 #::logDebug("iterating array $i to $end. count=$count opt_select=$opt_select ary=" . uneval($ary));
 	if($text =~ m/^$B$QR{_line}\s*$/is) {
 		my $i = $1 || 0;
-		my $count = scalar values %$fh;
-		$count--;
-		my (@ary) = sort { $fh->{$a} <=> $fh->{$b} } keys %$fh;
-		$r .= join "\t", @ary[$i .. $count];
+		my $fa = $opt->{mv_return_fields};
+		my $end = 
+		$r .= join "\t", @$fa[$i .. $#$fa];
 		$r .= "\n";
 	}
 	while($text =~ s#$B$QR{_sub}$E$QR{'/_sub'}##i) {
