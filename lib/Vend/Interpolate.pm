@@ -5160,17 +5160,20 @@ sub timed_build {
 			or ( ! $opt->{force}
 					and
 					(   ! $Vend::Cookie
-						or $Vend::BuildingPages
 						or ! $opt->{login} && $Vend::Session->{logged_in}
 					)
 				);
 	}
-	
+
 	if($opt->{auto}) {
 		$opt->{login} =    1 unless defined $opt->{login};
 		$opt->{minutes} = 60 unless defined $opt->{minutes};
 		$opt->{login} = 1;
 		my $dir = "$Vend::Cfg->{ScratchDir}/auto-timed";
+		unless (allowed_file($dir)) {
+			log_file_violation($dir, 'timed_build');
+			return;
+		}
 		if(! -d $dir) {
 			require File::Path;
 			File::Path::mkpath($dir);
@@ -5183,12 +5186,9 @@ sub timed_build {
     }
 
 	my $secs;
-	my $static;
-	my $fullfile;
 	CHECKDIR: {
 		last CHECKDIR if $file;
-		my $dir = $Vend::Cfg->{StaticDir};
-		$dir = ! -d $dir || ! -w _ ? 'timed' : do { $static = 1; $dir };
+		my $dir = 'timed';
 
 		$file = $saved_file || $Vend::Flypart || $Global::Variable->{MV_PAGE};
 #::logDebug("static=$file");
@@ -5201,8 +5201,7 @@ sub timed_build {
 		else {
 		 	$saved_file = $file = ($Vend::Flypart || $Global::Variable->{MV_PAGE});
 		}
-		$file .= $Vend::Cfg->{StaticSuffix};
-		$fullfile = $file;
+		$file .= $Vend::Cfg->{HTMLsuffix};
 		$dir .= "/$1" 
 			if $file =~ s:(.*)/::;
 		if(! -d $dir) {
@@ -5231,19 +5230,6 @@ sub timed_build {
         my $out = Vend::Interpolate::interpolate_html(shift);
 		$opt->{umask} = '22' unless defined $opt->{umask};
         Vend::Util::writefile(">$file", $out, $opt );
-# STATICPAGE
-		if ($Vend::Cfg->{StaticDBM} and Vend::Session::tie_static_dbm(1) ) {
-			if ($opt->{scan}) {
-				$saved_file =~ s!=([^/]+)=!=$1%3d!g;
-				$saved_file =~ s!=([^/]+)-!=$1%2d!g;
-#::logDebug("saved_file=$saved_file");
-				$Vend::StaticDBM{$saved_file} = $fullfile;
-			}
-			else {
-				$Vend::StaticDBM{$saved_file} = '';
-			}
-		}
-# END STATICPAGE
 		$Vend::Session->{scratch} = $save_scratch if $save_scratch;
         return $out;
     }
