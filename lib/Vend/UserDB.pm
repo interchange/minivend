@@ -154,7 +154,7 @@ order. By default these form values are included:
 	mv_credit_card_type
 	mv_credit_card_exp_month
 	mv_credit_card_exp_year
-	mv_credit_card_info
+	mv_credit_card_reference
 
 The values are saved with the $obj->set_billing() method and restored 
 with $obj->get_billing. A list of the keys available is kept in the
@@ -202,7 +202,7 @@ qw!
 	mv_credit_card_type
 	mv_credit_card_exp_month
 	mv_credit_card_exp_year
-	mv_credit_card_info
+	mv_credit_card_reference
 	!
 );
 
