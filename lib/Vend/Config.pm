@@ -322,7 +322,7 @@ sub catalog_directives {
     ['ProductFiles',	 'array_complete',  'products'],
     ['DisplayErrors',    'yesno',            'No'],
     ['ParseVariables',	 'yesno',     	     'No'],
-    ['SpecialPage',		 'special',     	 ''],
+    ['SpecialPage',		 'special',     	 'order ord/basket results results search results flypage flypage'],
 	['Sub',				 'subroutine',       ''],
 	['VendURL',          'url',              undef],
 	['SecureURL',        'url',              undef],
