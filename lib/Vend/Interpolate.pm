@@ -2560,7 +2560,7 @@ sub tag_counter {
 						$opt->{attr},
 					);
 		}
-		else {
+		elsif($db) {
 			$dbh = $db->dbh();
 			$dsn = $db->config('DSN');
 		}
@@ -2602,6 +2602,8 @@ sub tag_counter {
 			}
 
 		};
+
+		logOnce('error', $@) if $@;
 
 		return $val if defined $val;
 	}
