@@ -351,7 +351,6 @@ sub search {
 		$s->{mv_results} = \@out;
 	}
 	elsif($s->{mv_return_reference} eq 'LIST') {
-		my $col = scalar @{$s->{mv_return_fields}};
 		@out = map { join $s->{mv_return_delim}, @$_ } @out;
 		$s->{mv_results} = join $s->{mv_record_delim}, @out;
 	}
