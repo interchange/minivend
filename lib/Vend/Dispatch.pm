@@ -1439,6 +1439,10 @@ EOF
 		$Vend::FinalPath = find_special_page('catalog');
     }
 
+	if($CGI::put_ref and my $act = $Vend::Cfg->{Special}{put_handler} ) {
+		$Vend::FinalPath =~ s:^/*:$act/:;
+	}
+
 	$Vend::FinalPath =~ s:^/+::;
 	$Vend::FinalPath =~ s/(\.html?)$//
 		and $Vend::Extension = $1;
