@@ -129,7 +129,6 @@ sub column_index {
 
 sub column_exists {
     my ($s, $column) = @_;
-	my ($locale);
 	
 	$s = $s->import_db() if ! defined $s->[$OBJ];
 	my ($orig_db, $orig_col) = $s->_map_field($column);
