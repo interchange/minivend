@@ -1440,7 +1440,14 @@ EOF
     # If the cgi-bin program was invoked with no extra path info,
     # just display the catalog page.
     if (! $Vend::FinalPath || $Vend::FinalPath =~ m:^/+$:) {
-		$Vend::FinalPath = find_special_page('catalog');
+#::logDebug("request_uri=$CGI::request_uri script_path=$CGI::script_path");
+        if($CGI::request_uri !~ /^$CGI::script_path/) {
+            $Vend::FinalPath = $CGI::request_uri;
+#::logDebug("FinalPath now $CGI::request_uri");
+        }
+        else {
+            $Vend::FinalPath = find_special_page('catalog');
+        }
     }
 
 	if($CGI::put_ref and my $act = $Vend::Cfg->{Special}{put_handler} ) {

@@ -73,6 +73,7 @@ my @Map = qw/
     remote_host        REMOTE_HOST
     remote_user        REMOTE_USER
     request_method     REQUEST_METHOD
+    request_uri        REQUEST_URI
     script_name        SCRIPT_NAME
     secure             HTTPS
     server_name        SERVER_NAME
