@@ -1122,9 +1122,9 @@ sub _yes {
 }
 
 sub _postcode {
-	(_zip(@_))[0] or (_ca_postcode(@_))[0]
+	((_zip(@_))[0] or (_ca_postcode(@_))[0])
 		and return (1, $_[1], '');
-	return (undef, $var, 'not a US or Canada postal/zip code');
+	return (undef, $_[1], 'not a US or Canada postal/zip code');
 }
 
 sub _ca_postcode {
