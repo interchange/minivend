@@ -52,7 +52,16 @@ my $wantref = 1;
 sub display_special_page {
 	my($name, $subject) = @_;
 	my($page);
-	
+
+	$name =~ m/[\[<]+/g
+		and do {
+			::logGlobal(
+					"Security violation -- scripting character in page name '%s'.",
+					$name,
+				);
+			$name = 'violation';
+		};
+
 	$subject = $subject || 'unspecified error';
 	
 #::logDebug("looking for special_page=$name");
@@ -72,6 +81,16 @@ sub display_special_page {
 sub display_page {
 	my($name) = @_;
 	my($page);
+
+	$name =~ m/[\[<]+/g
+		and do {
+			::logGlobal(
+					"Security violation -- scripting character in page name '%s'.",
+					$name,
+				);
+			$name = 'violation';
+			return display_special_page($name);
+		};
 
 	$name = $CGI::values{mv_nextpage} unless $name;
 #::logDebug("display_page: $name");
