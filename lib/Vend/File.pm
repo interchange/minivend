@@ -228,7 +228,18 @@ sub flock_lock {
     my $flag = $excl ? $flock_LOCK_EX : $flock_LOCK_SH;
 
     if ($wait) {
-        flock($fh, $flag) or die "Could not lock file: $!\n";
+	my $trylimit = $Vend::Cfg->{Limit}{file_lock_retries} || 5;
+	my $failedcount;
+        while (
+                ! flock($fh, $flag)
+                    and
+                $failedcount < $trylimit
+               )
+        {
+           $failedcount++;
+           select(undef,undef,undef,0.05 * $failedcount);
+        }
+        die "Could not lock file after $trylimit tries: $!\n" if ($failedcount == $trylimit);
         return 1;
     }
     else {
