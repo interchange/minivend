@@ -61,26 +61,26 @@ If you have not done so already, you will need to sign up for an ECHO account.
 You will be provided an ID and a PIN (also known as 'secret').  You may also
 sign up for a test account at the following URL:
 
-	http://www.echo-inc.com/echotestapp.php
+    http://www.echo-inc.com/echotestapp.php
 
 This subroutine uses the OpenECHO module.  Make sure OpenECHO.pm is in your @INC
 array.  It is available for download, see the following URLs:
   
-  http://www.openecho.com/
-  http://www.echo-inc.com/
+    http://www.openecho.com/
+    http://www.echo-inc.com/
   
 The OpenECHO.pm module itself has some additional prerequisites:
 
-  Net::SSLeay
+    Net::SSLeay
  
-    or
+	or
   
-  LWP::UserAgent and Crypt::SSLeay
+    LWP::UserAgent and Crypt::SSLeay
 
 Only one of these need be present and working.  Net::SSLeay is preferred as some
 have reported problems using LWP::UserAgent and Crypt::SSLeay.
 
-  URL::Escape
+    URL::Escape
 
 This module is used to write some of the URLs used by the OpenECHO module.  It
 is recommended that you read the documention for the OpenECHO module itself in
@@ -118,15 +118,15 @@ be specified by:
 
 or  (with only ECHO as a payment provider)
     
-	 Variable MV_PAYMENT_ID	Your_ECHO_ID
-	 
+     Variable MV_PAYMENT_ID	Your_ECHO_ID
+
 or
 
-	 Variable ECHO_PAYMENT_ID	Your_ECHO_ID
+     Variable ECHO_PAYMENT_ID	Your_ECHO_ID
 
 or
  
-	 [charge mode=echo id=Your_ECHO_ID]
+     [charge mode=echo id=Your_ECHO_ID]
 
 The active settings are:
 
@@ -147,16 +147,16 @@ Global parameter is MV_PAYMENT_SECRET or ECHO_PAYMENT_SECRET.
 If planning to do AUTH_ONLY or other with special admin page
 Variable MV_PAYMENT_REMAP order_id=mv_order_id auth_code=mv_auth_code
 
-Variable ECHO_PAYMENT_ORDER_TYPE         S
-	# S for "self-service" orders
-	# F for hosted or ISP orders
-Variable ECHO_PAYMENT_ISP_ECHO_ID        123<4567890
-Variable ECHO_PAYMENT_ISP_PIN            12345608
-Variable ECHO_PAYMENT_MERCHANT_EMAIL     merchant@merchant.com
-Variable ECHO_PAYMENT_DEBUG              F
-	# C causes ECHO to return a statement of conformity
-	# T or TRUE causes ECHO to return additional debug information
-	# Any other value turns off ECHO debugging
+    Variable ECHO_PAYMENT_ORDER_TYPE         S
+	    # S for "self-service" orders
+	    # F for hosted or ISP orders
+    Variable ECHO_PAYMENT_ISP_ECHO_ID        123<4567890
+    Variable ECHO_PAYMENT_ISP_PIN            12345608
+    Variable ECHO_PAYMENT_MERCHANT_EMAIL     merchant@merchant.com
+    Variable ECHO_PAYMENT_DEBUG              F
+	    # C causes ECHO to return a statement of conformity
+	    # T or TRUE causes ECHO to return additional debug information
+	    # Any other value turns off ECHO debugging
 
 =back 
 
@@ -164,9 +164,9 @@ Variable ECHO_PAYMENT_DEBUG              F
 
 This is an example configuration that one would add to catalog.cfg: 
 
-Variable MV_PAYMENT_ID		Your_ECHO_ID
-Variable MV_PAYMENT_SECRET	Your_ECHO_secret
-Variable MV_PAYMENT_MODE	echo
+    Variable MV_PAYMENT_ID	Your_ECHO_ID
+    Variable MV_PAYMENT_SECRET	Your_ECHO_secret
+    Variable MV_PAYMENT_MODE	echo
 
 =head2 Troubleshooting
 
