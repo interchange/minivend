@@ -2142,7 +2142,7 @@ sub parse_database {
 	my($database,$remain) = split /[\s,]+/, $value, 2;
 
 	if( ! defined $c->{$database} ) {
-		$c->{$database} = { 'name' => $database };
+		$c->{$database} = { 'name' => $database, included_from => $configfile };
 		$new = 1;
 	}
 
