@@ -69,14 +69,25 @@ $Global::VendRoot = $Global::VendRoot || '/usr/local/interchange';
 		if -f "$Global::VendRoot/_session_storable";
 	$ENV{MINIVEND_STORABLE_DB} = 1
 		if -f "$Global::VendRoot/_db_storable";
+
+	if(-f "$Global::VendRoot/interchange.cfg") {
+		$Global::ExeName = 'interchange';
+		$Global::ConfigFile = 'interchange.cfg';
+	}
+	elsif(-f "$Global::VendRoot/minivend.cfg") {
+		$Global::ExeName = 'minivend';
+		$Global::ConfigFile = 'minivend.cfg';
+	}
+	elsif(-f "$Global::VendRoot/interchange.cfg.dist") {
+		$Global::ExeName = 'interchange';
+		$Global::ConfigFile = 'interchange.cfg';
+	}
 }
 
 ### END CONFIGURABLE VARIABLES
 
 sub debug { return undef }
-sub dontwarn { $FindBin::RealBin; }
 
-$Global::ConfigFile = 'minivend.cfg';
 $Global::HammerLock = 20;
 $Vend::ExternalProgram = 1;
 

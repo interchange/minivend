@@ -66,8 +66,6 @@ $Global::ErrorFile = "$Global::VendRoot/error.log";
 
 ### END CONFIGURABLE VARIABLES
 
-sub dontwarn { $FindBin::RealBin; }
-
 use Vend::Util qw(readfile escape_chars);
 require Vend::Config;
 use Getopt::Std;
