@@ -2926,7 +2926,7 @@ sub tag_shipping_desc {
 	my $mode = 	shift;
 	$mode = $mode || $::Values->{mv_shipmode} || 'default';
 	return '' unless defined $Vend::Cfg->{Shipping_desc}{$mode};
-	return $Vend::Cfg->{Shipping_desc}{$mode};
+	return errmsg($Vend::Cfg->{Shipping_desc}{$mode});
 }
 
 sub tag_calc {
@@ -5915,6 +5915,10 @@ sub shipping {
 			$final += $cost;
 			last SHIPIT unless $o->{continue};
 		}
+		elsif ($what =~ /^>>(\w+)/) {
+			my $newmode = $1;
+			return shipping($newmode, $opt);
+		}
 		elsif ($what eq 'x') {
 			$final += ($o->{multiplier} * $total);
 			last SHIPIT unless $o->{continue};
@@ -6032,7 +6036,8 @@ sub shipping {
 		return $final unless $opt->{label};
 		my $number;
 		if($o->{free} and $final == 0) {
-			$number = $opt->{free};
+			$number = $opt->{free} || $o->{free};
+#::logDebug("This is free, mode=$mode number=$number");
 		}
 		else {
 			return $final unless $opt->{label};
@@ -6042,6 +6047,9 @@ sub shipping {
 											$opt->{noformat},
 									);
 		}
+
+		$opt->{format} ||= '%M=%D (%F)' if $opt->{output_options};
+		
 		my $label = $opt->{format} || '<OPTION VALUE="%M"%S>%D (%F)';
 		my $sel = $::Values->{mv_shipmode} eq $mode;
 #::logDebug("label start: $label");
@@ -6061,6 +6069,14 @@ sub shipping {
 						e => $error_message,
 						Q => $qual,
 					);
+#::logDebug("labeling, subst=" . ::uneval(\%subst));
+		$subst{D} = errmsg($subst{D});
+		if($opt->{output_options}) {
+			for(qw/ D E F f /) {
+				next unless $subst{$_};
+				$subst{$_} =~ s/,/&#44;/g;
+			}
+		}
 		$label =~ s/(%(.))/exists $subst{$2} ? $subst{$2} : $1/eg;
 #::logDebug("label intermediate: $label");
 		$label =~ s/(\$O{(.*?)})/$o->{$2}/eg;
@@ -6161,10 +6177,26 @@ sub tag_shipping {
 		undef $opt->{default}
 			if tag_shipping($::Values->{mv_shipmode});
 	}
-	if($opt->{label}) {
-		$out = '';
+	if($opt->{label} || $opt->{widget}) {
+		my @out;
+		if($opt->{widget}) {
+			$opt->{label} = 1;
+			$opt->{output_options} = 1;
+		}
 		for(@modes) {
-			$out .= shipping($_, $opt);
+			push @out, shipping($_, $opt);
+		}
+		@out = grep /=.+/, @out;
+		if($opt->{widget}) {
+			my $o = { %$opt };
+			$o->{type} = delete $o->{widget};
+			$o->{passed} = join ",", @out;
+			$o->{name} ||= 'mv_shipmode';
+			$o->{default} ||= $::Values->{mv_shipmode};
+			$out = Vend::Form::display($o);
+		}
+		else {
+			join "", @out;
 		}
 	}
 	else {
