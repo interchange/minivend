@@ -35,6 +35,7 @@ cache_html
 interpolate_html
 subtotal
 tag_data
+tag_attr_list
 $Tag
 $CGI
 $Session
