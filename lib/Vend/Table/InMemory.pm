@@ -108,9 +108,9 @@ sub row {
 
 sub row_hash {
 	my ($s, $key) = @_;
-	my $a = $s->[$TIE_HASH]{$key};
+	my $a = $s->[$TIE_HASH]{$key}
+		or return undef;
 #::logDebug("here is row $key: " . ::uneval($a));
-	die "There is no row with index '$key'" unless defined $a;
 	my %row;
 	@row{ @{$s->[$COLUMN_NAMES]} } = @$a;
 	return \%row;
