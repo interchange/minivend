@@ -2208,7 +2208,7 @@ sub unique_ary {
 sub resolve_owner {
 	my $cref = shift || \%Conf;
 	die errmsg("Usage: %s", "resolve_owner({ })")
-		unless ref $cref;
+		unless ref $cref eq 'HASH';
 	return unless $> == 0 || $cref->{asroot};
 	my @things = qw/interchangeuser interchangegroup catuser catgroup/;
 	my ($icu, $icg, $catu, $catg) = @$cref{@things};
