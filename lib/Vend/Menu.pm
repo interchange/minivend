@@ -203,8 +203,13 @@ sub old_tree {
 </P>
 EOF
 
-	push @out, Vend::Tags->uc_attr_list($opt, $opt->{header_template})
-		unless $opt->{no_expand_collapse};
+	my $header;
+	$header = ::interpolate_html($opt->{header_template})
+		if $opt->{header_template};
+	if($header =~ /\S/) {
+		$header = Vend::Tags->uc_attr_list($opt, $header);
+		push @out, $header;
+	}
 
 	my %defaults = (
 				start       => $opt->{tree_selector} || 'Products',
@@ -228,8 +233,13 @@ EOF
 	}
 	push @out, Vend::Tags->tree($opt);
 
-	push @out, Vend::Tags->uc_attr_list($opt, $opt->{footer_template})
-		unless $opt->{no_expand_collapse};
+	my $footer;
+	$footer = ::interpolate_html($opt->{footer_template})
+		if $opt->{footer_template};
+	if($footer =~ /\S/) {
+		$footer = Vend::Tags->uc_attr_list($opt, $footer);
+		push @out, $footer;
+	}
 
 	return join "\n", @out;
 
@@ -240,8 +250,13 @@ sub old_simple {
 	my @out;
 	my $u;
 
-	push @out, Vend::Tags->uc_attr_list($opt, $opt->{header_template}, 1)
+	my $header;
+	$header = ::interpolate_html($opt->{header_template})
 		if $opt->{header_template};
+	if($header =~ /\S/) {
+		$header = Vend::Tags->uc_attr_list($opt, $header);
+		push @out, $header;
+	}
 
 	my %defaults = (
 				iterator    => \&menu_link,
@@ -254,8 +269,13 @@ sub old_simple {
 	}
 	push @out, Vend::Tags->loop(undef,$opt,$template);
 
-	push @out, Vend::Tags->uc_attr_list($opt, $opt->{footer_template})
+	my $footer;
+	$footer = ::interpolate_html($opt->{footer_template})
 		if $opt->{footer_template};
+	if($footer =~ /\S/) {
+		$footer = Vend::Tags->uc_attr_list($opt, $footer);
+		push @out, $footer;
+	}
 
 	return join "\n", @out;
 
@@ -280,7 +300,13 @@ sub dhtml_tree {
 </P>
 EOF
 
-	push @out, Vend::Tags->uc_attr_list($opt, $opt->{header_template});
+	my $header;
+	$header = ::interpolate_html($opt->{header_template})
+		if $opt->{header_template};
+	if($header =~ /\S/) {
+		$header = Vend::Tags->uc_attr_list($opt, $header);
+		push @out, $header;
+	}
 
 	$opt->{div_style} ||= '';
 	push @out, <<EOF;
@@ -459,8 +485,15 @@ openstring = openstring.replace(/0+$/, '');
 rewrite_tree();
 </script>
 EOF
-	push @out, Vend::Tags->uc_attr_list($opt, $opt->{footer_template})
+
+	my $footer;
+	$footer = ::interpolate_html($opt->{footer_template})
 		if $opt->{footer_template};
+	if($footer =~ /\S/) {
+		$footer = Vend::Tags->uc_attr_list($opt, $footer);
+		push @out, $footer;
+	}
+
 	return join "\n", @out;
 }
 
@@ -650,6 +683,11 @@ sub menu {
 	my $prefix = $opt->{prefix} || 'menu';
 	$opt->{link_class} ||= $::Variable->{MV_DEFAULT_LINK_CLASS};
 
+	$opt->{parse_header_footer} = 1 unless defined $opt->{parse_header_footer};
+
+	if($opt->{parse_header_footer}) {
+		$opt->{parse_header} = $opt->{parse_footer} = 1;
+	}
 	if($template and $template =~ s:\[$prefix-header\](.*?)\[/$prefix-header\]::si) {
 		$opt->{header_template} = $1;
 	}
