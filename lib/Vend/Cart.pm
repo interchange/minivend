@@ -211,11 +211,6 @@ sub toss_cart {
 
 =cut
 
-sub get_cart {
-	my($cart) = shift or return $Vend::Items;
-	return $Vend::Items = $cart;
-}
-
 1;
 
 __END__

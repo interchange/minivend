@@ -1692,7 +1692,13 @@ sub add_items {
 
 	::update_quantity() if ! defined $CGI::values{mv_orderline};
 
-	my $cart = Vend::Cart::get_cart($CGI::values{mv_cartname});
+	my $cart;
+	if($CGI::values{mv_cartname}) {
+		$cart = $::Carts->{$CGI::values{mv_cartname}} ||= [];
+	}
+	else {
+		$cart = $Vend::Items;
+	}
 
 	@items      = split /\0/, ($items), -1;
 	@quantities = split /\0/, ($quantities || delete $CGI::values{mv_order_quantity} || ''), -1;

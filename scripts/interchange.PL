@@ -388,7 +388,12 @@ sub update_quantity {
 		|| $CGI::values{mv_quantity_update};
 	my($h, $i, $quantity, $modifier, $cart);
 
-	$cart = Vend::Cart::get_cart($CGI::values{mv_cartname});
+	if ($CGI::values{mv_cartname}) {
+		$cart = $::Carts->{$CGI::values{mv_cartname}} ||= [];
+	}
+	else {
+		$cart = $Vend::Items;
+	}
 
 	my @mods;
 	@mods = @{$Vend::Cfg->{UseModifier}} if $Vend::Cfg->{UseModifier};
