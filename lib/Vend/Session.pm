@@ -279,6 +279,7 @@ sub close_session {
 		undef $Vend::SessionOpen;
 	}
 	else {
+		undef $::Instance->{DB_sessions};
 		untie %Vend::SessionDBM
 			or die "Could not close $Vend::Cfg->{SessionDatabase}: $!\n";
 		undef $Vend::SessionOpen;
@@ -310,6 +311,7 @@ sub write_session {
 	$Vend::Session->{superuser} = $Vend::superuser;
 	$Vend::Session->{login_table} = $Vend::login_table;
     $s = ! $File_sessions ? uneval_fast($Vend::Session) : $Vend::Session;
+#::logDebug("writing \$s of length " . length($s) . " to SessionDB");
     $Vend::SessionDBM{$Vend::SessionName} = $s or 
 		die "Data was not stored in SessionDBM\n";
     $Vend::Session->{'user'} = $save;
@@ -359,10 +361,16 @@ EOF
 						$sleepleft = $left;
 					}
 				}
-				close_session();
-				sleep $sleepleft;
-				open_session();
-				read_session();
+				if($::Instance->{DB_sessions}) {
+					sleep $sleepleft;
+					read_session();
+				}
+				else {
+					close_session();
+					sleep $sleepleft;
+					open_session();
+					read_session();
+				}
 				next LOCKLOOP;
 			}
 		}
