@@ -507,11 +507,17 @@ my %Prefix = (
 							return $ENV{MVC_SHAREURL} if $ENV{MVC_SHAREURL};
 							my $url = '';
 							$url = $Tilde if defined $Tilde;
-							$url .= '/akopia/ui/';
+							$url .= '/';
 							return $url;
 						},
 
 );
+
+sub add_trailing_slash {
+	my $url = shift;
+	$url =~ s:[/\s]*$:/:;
+	return $url;
+}
 
 sub strip_trailing_slash {
 	my $url = shift;
@@ -538,6 +544,7 @@ my %Postprocess = (
 	samplehtml		=> \&directory_process,
 	catroot			=> \&directory_process,
 	relocate		=> \&strip_trailing_slash,
+	shareurl		=> \&add_trailing_slash,
 
 );
 
