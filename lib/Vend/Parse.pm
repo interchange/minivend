@@ -328,7 +328,6 @@ my %hasEndTag = (
                         row             1
                         search_region   1
                         set             1
-                        set             1
                         seti            1
                         sql             1
                         strip           1
