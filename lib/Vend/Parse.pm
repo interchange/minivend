@@ -81,7 +81,7 @@ my %PosNumber =	( qw!
                 filter           1
 				flag			 1
                 fly_tax          1
-                fly_list         2
+                fly_list         1
                 goto             2
 				harness          0
                 html_table       0
@@ -159,7 +159,7 @@ my %Order =	(
 				flag			=> [qw( type )],
 				time			=> [qw( locale )],
 				fly_tax			=> [qw( area )],
-				fly_list		=> [qw( code base )],
+				fly_list		=> [qw( code )],
 				'goto'			=> [qw( name if)],
 				harness		    => [qw( )],
 				html_table	    => [qw( )],
@@ -230,6 +230,7 @@ my %addAttr = (
 					error           1
 					export          1
 					flag            1
+					fly_list        1
 					harness         1
 					html_table      1
 					import          1

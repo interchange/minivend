@@ -3999,7 +3999,7 @@ sub fly_page {
 
 	$Vend::Flypart = $code;
 
-	my $base = product_code_exists_ref($code);
+	my $base = product_code_exists_ref($code, $opt->{base});
 #::logDebug("fly_page: code=$code base=$base page=" . substr($page, 0, 100));
 	return undef unless $base || $opt->{onfly};
 
