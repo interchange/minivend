@@ -38,7 +38,8 @@ use strict;
 use Config;
 
 BEGIN {
-	if($Config{usethreads} || $Config{useithreads} || $Config{use5005threads}) {
+	if(! $ENV{MINIVEND_FORCE_THREADS}
+	   && ($Config{usethreads} || $Config{useithreads} || $Config{use5005threads})) {
 		die "Interchange will not work with a thread-enabled perl.\n";
 	}
 }
