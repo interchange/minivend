@@ -84,7 +84,6 @@ BEGIN {
 	}
 	
 }
-}
 
 ### END CONFIGURABLE VARIABLES
 
