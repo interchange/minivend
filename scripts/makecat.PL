@@ -1489,7 +1489,9 @@ DOCOPY: {
 		die <<EOF . "\n";
 There were errors in copying the demo files.  Cannot
 continue.  Check to see if permissions are correct.
+The problem was:
 
+	$@
 EOF
 	}
 
