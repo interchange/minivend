@@ -309,6 +309,21 @@ sub row_settor {
     };
 }
 
+sub get_slice {
+    my ($s, $key, $fary) = @_;
+	$s = $s->import_db() if ! defined $s->[$TIE_HASH];
+
+	return undef unless $s->record_exists($key);
+
+	if(ref $fary ne 'ARRAY') {
+		shift; shift;
+		$fary = [ @_ ];
+	}
+
+	my @result = ($s->row($key))[ map { $s->column_index($_) } @$fary ];
+	return wantarray ? @result : \@result;
+}
+
 sub set_slice {
     my ($s, $key, $fary, $vary) = @_;
 	$s = $s->import_db() if ! defined $s->[$TIE_HASH];
