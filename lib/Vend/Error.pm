@@ -39,8 +39,6 @@ use vars qw/$VERSION/;
 
 $VERSION = substr(q$Revision$, 10);
 
-my $wantref = 1;
-
 sub get_locale_message {
 	my ($code, $message, @arg) = @_;
 	if ($Vend::Cfg->{Locale} and defined $Vend::Cfg->{Locale}{$code}) {
