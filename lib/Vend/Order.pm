@@ -1490,7 +1490,7 @@ sub route_order {
 			}
 			for(@vars) {
 				next unless exists $glob->{$_};
-				$::Variable->{$_} = $glob->{_};
+				$::Variable->{$_} = $glob->{$_};
 			}
 			$CGI::values{mv_cyber_mode} = $save;
 			unless ($ok) {
