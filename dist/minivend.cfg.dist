@@ -74,12 +74,13 @@
 # [/perl]> construct.
 #
 # IMPORTANT NOTE: These global subroutines are NOT SUBJECT TO SECURITY CHECKS
-# -- they can do most anything!  For most purposes, scratch subroutines or
-# catalog subroutines are better.
+# -- they can do most anything!  For most purposes, scratch subroutines
+# or catalog subroutines are better.
 #
 # You may define as many as desired.
 #
-# GlobalSub
+
+GlobalSub sub test_global_sub { return 'Test of global subroutine OK.' }
 
 
 ## Default: 30
@@ -236,3 +237,5 @@
 # setting is present and mv_build_static is set in the CGI values.
 #
 # UserBuild
+
+Variable TEST_VARIABLE Test of global variable OK.

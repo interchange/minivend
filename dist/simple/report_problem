@@ -6,7 +6,7 @@ BEGIN {
 	$VendRoot       = "__MVC_VENDROOT__";
 	$CatRoot        = "__MVC_CATROOT__";
 	$PERL           = "__MVC_PERL__";
-	$REPORT_ADDRESS = 'minivend@minivend.com';
+	$REPORT_ADDRESS = 'minivend-users@minivend.com';
 
 
 }

@@ -1,6 +1,6 @@
-# MiniVend V3.05
+# MiniVend V3.06
 # 
-# Copyright 1996,1997 by Michael J. Heins <mikeh@minivend.com>
+# Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
 #
 
                    M I S C E L L A N E O U S
@@ -11,9 +11,11 @@ OS          Recommended DBM    Tested on     Notes
 Linux         GDBM             2.0.x & up    This is what MiniVend is
                                              developed on -- all features
                                              should work normally.
-                                             Running with Linux 1.2.13
-                                             or lower is not recommended.
 
+    IMPORTANT NOTE FOR REDHAT 5.0:
+    If MiniVend fails "make test" this usually means that the POSIX
+    library is broken on the distributed Perl. You can update
+    Perl or define the environment variable MINIVEND_BADPOSIX to 1.
 
 Windows 95    DB_File          ?????         Initial port. Probably will
                                              not run well for high-use

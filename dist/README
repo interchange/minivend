@@ -1,12 +1,12 @@
-# MiniVend V3.05
+# MiniVend V3.06
 # 
-# Copyright 1996,1997 by Michael J. Heins <mikeh@minivend.com>
+# Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
 #
 # Based on Vend 0.2
-# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+# Copyright 1995 by Andrew M. Wilcox
 #
 # Portions from Vend 0.3
-# Copyright 1995,1996 by Andrew M. Wilcox <awilcox@world.std.com>
+# Copyright 1995,1996 by Andrew M. Wilcox
 #
 # This program is free software; most users can redistribute it
 # and/or modify it under the terms of the GNU General Public
@@ -37,7 +37,7 @@ interested in problems, suggestions, or comments, but does not have time
 to offer free individual support in most cases. See the MiniVend website at
 http://www.minivend.com/minivend/ for more information.
 
-   IMPORTANT NOTE:  MiniVend 3.05 requires Perl 5.004 or higher.
+   IMPORTANT NOTE:  MiniVend 3.06 requires Perl 5.004 or higher.
    (It will probably work with 5.003 on some UNIX systems and *may*
    work with Perl 5.002. Neither are supported.)
 
@@ -107,14 +107,15 @@ Major files/directories in the distribution:
          back without losing session state
        * Complete addressable database support with virtually
          unlimited rows and columns
-       * mSQL support includes form-based inserts and updates
+       * Complete SQL support including ODBC
        * Many, many, other features
 
     Powerful search capability
 
-       * Fast binary search
        * One-click scan and search -- build a whole search in a single HREF
+       * Versatile built-in text search
        * Complete Glimpse interface
+       * Fast binary search
        * Range searching, numeric and alphanumeric
        * Search sorting with reverse, numeric and case-insensitive options
        * Independent field search selection and return
@@ -145,31 +146,20 @@ Major files/directories in the distribution:
           across-the-board discounts
         * Fully-configurable quantity pricing
         * Fully-configurable item price adjustments
-        * Sophisticated back end order entry capability
+        * Sophisticated back end order entry capability including CyberCash(R)
         * Full client-side imagemap support, including frame targets and form
           submits
-        * Fully configurable order reports
+        * Fully configurable order reports and receipts
 
     Easy Administration
 
         * Automated installation and configuration
-        * Runs under Perl 5 and almost any UNIX
+        * Runs under Perl 5.004, Windows, and almost any UNIX
         * Designed to be secure
-        * Built-in online help capability
         * Offline database builds
         * Static page build option for high performance
         * Works well with all browsers
 
-    Andrew Wilcox wrote Vend, the copylefted shopping cart software.
-    MiniVend is based on Vend V0.2, but enhanced considerably,
-    adding support for frames, powerful searching, remote
-    administration, superfast server mode, conditional HTML,
-    user-customizable help and displays, and much more. This version
-    of MiniVend includes an automatic configuration and installation
-    utility, and continues to be free under the GNU copyleft.
-
-    To learn more about MiniVend, see the HTML documentation, visit
-    the offical MiniVend site, or download it.
 
 -------------------------------------------------------------------
 
@@ -220,15 +210,16 @@ need to run in INET/TLINK mode instead of UNIX/VLINK mode.
 WINDOWS INSTALLATION
 --------------------
 
-    Obtain the self-extracting executable minivend-3.0x.exe
-    and double-click on it.
+    Obtain the self-extracting executable minivend-3.06.exe
+    and double-click on it. You MUST already have Perl 5.004
+    INSTALLED and in your PATH.
 
 UNIX INSTALLATION
 ------------------
 Here is the short version:
 
-    gzip -dc minivend-3.0x.tar.gz | tar xvf -
-    cd minivend-3.0x
+    gzip -dc minivend-3.06.tar.gz | tar xvf -
+    cd minivend-3.06
     ./configure
 
 More information is in the file INSTALL.
@@ -242,61 +233,104 @@ More information is in the file INSTALL.
 
                      D O C U M E N T A T I O N
 
-The documentation is in 3 files in the doc/ subdirectory of
+The documentation is in 2 files in the doc/ subdirectory of
 the main MiniVend directory:
 
        toc.html       Table of contents
        minivend.html  Main documentation file
-       tags.html      Complete MiniVend tag reference
 
 These files will be copied to the same HTML directory as
-the sample and simple demo gateway files -- they would normally
+the simple demo gateway files -- they would normally
 be referenced as:
 
-           http:/www.yourserver.com/sample/toc.html
+           http:/www.yourserver.com/simple/toc.html
 
 -------------------------------------------------------------
 
                     K N O W N   P R O B L E M S
 
+RedHat Linux 5.0:
+        RedHat Linux 5.0 has a bad Perl distribution that causes
+        problems with POSIX. The real solution is to obtain the
+        latest.tar.gz file from CPAN and build a new Perl. Here
+        is the script to do that once you have obtained the 
+        latest.tar.gz file:
+
+            tar xzf latest.tar.gz
+            cd perl5.004*
+            perl -pi.dist -e \
+                "s:/ bsd / /:/ net / /' | sed -e 's/ bsd / c g /:; \
+                s/^#(POSIX_cflags)/POSIX_cflags/" \
+                hints/linux.sh
+            ./Configure -des && make test
+
+        That should get you a Perl which passes make test
+        one hundred percent and that works with MiniVend and
+        other programs which use the POSIX library. After
+        you have verified the "make test" passes fully
+        you should of course su to root and "make install".
+
+        This may soon be corrected by the Perl porters or by
+        RedHat, so bear in mind this is time-sensitive. The above
+        works well as of Jan. 28, 1998.
+
+Various UNIX:
+        MiniVend uses the Archive::Tar module to do file copying
+        in certain situations. If there is a problem with "Odd number
+        of hash elements" during an installation, touch the file
+        "bad_tar_pm" in the current directory or the MINIVEND_ROOT
+        directory depending on where it occurs. This will signal to 
+        MiniVend that it should use the system tar(1) command instead.
+        THIS WILL NOT WORK ON WINDOWS.
 
 IRIX, Solaris, Digital UNIX:
-           The server may not terminate immediately,
-           as the select() call blocks signals. It
-           will stop at the next request, or at the
-           end of the occasional houskeeping
-           cycle, set by the directive HouseKeeping in
-           minivend.cfg. Set to less than 10 to achieve
-           decent response.
+       The server may not terminate immediately,
+       as the select() call blocks signals. It
+       will stop at the next request, or at the
+       end of the occasional houskeeping
+       cycle, set by the directive HouseKeeping in
+       minivend.cfg. Set to less than 10 to achieve
+       decent response.
 
 BSDI, FreeBSD:
-           The BSDI library code is not safely re-entrant
-           when used in combination with signals, so no
-           signals are sent during server usage.  This is
-           transparent to the user.
+       The BSDI library code is not safely re-entrant
+       when used in combination with signals, so no
+       signals are sent during server usage.  This is
+       transparent to the user.
 
-           MiniVend will not as of this writing work with
-           BSDI 3.0 in UNIX mode, so you must use the INET
-           mode and the tlink program.
+       MiniVend may not as of this writing work with
+       BSDI 3.0 in UNIX mode, so you should use the INET
+       mode and the tlink program. This is the catalog
+       configurator default.
 
-           If the kernel parameter CHILD_MAX is not configured
-           above the default of 40, expect problems. Same with
-           SO_MAXCONN and some other kernel parameters. 
+       If the kernel parameter CHILD_MAX is not configured
+       above the default of 40, expect problems. Same with
+       SO_MAXCONN and some other kernel parameters. 
 
-Solaris:   If you are trying to run with Perl 5.003, which is
-           NOT recommended, you must use the File::Lock
-           module -- flock() emulation in Perl 5.003 does not
-           work properly, and fcntl() locking must be used.
-           This version of MiniVend includes File::Lock,
-           and attempts to install it.
+Solaris:
+       If you are trying to run with Perl 5.003, which is
+       NOT recommended, you must use the File::Lock
+       module -- flock() emulation in Perl 5.003 does not
+       work properly, and fcntl() locking must be used.
+       This version of MiniVend includes File::Lock,
+       and attempts to install it.
 
-           If you have Perl 5.004 you can disregard File::Lock.
+       Solaris 2.4 has problems with UNIX-domain sockets
+       and you can expect problems.  Bottom line is that
+       I will not support Solaris releases before 2.5, nor
+       Perl before 5.004.
 
-           It is STRONGLY RECOMMENDED that you update to Perl 5.004
-           when running on Solaris.
+       You may not use OrderCounter when running Perl
+       5.003 and Solaris.
 
-Windows:   This is a new port, and just a few things don't work the
-           same as UNIX. See the README-win.txt file for more information.
+       If you have Perl 5.004 you can disregard File::Lock.
+
+       It is STRONGLY RECOMMENDED that you update to Perl 5.004
+       when running on Solaris.
+
+Windows:
+       This is a new port, and just a few things don't work the
+       same as UNIX. See the README-win.txt file for more information.
 
 ---------------------------------------------------------------------
 

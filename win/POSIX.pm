@@ -4,7 +4,7 @@ require Exporter;
 @ISA = qw(Exporter);
 @EXPORT		= qw( strftime ceil );
 
-@EXPORT_OK	= qw( );
+@EXPORT_OK	= qw( setsid localeconv LC_ALL setlocale );
 
 
 use strict;
@@ -62,8 +62,10 @@ sub ceil {
 	return int($num) + 1;
 }
 
-sub LC_ALL { }
+sub LC_ALL {}
 
 sub setlocale {}
+
+sub localeconv {}
 
 1;

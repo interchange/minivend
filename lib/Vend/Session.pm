@@ -1,9 +1,9 @@
 # Session.pm - Minivend Sessions
 #
-# $Id: Session.pm,v 1.17 1997/12/14 05:43:50 mike Exp $
+# $Id: Session.pm,v 1.20 1998/01/31 05:22:11 mike Exp $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
-# Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,16 +18,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
 
 package Vend::Session;
 require Exporter;
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.17 $, 10);
+$VERSION = substr(q$Revision: 1.20 $, 10);
 
-# NOAUTO
 @ISA = qw(Exporter);
-# END NOAUTO
 
 @EXPORT = qw(
 
@@ -63,9 +62,7 @@ BEGIN {
 	}
 }
 
-# NOAUTO
 my ($Session_open, $File_sessions);
-# END NOAUTO
 
 
 # Selects based on initial config
@@ -96,7 +93,7 @@ else {
 }
 
 
-## SESSIONS implemented using DBM
+# SESSIONS implemented using DBM
 
 sub get_session {
 	$Vend::HaveSession = 0;
@@ -151,7 +148,11 @@ sub new_session {
     my($seed) = @_;
     my($name);
 
-#print("new session id=$Vend::SessionID  name=$Vend::SessionName\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("new session id=$Vend::SessionID  name=$Vend::SessionName\n")
+#	if ::debug(0x20);
+# END DEBUG
 	open_session();
     for (;;) {
 		$Vend::SessionID = random_string() unless defined $seed;
@@ -186,7 +187,11 @@ sub check_override {
 sub save_session {
 	my($source,$dest,$name) = @_;
 	my($s,$d,$found);
-#print("save session id=$Vend::SessionID  name=$Vend::SessionName\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("save session id=$Vend::SessionID  name=$Vend::SessionName\n")
+#	if ::debug(0x20);
+# END DEBUG
 	$dest = $dest || $Vend::SessionID;
 	$name = $name || time;
 	open_session();
@@ -230,7 +235,11 @@ sub save_session {
 
 
 sub close_session {
-#print("close session id=$Vend::SessionID  name=$Vend::SessionName\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("close session id=$Vend::SessionID  name=$Vend::SessionName\n")
+#	if ::debug(0x20);
+# END DEBUG
 	return 1 if ! defined $Vend::SessionOpen;
     untie %Vend::SessionDBM
 		or die "Could not close $Vend::Cfg->{'SessionDatabase'}: $!\n";
@@ -246,7 +255,11 @@ sub close_session {
 
 sub write_session {
     my($s);
-#print("write session id=$Vend::SessionID  name=$Vend::SessionName\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("write session id=$Vend::SessionID  name=$Vend::SessionName\n")
+#	if ::debug(0x20);
+# END DEBUG
 	my $time = time;
     $Vend::Session->{'time'} = $time;
     undef $Vend::Session->{'user'};
@@ -260,14 +273,22 @@ sub write_session {
 }
 
 sub unlock_session {
-#print("unlock session id=$Vend::SessionID  name=$Vend::SessionName\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("unlock session id=$Vend::SessionID  name=$Vend::SessionName\n")
+#	if ::debug(0x20);
+# END DEBUG
 	delete $Vend::SessionDBM{'LOCK_' . $Vend::SessionName}
 		unless $File_sessions;
 }
 
 sub lock_session {
 	return 1 if $File_sessions;
-#print("lock session id=$Vend::SessionID  name=$Vend::SessionName\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("lock session id=$Vend::SessionID  name=$Vend::SessionName\n")
+#	if ::debug(0x20);
+# END DEBUG
 	my $lockname = 'LOCK_' . $Vend::SessionName;
 	my ($tried, $locktime, $sleepleft, $pid, $now, $left);
 	$tried = 0;
@@ -323,9 +344,17 @@ EOF
 sub read_session {
     my($s);
 
-#print("read session id=$Vend::SessionID  name=$Vend::SessionName\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("read session id=$Vend::SessionID  name=$Vend::SessionName\n")
+#	if ::debug(0x20);
+# END DEBUG
 	$s = $Vend::SessionDBM{$Vend::SessionName};
-#print("Session:\n$s\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Session:\n$s\n")
+#	if ::debug(0x20);
+# END DEBUG
 	return new_session($Vend::SessionID) unless $s;
     $Vend::Session = eval($s);
     die "Could not eval '$s' from session dbm: $@\n" if $@;
@@ -360,15 +389,27 @@ sub session_name {
 			if ($proxy >= 0);
 		$host = escape_chars($host);
 	}
-#print("name session user=$CGI::user host=$host ($CGI::host)\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("name session user=$CGI::user host=$host ($CGI::host)\n")
+#	if ::debug(0x20);
+# END DEBUG
     $fn = $Vend::SessionID . $joiner . $host;
-#print("name session id=$Vend::SessionID  name=$fn\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("name session id=$Vend::SessionID  name=$fn\n")
+#	if ::debug(0x20);
+# END DEBUG
     $fn;
 }
 
 
 sub init_session {
-#print("init session id=$Vend::SessionID  name=$Vend::SessionName\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("init session id=$Vend::SessionID  name=$Vend::SessionName\n")
+#	if ::debug(0x20);
+# END DEBUG
     $Vend::Session = {
 	'version' => 1,
 	'frames' => $Vend::Cfg->{FramesDefault},
@@ -408,7 +449,11 @@ sub remove_session_marker {
 sub add_session_marker {
 	my $s = eval $Vend::SessionDBM{$Vend::SessionID};
     die "Could not eval '$s' from session dbm: $@\n" if $@;
-#print("Add session marker id=$Vend::SessionID  name=$Vend::SessionName\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Add session marker id=$Vend::SessionID  name=$Vend::SessionName\n")
+#	if ::debug(0x20);
+# END DEBUG
 	$s = {} unless $s;
 	$s->{$Vend::SessionName} = {};
 	$Vend::SessionDBM{$Vend::SessionID} = uneval $s;

@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 #
-# MiniVend version 3.05
+# MiniVend version 3.06
 #
-# $Id: minivend,v 1.13 1997/12/09 09:24:51 mike Exp mike $
+# $Id: minivend,v 1.21 1998/01/25 06:29:45 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -11,7 +11,7 @@
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
 # Enhancements made by and
-# Copyright 1996, 1997 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
 #
 # See the file 'Changes' for information.
 #
@@ -40,6 +40,7 @@
 use Config;
 BEGIN {
 
+	$Vend::Foreground = 1;
 	eval {
 		require 5.004;
 		require FindBin;
@@ -73,6 +74,20 @@ if($Config{osname} =~ /win32/i) {
 # the MiniVend user path
 #$ENV{PGPPATH} = '/usr/local/pgp';
 
+# Uncomment AND SET next line to work around bad POSIX strftime
+# routines.
+#$ENV{MINIVEND_BADPOSIX} = 1;
+
+# The following will stay until this is fixed in RedHat Linux.
+# Set the above to 0 if your version won't dump core on strftime.
+if(	$Config{osname} eq 'linux'			and 
+	! $Config{d_gnulibc} eq 'define'	and
+	! defined $ENV{MINIVEND_BADPOSIX} )
+{
+	$ENV{MINIVEND_BADPOSIX} = 1;
+}
+
+
 $Global::ErrorFile = 'error.log';
 }
 
@@ -82,7 +97,32 @@ $Global::ErrorFile = 'error.log';
 use lib "$Global::VendRoot/lib";
 use vars qw($VERSION);
 
-$VERSION = '3.05';
+# DEBUG
+#%Global::DHASH = (
+#	OFF        => 0,
+#	NORMAL     => 1,
+#	TAG        => 2,
+#	TAGS       => 2,
+#	DATA       => 4,
+#	DATABASE   => 4,
+#	CONFIG     => 8,
+#	SEARCH     => 16,
+#	SESSION    => 32,
+#	SERVER     => 64,
+#	CACHE      => 128,
+#	CALLER     => 512,
+#	VERBOSE    => 0x3FF,
+#	COMMENT    => 1024,
+#	FILE       => 2048,
+#	FOREGROUND => 4096,
+#);
+# END DEBUG
+
+sub debug {
+	return $_[0] & $Global::DEBUG;
+}
+
+$VERSION = '3.06';
 use strict;
 use Fcntl;
 
@@ -195,7 +235,14 @@ sub check_html {
 sub response {
 	my ($type,$output,$debug) = @_;
 	#$Vend::content_type = $type;
+	return 1 if $Vend::BuildingPages;
 	check_html(\$output) if defined $Vend::CheckHTML;
+	if (defined $Vend::DebugHTML) {
+		$output .= "\n<!-- DEBUG\n" .
+					$Vend::DebugHTML .
+					"\nEND DEBUG -->\n";
+		undef $Vend::DebugHTML;
+	}
 	my $content = $Vend::ContentType || "text/$type";
 	http()->respond($content,$output,$debug);
 }
@@ -332,7 +379,9 @@ sub cache_page {
 	my $pagename =  generate_key($name,$arg);
 
 	if($page = readfile("$pagedir/$pagename.html")) {
-#print("Hit cache $pagename\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug ("Hit cache $pagename\n") if ::debug(0x80);
+# END DEBUG
     	response('html', $page);
 		return 1;
 	}
@@ -397,7 +446,9 @@ sub do_order
     my($code,$path,$catalog) = @_;
     my($i, $found, $item, $save, %att);
 	
-#warn ("do_order: '" . (join "','", @_) . "'\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug("do_order: '" . (join "','", @_) . "'\n") if ::debug(0x1);
+# END DEBUG
 	my($cartname,$page) = split m:/:, $path || '', 2;
 
 	my $cart = get_cart $cartname;
@@ -550,26 +601,26 @@ sub update_quantity {
 
 	foreach $i (0 .. $#$cart) {
     	$quantity = $CGI::values{"quantity$i"};
-    	if (defined($quantity) && $quantity =~ m/^\d+$/) {
-        	$cart->[$i]->{'quantity'} = $quantity;
+    	if (! defined $quantity) {
+        	interaction_error("Variable '$quantity' not passed from form\n");
+        	return undef;
+		}
+    	elsif ($quantity =~ m/^\d*$/) {
+        	$cart->[$i]->{'quantity'} = $quantity || 0;
     	}
-    	elsif (defined($quantity) && $quantity =~ m/^[\d.]+$/
+    	elsif ($quantity =~ m/^[\d.]+$/
 				and $Vend::Cfg->{FractionalItems} ) {
         	$cart->[$i]->{'quantity'} = $quantity;
     	}
 		# This allows a multiple input of item quantity to
 		# pass -- FIRST ONE CONTROLS
-		elsif (defined $quantity && $quantity =~ s/\0.*//) {
+		elsif ($quantity =~ s/\0.*//) {
 			$CGI::values{"quantity$i"} = $quantity;
 			redo;
 		}
-		elsif (defined $quantity) {
+		else {
 			my $item = $cart->[$i]->{'code'};
         	interaction_error("'$quantity' for item $item is not numeric\n");
-        	return undef;
-    	}
-		else {
-        	interaction_error("Variable '$quantity' not passed from form\n");
         	return undef;
     	}
     }
@@ -591,25 +642,32 @@ sub add_items {
 	my(@bases);
 	my($attr,%attr);
 
-	@items = split /\0/, $items;
+	@items = split /\0/, $items, -1;
 
 	my $cartname = $CGI::values{mv_cartname};
 
 	my $cart = get_cart($cartname);
 
-	if($quantities ||= '') {
-		@quantities = split /\0/, $quantities;
+	if($quantities) {
+		@quantities = split /\0/, $quantities, -1;
 	}
 
 	$bases = $bases || $CGI::values{mv_order_mv_ib} || '';
 	if($bases) {
-		@bases = split /\0/, $bases;
+		@bases = split /\0/, $bases, $1;
 	}
 
 	foreach $attr (@{$Vend::Cfg->{UseModifier}}) {
 		$attr{$attr} = [];
 		next unless defined $CGI::values{"mv_order_$attr"};
-		@{$attr{$attr}} = split /\0/, $CGI::values{"mv_order_$attr"};
+		@{$attr{$attr}} = split /\0/, $CGI::values{"mv_order_$attr"}, -1;
+	}
+
+      my ($group, $found_master, $mv_mi, $mv_si, @group);
+
+      @group = split /\0/, (delete $CGI::values{mv_order_group} || ''), -1;
+      for( $i = 0; $i < @group; $i++ ) {
+       $attr{mv_mi}->[$i] = $group[$i] ? ++$Vend::Session->{pageCount} : 0;
 	}
 
 	my $separate =
@@ -621,7 +679,9 @@ sub add_items {
 				 );
 	$j = 0;
 	foreach $code (@items) {
-		$quantity = $quantities[$j] ||= 1;
+	  
+       $quantity = defined $quantities[$j] ? $quantities[$j] : 1;
+       ($j++,next) unless $quantity;
 		$base = product_code_exists_tag($code, $bases[$j] || undef);
 		if (! $base ) {
 			logError("Attempt to order missing product code: $code");
@@ -658,6 +718,19 @@ sub add_items {
 		# An if not, start of with a single quantity.
 		if ($found == -1) {
 			$item = {'code' => $code, 'quantity' => $quantity, mv_ib => $base};
+
+			# Add the master item/sub item ids if appropriate
+          if(@group) {
+           if($attr{mv_mi}->[$j]) {
+              $item->{mv_mi} = $mv_mi = $attr{mv_mi}->[$j];
+              $item->{mv_si} = $mv_si = 0;
+           }
+           else {
+              $item->{mv_mi} = $mv_mi;
+              $item->{mv_si} = ++$mv_si;
+           }
+			}
+
 			if($Vend::Cfg->{UseModifier}) {
 				foreach $i (@{$Vend::Cfg->{UseModifier}}) {
 					$item->{$i} = $attr{$i}->[$j];
@@ -670,7 +743,8 @@ sub add_items {
 		$j++;
 	}
 }
-	
+
+
 ## DO FINISH
 
 # Finish an incomplete order.
@@ -729,12 +803,12 @@ sub update_data {
 		return undef;
 	}
 
-	my @fields		= split /\s*,\s*/, $CGI::values{'mv_data_fields'};
+	my @fields		= split /[\s,]+/, $CGI::values{'mv_data_fields'};
 
-	$function = $function =~ /insert/i ? 'insert' : 'update';
+	$function = ($function =~ /insert/i ? 'insert' : 'update');
 
 	my (%data);
-	for(@fields) {
+	for(@fields, $prikey) {
 		$data{$_} = [];
 	}
 
@@ -793,7 +867,7 @@ sub update_data {
 			while($field = shift @k) {
 				$value = shift @v;
 				next if $field eq $prikey;
-				$db->set_field($key, $field, $value);
+				Vend::Data::set_field($db, $key, $field, $value);
 			}
 		}
 				
@@ -809,7 +883,19 @@ sub update_data {
 sub parse_click {
 	my ($ref, $click, $extra) = @_;
     my($codere) = '[\w-_#/.]+';
-	my $params = $Vend::Session->{'scratch'}->{$click} || return 1;
+	my $params;
+	
+	if($params = $Vend::Session->{'scratch'}->{$click}) {
+		# Do nothing, we found the click
+	}
+	elsif($params = $Vend::Session->{'scratch'}->{"mv_click $click"}) {
+		$Vend::Session->{'scratch'}->{mv_click_arg} = $click;
+	}
+	elsif($params = $Vend::Session->{'scratch'}->{mv_click}) {
+		$Vend::Session->{'scratch'}->{mv_click_arg} = $click;
+	}
+	else { return 1; } # No click processor
+
 	my($var,$val,$parameter);
 	$params = interpolate_html($params);
 	my(@param) = split /\n+/, $params;
@@ -851,7 +937,6 @@ my %Ignore = qw(
 
 sub resolve_argument {
 	my($pointer, $key, $ref) = @_;
-::logGlobal("resolve_argument: '$pointer $key'");
 	$ref = \%CGI::values unless ref $ref;
 	return {split /\0/, $ref->{$key}}
 		if $pointer eq 'HASH';
@@ -875,7 +960,6 @@ sub resolve_argument {
 		}
 	}
 	my $args = 'sub ' . ($Vend::Cfg->{SubArgs}->{$key} || '');
-::logGlobal("resolve_argument call sub: '$args', '$key', '" . join(" ", @$out) . "'");
 	return tag_perl($args, $key, (scalar @$out ? @$out : undef) );
 }
 		
@@ -894,8 +978,6 @@ sub update_user {
 	}
 
 	if( $Vend::Cfg->{CreditCardAuto} and $CGI::values{mv_credit_card_number} ) {
-		#logGlobal join "\n",
-			#encrypt_standard_cc(\%CGI::values);
 		(
 			$Vend::Session->{'values'}->{mv_credit_card_valid},
 			$Vend::Session->{'values'}->{mv_credit_card_info},
@@ -1149,6 +1231,7 @@ sub do_process {
 		order_page($orderpage);
     }
 	elsif ($todo eq 'set') {
+		update_user();
 		update_data();
 		display_page($Vend::Session->{'values'}->{mv_nextpage} || $nextpage);
     }
@@ -1286,7 +1369,9 @@ EOF
 	$msg .= " Base:      $g->{'base'}\n" if $g->{'base'};
 	$msg .= " Aliases:   @{$g->{'alias'}}\n" if $g->{'alias'};
 	
-print("$msg\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug ("$msg\n") if ::debug(0x8);
+# END DEBUG
 	logGlobal $msg;
 
 	$Global::Selector{$g->{script}} = $c;
@@ -1325,7 +1410,11 @@ sub config_named_catalog {
 		logGlobal "Can't find catalog '$cat_name'";
 		return undef;
 	}
+
+	$Vend::Log_suppress = 1;
     logGlobal "Config '$g->{'name'}' $source";
+	undef $Vend::Log_suppress;
+
     chdir $g->{'dir'}
             or die "Couldn't change to $g->{'dir'}: $!\n";
     $conf = $g->{'dir'} . '/etc';
@@ -1339,6 +1428,9 @@ sub config_named_catalog {
 # END OPTION_EXTENSION
 					);
     };
+# DEBUG
+#$Global::DEBUG = $Global::DebugMode;
+# END DEBUG
     if($@) {
 		my $msg = $@;
         logGlobal "$g->{'name'} config error: $msg";
@@ -1504,7 +1596,9 @@ sub build_all {
 	my($catalog,$outdir) = @_;
 	my ($framedir, $g, $sub, $p, $spec, $key, $val);
 	my(@files);
-#print "Supposed to be building pages...\n" if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug("Supposed to be building pages...\n") if ::debug(0x8);
+# END DEBUG
 	for(keys %Global::Catalog) {
 		next unless $Global::Catalog{$_}->{'name'} eq $catalog;
 		$g = $Global::Catalog{$_}->{'script'};
@@ -1565,7 +1659,9 @@ sub build_all {
 
 	return unless ($all or $build_list or scalar keys %{$Vend::Cfg->{StaticPage}});
 
-print "Really building pages...\n" if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug ("Really building pages...\n") if ::debug(0x8);
+# END DEBUG
 
 	# do some basic checks to make sure we don't clobber
     # anything with a value of '/', and have an
@@ -1614,7 +1710,8 @@ print "Really building pages...\n" if $Global::DEBUG;
 	$Vend::SessionID = '';
 	$Vend::SessionName = '';
 	init_session();
-	$Vend::Session->{'frames'} = 1;
+	$CGI::cookie = "MV_SESSION_ID=building:local.host";
+	$Vend::Session->{'frames'} = $Vend::Cfg->{FramesDefault};
 	require File::Find or die "No standard Perl library File::Find!\n";
 	$sub = sub {
 					my $name = $File::Find::name;
@@ -1850,7 +1947,11 @@ sub dispatch {
 	my($http, $debug) = @_;
 	$H = $http;
 
-#print Global::DEBUG "begin dispatch: ",  join " ", times(), "\n";
+# DEBUG
+#Vend::Util::logDebug ("begin dispatch: " . (join " ", times()) . "\n")
+#						if ::debug(0x80);
+# END DEBUG
+
 	map_cgi($H);
 
     my($sessionid, $argument, $path, $rest);
@@ -1880,12 +1981,25 @@ sub dispatch {
 
 		if (defined $Global::SelectorAlias{$CGI::script_name}) {
 			my $real = $Global::SelectorAlias{$CGI::script_name};
-			$Vend::Cfg->{VendURL} =~ s!$real!$CGI::script_name!;
+			if(defined $Vend::NoFork) {
+				$Vend::Save = {} unless $Vend::Save;
+				$Vend::Save->{VendURL}   = $Vend::Cfg->{VendURL};
+				$Vend::Save->{SecureURL} = $Vend::Cfg->{SecureURL};
+			}
+			$Vend::Cfg->{VendURL} =~ s!$real!$CGI::script_name!
+				unless $CGI::secure
+					and $Vend::Cfg->{SecureURL} =~ m!$CGI::script_name$!
+					and $Vend::Cfg->{VendURL}   !~ m!$CGI::script_name$!;
 			$Vend::Cfg->{SecureURL} =~ s!$real!$CGI::script_name!;
 		}
 	}
 	else {
 		$Vend::Cfg = $Global::Standalone;
+	}
+
+	if ($Vend::Cfg->{DebugMode}) {
+		$Global::DEBUG &= 0xF800;
+		$Global::DEBUG |= $Vend::Cfg->{DebugMode};
 	}
 
 	if ($Vend::Cfg->{SetGroup}) {
@@ -1962,7 +2076,9 @@ EOF
             $CGI::cookieuser = $4 || '';
         }
 	}
-#print("session='$sessionid' cookie='$CGI::cookie' chost='$CGI::cookiehost'\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug ("session='$sessionid' cookie='$CGI::cookie' chost='$CGI::cookiehost'\n") if ::debug(0x20);
+# END DEBUG
 
     if (defined $sessionid && $sessionid ne '') {
 		$Vend::SessionID = $sessionid;
@@ -2001,7 +2117,9 @@ EOF
 	else {
 		new_session();
     }
-#print("session name='$Vend::SessionName'\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug("session name='$Vend::SessionName'\n");
+# END DEBUG
 	$Vend::Session->{id} = $Vend::SessionID;
 	$Vend::Session->{arg} = $Vend::Argument;
 	$Vend::Session->{source} = $rest if defined $rest && $rest =~ /[A-Za-z]/;
@@ -2020,6 +2138,11 @@ EOF
 		release_session() if $Vend::HaveSession;
 		close_database();
 		undef $H;
+		if($Vend::Save) {
+			copyref ($Vend::Save, $Vend::Cfg);
+			logGlobal "Copied Vend::Save";
+			undef $Vend::Save;
+		}
 		undef $Vend::Cfg;
 		return 0;
     }
@@ -2042,12 +2165,26 @@ EOF
 		do_page($path, $argument);
     }
 
-#print Global::DEBUG "end dispatch: ",  join " ", times(), "\n";
+# DEBUG
+#Vend::Util::logDebug ("end dispatch: " . (join " ", times()) . "\n")
+#	if ::debug(0x80);
+# END DEBUG
+
 	release_session() if $Vend::HaveSession;
 	close_database();
+
 	undef $H;
+	if($Vend::Save) {
+		copyref ($Vend::Save, $Vend::Cfg);
+		logGlobal "Copied Vend::Save";
+		undef $Vend::Save;
+	}
 	undef $Vend::Cfg;
-#print Global::DEBUG "closed all: ",  join " ", times(), "\n";
+
+# DEBUG
+#Vend::Util::logDebug ("closed all: " .  join " ", times() . "\n") if ::debug(0x80);
+# END DEBUG
+
 	return 1;
 }
 
@@ -2065,7 +2202,6 @@ sub dontwarn {
 	$Global::DomainTail +
 	$Global::FullUrl +
 	$Global::IpHead +
-	$Global::MailErrorTo +
 	$Vend::CheckHTML +
 	$Vend::ContentType +
 
@@ -2132,8 +2268,8 @@ sub parse_options {
 			$Global::ConfigFile = shift @ARGV;
 			die "Missing file argument for -config option\n"
 				if blank($Global::ConfigFile);
-		} elsif (m/^-D(EBUG)?$/i) {
-			$Global::DEBUG = 1;
+		} elsif (m/^-D(EBUG)?([\dxa-fA-F]*)$/i) {
+			$Global::DEBUG = $2 || (4096 | 1 );
 		} elsif (m/^-s(erve)?$/i) {
 			$Vend::mode = 'serve';
 		} elsif (m/^-b(uild)?$/i) {
@@ -2162,8 +2298,6 @@ sub parse_options {
 		} elsif (m/^-h(elp)?$/i) {
 			usage();
 			exit 0;
-		} elsif (m/^-n(otify)$/i) {
-			$Vend::mode = 'notify';
 		} elsif (m/^-t(est)$/i) {
 			$Vend::mode = 'test';
 		} elsif (m:^[^-]: and $Vend::mode eq 'build') {
@@ -2253,7 +2387,7 @@ sub parse_options {
 
 sub version {
 	print "MiniVend version $VERSION Copyright 1995 Andrew M. Wilcox\n";
-	print "                      Copyright 1996,1997 Michael J. Heins\n";
+	print "                      Copyright 1996-1998 Michael J. Heins\n";
 }
 
 sub usage {
@@ -2278,6 +2412,7 @@ Command line options:
      -unix            run with UNIX-domain socket
      -version         display program version
      -DEBUG           run foreground in debug mode
+     -Dnnnn           run with debug level nnnn
 END
 }
 
@@ -2352,6 +2487,25 @@ EOF
 
 ## MAIN
 
+sub catch_warnings {
+	unless($_[0]) {
+		$SIG{'__WARN__'} = '';
+		return;
+	}
+	$SIG{'__WARN__'} = sub {
+		return @_ unless $_[0] =~ /^Use of unitialized /;
+		my $warn = $_[0];
+		my $configline;
+		if($warn =~ /CONFIG>\s+chunk\s+(\d+)/) {
+			return <<EOF;
+There is a possible problem in this catalog at line $configline
+of the catalog.cfg file. Please check it out.
+EOF
+		}
+		return @_;
+	};
+}
+
 sub main_loop {
 	# Setup
 	unless ($Global::Windows) {
@@ -2374,12 +2528,27 @@ sub main_loop {
 			exit 0;
 	}
 
-#print "\n##### DEBUG MODE ON #####\n" if $Global::DEBUG;
+	if(! $Global::DEBUG) {
+		$Global::DEBUG = $ENV{MINIVEND_DEBUG} || 0;
+	}
+
+	$Global::DEBUG = Vend::Config::parse_integer('', $Global::DEBUG);
+
+print "\n##### DEBUG MODE, level=0x" .
+	uc(sprintf("%04x", $Global::DEBUG)) . " #####\n" if $Global::DEBUG;
 
 	umask 077;
 	global_config();
+
+	if(! $Global::DEBUG) {
+		$Global::DEBUG = $Global::DebugMode || 0;
+	}
+
+	$Global::DebugMode = $Global::DEBUG;
+
 	$| = 1;
-	checkRegexSpeed if $Global::DEBUG;
+	checkRegexSpeed if ::debug(0xF801);
+	logGlobal("MiniVend V$VERSION");
 	CATCONFIG: {
 		my $i = 0;
 		my ($g, $c, $name);
@@ -2396,9 +2565,11 @@ sub main_loop {
 				next;
 			}
 			
+			catch_warnings(1);
 			eval {
 				$c = config_named_catalog($name, "at server startup");
 			};
+			catch_warnings(0);
 
 			if ($@ or ! defined $c) {
 				my $msg = $@;
@@ -2457,6 +2628,8 @@ EOF
 		}
 	}
 
+	undef $Vend::DebugHTML;
+	undef $Vend::Foreground;
 	if ($Vend::mode eq 'serve') {
 		# This should never return unless killed or an error
 		# We set debug mode to -1 to communicate with the server
@@ -2468,20 +2641,13 @@ EOF
         select STDOUT;
         $| = 1;
 
-        Vend::Server::run_server($Global::DEBUG);
-	}
-	elsif ($Vend::mode eq 'notify') {
-		send_mail($Global::MailErrorTo, "MiniVend server not responding", <<EOF );
-The MiniVend server serving the catalog named '$Vend::Cfg->{CatalogName}' did
-not respond when called by the VLINK executable.
-
-EOF
+        Vend::Server::run_server();
 	}
 	elsif ($Vend::mode eq 'build') {
-				  # Empty, built in CATCONFIG
+				# Empty, built in CATCONFIG
 	}
 	elsif ($Vend::mode eq 'test') {
-		# Blank by design, this option only tests config files
+				# Blank by design, this option only tests config files
 	}
 	else {
 		die "No mode!\n";

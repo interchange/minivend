@@ -3,7 +3,7 @@
 #
 #   $Id: tlink.pl,v 1.1 1997/04/22 15:31:27 mike Exp $
 #
-# Copyright 1996,1997 by Michael J. Heins <mikeh@minivend.com>
+# Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
 #
 #    This program is free software; you can redistribute it and/or
 #    modify it under the terms of the GNU General Public License as

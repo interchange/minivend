@@ -4,7 +4,7 @@
 #
 # $Id $
 #
-# Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -56,7 +56,7 @@ sethistory
 use strict;
 
 use vars qw($Force $Error $History $VERSION);
-$VERSION = substr(q$Revision: 1.7 $, 10);
+$VERSION = substr(q$Revision: 1.8 $, 10);
 
 $Force = 0;
 $History = 0;
@@ -154,6 +154,14 @@ EOF
 # not go over the Internet -- or use the PGP option.
 #
 EOF
+	permtype  =>  <<EOF,
+# The type of permission structure for multiple user catalogs.
+# Select M for each user in own group (with minivend user in group)
+#        G for all users in group of minivend user
+#        U for all catalogs owned by minivend user (must be catuser as well)
+#
+#        M is recommended, G works for most installations.
+EOF
 	minivenduser  =>  <<EOF,
 # The user name the MiniVend server runs under on this machine. This
 # should not be the same as the user that runs the HTTP server (i.e.
@@ -162,7 +170,10 @@ EOF
 EOF
 	minivendgroup    =>  <<EOF,
 # The group name the server-owned files should be set to.  This is
-# only important if MiniVend catalogs will be owned by multiple users.
+# only important if MiniVend catalogs will be owned by multiple users
+# and the group to be used is not the default for the catalog user.
+#
+# Normally this is left blank.
 # 
 EOF
 	imagedir   =>  <<EOF,
@@ -275,7 +286,7 @@ sub get_id {
     my $file = -f "$::VendRoot/error.log"
                 ? "$::VendRoot/error.log" : '';
     return '' unless $file;
-    my ($name, $group);
+    my ($name);
 
     my($uid) = (stat($file))[4];
     $name = (getpwuid($uid))[0];
@@ -308,11 +319,23 @@ sub copy_current_to_dir {
         push (@files, $name);
     };
     File::Find::find($wanted, '.');  
+
+	if (-f "$::VendRoot/bad_tar_pm") {
+		my $f = "/tmp/mv_bad_tar_pm";
+		open(TARCAT, "> $f") or die "Can't fork: $!\n";
+		for(@files) { print TARCAT "$_\n" }
+		close TARCAT;
+		system "cat $f | xargs tar cf - | (cd $target_dir; tar xf -)";
+		unlink $f;
+		die "File copy failed: $!\n" if $?;
+		return 1;
+	}
+
     my $tar = Archive::Tar->new();   
     $tar->add_files(@files);
     chdir $target_dir   or die "Can't change directory to $target_dir: $!\n";
     $tar->extract(@files);
-    chdir $orig_dir     or die "Can't change directory to $target_dir: $!\n";
+    chdir $orig_dir     or die "Can't change directory to $orig_dir: $!\n";
 }
 
 use vars q!$Prompt_sub!;

@@ -1,9 +1,9 @@
 # Util.pm - Minivend utility functions
 #
-# $Id: Util.pm,v 1.18 1997/12/14 05:44:42 mike Exp $
+# $Id: Util.pm,v 1.25 1998/01/31 05:22:32 mike Exp $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
-# Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,9 +22,7 @@
 package Vend::Util;
 require Exporter;
 
-# NOAUTO
 @ISA = qw(Exporter);
-# END NOAUTO
 
 @EXPORT = qw(
 
@@ -52,6 +50,7 @@ random_string
 quoted_string
 quoted_comma_string
 setup_escape_chars
+strftime
 escape_chars
 send_mail
 secure_vendUrl
@@ -69,10 +68,9 @@ use strict;
 use Carp;
 use Config;
 use Fcntl;
-use POSIX 'strftime';
 use subs qw(logError logGlobal);
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.18 $, 10);
+$VERSION = substr(q$Revision: 1.25 $, 10);
 
 BEGIN {
 	eval {
@@ -90,6 +88,75 @@ my $Uneval_routine;
 
 ### END CONFIGURABLE MODULES
 
+my @wday = ( qw! Sun Mon Tue Wed Thu Fri Sat Sun !);
+my @weekday = ( qw! Sunday Monday Tuesday Wednesday
+					Thursday Friday Saturday Sunday !);
+my @mon = ( qw! Jan Feb Mar Apr May Jun
+				Jul Aug Sep Oct Nov Dec !);
+my @month = ( qw! January February March April May June
+				July August September October November December !);
+
+my $Use_posix_strftime;
+
+CHECKSTRF: {
+	print "Checking strftime.\n" if $ENV{MINIVEND_DEBUG};
+	eval {
+		die if $ENV{MINIVEND_BADPOSIX};
+		require POSIX;
+		local $ = 0;
+		my $test = POSIX::strftime("%Y", localtime(1));
+		$test = POSIX::strftime("%Y", localtime(1));
+		if (length($test) == 4) {
+			$Use_posix_strftime = 1;
+		}
+		print "use strftime test=$test " if $ENV{MINIVEND_DEBUG};
+		print $Use_posix_strftime ? 'yes' : 'no' if $ENV{MINIVEND_DEBUG};
+		print ".\n" if $ENV{MINIVEND_DEBUG};
+	};
+	if ($@) {
+		undef $Use_posix_strftime;
+	}
+}
+
+sub strftime {
+	return POSIX::strftime(@_) if $Use_posix_strftime;
+	my ($fmt,$sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst)
+		= @_;
+	my %strf = (
+			'%'	=> sub { "%" },
+			'a'	=> sub { $wday[$wday] },
+			'A'	=> sub { $weekday[$wday] },
+			'b'	=> sub { $mon[$mon] },
+			'B'	=> sub { $month[$mon] },
+			'c'	=> sub { printf "%s %s %2s %02d:%02d:%02d %04d",
+			       		 $wday[$wday], $mon[$mon], $mday,
+			       		 $hour, $min, $sec, $year+1900 },
+			'd'	=> sub { sprintf "%02d", $mday },
+			'H'	=> sub { sprintf "%02d", $hour},
+			'I'	=> sub { my $h;
+			       		if ($hour == 0) {
+			       			$h = 12;
+			       		} elsif ( $hour > 12 ) {
+			       			$h = $hour - 12;
+			       		} else {
+			       			$h = $hour;
+			       		}
+			       		sprintf "%02d", $h; },
+			'j'	=> sub { sprintf "%03d", $yday + 1 },
+			'm'	=> sub { sprintf "%02d", $mday },
+			'M'	=> sub { sprintf "%02d", $min },
+			'p'	=> sub { $hour > 11 ? "pm" : "am" },
+			'S'	=> sub { sprintf "%02d", $sec },
+			'w'	=> sub { $wday },
+			'x'	=> sub { sprintf "%02d %s %04d",
+			       			$mday, $mon[$mon], $year + 1900 },
+			'X'	=> sub { sprintf "%02d:%02d:%02d", $hour, $min, $sec },
+			'y'	=> sub { substr($year,-2) },
+			'Y'	=> sub { sprintf "%04d", $year + 1900 },
+	);
+	$fmt =~ s/%(.)/&{$strf{$1}}() || "%$1"/eg;
+	return $fmt;
+}
 
 ## ESCAPE_CHARS
 
@@ -190,7 +257,7 @@ FINDOFFSET: {
 
 # Returns time in HTTP common log format
 sub logtime {
-    return POSIX::strftime("[%d/%B/%Y:%H:%M:%S $Offset]", localtime());
+    return strftime("[%d/%B/%Y:%H:%M:%S $Offset]", localtime());
 }
 
 sub format_log_msg {
@@ -204,7 +271,7 @@ sub format_log_msg {
 	push @params, logtime();
 
 	# Catalog name
-	my $string = ! defined $Vend::Cfg ? '-' : $Vend::Cfg->{CatalogName};
+	my $string = ! defined $Vend::Cfg ? '-' : ($Vend::Cfg->{CatalogName} || '-');
 	push @params, $string;
 
 	# Path info and script
@@ -489,7 +556,11 @@ sub readin {
 	$file =~ s#\.html?$##;
 	($dir = $file) =~ s#/[^/]*##;
 	$dir = $Vend::Cfg->{PageDir} . "/" . $dir;
-##print("dirname for readin: $dir\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("dirname for readin: $dir\n")
+#	if ::debug(0x2);
+# END DEBUG
 	if (-f "$dir/.access") {
 		$level = '';
 		$level = 3 if -s _;
@@ -528,7 +599,11 @@ sub readfile {
     my($contents);
     local($/);
 
-##print "Got to readfile '$file'\n" if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("readfile '$file'\n")
+#	if ::debug(0x8);
+# END DEBUG
 
 	if($no and ($file =~ m:^\s*/: or $file =~ m#\.\./.*\.\.#)) {
 		logError("Can't read file '$file' with NoAbsolute set");
@@ -835,7 +910,11 @@ EOF
 	}
 
 	# Authorized if got here
-#print("Checked security: $msg\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Checked security: $msg\n")
+#	if ::debug(0x1);
+# END DEBUG
 	return 1;
 }
 
@@ -958,13 +1037,25 @@ sub append_field_data {
 # Log the error MSG to the error file.
 
 sub logDebug {
-	return unless $Global::DebugMode;
-	print @_ . "\n";
+	return unless $Global::DEBUG;
+	my ($msg, $level) = @_;
+	return unless ! $level or $level & $Global::DEBUG;
+	$msg = (caller)[0] . " >>> $msg" if ::debug($Global::DHASH{CALLER});
+	if(::debug($Global::DHASH{COMMENT})) {
+		$Vend::DebugHTML .= $msg;
+	}
+	if(::debug(0x1800) ) {
+		print $msg;
+	}
+	return;
 }
 
 sub logGlobal {
     my($msg) = @_;
 	my(@params);
+
+	print "$msg\n" if $Vend::Foreground and ! $Vend::Log_suppress;
+
     $msg = format_log_msg($msg);
 
 	$Vend::Errors .= $msg if $Global::DisplayErrors;
@@ -993,6 +1084,8 @@ sub logError {
     my($msg) = @_;
 	my(@params);
 	return unless defined $Vend::Cfg;
+
+	print "$msg\n" if $Vend::Foreground and ! $Vend::Log_suppress;
 
 	$Vend::Session->{'last_error'} = $msg;
 

@@ -1,8 +1,8 @@
 # Table/DBI.pm: access a table stored in an DBI/DBD Database
 #
-# $Id: DBI.pm,v 1.12 1997/12/15 03:03:23 mike Exp mike $
+# $Id: DBI.pm,v 1.14 1998/01/31 05:22:52 mike Exp $
 #
-# Copyright 1997 by Michael J. Heins <mikeh@minivend.com>
+# Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::DBI;
-$VERSION = substr(q$Revision: 1.12 $, 10);
+$VERSION = substr(q$Revision: 1.14 $, 10);
 
 use Carp;
 use strict;
@@ -71,15 +71,18 @@ sub find_dsn {
 	}
 	$out[3] = $cattr || undef;
 	$out[4] = $dattr || undef;
-    if ($Global::DEBUG and defined $dattr) {
-		print("connect args were: ");
-		my @dbg = @out;
-		pop @dbg;
-		for(keys %$dattr) {
-			push @dbg, "$_=$dattr->{$_}";
-		}
-		print join "|", @dbg, "\n";
-	}
+# DEBUG
+#    if (::debug(0x4) and defined $dattr) {
+#		my $msg = "connect args were: ";
+#		my @dbg = @out;
+#		pop @dbg;
+#		for(keys %$dattr) {
+#			push @dbg, "$_=$dattr->{$_}";
+#		}
+#		$msg .= join "|", @dbg, "\n";
+#		Vend::Util::logDebug($msg);
+#	}
+# END DEBUG
 	@out;
 }
 
@@ -104,9 +107,15 @@ sub create {
 	my $dattr = pop @call;
 	my $db = DBI->connect( @call )
 		or croak "DBI connect failed: $DBI::errstr\n";
-#print("trying to create $tablename\n") if $Global::DEBUG;
-#$db->trace(2) if $Global::DEBUG;
-#print("connected\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("trying to create $tablename\n")
+#	if ::debug(0x4);
+#$db->trace(2) if ::debug(0x4);
+#Vend::Util::logDebug
+#("connected\n")
+#	if ::debug(0x4);
+# END DEBUG
     croak "columns argument $columns is not an array ref\n"
         unless ref($columns) eq 'ARRAY';
 
@@ -116,7 +125,11 @@ sub create {
 		}
 	}
 
-#print("ChopBlanks: '" . $db->{ChopBlanks} . "'\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("ChopBlanks: '" . $db->{ChopBlanks} . "'\n")
+#	if ::debug(0x4);
+# END DEBUG
 
     my ($i, $key, $keycol, $first);
 	my(@cols);
@@ -134,11 +147,15 @@ sub create {
 
 	unshift @$columns, $first;
 
-	if($Global::DEBUG and defined $config->{COLUMN_DEF}) {
-		for (keys %{$config->{COLUMN_DEF}}) {
-			print "def $_=$config->{COLUMN_DEF}->{$_}\n";
-		}
-	}
+# DEBUG
+#	if(::debug(0x4) and defined $config->{COLUMN_DEF}) {
+#		my $msg;
+#		for (keys %{$config->{COLUMN_DEF}}) {
+#			$msg .= "def $_=$config->{COLUMN_DEF}->{$_}\n";
+#		}
+#		logDebug($msg);
+#	}
+# END DEBUG
 
     for ($i = 0;  $i < @$columns;  $i++) {
         $cols[$i] = $$columns[$i];
@@ -166,7 +183,11 @@ sub create {
 	$db->do("drop table $tablename")
 		or carp "$DBI::errstr\n";
 
-#print("cols: '" . (join "','", @cols) . "'\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("cols: '" . (join "','", @cols) . "'\n")
+#	if ::debug(0x4);
+# END DEBUG
 	my $query = "create table $tablename ( \n";
 	$query .= join ",\n", @cols;
 	$query .= "\n)\n";
@@ -177,7 +198,11 @@ sub create {
 
 	$db->do("create index ${key}_idx on $tablename ($key)")
 		or ::logError("table $tablename index failed: $DBI::errstr");
-#print("Created table, I think.\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Created table, I think.\n")
+#	if ::debug(0x4);
+# END DEBUG
 
 	$config->{NAME} = $columns;
 
@@ -192,7 +217,9 @@ sub open_table {
     my $dattr = pop @call;
     my $db = DBI->connect( @call )
 		or croak "$DBI::errstr\n";
-#$db->trace(2) if $Global::DEBUG;
+# DEBUG
+#$db->trace(2) if $Global::DEBUG & $GLOBAL::DHASH{DATA};
+# END DEBUG
 	my $key;
 	my $cols;
 
@@ -201,7 +228,11 @@ sub open_table {
 			$db->{$_} = $dattr->{$_};
 		}
 	}
-#print("ChopBlanks: '" . $db->{ChopBlanks} . "'\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("ChopBlanks: '" . $db->{ChopBlanks} . "'\n")
+#	if ::debug(0x4);
+# END DEBUG
 
 	$cols = $config->{NAME} || [list_fields($db, $tablename)];
 
@@ -238,7 +269,11 @@ sub test_column {
 		($i++, next) unless "\L$_" eq "\L$column";
 		$col = $i;
 	}
-#print("test_column: returning '$col' from $s->[$TABLE]\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("test_column: returning '$col' from $s->[$TABLE]\n")
+#	if ::debug(0x4);
+# END DEBUG
 	return undef unless defined $col;
 
 	return $col - 1;
@@ -250,9 +285,17 @@ sub quote {
 }
 
 sub numeric {
-print("called numeric with @_: status=") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("called numeric with @_: status=")
+#	if ::debug(0x4);
+# END DEBUG
 	my $status = exists $_[0]->[$CONFIG]->{NUMERIC}->{$_[1]};
-print("$status\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("$status\n")
+#	if ::debug(0x4);
+# END DEBUG
 	return exists $_[0]->[$CONFIG]->{NUMERIC}->{$_[1]};
 }
 
@@ -324,7 +367,11 @@ sub param_query {
 
 sub array_query {
 	my($s, $text, $table) = @_;
-#print("array_query: $text\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("array_query: $text\n")
+#	if ::debug(0x4);
+# END DEBUG
 	my $db = $s->[$DBI];
     my $sth = $db->prepare($text)
 		or croak "$DBI::errstr\n";
@@ -334,7 +381,11 @@ sub array_query {
 
 sub hash_query {
 	my($s, $text, $table) = @_;
-#print("hash_query: $text\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("hash_query: $text\n")
+#	if ::debug(0x4);
+# END DEBUG
 	my $db = $s->[$DBI];
 	my $key = $s->[$KEY];
     my $sth = $db->prepare($text)
@@ -384,7 +435,11 @@ sub each_record {
     my ($s) = @_;
     my ($table,$key,$db,$cols,$config,$each) = @$s;
     unless(defined $each) {
-#print("Each not defined -- listing table $table for $db\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Each not defined -- listing table $table for $db\n")
+#	if ::debug(0x4);
+# END DEBUG
         $each = $db->prepare("select * from $table")
             or croak $DBI::errstr;
         push @$s, $each;
@@ -392,7 +447,11 @@ sub each_record {
     }
     my @cols;
     @cols = $each->fetchrow_array;
-#print("Cols for DBI each_record:\n--\n" . (join "|", @cols) . "\n--\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Cols for DBI each_record:\n--\n" . (join "|", @cols) . "\n--\n")
+#	if ::debug(0x4);
+# END DEBUG
     pop(@$s) unless(scalar @cols);
     return @cols;
 }
@@ -430,7 +489,11 @@ sub set_row {
 	}
 
 	my $values = join ',', @fields;
-#print("Got to set_row\n$values\n") if $Global::DEBUG;	
+# DEBUG
+#Vend::Util::logDebug
+#("Got to set_row\n$values\n")
+#	if ::debug(0x4);
+# END DEBUG
     $s->[$DBI]->do("delete from $s->[$TABLE] where $s->[$KEY] = $fields[0]");
     $s->[$DBI]->do("insert into $s->[$TABLE] VALUES ($values)")
 		or croak "$DBI::errstr\n";
@@ -445,7 +508,11 @@ sub field {
     $sth->execute()
 		or croak("execute error: $DBI::errstr");
 	my $data = ($sth->fetchrow_array())[0];
-#print("retrieve field: col=$column key=$key data=$data\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("retrieve field: col=$column key=$key data=$data\n")
+#	if ::debug(0x4);
+# END DEBUG
 	return '' unless $data =~ /\S/;
 	$data;
 }
@@ -469,7 +536,11 @@ sub ref {
 
 sub record_exists {
     my ($s, $key) = @_;
-#print("call object $s with arg $key -- key name is '$s->[$KEY]'\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("call object $s with arg $key -- key name is '$s->[$KEY]'\n")
+#	if ::debug(0x4);
+# END DEBUG
 	my $query = "select $s->[$KEY] from $s->[$TABLE] where $s->[$KEY] = '$key'";
 	my $sth = $s->[$DBI]->prepare($query);
     $sth->execute() or croak $DBI::errstr;
@@ -485,7 +556,11 @@ sub delete_record {
 
 sub list_fields {
 	my($db, $name) = @_;
-#print("DBI list_fields call: @_\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("DBI list_fields call: @_\n")
+#	if ::debug(0x4);
+# END DEBUG
 	my @fld;
 
 	my $sth = $db->prepare("select * from $name")
@@ -498,7 +573,11 @@ sub list_fields {
 
 	croak "DBI: can't find field names.\n"
 		unless @fld > 1;
-#print("DBI list_fields: @fld\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("DBI list_fields: @fld\n")
+#	if ::debug(0x4);
+# END DEBUG
 	@fld;
 }
 

@@ -1,4 +1,4 @@
-# $Id: ValidCC.pm,v 1.10 1997/12/14 05:44:54 mike Exp $
+# $Id: ValidCC.pm,v 1.11 1998/01/23 05:19:49 mike Exp $
 #
 # ValidCC.pm - validate credit card numbers
 #
@@ -7,14 +7,12 @@
 # Modified by Mike to make more forgiving in the parameters.
 
 package Vend::ValidCC;
-$VERSION = substr(q$Revision: 1.10 $, 10);
+$VERSION = substr(q$Revision: 1.11 $, 10);
 require 5.000;
 require Exporter;
 use Carp;
 
-# NOAUTO
 @ISA = qw(Exporter);
-# END NOAUTO
 
 @EXPORT = qw(ValidCreditCard encrypt_cc encrypt_standard_cc);
 
@@ -280,7 +278,7 @@ sub encrypt_standard_cc {
 
 	$return[0] = $valid;
 
-	$info = encrypt_cc "$type $num $all\n";
+	$info = encrypt_cc "$type\t$num\t$all\n";
 
 	unless (defined $info) {
 		push @return, "Credit card encryption failed.";

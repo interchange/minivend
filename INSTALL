@@ -17,34 +17,40 @@ IMPORTANT NOTE: If you don't give evidence of having read and
 WINDOWS INSTALLATION
 --------------------
 
-	Obtain the self-extracting executable minivend-3.05.exe
-	and double-click on it.
-	
-	If you already have the CYGWIN.DLL executable or plan on using the
-	Perl link CGI, you can download the file minivend-3.05-nodll.exe
-	and do the same.
+    Obtain the self-extracting executable minivend-3.06.exe
+    and double-click on it.
 
-	The defaults are set for Microsoft Personal Web Server on Win95 --
-	if you use another HTTP server you will have to know where to
-	place CGI executables (the CGI-BIN) and HTML documents (DocumentRoot).
+    IMPORTANT NOTE: If you get the message "Bad command or file name"
+    when trying to install, then that means that Perl is not installed
+    on your machine or is not in your path.  Go to http://www.perl.com
+    and install the *standard* 5.004 version (AKA the Gurusamy Sarathy
+    port). MiniVend will not work with the ActiveState 5.003 port.
+    
+    If you already have the CYGWIN.DLL executable or plan on using the
+    Perl link CGI, you can download the file minivend-3.06-nodll.exe
+    and do the same.
 
-	If the program does not find BLAT, you can just enter 'none' when
-	asked for SendMailProgram -- that will place all orders in the
-	CATALOG_DIR/etc/tracking.asc and CATALOG_DIR/error.log as the
-	demo is configured.
+    The defaults are set for Microsoft Personal Web Server on Win95 --
+    if you use another HTTP server you will have to know where to
+    place CGI executables (the CGI-BIN) and HTML documents (DocumentRoot).
 
-	You should get PGP as soon as possible so that you might have
-	secure credit card number storage.
+    If the program does not find BLAT, you can just enter 'none' when
+    asked for SendMailProgram -- that will place all orders in the
+    CATALOG_DIR/etc/tracking.asc and CATALOG_DIR/error.log as the
+    demo is configured.
 
-	Many features are untested in the Windows version, and it 
-	can be considered a beta.
+    You should get PGP as soon as possible so that you might have
+    secure credit card number storage.
+
+    Many features are untested in the Windows version, and it 
+    can be considered a beta.
 
 UNIX INSTALLATION
 ------------------
 Here is the short version:
 
-    gzip -dc minivend-3.05.tar.gz | tar xvf -
-    cd minivend-3.05
+    gzip -dc minivend-3.06.tar.gz | tar xvf -
+    cd minivend-3.06
     perl Makefile.PL
     make
     make test
@@ -56,12 +62,12 @@ Here is the short version:
 With comments:
 
     # Unzip and untar the file -- if you have GNU tar, you can substitute
-    # 'tar xzf minivend-3.05.tar.gz'
-    gzip -dc minivend-3.05.tar.gz | tar xvf -
+    # 'tar xzf minivend-3.06.tar.gz'
+    gzip -dc minivend-3.06.tar.gz | tar xvf -
 
     # Change directory to the one that was created 
     #
-    cd minivend-3.05
+    cd minivend-3.06
 
     # If you have trouble with picking up the wrong Perl version,
     # try  '/dir/where/perl/is/perl Makefile.PL
@@ -106,7 +112,7 @@ With comments:
     #
 
     # Make the demo catalog. You will be prompted for some initial
-	# server-wide parameters, then the catalog-specific parameters.
+    # server-wide parameters, then the catalog-specific parameters.
     #
     bin/makecat simple
 
@@ -143,7 +149,14 @@ Key things that people sometimes don't understand:
        that is in question.
 
     -- The highly interpolative nature of MiniVend and HTML tags
-       means that order is often important.
+       means that interpolation order, not page position order,
+       is often important when using the OLD tag syntax.
+
+       When using the NEW page syntax, tags are interpreted in
+       the order they appear on the page.
+
+       It is strongly recommended that you move to the new syntax,
+       as MiniVend 4.0 will be removing many of the old tags.
 
     -- The first thing to do in setting up a custom MiniVend catalog
        is to define the database.  Everything with MiniVend stems
@@ -152,11 +165,14 @@ Key things that people sometimes don't understand:
        and other databases.  Determine your data set first.
 
     -- The demo pages are there to be played with.  With MiniVend
-       3.00, you can't stop the system simply by changing a page.
+       3.0, you can't stop the system simply by changing a page.
 
     -- Many of the configurable features of MiniVend are determined
        by the directives in catalog.cfg (or minivend.cfg in a standalone
        catalog).
+
+    -- You don't need to do anything to pass variables from page to page.
+       If you set it, MiniVend will remember it in the user session.
 
     -- WHEN IN DOUBT, RE-CONFIGURE THE CATALOG.  It won't take but a few
        seconds, and changes to many of the configurable options don't

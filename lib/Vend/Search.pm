@@ -22,12 +22,10 @@
 #
 
 #
-##  vi regex to delete debugs     %s/^\(.*$s->debug\)/#\1/
-##  vi regex to restore debugs     %s/^\([^#]*\)#\(.*$s->debug\)/\1\2/
 #
 package Vend::Search;
 
-$VERSION = substr(q$Revision: 1.12 $, 10);
+$VERSION = substr(q$Revision: 1.15 $, 10);
 $DEBUG = 0;
 
 =head1 NAME
@@ -825,11 +823,19 @@ sub get_return {
 	my ($return_sub);
 
 	if(!defined $g->{return_fields}) {
-#		$s->debug("Got to return_fields default");
+# DEBUG
+#Vend::Util::logDebug
+#("Got to return_fields default")
+#	if ::debug(0x10);
+# END DEBUG
 		$return_sub = sub { substr($_[0], 0, index($_[0], $g->{index_delim})) };
 	}
 	elsif ( ref($g->{return_fields}) =~ /^HASH/ ) {
-#		$s->debug("Got to return_fields HASH");
+# DEBUG
+#Vend::Util::logDebug
+#("Got to return_fields HASH")
+#	if ::debug(0x10);
+# END DEBUG
 		$return_sub = sub {
 			my($line) = @_;
 			my($key,$val);
@@ -844,8 +850,16 @@ sub get_return {
 		};
 	}
 	elsif ( ref($g->{return_fields}) =~ /^ARRAY/ ) {
-#		$s->debug("Got to return_fields ARRAY");
-#		$s->debug("ret: '$g->{return_delim}' ind: '$g->{index_delim}'");
+# DEBUG
+#Vend::Util::logDebug
+#("Got to return_fields ARRAY")
+#	if ::debug(0x10);
+# END DEBUG
+# DEBUG
+#Vend::Util::logDebug
+#("ret: '$g->{return_delim}' ind: '$g->{index_delim}'")
+#	if ::debug(0x10);
+# END DEBUG
 		$return_sub = sub {
 			chomp($_[0]);
 			return join $g->{return_delim},
@@ -853,11 +867,19 @@ sub get_return {
 		};
 	}
 	elsif( $g->{return_fields} ) {
-#		$s->debug("Got to return_fields SCALAR");
+# DEBUG
+#Vend::Util::logDebug
+#("Got to return_fields SCALAR")
+#	if ::debug(0x10);
+# END DEBUG
 		$return_sub = sub { substr($_[0], 0, index($_[0], $g->{return_fields})) };
 	}
 	else {
-#		$s->debug("Got to return_fields ALL");
+# DEBUG
+#Vend::Util::logDebug
+#("Got to return_fields ALL")
+#	if ::debug(0x10);
+# END DEBUG
 		$return_sub = sub { @_ };
 	}
 
@@ -972,9 +994,17 @@ sub range_check {
 	my($s,$index_delim,$line) = @_;
 	my $g = $s->{'global'};
 	my @fields = (split /\Q$index_delim/, $line)[@{$g->{range_look}}];
-#	$s->debug("range_look: '" . join("','", @fields) . "'\n");
-#	$s->debug("range_min:  '" . join("','", @{$g->{range_min}}) . "'\n");
-#	$s->debug("range_max:  '" . join("','", @{$g->{range_max}}) . "'\n");
+# DEBUG
+#Vend::Util::logDebug
+#("range_look: '" . join("','", @fields) . "'\n")
+#	if ::debug(0x10);
+#Vend::Util::logDebug
+#("range_min:  '" . join("','", @{$g->{range_min}}) . "'\n")
+#	if ::debug(0x10);
+#Vend::Util::logDebug
+#("range_max:  '" . join("','", @{$g->{range_max}}) . "'\n")
+#	if ::debug(0x10);
+# END DEBUG
 	my $i = 0;
 	for(@fields) {
 		no strict 'refs';

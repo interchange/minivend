@@ -1,6 +1,6 @@
 # Interpolate.pm - Interpret MiniVend tags
 # 
-# $Id: Interpolate.pm,v 1.35 1997/12/14 05:43:36 mike Exp $
+# $Id: Interpolate.pm,v 1.44 1998/01/31 05:15:54 mike Exp $
 #
 # Copyright 1996 by Michael J. Heins <mikeh@iac.net>
 #
@@ -20,12 +20,10 @@
 
 package Vend::Interpolate;
 
-# NOAUTO
 require Exporter;
 @ISA = qw(Exporter);
-# END NOAUTO
 
-$VERSION = substr(q$Revision: 1.35 $, 10);
+$VERSION = substr(q$Revision: 1.44 $, 10);
 
 @EXPORT = qw (
 
@@ -59,14 +57,12 @@ use Vend::PageBuild;
 # NEWTAGS
 use Vend::Parse;
 # END NEWTAGS
-use POSIX qw(ceil strftime);
+use POSIX qw(ceil);
 
 use vars qw($New);
 
-# NOAUTO
 my $CacheInvalid = 1;
 my $ready_safe = new Safe;
-# END NOAUTO
 
 
 sub c_it {
@@ -76,9 +72,7 @@ sub c_it {
 	$str;
 }
 
-# NOAUTO
 my %T;
-# END NOAUTO
 
 TAGBUILD: {
 
@@ -96,6 +90,8 @@ TAGBUILD: {
 		checked
 		comment
 		/comment
+		compat
+		/compat
 		col
 		/col
 		condition
@@ -243,11 +239,9 @@ TAGBUILD: {
 	}
 }
 
-# NOAUTO
 my $Codere = '[\w-_#/.]+';
 my $Coderex = '[\w-_:#=/.%]+';
 my %Comment_out = ( '<' => '&lt;', '[' => '&#91;', '_' => '&#95;', );
-# END NOAUTO
 
 sub comment_out {
 	my ($bit) = @_;
@@ -303,7 +297,11 @@ sub cache_html {
 	if($New) { $New = 0 if $html =~ s/\[(old|new)\]//i and lc $1 eq 'old' }
 	else 	 { $New = 1 if $html =~ s/\[(old|new)\]//i and lc $1 eq 'new' }
 
-print("New tags=$New\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("New tags=$New\n")
+#	if ::debug(0x1);
+# END DEBUG
 
 	# Substitute defines from configuration file
 	$html =~ s#\@\@([A-Za-z0-9]\w+[A-Za-z0-9])\@\@#$Global::Variable->{$1}#ge;
@@ -325,6 +323,7 @@ print("New tags=$New\n") if $Global::DEBUG;
         return $html;
     }
 
+    $html =~ s#$T{'compat'}]([\000-\377]*?)$T{'/compat'}\]#$1#og;
     $html =~ s#$T{'post'}(\d*)]([\000-\377]*?)$T{'/post'}\1\]#
                             $name = $1 || $it++;
                             push(@post,$name);
@@ -368,7 +367,11 @@ sub interpolate_html {
 	if($New) { $New = 0 if $html =~ s/\[old\]//i }
 	else 	 { $New = 1 if $html =~ s/\[new\]//i }
 
-print("New tags=$New\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("New tags=$New\n")
+#	if ::debug(0x1);
+# END DEBUG
 
 	# Substitute defines from configuration file
 	$html =~ s#\@\@([A-Za-z0-9]\w+[A-Za-z0-9])\@\@#$Global::Variable->{$1}#ge;
@@ -410,9 +413,14 @@ print("New tags=$New\n") if $Global::DEBUG;
 sub cache_scan_html {
     my($html) = @_;
 
-	#my $j = 1;  #DEBUG
-#print( "CacheInvalid" . $j++ . ": $CacheInvalid\n") if $Global::DEBUG;
+# DEBUG
+#my $j = 1;
+#Vend::Util::logDebug
+#("CacheInvalid" . $j++ . ": $CacheInvalid\n")
+#	if ::debug(0x2);
+# END DEBUG
 
+	# [tag ..] can't nest
 	$html =~ s:$T{'tag'}([^\]]*)\]([\000-\377]*?)$T{'/tag'}\]:do_tag($1,$2):geo;
     $html =~ s:\[\s*(\d?)\s*(\[[\000-\377]*?\])\s*\1\s*\]:cache_scan_html($2):ge;
 
@@ -425,13 +433,13 @@ sub cache_scan_html {
 						$T{'/item-list'}\]%
 					 tag_item_list($1,$2)%xgeo;
 
-    1 while $html =~ s:$T{'loop'}\s+
+    1 while $html =~ s:$T{'loop'}([-_]\w|\b)?\s+
 						([^\]]*)							# all args
 							\]
 						(?![\000-\377]*$T{'loop'}\s+)			# ensure innermost
 						([\000-\377]*?)
-						$T{'/loop'}\]:
-              tag_loop_list($1,$2):xgeo;
+						$T{'/loop'}\1\]:
+              tag_loop_list($1,$2,$3):xgeo;
     $html =~ s:$T{'default'}\s+([^\]]+)\]:tag_default($1):geo
 				and $CacheInvalid = 1;
     $html =~ s!$T{'value'}\s+($Codere)(?:\s+)?($Codere)?\]!tag_value($1,$2)!geo
@@ -551,7 +559,11 @@ sub cache_scan_html {
 
     substitute_image(\$html);
 
-#print( "CacheInvalid" . $j++ . ": $CacheInvalid\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("CacheInvalid" . $j++ . ": $CacheInvalid\n")
+#	if ::debug(0x2);
+# END DEBUG
 
 	$Vend::CachePage = $CacheInvalid ? undef : 1;
 
@@ -573,13 +585,13 @@ sub scan_html {
 						$T{'/item-list'}\]%
 					 tag_item_list($1,$2)%xgeo;
 
-    1 while $html =~ s:$T{'loop'}\s+
+    1 while $html =~ s:$T{'loop'}([-_]\w|\b)?\s+
 						([^\]]*)							# all args
 							\]
 						(?![\000-\377]*$T{'loop'}\s+)			# ensure innermost
 						([\000-\377]*?)
-						$T{'/loop'}\]:
-              tag_loop_list($1,$2):xgeo;
+						$T{'/loop'}\1\]:
+              tag_loop_list($1,$2,$3):xge;
     $html =~ s:$T{'default'}\s+([^\]]+)\]:tag_default($1):geo;
     $html =~ s!$T{'value'}\s+($Codere)(?:\s+)?($Codere)?\]!tag_value($1,$2)!geo;
     $html =~ s:$T{'scratch'}\s+([^\]]+)\]:tag_scratch($1):geo;
@@ -695,10 +707,18 @@ sub scan_html {
 # variable
 sub tag_data {
 	my($selector,$field,$key,$value,$inc) = @_;
-#print("Data args: @_\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Data args: @_\n")
+#	if ::debug(0x1);
+# END DEBUG
 
 	if(defined $Vend::Database{$selector}) {
-print("Database with: key=$key field=$field db=$selector val=$value inc=$inc\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Database with: key=$key field=$field db=$selector val=$value inc=$inc\n")
+#	if ::debug(0x1);
+# END DEBUG
 		my $db = $Vend::Database{$selector};
 		unless(defined $value) {
 			$CacheInvalid = 1
@@ -768,13 +788,18 @@ print("Database with: key=$key field=$field db=$selector val=$value inc=$inc\n")
 		
 sub conditional {
 	my($base,$term,$operator,$comp) = @_;
-
+	my $reverse;
 	$base = lc $base;
+	$base =~ s/^!// and $reverse = 1;
 	my ($op, $status);
 	local($) = 0;
 	undef $@;
 
-print("cond: base=$base term=$term op=$operator comp=$comp\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("cond: base=$base term=$term op=$operator comp=$comp\n")
+#	if ::debug(0x1);
+# END DEBUG
 	my %stringop = ( qw! eq 1 ne 1 gt 1 lt 1! );
 
 	if(defined $stringop{$operator}) {
@@ -786,7 +811,11 @@ print("cond: base=$base term=$term op=$operator comp=$comp\n") if $Global::DEBUG
 		(index ($comp, '!') == -1 and $comp = 'q{' . $comp . '}')
 	}
 
-print("cond: base=$base term=$term op=$operator comp=$comp\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("cond: base=$base term=$term op=$operator comp=$comp\n")
+#	if ::debug(0x1);
+# END DEBUG
 
 
 	if($base eq 'session') {
@@ -807,7 +836,9 @@ print("cond: base=$base term=$term op=$operator comp=$comp\n") if $Global::DEBUG
     elsif($base eq 'items') {
         $CacheInvalid = 1;
         $term = 'main' unless $term;
-        $op =   scalar @{$Vend::Session->{'carts'}->{$term}};
+		if(defined $Vend::Session->{'carts'}->{$term}) {
+			$op =   scalar @{$Vend::Session->{'carts'}->{$term}};
+		} else { $op = 0 }
         $op .=  qq% $operator $comp%
                 if defined $comp;
     }
@@ -822,7 +853,23 @@ print("cond: base=$base term=$term op=$operator comp=$comp\n") if $Global::DEBUG
 		$CacheInvalid = 1
 			if defined $Vend::Cfg->{DynamicData}->{$d};
 		my $data = database_field($d,$k,$f);
-print("tag_if db=$d fld=$f key=$k data=$data\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("tag_if db=$d fld=$f key=$k data=$data\n")
+#	if ::debug(0x1);
+# END DEBUG
+		$op = 'q{' . $data . '}';
+		$op .=	qq%	$operator $comp%
+				if defined $comp;
+	}
+	elsif($base eq 'field') {
+		my($f,$k) = split /::/, $term;
+		my $data = product_field($f,$k);
+# DEBUG
+#Vend::Util::logDebug
+#("tag_if field fld=$f key=$k data=$data\n")
+#	if ::debug(0x1);
+# END DEBUG
 		$op = 'q{' . $data . '}';
 		$op .=	qq%	$operator $comp%
 				if defined $comp;
@@ -832,6 +879,25 @@ print("tag_if db=$d fld=$f key=$k data=$data\n") if $Global::DEBUG;
 		$op =	qq%"$Vend::Session->{'discount'}->{$term}"%;
 		$op .=	qq%	$operator $comp%
 				if defined $comp;
+	}
+	elsif($base eq 'ordered') {
+		$CacheInvalid = 1;
+		$operator = 'main' unless $operator;
+		my ($attrib, $i);
+		$op = '';
+		unless ($comp) {
+			$attrib = 'quantity';
+		}
+		else {
+			($attrib,$comp) = split /\s+/, $comp;
+		}
+		foreach $i (@{$Vend::Session->{'carts'}->{$operator}}) {
+			next unless $i->{code} eq $term;
+			($op++, next) if $attrib eq 'lines';
+			$op = $i->{$attrib};
+			last;
+		}
+		$op .=  qq% $comp% if $comp;
 	}
 	elsif($base eq 'file') {
 		#$op =~ s/[^rwxezfdTsB]//g;
@@ -893,7 +959,7 @@ print("tag_if db=$d fld=$f key=$k data=$data\n") if $Global::DEBUG;
 		}
 	}
 
-	return $status;
+	return $reverse ? ! $status : $status;
 }
 
 sub split_if {
@@ -918,7 +984,11 @@ sub split_if {
 
 sub tag_if {
 	my ($cond,$body) = @_;
-print("Called tag_if: $cond\n$body\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Called tag_if: $cond\n$body\n")
+#	if ::debug(0x2);
+# END DEBUG
 	my ($base, $term, $op, $operator, $comp);
 	my ($else, $elsif, $else_present);
 
@@ -953,7 +1023,11 @@ print("Called tag_if: $cond\n$body\n") if $Global::DEBUG;
 
 	my $status = conditional ($base, $term, $operator, $comp);
 
-print("Result of if: $status\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Result of if: $status\n")
+#	if ::debug(0x1);
+# END DEBUG
 
 	if($status) {
 		return interpolate_html($body);
@@ -985,8 +1059,13 @@ sub tag_accessories {
 	my($attribute, $type, $field, $db, $name) = split /\s*,\s*/, $extra;
 	$type = 'select' unless $type;
 	$field = $attribute unless $field;
-#local($) = 0 if $Global::DEBUG;
-#print("accessory db=$db type=$type field=$field attr=$attribute name=$name\n") if $Global::DEBUG;
+# DEBUG
+#local($) = 0 
+#	if ::debug(0x1);
+#Vend::Util::logDebug
+#("accessory db=$db type=$type field=$field attr=$attribute name=$name\n")
+#	if ::debug(0x1);
+# END DEBUG
 	my $data = $db ? tag_data($db, $field, $code) : product_field($field,$code);
 
 	unless ($data) {
@@ -1008,17 +1087,43 @@ sub tag_accessories {
 	return qq|<INPUT TYPE=text NAME="$name" SIZE=$1 VALUE="$attrib_value"|
 		if "\L$type" =~ /^text_(\d+)$/;
 
-	# Building select box if got here
 	my ($default, $label, $select, $value, $run);
+	my @opts = split /\s*,\s*/, $data;
+
 	if($item) {
 		$default = $item->{$attribute};
 	}
+
+	# Ranging type, for price breaks based on quantity
+	if ($type =~ s/^range:?(.*)//) {
+		$select = $1 || 'quantity';
+		$default = ($item && defined $item->{$select}) ? $item->{$select} : undef;
+		my $min;
+		my $max;
+		for(@opts) {
+			/^ (-?[\d.]+) - (-?[\d.]*)  \s*=\s*  (.+) /x
+				or next;
+			$min = $1;
+			$max = $2;
+			$label = $3;
+			if($label =~ s/\*$// and ! $default) {
+				$default = $min;
+			}
+			next unless $default >= $min;
+			next unless $default <= $max;
+			last;
+		}
+		($item->{$attribute} = $label, return '') if $item;
+		return qq|<INPUT TYPE="hidden" NAME="$name" VALUE="$label">|;
+	}
+
+	# Building select box if got here
 
 	$run = qq|<SELECT NAME="$name"|;
 
 	$run .= ' MULTIPLE' if $type =~ /^multi/i;
 	$run .= '>';
-	my @opts = split /\s*,\s*/, $data;
+	
 	for(@opts) {
 		$run .= '<OPTION';
 		$select = 0;
@@ -1103,7 +1208,7 @@ sub tag_perl {
 		}
 	}
 
-	$safe->share('%Safe', '&safe_tag', '&tag_data', '&interpolate_html');
+	$safe->share('%Safe', '&safe_tag', '&do_tag', '&tag_data', '&interpolate_html');
 	$safe->untrap(@{$Global::SafeUntrap})
 		if $Global::SafeUntrap;
 
@@ -1237,8 +1342,9 @@ sub do_tag {
 			}
 			return scalar @records;
 		}
-		elsif($arg =~ /^\s*each\s+($Coderex)/i ) {
-			my $base = $1;
+		elsif($arg =~ /^\s*each([-_]\w)?\s+($Coderex)/i ) {
+			my $with = $1;
+			my $base = $2;
 			my $db = database_exists_ref($base) 
 				or do {
 					logError("tag each: unknown database '$base'");
@@ -1254,11 +1360,12 @@ sub do_tag {
 				while(($key) = $db->each_record()) {
 					push (@out, $key);
 				}
-				return tag_loop_list((join "\n", @out), $text);
+				return tag_loop_list($with, (join "\n", @out), $text);
 			}
 			else {
+				my $sub = $with ? \&loop_with : \&loop_substitute;
 				while(($key) = $db->each_record()) {
-					$out .= loop_substitute($key, $text, $i++);
+					$out .= &$sub($key, $text, $i++, $with);
 				}
 				return $out;
 			}
@@ -1277,7 +1384,7 @@ sub do_tag {
 			unless ($text =~ /\S/) {
 				return scalar localtime();
 			}
-			return POSIX::strftime($text, localtime());
+			return strftime($text, localtime());
 		}
 		elsif($arg =~ /^\s*untaint\b/i ) {
 			my(@vars) = split /\s+/, $text;
@@ -1292,7 +1399,7 @@ sub do_tag {
 		elsif($arg =~ /^\s*mime(?:\s+)?([\s\S]+)?/i ) {
 			my $opt = $1 || '';
 			my $id;
-			$Vend::TIMESTAMP = POSIX::strftime("%y%m%d%H%M%S", localtime())
+			$Vend::TIMESTAMP = strftime("%y%m%d%H%M%S", localtime())
 				unless defined $Vend::TIMESTAMP;
 
 			$Vend::MIME_BOUNDARY =	$Vend::TIMESTAMP . '-' .
@@ -1375,6 +1482,46 @@ sub do_flag {
 #print("Flagged database '$_' for write\n") if $Global::DEBUG;
 		}
 	}
+# DEBUG
+#	elsif($flag =~ /^debug$/i) {
+#		my ($add, $reverse, $debug, @args);
+#		@args = split /[\s,]+/, $arg;
+#
+#		foreach $add (@args) {
+#			$reverse = ($add =~ s/^!//) ? 1 : 0;
+#			$add = $Global::DHASH{uc $add} if $add =~ /[^\d]/;
+#			# !OFF will turn off anyway
+#			($debug = 0, last) if $add eq '0';
+#
+#			unless($reverse) {
+#				$debug |= $add;
+#			}
+#			else {
+#				$add ^= 0xFFFF;
+#				$debug &= $add;
+#			}
+#		}
+#	
+#		unless ($Global::AllowGlobal{$Vend::Cfg->{CatalogName}}) {
+#			$debug &= 0x7FF;
+#			$Global::DEBUG &= (4096 | 2048) if ! $debug;
+#		}
+#		else {
+#			$Global::DEBUG = 0 if $debug == 0;
+#		}
+#
+#		$Global::DEBUG |= $debug;
+#
+#		if($Global::DEBUG | $Global::DHASH{COMMENT} ) {
+#			$Vend::DebugComment = 1;
+#		}
+#		else {
+#			undef $Vend::DebugComment;
+#		}
+#		logGlobal("Called debug change: arg=$arg called=$debug final=$Global::DEBUG");
+#
+#	}
+# END DEBUG
 	elsif($flag =~ /^build$/i) {
 		$Vend::ForceBuild = 1;
 	}
@@ -1491,9 +1638,9 @@ sub tag_file {
 # Returns the text of a user entered field named VAR.
 # Same as tag value except returns 'default' if not present
 sub tag_default {
-    my($var) = @_;
+    my($var, $default) = @_;
     my($value);
-	my $default = 'default';
+	$default = $default || 'default';
 	if($var =~ /\s/) {
 		($var, $default) = split /\s+/, $var, 2;
 	}
@@ -1508,7 +1655,7 @@ sub tag_default {
 
 sub tag_page {
     my($page, $arg) = @_;
-	if(defined $Vend::Cfg->{StaticPage}->{$page} and !$arg) {
+	if($CGI::cookie and defined $Vend::Cfg->{StaticPage}->{$page} and !$arg) {
 	  $page .= $Vend::Cfg->{StaticSuffix};
 	  return '<a href="' . vendUrl($page,$arg,$Vend::Cfg->{StaticPath}) . '">';
 	}
@@ -1521,7 +1668,7 @@ sub tag_pagetarget {
     my($page,$target,$arg) = @_;
     my($r);
 
-	if(defined $Vend::Cfg->{StaticPage}->{$page} and !$arg) {
+	if($CGI::cookie and defined $Vend::Cfg->{StaticPage}->{$page} and !$arg) {
 		$page .= $Vend::Cfg->{StaticSuffix};
     	$r  = '<a href="' . vendUrl($page,'',$Vend::Cfg->{StaticPath});
 	}
@@ -1539,7 +1686,7 @@ sub tag_pagetarget {
 sub tag_area {
     my($area, $arg) = @_;
 
-	if(defined $Vend::Cfg->{StaticPage}->{$area} and ! $arg) {
+	if($CGI::cookie and defined $Vend::Cfg->{StaticPage}->{$area} and ! $arg) {
 		$area .= $Vend::Cfg->{StaticSuffix};
     	return vendUrl($area,'',$Vend::Cfg->{StaticPath});
 	}
@@ -1552,7 +1699,7 @@ sub tag_areatarget {
     my($area, $target, $arg) = @_;
 	my($r);
 
-	if(defined $Vend::Cfg->{StaticPage}->{$area} and ! $arg) {
+	if($CGI::cookie and defined $Vend::Cfg->{StaticPage}->{$area} and ! $arg) {
 		$area .= $Vend::Cfg->{StaticSuffix};
     	$r = vendUrl($area,'',$Vend::Cfg->{StaticPath});
 	}
@@ -1787,7 +1934,7 @@ sub tag_self_contained_if {
 	my ($else,$elsif,$else_present);
 	
 	local($) = 0;
-print("Calling self_if with base=$base term=$term op=$operator comp=$comp\n") if $Global::DEBUG;
+#print("Calling self_if with base=$base term=$term op=$operator comp=$comp\n") if $Global::DEBUG;
 	if ($body =~ s#^\s*$T{'condition'}\]([\000-\377]*?)$T{'/condition'}\]##o) {
 		$comp = $1;
 	}
@@ -1828,15 +1975,17 @@ print("Calling self_if with base=$base term=$term op=$operator comp=$comp\n") if
 
 	
 sub pull_if {
-	my($string) = @_;
-	$string =~ s:$T{'else'}\]([\000-\377\s]*?)$T{'/else'}\]::o;
+	my($string, $reverse) = @_;
+	return pull_else($string) if $reverse;
+	$string =~ s:$T{'else'}\]([\000-\377\s]*)$T{'/else'}\]\s*$::o;
 	return $string;
 }
 
 sub pull_else {
-	my($string) = @_;
+	my($string, $reverse) = @_;
+	return pull_if($string) if $reverse;
 	my($r);
-	if($string =~ s:$T{'else'}\]([\000-\377\s]*?)$T{'/else'}\]::o) {
+	if($string =~ s:$T{'else'}\]([\000-\377]*)$T{'/else'}\]\s*$::o) {
 		$r = $1;
 	}
 	else {
@@ -1847,11 +1996,9 @@ sub pull_else {
 
 ## ORDER PAGE
 
-# NOAUTO
 my (@Opts);
 my (@Flds);
 my %Sort = (
-# END NOAUTO
 
 	''	=> sub { $a cmp $b				},
 	none	=> sub { $a cmp $b				},
@@ -1865,9 +2012,7 @@ my %Sort = (
 );
 
 
-# NOAUTO
 my %Sort_field = (
-# END NOAUTO
 
 	none	=> sub { $_[0] cmp $_[1]			},
 	f	=> sub { (lc $_[0]) cmp (lc $_[1])	},
@@ -1922,7 +2067,7 @@ sub tag_sort {
             $routine .= "tag_data('$bases[$i]','$fields[$i]'," . '$b) ) or ';
     }
     $routine .= '0 or &{$Sort_field{"none"}}($a,$b); }';
-print("Sort routine: $routine\n") if $Global::DEBUG;
+#print("Sort routine: $routine\n") if $Global::DEBUG;
     my $code = eval $routine;  
     die "Bad sort routine\n" if $@;
 
@@ -1990,7 +2135,6 @@ sub tag_search_list {
 			if ref $g->{return_fields};
 		for(@fieldnames) {
 			$field_hash{$_} = $ptr++;
-#print("Sorting on field $_\n") if $Global::DEBUG;
 		}
 		
 	}
@@ -2014,7 +2158,11 @@ sub tag_search_list {
 
 		if($options =~ m#^$Coderex:$Coderex(?::[NnRrRf]{0,2})?($|\s)#o) {
 				$obj = tag_sort($options, $obj);
-				logGlobal("Sorting as expected, options $options");
+# DEBUG
+#Vend::Util::logDebug
+#("Sorting, options $options\n")
+#	if ::debug(0x1);
+# END DEBUG
 		}
 		elsif($options =~ m:^[nrf]{0,2}$:i) {
 			(
@@ -2063,14 +2211,14 @@ sub tag_search_list {
 	    $run = $text;
 	    $run =~ s:$T{'item-param'}\s+(\d+)\]:$fields[$1]:go;
 	    $run =~ s:$T{'item-param'}\s+($Codere)\]:$fields[$field_hash{$1}]:go;
-		$run =~ s#$T{'if-field'}\s+($Codere)\]([\000-\377]*?)$T{'/if-field'}\]#
-				  product_field($1, $code)	?	pull_if($2)
-											:	pull_else($2)#geo;
-		$run =~ s#$T{'if-data'}\s+($Codere)\s+($Codere)\]
+		$run =~ s#$T{'if-field'}\s+(!?)\s*($Codere)\]([\000-\377]*?)$T{'/if-field'}\]#
+				  product_field($2, $code)	?	pull_if($3,$1)
+											:	pull_else($3,$1)#geo;
+		$run =~ s#$T{'if-data'}\s+(!?)\s*($Codere)\s+($Codere)\]
 					([\000-\377]*?)
 					$T{'/if-data'}\]#
-                  tag_data($1,$2,$code)    ?   pull_if($3)
-                                           :   pull_else($3)#xgeo;
+                  tag_data($2,$3,$code)    ?   pull_if($4,$1)
+                                           :   pull_else($4,$1)#xgeo;
 	    $run =~ s:$T{'item-increment'}\]:$count:go;
 		$run =~ s:$T{'item-accessories'}(\s+[^\]]+)?\]:
 						tag_accessories($code,'',$1):geo;
@@ -2100,7 +2248,8 @@ sub tag_search_list {
 }
 
 sub tag_more_list {
-	my($r,$q,$next_anchor, $prev_anchor, $page_anchor, $border) = @_;
+	my($r,$q,$next_anchor, $prev_anchor,
+		$page_anchor, $border, $border_selected) = @_;
 	my($arg,$inc,$last,$m);
 	my($adder,$current,$pages);
 	my $next_tag = '';
@@ -2112,6 +2261,8 @@ sub tag_more_list {
 	my $total = $q->{global}->{matches};
 	my $next = $q->{global}->{next_pointer};
 	$border = qq{ BORDER="$border"} if defined $border;
+	$border_selected = qq{ BORDER="$border_selected"}
+		if defined $border_selected;
 
 	if($chunk >= $total) {
 		return '';
@@ -2165,7 +2316,7 @@ sub tag_more_list {
 		$page_anchor = '__PAGE__';
 	}
 	elsif ($page_anchor ne 'none') {
-		$page_anchor = qq%<IMG SRC="$page_anchor?__PAGE__"$border>%;
+		$page_anchor = qq%<IMG SRC="$page_anchor?__PAGE__"__BORDER__>%;
 	}
 
 	my $pa;
@@ -2177,9 +2328,11 @@ sub tag_more_list {
 		$last = $next + $chunk - 1;
 		$last = ($last+1) < $total ? $last : ($total - 1);
 		if($inc == $current) {
-			$list .= qq|<STRONG>$pa</STRONG> |;
+			$pa =~ s/__BORDER__/$border_selected || $border || ''/e;
+			$list .= qq|<STRONG>$pa</STRONG> | ;
 		}
 		else {
+			$pa =~ s/__BORDER__/$border || ''/e;
 			$arg = "$session:$next:$last:$chunk:$mod";
 			$list .= '<A HREF="';
 			$list .= vendUrl('search', $arg);
@@ -2423,17 +2576,17 @@ sub tag_item_list {
 		$code = $item->{'code'};
 
 		$run = $text;
-		$run =~ s#$T{'if-field'}\s+($Codere)\]([\000-\377]*?)$T{'/if-field'}\]#
-				  item_field($item,$1)	?	pull_if($2)
-										:	pull_else($2)#geo;
-		$run =~ s#$T{'if-data'}\s+($Codere)\s+($Codere)\]
+		$run =~ s#$T{'if-data'}\s+(!?)\s*($Codere)\s+($Codere)\]
 					([\000-\377]*?)
 					$T{'/if-data'}\]#
-				  tag_data($1,$2,$code)	?	pull_if($3)
-												:	pull_else($3)#xgeo;
-		$run =~ s#$T{'if-modifier'}\s+($Codere)\]([\000-\377]*?)$T{'/if-modifier'}\]#
-				  $item->{$1}	?	pull_if($2)
-								:	pull_else($2)#geo;
+                  tag_data($2,$3,$code)    ?   pull_if($4,$1)
+                                           :   pull_else($4,$1)#xgeo;
+		$run =~ s#$T{'if-field'}\s+(!?)\s*($Codere)\]([\000-\377]*?)$T{'/if-field'}\]#
+				  product_field($2, $code)	?	pull_if($3,$1)
+											:	pull_else($3,$1)#geo;
+		$run =~ s#$T{'if-modifier'}\s+(!?)\s*($Codere)\]([\000-\377]*?)$T{'/if-modifier'}\]#
+				  $item->{$2}	?	pull_if($3,$1)
+								:	pull_else($3,$1)#geo;
 		$run =~ s:$T{'item-increment'}\]:$i + 1:geo;
 		$run =~ s:$T{'item-accessories'}(\s+[^\]]+)?\]:
 						tag_accessories($code,$item,$1):geo;
@@ -2487,16 +2640,16 @@ sub tag_sql_list {
 
 	    $run = $text;
 	    $run =~ s:$T{'msql-param'}\s+(\d+)\]:$item->[$1]:go;
-		$run =~ s#$T{'if-msql-field'}\s+($Codere)\]
+		$run =~ s#$T{'if-msql-field'}\s+(!?)\s*($Codere)\]
 						([\000-\377]*?)
 				  $T{'/if-msql-field'}\]#
-				  product_field($1, $code)	?	pull_if($2)
-											:	pull_else($2)#xgeo;
-		$run =~ s#$T{'if-msql-data'}\s+($Codere)\s+($Codere)\]
+				  product_field($2, $code)	?	pull_if($3, $1)
+											:	pull_else($3, $1)#xgeo;
+		$run =~ s#$T{'if-msql-data'}\s+(!?)\s*($Codere)\s+($Codere)\]
 					([\000-\377]*?)
 					$T{'/if-msql-data'}\]#
-				  tag_data($1,$2,$code)	?	pull_if($3)
-												:	pull_else($3)#xgeo;
+				  tag_data($2,$3,$code)	?	pull_if($4, $1)
+										:	pull_else($4, $1)#xgeo;
 	    $run =~ s:$T{'msql-increment'}\]:$count:go;
 	    $run =~ s:$T{'msql-code'}\]:$code:go;
 		$run =~ s:$T{'msql-data'}\s+($Codere)\s+($Codere)\]:
@@ -2513,19 +2666,55 @@ sub tag_sql_list {
     $r;
 }
 
-sub loop_substitute {
-	my ($code,$run,$i) = @_;
+sub loop_with {
+	my ($code,$run,$i,$with) = @_;
+	$run =~ s#$T{'if-loop-field'}$with\s+(!?)\s*($Codere)\]
+					([\000-\377]*?)
+				$T{'/if-loop-field'}$with\]#
+			  product_field($2, $code)	?	pull_if($3,$1)
+										:	pull_else($3,$1)#xge;
+	$run =~ s#$T{'if-loop-data'}$with\s+(!?)\s*($Codere)\s+($Codere)\]
+				([\000-\377]*?)
+				$T{'/if-loop-data'}$with\]#
+			  tag_data($2,$3,$code)    ?   pull_if($4,$1)
+									   :   pull_else($4,$1)#xge;
+	$run =~ s:$T{'loop-increment'}$with\]:$i:xg;
+	$run =~ s:$T{'loop-accessories'}$with(\s+[^\]]+)?\]:tag_accessories($code,'',$1):ge;
+	$run =~ s:$T{'loop-data'}$with\s+($Codere)\s+($Codere)\]:
+						tag_data($1,$2,$code):ge;
+	$run =~ s:$T{'loop-code'}$with\]:$code:g;
+	$run =~ s:$T{'loop-field'}$with\s+($Codere)\]:product_field($1, $code):ge;
+	$run =~ s:$T{'loop-description'}$with\]:trim_desc(product_description($code)):ge;
+	$run =~ s#$T{'loop-link'}$with\]#"[page " . $Vend::Cfg->{'ItemLinkDir'} . "$code]"
+			  . $Vend::Cfg->{'ItemLinkValue'} . '[/page]'#ge;
+	$run =~ s!$T{'loop-price'}$with(?:\s+)?(\d+)?\]!
+				currency(product_price($code,$1))!ge;
 
-	$run =~ s#$T{'if-loop-field'}\s+($Codere)\]
+	1 while $run =~ s!	$T{'loop-change'}$with \s+ ($Codere)\] \s*
+					$T{'condition'}\]
+					([\000-\377]*?)
+					$T{'/condition'}\]
+					([\000-\377]*?)
+				$T{'/loop-change'}$with \s+ \1 \]!
+						check_change($1,$2)
+										?	pull_if($3)
+										:	pull_else($3)!xge;
+					
+	return $run;
+}
+
+sub loop_substitute {
+	my ($code,$run,$i,$with) = @_;
+	$run =~ s#$T{'if-loop-field'}\s+(!?)\s*($Codere)\]
 					([\000-\377]*?)
 				$T{'/if-loop-field'}\]#
-			  product_field($1,$code)	?	pull_if($2)
-										:	pull_else($2)#xgeo;
-	$run =~ s#$T{'if-loop-data'}\s+($Codere)\s+($Codere)\]
+			  product_field($2, $code)	?	pull_if($3,$1)
+										:	pull_else($3,$1)#xgeo;
+	$run =~ s#$T{'if-loop-data'}\s+(!?)\s*($Codere)\s+($Codere)\]
 				([\000-\377]*?)
 				$T{'/if-loop-data'}\]#
-			  tag_data($1,$2,$code)	?	pull_if($3)
-									:	pull_else($3)#xgeo;
+			  tag_data($2,$3,$code)    ?   pull_if($4,$1)
+									   :   pull_else($4,$1)#xgeo;
 	$run =~ s:$T{'loop-increment'}\]:$i:xgo;
 	$run =~ s:$T{'loop-accessories'}(\s+[^\]]+)?\]:tag_accessories($code,'',$1):geo;
 	$run =~ s:$T{'loop-data'}\s+($Codere)\s+($Codere)\]:
@@ -2552,15 +2741,27 @@ sub loop_substitute {
 }
 
 sub tag_loop_list {
-	my($list,$text) = @_;
+	my($with,$list,$text) = @_;
 	my($r, $i, $link, $code, $db, $linkvalue, $run);
 	my(@list);
 	my(@post);
 	# Allow nesting.  Starts saved area at first loop substitution
 	# AFTER the first right-bracket. 
 	$i = 0;
-	while( $text =~ s!($T{'loop'}\s+[\000-\377]+?$T{'/loop'}\])!'__POST' . $i . '__'!eix ) {
-		$post[$i++] = $1;
+	
+	unless($with) {
+		# Pull out old-syntax embedded loops.
+		# This is a bad thing, but I don't see any real good
+		# way to substitute otherwise. If embedding a loop within
+		# a non-with loop and using with=, you must put it right after [loop .
+		# Solution is to loop with an extra identifier on all embedded
+		# loops.
+		while( $text =~ s#
+			($T{'loop'}  \s+  (?!with\s*=)
+			[\000-\377]+?  $T{'/loop'}\])
+			#'__POST' . $i . '__'#eix ) {
+			$post[$i++] = $1;
+		}
 	}
 
 	$r = "";
@@ -2584,8 +2785,11 @@ sub tag_loop_list {
 
 	$i = 1;
 	undef %Prev;
+
+	my $sub = $with ? \&loop_with : \&loop_substitute;
+
 	foreach $code (@list) {
-		$r .= loop_substitute($code, $text, $i);
+		$r .= &$sub($code, $text, $i, $with);
 		$i++;
 	}
 
@@ -2631,9 +2835,10 @@ sub search_page {
 						(?:\s+)?($Coderex)?
 						(?:\s+)?($Coderex)?
 						(?:\s+)?($Coderex)?
+						(?:\s+)?($Coderex)?
 						\]([\000-\377]*?)$T{'/more-list'}\]!
-				  tag_more_list($5,$q,$1,$2,$3,$4)!xgeo;
-		$page =~ s:$T{'no-match'}([\000-\377]*?)$T{'/no-match'}\]::geo;
+				  tag_more_list($6,$q,$1,$2,$3,$4,$5)!xgeo;
+		$page =~ s:$T{'no-match'}\]([\000-\377]*?)$T{'/no-match'}\]::geo;
 	}
 	else {
 		$page =~ s:$T{'search-list'}\]([\000-\377]*?)$T{'/search-list'}\]::geo;
@@ -2644,7 +2849,7 @@ sub search_page {
 						(?:\s+)?($Coderex)?
 						\]([\000-\377]*?)$T{'/more-list'}\]!
 				  !xgeo;
-		$page =~ s:$T{'no-match'}([\000-\377]*?)$T{'/no-match'}\]:$1:geo
+		$page =~ s:$T{'no-match'}\]([\000-\377]*?)$T{'/no-match'}\]:$1:geo
 					or do {
 						my $subj = join "|", @{$q->{specs}};
 						::display_special_page(
@@ -2711,14 +2916,14 @@ sub fly_page
     $page = readin($selector);
     return undef unless defined $page;
 
-	$page =~ s#$T{'if-field'}\s+($Codere)\]([\000-\377]*?)$T{'/if-field'}\]#
-			     database_field($base,$code,$1)	?	pull_if($2)
-												:	pull_else($2)#geo;
-	$page =~ s#$T{'if-data'}\s+($Codere)\s+($Codere)\]
+	$page =~ s#$T{'if-field'}\s+(!?)\s*($Codere)\]([\000-\377]*?)$T{'/if-field'}\]#
+			  database_field($base, $code, $2)	?	pull_if($3,$1)
+										:	pull_else($3,$1)#geo;
+	$page =~ s#$T{'if-data'}\s+(!?)\s*($Codere)\s+($Codere)\]
 				([\000-\377]*?)
 				$T{'/if-data'}\]#
-				  tag_data($1,$2,$code) ?	pull_if($3)
-										:	pull_else($3)#xgeo;
+			  tag_data($2,$3,$code)    ?   pull_if($4,$1)
+									   :   pull_else($4,$1)#xgeo;
     $page =~ s!$T{'item-code'}\]!$code!go;
 	$page =~ s:$T{'item-accessories'}(\s+[^\]]+)?\]:tag_accessories($code,'',$1):geo;
     $page =~ s!$T{'item-description'}\]!
@@ -2919,13 +3124,13 @@ sub custom_shipping {
 				$formula = $1;
 				if($Vend::Cfg->{OldShipping}) {
 					$formula = interpolate_html($formula)
-								if $formula =~ /\[\w/;
+								if $formula =~ /__|\[\w/;
 					$formula =~ s/\bx\b/$total/g;
 				}
 				else {
 					$formula =~ s/\@\@TOTAL\@\@/$total/g;
 					$formula = interpolate_html($formula)
-								if $formula =~ /\[\w/;
+								if $formula =~ /__\w+__|\[\w/;
 				}
 				$cost = $ready_safe->reval($formula);
 				if($@) {

@@ -1,9 +1,9 @@
 # Config.pm - Configure Minivend
 #
-# $Id: Config.pm,v 1.24 1997/11/08 16:43:44 mike Exp mike $
+# $Id: Config.pm,v 1.38 1998/02/01 20:29:14 mike Exp mike $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
-# Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -35,9 +35,10 @@ use Carp;
 use Safe;
 use Fcntl;
 use Text::ParseWords;
+use Vend::Parse;
 use Vend::Util;
 
-$VERSION = substr(q$Revision: 1.24 $, 10);
+$VERSION = substr(q$Revision: 1.38 $, 10);
 
 for( qw(search refresh cancel return secure unsecure submit control checkout) ) {
 	$Global::LegalAction{$_} = 1;
@@ -71,7 +72,7 @@ my %UseExtended = (qw(
 #my %SetGlobals;
 
 sub setcat {
-	$C = $Vend::Cfg;
+	$C = $_[0] || $Vend::Cfg;
 }
 
 sub global_directives {
@@ -85,7 +86,7 @@ sub global_directives {
 	['ConfigDatabase',	 'config_db',	     ''],
     ['DumpStructure',	 'yesno',     	     'No'],
     ['PageCheck',		 'yesno',     	     'No'],
-    ['DisplayErrors',    'yesno',            'No'],
+    ['DisplayErrors',    'yesno',            $Global::DEBUG & 8192 ? 'Yes' : 'No'],
     ['DisplayComments',  'yesno',            'No'],
     ['TcpPort',          'integer',          '7786'],
 	['Environment',      'array',            ''],
@@ -113,12 +114,13 @@ sub global_directives {
 	['MailErrorTo',		  undef,			 'webmaster'],
 	['NoAbsolute',		 'yesno',			 'No'],
 	['AllowGlobal',		 'boolean',			 ''],
+	['UserTag',			 'tag',				 ''],
 	['AdminSub',		 'boolean',			 ''],
 	['AdminUser',		  undef,			 ''],
 	['AdminHost',		  undef,			 ''],
     ['HammerLock',		 'integer',     	 30],
     ['TolerateGet',		 'yesno',     	 	'No'],
-    ['DebugMode',		  undef,     	     0],
+    ['DebugMode',		 'integer',     	     0],
     ['CheckHTML',		  undef,     	     ''],
 	['Variable',	  	 'variable',     	 ''],
     ['MultiServer',		 'yesno',     	     0],  # Prevent errors on 2.02 upgrade
@@ -138,6 +140,7 @@ sub catalog_directives {
 
 #   Directive name      Parsing function    Default value
 
+    ['DebugMode',		 'integer',     	     0],
 	['ErrorFile',        undef,              'error.log'],
 	['PageDir',          'relative_dir',     'pages'],
 	['ProductDir',       'relative_dir',     'products'],
@@ -146,7 +149,7 @@ sub catalog_directives {
 	['ConfigDir',        'relative_dir',     'config'],
 	['ConfigDatabase',	 'config_db',	     ''],
 	['Delimiter',        'delimiter',        'TAB'],
-    ['DisplayErrors',    'yesno',            'No'],
+    ['DisplayErrors',    'yesno',            $Global::DEBUG & 8192 ? 'Yes' : 'No'],
 	['RecordDelimiter',  'variable',         ''],
 	['FieldDelimiter',   'variable',         ''],
     ['ParseVariables',	 'yesno',     	     'No'],
@@ -335,18 +338,30 @@ sub get_global_default {
 
 sub substitute_variable {
 	my($val) = @_;
-#print "before=$val\n" if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("before=$val\n")
+#	if ::debug(0x8);
+# END DEBUG
 	# Return after globals so can others can be contained
 	$val =~ s/\@\@([A-Z][A-Z_0-9]+[A-Z0-9])\@\@/$Global::Variable->{$1}/g
 		and return $val;
 	return $val unless $val =~ /([_%])\1/;
 	1 while $val =~ s/__([A-Z][A-Z_0-9]*?[A-Z0-9])__/$C->{Variable}->{$1}/g;
-#print " after=$val\n" if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#(" after=$val\n")
+#	if ::debug(0x8);
+# END DEBUG
 	# YALOS (yet another level)
 	return $val unless $val =~ /%%[A-Z]/;
 	$val =~ s/%%([A-Z][A-Z_0-9]+[A-Z0-9])%%/$Global::Variable->{$1}/g;
 	$val =~ s/__([A-Z][A-Z_0-9]*?[A-Z0-9])__/$C->{Variable}->{$1}/g;
-#print "  post=$val\n" if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("  post=$val\n")
+#	if ::debug(0x8);
+# END DEBUG
 	return $val;
 }
 
@@ -422,6 +437,11 @@ sub config {
 		}
 		$value = &$parse($name{$lvar}, $value) if defined $parse;
 		# and set the $C->directive variable
+# DEBUG
+#if($name{$lvar} eq 'DebugMode') {
+#	$Global::DEBUG = $value;
+#}
+# END DEBUG
 		$C->{$name{$lvar}} = $value;
 	};
 
@@ -534,7 +554,9 @@ CONFIGLOOP: {
 				next;
 			}
 			chomp($tmpval) unless $tmpval =~ m!.\n.!;
-			$value .= $tmpval;
+			# untaint
+			$tmpval =~ /([\000-\377]*)/;
+			$value .= $1;
 		}
 			
 		# Don't error out on Global directives if we are standalone, just skip
@@ -691,7 +713,10 @@ sub read_here {
 		$value .= $_;
 	}
     return undef unless $foundeot;
-	$value;
+	#untaint
+	$value =~ /([\000-\377]*)/;
+	$value = $1;
+	return $value;
 }
 
 # Parse the global configuration file for directives.  Each directive sets
@@ -841,6 +866,11 @@ sub global_config {
         }
     }
 
+	# Inits Global UserTag entries
+	ADDTAGS: {
+		Vend::Parse::global_init;
+	}
+
 	unless($Global::Catalog) {
 		print "Configuring standalone catalog...";
 		$Global::Standalone = 0;
@@ -873,22 +903,21 @@ sub get_files {
 	my($dir, @files) = @_;
 	my(@out);
 	my($file, $contents);
-
+# DEBUG
+#Vend::Util::logDebug
+#("get_files: '$dir' '@files'\n")
+#	if ::debug(0x8);
+# END DEBUG
 	foreach $file (@files) {
 		config_error(
 		  "No leading ../.. allowed if NoAbsolute set. Contact administrator.\n")
 		if $file =~ m#^\.\./.*\.\.# and $Global::NoAbsolute;
-##print "Got to get_files: '$dir' '@files'\n" if $Global::DEBUG;
 		push(@out,"\n") unless
 			push(@out,readfile("$dir/$file.html"));
 	}
 	
 	@out;
 }
-
-# Uncomment to autoload
-#1;
-#__END__
 
 # Report a warning MSG about the configuration file.
 
@@ -932,12 +961,17 @@ sub parse_boolean {
 	my($item,$settings) = @_;
 	my(@setting) = split /[\s,]+/, $settings;
 	my $c;
+
 	unless (@setting) {
-		$c = {};
+        if(defined $C) {
+            $c = $C->{$item} || {};
+        }
+        else {
+            no strict 'refs';
+            $c = ${"Global::$item"} || {};
+        }
 		return $c;
 	}
-
-	$c = $C->{$item};
 
 	for (@setting) {
 		$c->{$_} = 1;
@@ -988,7 +1022,7 @@ sub parse_action {
 	return $C->{'ActionMap'};
 }
 
-use POSIX;
+use POSIX qw(setlocale LC_ALL localeconv);
 
 # Sets the special locale array. Tries to use POSIX setlocale,
 # accepts a 'custom' setting with the proper definitions of
@@ -1087,17 +1121,40 @@ sub parse_hash {
 	my $c;
 
 	unless (@setting) {
-		$c = {};
+
+		if(defined $C) {
+			$c = $C->{$item} || {};
+		}
+		else {
+			no strict 'refs';
+			$c = ${"Global::$item"} || {};
+		}
 		return $c;
 	}
-
-	$c = $C->{$item};
 
 	my $i;
 	for ($i = 0; $i < @setting; $i += 2) {
 		$c->{$setting[$i]} = $setting[$i + 1];
 	}
 	$c;
+}
+
+my %IllegalValue = (
+
+		UseModifier => { qw/    mv_mi 1
+								mv_si 1
+								mv_ib 1
+								group 1
+								code  1
+								quantity 1
+								item  1     /
+						}
+);
+
+sub check_legal {
+	my ($directive, $value) = @_;
+	return 1 unless defined $IllegalValue{$directive}->{$value};
+	config_error ("\nYou may not use a value of '$value' in the $directive directive.");
 }
 
 sub parse_array {
@@ -1116,6 +1173,7 @@ sub parse_array {
 	}
 
 	for (@setting) {
+		check_legal($item, $_);
 		push @{$c}, $_;
 	}
 	$c;
@@ -1173,7 +1231,8 @@ sub parse_relative_dir {
 
 sub parse_integer {
     my($var, $value) = @_;
-
+	$value = hex($value) if $value =~ /^0x[\dA-Fa-f]+$/;
+	$value = octal($value) if $value =~ /^0[0-7]+$/;
     config_error("The $var directive (now set to '$value') must be an integer\n")
 		unless $value =~ /^\d+$/;
     $value;
@@ -1305,7 +1364,11 @@ sub parse_catalog {
 		($name,$dir,$script) = split /[\s,]+/, $value, 3;
 	}
 
-print "parsing name=$name dir=$dir script=$script\n" if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("parsing name=$name dir=$dir script=$script\n")
+#	if ::debug(0x8);
+# END DEBUG
 
 	$Global::Catalog{$name}->{'name'} = $name;
 	$Global::Catalog{$name}->{'dir'} = $dir;
@@ -1415,12 +1478,15 @@ sub parse_config_db {
 		}
 	}
 
-	if($Global::DEBUG) {
-		print "Defining config database $database\n";
-		for (keys %$d) {
-			print "$_=$d->{$_}\n";
-		}
-	}
+# DEBUG
+#	if(Vend::Util::debug(0x8)) {
+#		my $msg = "Defining config database $database\n";
+#		for (keys %$d) {
+#			$msg .= "$_=$d->{$_}\n";
+#		}
+#		Vend::Util::logDebug($msg);
+#	}
+# END DEBUG
 
 	if($d->{ACTIVE} and ! $d->{OBJECT}) {
 		my $name = $d->{'name'};
@@ -1620,11 +1686,12 @@ my %tagBool = ( qw!
 sub parse_tag {
 	my ($var, $value) = @_;
 	my ($c, $new);
+
 	unless (defined $value && $value) { 
-		$c = {};
-		return $c;
+		return {};
 	}
-	$c = $C->{'UserTag'};
+
+	$c = defined $C ? $C->{'UserTag'} : $Global::UserTag;
 
 	my($tag,$p,$val) = split /\s+/, $value, 3;
 	
@@ -1634,7 +1701,11 @@ sub parse_tag {
 	$tag =~ s/\W//g
 		and config_warn("Bad characters removed from '$tag'.");
 
-print("Define UserTag $tag $p\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Define UserTag $tag $p\n")
+#	if ::debug(0x8);
+# END DEBUG
 
 	unless ($p) {
 		config_warn "Bad user tag parameter '$p' for '$tag', skipping.";
@@ -1645,10 +1716,14 @@ print("Define UserTag $tag $p\n") if $Global::DEBUG;
 
 		my $sub;
 
-		unless($Global::AllowGlobal->{$C->{CatalogName}}) {
+		unless(!defined $C or $Global::AllowGlobal->{$C->{CatalogName}}) {
 			my $safe = new Safe;
 			my $code = $val;
-print("Safe check $tag $code\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Safe check $tag $code\n")
+#	if ::debug(0x8);
+# END DEBUG
 			$code =~ s'$Vend::Session->'$foo'g;
 			$code =~ s'$Vend::Cfg->'$bar'g;
 			$safe->untrap(@{$Global::SafeUntrap});
@@ -1667,7 +1742,11 @@ print("Safe check $tag $code\n") if $Global::DEBUG;
 		}
 		config_warn "UserTag '$tag' code is not a subroutine reference"
 			unless $sub =~ /CODE/;
-print("Routine is $sub\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Routine is $sub\n")
+#	if ::debug(0x8);
+# END DEBUG
 		$c->{$p}{$tag} = $sub;
 		$c->{Order}{$tag} = []
 			unless defined $c->{Order}{$tag};
@@ -1700,7 +1779,11 @@ sub parse_eval {
 sub parse_variable {
 	my ($var, $value) = @_;
 	my ($c, $name, $param);
-#print("setting $var to $value\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("setting $var ")
+#	if ::debug(0x8);
+# END DEBUG
 
 	# Allow certain catalogs global subs
 	if($var eq 'Sub' and $Global::AllowGlobal->{$C->{CatalogName}}) {
@@ -1716,7 +1799,11 @@ sub parse_variable {
 	}
 	else {
 		no strict 'refs';
-#print("global ") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("global ")
+#	if ::debug(0x8);
+# END DEBUG
 		$c = ${"Global::$var"};
 	}
 
@@ -1738,7 +1825,11 @@ sub parse_variable {
 	else {
 		($name, $param) = split /\s+/, $value, 2;
 	}
-#print("variable $name\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("variable $name\n")
+#	if ::debug(0x8);
+# END DEBUG
 	$c->{$name} = $param;
 	return $c;
 }
@@ -1762,8 +1853,12 @@ sub parse_subroutine {
 	# Untainting
 	$value =~ /([\000-\377]*)/;
 	$value = $1;
-
 	$c->{$name} = eval $value;
+# DEBUG
+#Vend::Util::logDebug
+#("Parsing subroutine/variable $var=$name\n")
+#	if ::debug(0x8);
+# END DEBUG
 	config_error("Bad $var '$name'") if $@;
 	return $c;
 }
@@ -1852,7 +1947,11 @@ sub parse_color {
 
 sub parse_yesno {
     my($var, $value) = @_;
-#print "$var=$value\n" if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("$var=$value\n")
+#	if ::debug(0x8);
+# END DEBUG
     $_ = $value;
     if (m/^y/i || m/^t/i || m/^1/) {
 		return 1;

@@ -2,7 +2,7 @@
 #
 # MiniVend version 1.04
 #
-# $Id: Order.pm,v 1.14 1997/12/15 03:02:39 mike Exp mike $
+# $Id: Order.pm,v 1.18 1998/01/31 05:16:49 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -30,12 +30,10 @@
 package Vend::Order;
 require Exporter;
 
-$VERSION = substr(q$Revision: 1.14 $, 10);
+$VERSION = substr(q$Revision: 1.18 $, 10);
 $DEBUG = 0;
 
-# NOAUTO
 @ISA = qw(Exporter);
-# END NOAUTO
 
 @EXPORT = qw (
 
@@ -53,11 +51,9 @@ use Vend::Session;
 use Vend::Data;
 use Text::ParseWords;
 
-# NOAUTO
 my @Errors = ();
 my $Fatal = 0;
 my $Final = 0;
-# END NOAUTO
 
 sub _fatal {
 	$Fatal = ( defined($_[1]) && ($_[1] =~ /^[yYtT1]/) ) ? 1 : 0;
@@ -72,17 +68,13 @@ sub _format {
 	no strict 'refs';
 	my ($routine, $var, $val) = split /\s+/, $params, 3;
 
-# NOAUTO
 	return (undef, $var, "No format check routine for '$routine'")
 		unless defined &{"_$routine"};
-# END NOAUTO
 
 	return &{'_' . $routine}($ref,$var,$val);
 }
 
-# NOAUTO
 my %Parse = (
-# END NOAUTO
 
 	'&fatal'       	=>	\&_fatal,
 	'&format'		=> 	\&_format,
@@ -98,7 +90,7 @@ eval {
 
 	require CCLib;
 	import CCLib qw(SetServer sendmserver);
-	print "CyberCash module found.\n";
+	logGlobal "CyberCash module found.";
 
 };
 
@@ -256,7 +248,11 @@ sub cyber_charge {
     $amount = Vend::Interpolate::tag_total_cost;
     $amount =~ s/[^.\d]//g;
     $amount = "$currency $amount";
-#print "cyber_charge: amount is '$amount'\n" if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("cyber_charge: amount is '$amount'\n")
+#	if ::debug(0x1);
+# END DEBUG
 
 
     my %result;

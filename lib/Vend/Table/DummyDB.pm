@@ -1,9 +1,9 @@
 # Table/DummyDB.pm: Autoloader for MiniVend Databases
 #
-# $Id: DummyDB.pm,v 1.8 1997/08/18 18:39:47 mike Exp $
+# $Id: DummyDB.pm,v 1.9 1998/01/31 05:23:23 mike Exp $
 #
 #
-# Copyright 1996, 1997 by Mike Heins <mikeh@iac.net>
+# Copyright 1996-1997 by Mike Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

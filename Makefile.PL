@@ -35,7 +35,8 @@ my $Windows;
 # See if we have the CPAN module
 my $Cpan = 0;
 my $CpanInit;
-eval { 	require CPAN;
+eval { 	require CPAN::Config;
+		require CPAN;
 		import CPAN;
 };
 unless($@) {
@@ -91,14 +92,34 @@ EOF
 	}
 
 }
+elsif(	$Config{osname} =~ /linux/i		and
+		$Config{d_gnulibc} eq 'define'	and
+		$Config{ccflags} !~ /STRUCT_TM_HASZONE/	and
+		! defined $ENV{MINIVEND_BADPOSIX})
+{
+			print <<EOF;
+
+This looks like a broken version of Perl for Linux, as often
+happens with improperly built GLIBC Perls. RedHat Linux 5.0 has
+this problem. If your Perl is built properly and does not dump
+core when calling POSIX::strftime, then set the environment
+variable MINIVEND_BADPOSIX to 0.
+
+MiniVend will normally compensate for this automatically,
+but if one thing is broken others may be. If you have problems
+with MiniVend, go to www.redhat.com and get the latest Perl RPM.
+
+EOF
+	 my_prompt(" ", 'press RETURN to continue');
+}
 
 sub copyright_prompt {
 
 	print <<'EOF';
 
- MiniVend V3.05
+ MiniVend V3.06
  
- Copyright 1996,1997 by Michael J. Heins <mikeh@minivend.com>
+ Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
 
  MiniVend is free as long as the organization or individual
  using it does not employ uninvited commercial email
@@ -132,26 +153,26 @@ sub cpan_get {
 	
 	print <<EOF unless defined $CpanInit;
 
-Since you have the CPAN module installed, we can go and
-get optional modules that help MiniVend work a bit better
-and faster. At least we can if you are connected to the
-Internet and have one of the following on your machine:
+Since you have the CPAN module installed and initialized,
+we can go and get optional modules that help MiniVend work a
+bit better and faster. At least we can if you are connected
+to the Internet and have one of the following on your machine:
 
 		Perl LWP libraries
 		Perl Net::FTP library
 		ncftp (a nice FTP program)
 		lynx  (the text-based web browser)
 
-In case you were wondering, CPAN is a worldwide network
-of over 40 FTP sites which maintain the latest Perl software.
+In case you were wondering, CPAN is a worldwide network of
+over 40 FTP sites which maintain the latest Perl software.
 If you don't know a URL to use, you can try:
 
-	ftp://uiarchive.uiuc.edu/pub/lang/perl/CPAN
+	ftp://ftp.cdrom.com/pub/perl/CPAN
 	ftp://ftp.funet.fi/pub/languages/perl/CPAN
 
 If you have never used CPAN before, you may want to reply NO.
-MiniVend should work anyway -- it just won't be quite as
-easy to build the demo catalogs.
+MiniVend should work anyway -- it just won't be quite as easy
+to build the demo catalogs.
 
 If you have errors during the process, don't worry. Either
 just continue on or stop the program and try again, replying
@@ -237,7 +258,8 @@ EOF
 			open(WINBAT, ">configure2.bat")
 				or die "create configure2.bat: $!\n";
 			print WINBAT <<EOF;
-$Config{perlpath} Makefile.PL install $realdir\r
+CALL $Config{perlpath} Makefile.PL install $realdir\r
+pause\r
 EOF
 			close WINBAT;
 			exit;
@@ -342,8 +364,9 @@ EOF
 	if($Windows) {
 
 		my $dll_source 	 = "win/cygwin.dll";
-		my $dll_dir      = "c:/windows/system";
-		my $dll_location = "c:/windows/system/cygwin.dll";
+		my $dll_dir      = $ENV{SYSTEMROOT} || "c:/windows/system";
+		$dll_dir =~ s:\\:/:g;
+		my $dll_location = $dll_dir . "/system/cygwin.dll";
 	DLL: {
 		unless(-f $dll_location) {
 			if (-f $dll_source and -d $dll_dir) {
@@ -441,14 +464,19 @@ EOF
 		mkdir $realdir, 0777 or die "mkdir $realdir: $!\n";
 	}
 
-	chdir 'dist';
-	$tar->add_files(@files);
-	chdir $realdir;
-	$tar->extract(@files,@winfiles);
-	chdir $origdir;
-	# Before Archive::Tar
-	#system "(cd dist; tar cf - *) | (cd $realdir; tar xf -)";
-	#die "File copy failed: $!\n" if $?;
+	# Work around Archive::Tar error?
+	if(-f 'bad_tar_pm') {
+		# From before Archive::Tar
+		system "(cd dist; tar cf - *) | (cd $realdir; tar xf -)";
+		die "File copy failed: $!\n" if $?;
+	}
+	else {
+		chdir 'dist';
+		$tar->add_files(@files);
+		chdir $realdir;
+		$tar->extract(@files,@winfiles);
+		chdir $origdir;
+	}
 
 	MODGET: {
 		last MODGET unless $Cpan;

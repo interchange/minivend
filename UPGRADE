@@ -1,10 +1,16 @@
-		  U P G R A D I N G   F R O M  3 . 0 x
+          U P G R A D I N G   F R O M  3 . 0 x
 
 You should normally be able to simply install over the
 current software and then restart the server.  The only 
 incompatible changes are bug fixes (which may fool any
-workarounds you have made) and the addition of a "Static Yes"
-switch for statically-built catalogs.
+workarounds you have made).
+
+The "simple" demo runs unchanged from MiniVend 3.05 to
+3.06. The usual source of any upgrade problems is illegal
+syntax in tags, which might work on earlier versions but
+is rejected in later, stricter versions. Especially check
+nested [if ...] tags -- some problems can be solved by
+putting a [then] [/then] around the true-executed condition.
 
 IMPORTANT NOTE:  It is highly recommended that you copy the
 current software to a backup directory or an archive in case
@@ -13,7 +19,7 @@ version.
 
 See the file WHATSNEW for more information.
 
-			 U P G R A D I N G   F R O M  2 . 0 3
+             U P G R A D I N G   F R O M  2 . 0 3
 
 There are a few "gotchas" for 2.0x upgrades:
 

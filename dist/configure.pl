@@ -2,8 +2,8 @@
 #
 # configure.pl - Configure the MiniVend program
 #
-# Version 1.1
-# Copyright 1996,1997 by Michael J. Heins <mikeh@minivend.com>
+# Version 1.2
+# Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -688,6 +688,7 @@ fully test MiniVend and give you a starting point for your own catalog.
 
 EOF
 	$ans = prompt "Make the simple demo? ", "yes";
+	last MAKECAT unless $ans =~ /^\s*y/i;
 	system $Makecat;
 	if($?) {
 		print <<EOF;
@@ -725,7 +726,7 @@ To stop the MiniVend server, close the window -- you cannot
 stop it from the keyboard.
 
 To start the server, double click on the "Start MiniVend Server"
-icon.
+icon which should be present in $Initial{VendRoot}.
 
 EOF
 	last RUNSERVER if $Windows;

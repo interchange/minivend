@@ -1,8 +1,8 @@
 # Parse.pm - Parse MiniVend tags
 # 
-# $Id: Parse.pm,v 1.17 1997/12/15 02:13:02 mike Exp mike $
+# $Id: Parse.pm,v 1.25 1998/01/31 09:44:28 mike Exp mike $
 #
-# Copyright 1997 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1997-1998 by Michael J. Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,12 +20,12 @@
 
 package Vend::Parse;
 
-# $Id: Parse.pm,v 1.17 1997/12/15 02:13:02 mike Exp mike $
+# $Id: Parse.pm,v 1.25 1998/01/31 09:44:28 mike Exp mike $
 
 require Vend::Parser;
 
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.17 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.25 $ =~ /(\d+)\.(\d+)/);
 
 use Safe;
 use Vend::Util;
@@ -36,77 +36,69 @@ use Vend::PageBuild;
 
 require Exporter;
 
-# NOAUTO
 @ISA = qw(Exporter Vend::Parser);
-# END NOAUTO
 
-$VERSION = substr(q$Revision: 1.17 $, 10);
+$VERSION = substr(q$Revision: 1.25 $, 10);
 @EXPORT = ();
 @EXPORT_OK = qw(find_matching_end find_end);
 
 use strict;
 
-# NOAUTO
 use vars qw($VERSION);
-# END NOAUTO
 
 
-# NOAUTO
-my %PosNumber =	(
-# END NOAUTO
+my %PosNumber =	( qw!
+					
+				accessories		 2
+				area			 2
+				areatarget		 3
+				body			 1
+				buttonbar		 1
+				cart			 1
+				checked			 3
+				data			 5
+				default			 2
+				discount		 1
+				description		 2
+				field			 2
+				file			 2
+				finish_order	 1
+				framebase		 1
+				help			 1
+				if			 1
+				include			 1
+				last_page		 2
+				lookup			 1
+				loop			 1
+				msql			 2
+				nitems			 1
+				order			 3
+				page			 2
+				pagetarget		 3
+				perl			 1
+				price			 3
+				process_order	 2
+				process_search	 1
+				process_target	 2
+				rotate			 2
+				row				 1
+				salestax		 1
+				scratch			 1
+				search			 1
+				selected		 3
+				set				 1
+				shipping		 1
+				shipping_desc	 1
+				shipping_description	 1
+				sql				 2
+				subtotal		 1
+				tag				 1
+				total_cost		 1
+				value			 2
 
-				accessories		=> 2,
-				area			=> 2,
-				areatarget		=> 3,
-				body			=> 1,
-				buttonbar		=> 1,
-				cart			=> 1,
-				checked			=> 3,
-				data			=> 5,
-				default			=> 1,
-				discount		=> 1,
-				description		=> 2,
-				field			=> 2,
-				file			=> 2,
-				finish_order	=> 1,
-				framebase		=> 1,
-				help			=> 1,
-				'if'			=> 1,
-				include			=> 1,
-				last_page		=> 2,
-				lookup			=> 1,
-				loop			=> 1,
-				msql			=> 2,
-				nitems			=> 1,
-				order			=> 3,
-				page			=> 2,
-				pagetarget		=> 3,
-				perl			=> 1,
-				price			=> 3,
-				process_order	=> 2,
-				process_search	=> 1,
-				process_target	=> 2,
-				rotate			=> 2,
-				row				=> 1,
-				salestax		=> 1,
-				scratch			=> 1,
-				search			=> 1,
-				selected		=> 3,
-				set				=> 1,
-				shipping		=> 1,
-				shipping_desc	=> 1,
-				shipping_description	=> 1,
-				sql				=> 2,
-				subtotal		=> 1,
-				tag				=> 1,
-				total_cost		=> 1,
-				value			=> 2,
+			! );
 
-			);
-
-# NOAUTO
 my %Order =	(
-# END NOAUTO
 
 				accessories		=> [qw( code arg )],
 				area			=> [qw( href arg )],
@@ -119,7 +111,7 @@ my %Order =	(
 				'currency'		=> [],
 				checked			=> [qw( name value multiple)],
 				data			=> [qw( table field key value increment)],
-				default			=> [qw( name )],
+				default			=> [qw( name default )],
 				description		=> [qw( code base )],
 				discount		=> [qw( code  )],
 				field			=> [qw( name code )],
@@ -134,7 +126,7 @@ my %Order =	(
 				item_list		=> [qw( name )],
 				last_page		=> [qw( target arg )],
 				lookup			=> [qw( table field key value )],
-				loop			=> [qw( arg )],
+				loop			=> [qw( with arg )],
 				msql			=> [qw( type query list true base)],
 				nitems			=> [qw( name  )],
 				order			=> [qw( code href base )],
@@ -149,25 +141,23 @@ my %Order =	(
 				random			=> [],
 				rotate			=> [qw( ceiling floor )],
 				row				=> [qw( width )],
-				salestax		=> [qw( name  )],
+				'salestax'		=> [qw( name  )],
 				scratch			=> [qw( name  )],
 				search			=> [qw( arg   )],
 				selected		=> [qw( name value multiple )],
 				set				=> [qw( name  )],
-				shipping		=> [qw( name  )],
+				'shipping'		=> [qw( name  )],
 				shipping_desc	=> [qw( name  )],
 				shipping_description	=> [qw( name  )],
 				sql				=> [qw( type query list false base)],
-				subtotal		=> [qw( name  )],
+				'subtotal'		=> [qw( name  )],
 				tag				=> [qw( op base file type )],
 				total_cost		=> [qw( name )],
 				value			=> [qw( name escaped )],
 
 			);
 
-# NOAUTO
 my %Required = (
-# END NOAUTO
 
 				accessories	=> [ qw( code )],
 				area		=> [ qw( href )],
@@ -197,9 +187,7 @@ my %Required = (
 
 			);
 
-# NOAUTO
 my %InvalidateCache = (
-# END NOAUTO
 
 			qw(
 				cart		1
@@ -214,11 +202,11 @@ my %InvalidateCache = (
 				msql		1
 				nitems		1
 				perl		1
-				salestax	1
+				'salestax'	1
 				scratch		1
 				selected	1
 				set			1
-				shipping	1
+				'shipping'	1
 				sql			1
 				subtotal	1
 				total_cost	1
@@ -227,9 +215,7 @@ my %InvalidateCache = (
 			   )
 			);
 
-# NOAUTO
 my %Implicit = (
-# END NOAUTO
 
 			'data' =>		{ qw( increment increment ) },
 			'value' =>		{ qw( escaped	escpaped ) },
@@ -250,18 +236,14 @@ my %Implicit = (
 
 			);
 
-# NOAUTO
 my %PosRoutine = (
-# END NOAUTO
 
 				'if'			=> \&Vend::Interpolate::tag_if,
 				tag				=> \&Vend::Interpolate::do_tag,
 			);
 
 
-# NOAUTO
 my %Routine = (
-# END NOAUTO
 
 				accessories		=> sub {
 									&Vend::Interpolate::tag_accessories
@@ -314,25 +296,23 @@ my %Routine = (
 				random			=> \&Vend::Interpolate::tag_random,
 				rotate			=> \&Vend::Interpolate::tag_rotate,
 				row				=> \&Vend::Interpolate::tag_row,
-				salestax		=> \&Vend::Interpolate::tag_salestax,
+				'salestax'		=> \&Vend::Interpolate::tag_salestax,
 				scratch			=> \&Vend::Interpolate::tag_scratch,
 				search			=> \&Vend::Interpolate::tag_search,
 				selected		=> \&Vend::Interpolate::tag_selected,
 				set				=> \&Vend::Interpolate::set_scratch,
-				shipping		=> \&Vend::Interpolate::tag_shipping,
+				'shipping'		=> \&Vend::Interpolate::tag_shipping,
 				shipping_desc	=> \&Vend::Interpolate::tag_shipping_desc,
 				shipping_description => \&Vend::Interpolate::tag_shipping_desc,
 				sql				=> \&Vend::Data::sql_query,
-				subtotal	=> \&Vend::Interpolate::tag_subtotal,
+				'subtotal'	=> \&Vend::Interpolate::tag_subtotal,
 				tag			=> \&Vend::Interpolate::do_parse_tag,
 				total_cost	=> \&Vend::Interpolate::tag_total_cost,
 				value		=> \&Vend::Interpolate::tag_value,
 
 			);
 
-# NOAUTO
 my %Alias = (
-# END NOAUTO
 
 				qw(
 						href		area
@@ -340,9 +320,7 @@ my %Alias = (
 				)
 			);
 
-# NOAUTO
 my %canNest = (
-# END NOAUTO
 
 				qw(
 						if			1
@@ -351,9 +329,7 @@ my %canNest = (
 			);
 
 
-# NOAUTO
 my %hasEndTag = (
-# END NOAUTO
 
 				qw(
 						calc		1
@@ -373,9 +349,7 @@ my %hasEndTag = (
 				)
 			);
 
-# NOAUTO
 my %Interpolate = (
-# END NOAUTO
 
 				qw(
 						buttonbar	1
@@ -383,9 +357,7 @@ my %Interpolate = (
 				)
 			);
 
-# NOAUTO
 my %isEndAnchor = (
-# END NOAUTO
 
 				qw(
 						areatarget	1
@@ -399,6 +371,10 @@ my %isEndAnchor = (
 
 my $Initialized = 0;
 
+sub global_init {
+		add_tags($Global::UserTag);
+}
+
 sub new
 {
     my $class = shift;
@@ -408,7 +384,11 @@ sub new
 	$self->{WAIT_BRACKET} = 0;
 
 	if(!$Initialized) {
-print("Adding tags\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Adding tags\n")
+#	if ::debug(0x1);
+# END DEBUG
 		add_tags($Vend::Cfg->{UserTag});
 #		tie $self->{OUT}, 'Vend::Response';
 #	}
@@ -464,6 +444,11 @@ sub add_tags {
 	no strict 'refs';
 	foreach $area (keys %myRefs) {
 		next unless $ref->{$area};
+# DEBUG
+#Vend::Util::logDebug
+#("Adding $area = " . Vend::Util::uneval $ref->{$area} . "\n")
+#	if ::debug(0x2);
+# END DEBUG
 		if($area eq 'Routine') {
 			for (keys %{$ref->{$area}}) {
 				$myRefs{$area}->{$_} = $ref->{$area}->{$_};
@@ -497,22 +482,34 @@ sub start
 {
     my($self, $tag, $attr, $attrseq, $origtext) = @_;
 	$tag =~ tr/-/_/;   # canonical
-	local($Global::DEBUG);
-	$Global::DEBUG = defined $Monitor{$tag} ? 1 : 0;
-print("called start $tag with attributes" . @$attrseq . "\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("called start [$tag] with attributes '" .  
+#						(join "','", @$attrseq) .  
+#						"'\n")
+#	if ::debug(0x1);
+# END DEBUG
 	my($tmpbuf);
     # $attr is reference to a HASH, $attrseq is reference to an ARRAY
 	unless (defined $Routine{$tag}) {
 		if(defined $Alias{$tag}) {
 			my ($rest, $text);
 			($tag, $rest) = split /\s+/, $Alias{$tag}, 2;
-print("Calling alias, tag $tag rest $rest, orig=$origtext\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Calling alias, tag $tag rest $rest, orig=$origtext\n")
+#	if ::debug(0x2);
+# END DEBUG
 			$text = _find_tag (\$rest, $attr, $attrseq);
 			$text = " $text" if $text;
 			$origtext =~ s:^(\[\S+):[$tag$text:;
 		}
 		else {
-print("Returning text, tag $tag not found\n$origtext\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Returning text, tag $tag not found\n$origtext\n")
+#	if ::debug(0x2);
+# END DEBUG
 			$self->{OUT} .= $origtext;
 			return 1;
 		}
@@ -524,7 +521,11 @@ print("Returning text, tag $tag not found\n$origtext\n") if $Global::DEBUG;
 
 	$attr->{interpolate} = $self->{INTERPOLATE}
 		unless defined $attr->{interpolate};
-#print("Start $tag: wait for $self->{WAIT_BRACKET}...") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Start $tag: wait for $self->{WAIT_BRACKET}...")
+#	if ::debug(0x2);
+# END DEBUG
 
 	for(@$attrseq) {
 		# Attribute aliases
@@ -535,10 +536,18 @@ print("Returning text, tag $tag not found\n$origtext\n") if $Global::DEBUG;
 		}
 		# Parse tags within tags, only works if the [ is the
 		# first character.
-print("Parsing attribute $_ $attr->{$_}\n") if $Global::DEBUG;
-		next unless $attr->{$_} =~ /\[\w+[-\w]*\s+[\000-\377]+\]/;
+# DEBUG
+#Vend::Util::logDebug
+#("Parsing attribute $_ $attr->{$_}\n")
+#	if ::debug(0x2);
+# END DEBUG
+		next unless $attr->{$_} =~ /\[\w+[-\w]*\s*[\000-\377]*\]/;
 		my $t = $_;
-print("Re-parsing attribute $t $attr->{$t}\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Re-parsing attribute $t $attr->{$t}\n")
+#	if ::debug(0x2);
+# END DEBUG
 
 		my $p = new Vend::Parse $self->{WAIT_BRACKET};
 		$p->parse($attr->{$t});
@@ -554,13 +563,21 @@ print("Re-parsing attribute $t $attr->{$t}\n") if $Global::DEBUG;
 	if($self->{OUT} =~ s/\[\s*\d?\s*$//) {
 		$self->{WAIT_BRACKET}++;
 		$attr->{interpolate}++;
-#print("...waiting for $self->{WAIT_BRACKET} bracket(s)...") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("...waiting for $self->{WAIT_BRACKET} bracket(s)...")
+#	if ::debug(0x2);
+# END DEBUG
 	}
 
 	# Check for old-style positional tag
 	if($origtext =~ s/\[[-\w]+\s+//i and !@$attrseq)
 	{
-#print("called old $tag with args $origtext\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("called old [$tag] with args $origtext\n")
+#	if ::debug(0x1);
+# END DEBUG
 			$origtext =~ s/\]$//;
 			$attr->{interpolate} = 0 if $hasEndTag{$tag} and $canNest{$tag};
 			$attr->{interpolate} = 1 if defined $Interpolate{$tag};
@@ -576,20 +593,36 @@ print("Re-parsing attribute $t $attr->{$t}\n") if $Global::DEBUG;
 	}
 
 	if($hasEndTag{$tag}) {
-#print("...has end tag...") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("...has end tag...")
+#	if ::debug(0x2);
+# END DEBUG
 		if($canNest{$tag}) {
-#print("...find_matching_end...") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("...find_matching_end...")
+#	if ::debug(0x2);
+# END DEBUG
 			$tmpbuf = $self->find_matching_end($tag);
 		}
 		else {
-#print("...find_end...") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("...find_end...")
+#	if ::debug(0x2);
+# END DEBUG
 			$tmpbuf = $self->find_end($tag);
 		}
 
 		# Handle embedded tags, but only if interpolate is 
 		# defined (always if using old tags)
 		if($attr->{interpolate}) {
-print("...interpolating with end tag...") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("...interpolating with end tag...")
+#	if ::debug(0x2);
+# END DEBUG
 			my $p = new Vend::Parse $self->{WAIT_BRACKET};
 			$p->parse($tmpbuf);
 			$tmpbuf = $p->{OUT};
@@ -598,7 +631,11 @@ print("...interpolating with end tag...") if $Global::DEBUG;
 		elsif(	$self->{WAIT_BRACKET} and
 				$self->{'_buf'} =~ s/\s*\d?\s*\]// ) {
 			$self->{WAIT_BRACKET}--;
-#print("...removed bracket (1)...") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("...removed bracket (1)...")
+#	if ::debug(0x2);
+# END DEBUG
 		}
 
 		# recursive
@@ -607,7 +644,11 @@ print("...interpolating with end tag...") if $Global::DEBUG;
 				. $self->{'_buf'};
 	}
 	elsif($attr->{interpolate}) {
-print("...interpolating...") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("...interpolating...")
+#	if ::debug(0x2);
+# END DEBUG
 			my $p = new Vend::Parse $self->{WAIT_BRACKET};
 			$p->parse(&$routine( @args ));
 			$self->{INVALID} += $p->{INVALID};
@@ -618,10 +659,18 @@ print("...interpolating...") if $Global::DEBUG;
 	}
 
 	if($self->{WAIT_BRACKET} and $self->{'_buf'} =~ s/\s*\d?\s*\]// ) {
-#print("...removed bracket (2)...") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("...removed bracket (2)...")
+#	if ::debug(0x2);
+# END DEBUG
 			$self->{WAIT_BRACKET}--;
 	}
-#print("waiting for $self->{WAIT_BRACKET} brackets.\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("waiting for $self->{WAIT_BRACKET} brackets.\n")
+#	if ::debug(0x2);
+# END DEBUG
 
 	return 1;
 }
@@ -631,19 +680,31 @@ sub end
     my($self, $tag) = @_;
 	my $save = $tag;
 	$tag =~ tr/-/_/;   # canonical
-#print("called Vend::Parse::end with $tag\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("called Vend::Parse::end with $tag\n")
+#	if ::debug(0x2);
+# END DEBUG
 
 	if ($isEndAnchor{$tag}) {
 		$self->{OUT} .= '</a>';
 	}
 	elsif (! $hasEndTag{$tag}) {
-#print("Returning text, end tag $tag not found\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Returning text, end tag $tag not found\n")
+#	if ::debug(0x2);
+# END DEBUG
 		$self->{OUT} .= "[/$save]";
 		return '';
 	}
 
 	if($self->{WAIT_BRACKET} and $self->{'_buf'} =~ s/\s*\d?\s*\]// ) {
-#print("...removed bracket (3)...") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("...removed bracket (3)...")
+#	if ::debug(0x2);
+# END DEBUG
 			$self->{WAIT_BRACKET}--;
 	}
 	return '';
@@ -661,25 +722,41 @@ sub find_matching_end {
 			$tmpbuf = $1;
 			$eaten = $2;
 			if($self->{WAIT_BRACKET} and $$buf =~ s/\s*\d?\s*\]// ) {
-print("...removed bracket (4)...") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("...removed bracket (4)...")
+#	if ::debug(0x2);
+# END DEBUG
 					$self->{WAIT_BRACKET}--;
 			}
 			$found++;
 			push(@out, $tmpbuf);
 			$more++ while ($tmpbuf =~ m!\[$tag[\]\s]!g);
-print("---found=$found more=$more") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("---found=$found more=$more")
+#	if ::debug(0x2);
+# END DEBUG
 			push(@out, $eaten);
 			last if $found > $more;
 		}
 		else {
-print("---eof found.") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("---eof found.")
+#	if ::debug(0x2);
+# END DEBUG
 			last;
 		}
 	}
 	pop @out;
 
 	$outbuf = join '', @out;
-#print("---BUFFER LOOP ----\n$outbuf\n------\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("---BUFFER LOOP ----\n$outbuf\n------\n")
+#	if ::debug(0x2);
+# END DEBUG
 	$outbuf;
 }
 
@@ -688,12 +765,20 @@ sub find_end {
 	my($self, $tag) = @_;
 	my $buf = \$self->{'_buf'};
 	$tag =~ s'_'[-_]'g;
-#print("Finding match for $tag...\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Finding match for [$tag]...\n")
+#	if ::debug(0x2);
+# END DEBUG
 	if($$buf =~ s!([\000-\377]*?)(\[/${tag}\])!!) {
 		return $1;
 	}
 	else {
-print("Found no match for $tag.\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Found no match for $tag.\n")
+#	if ::debug(0x2);
+# END DEBUG
 		return undef;
 	}
 }
@@ -743,7 +828,11 @@ sub _find_tag {
 
 sub implicit {
 	my($self, $tag, $attr) = @_;
-print("check tag='$tag' attr='$attr'...") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("check tag='$tag' attr='$attr'...")
+#	if ::debug(0x2);
+# END DEBUG
 	return ($attr, undef) unless defined $Implicit{$tag} and $Implicit{$tag}{$attr};
 	return ( $Implicit{$tag}{$attr}, $attr );
 }

@@ -1,10 +1,10 @@
 #
 # Offline.pm - Offline database build module for MiniVend
 #
-# $Id: Offline.pm,v 1.4 1997/11/03 11:31:32 mike Exp $
+# $Id: Offline.pm,v 1.5 1998/01/31 05:16:40 mike Exp $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
-# Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ use Vend::Util;
 use Vend::Table::Import qw(import_ascii_delimited import_quoted);
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.4 $, 10);
+$VERSION = substr(q$Revision: 1.5 $, 10);
 
 
 BEGIN {

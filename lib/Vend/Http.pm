@@ -1,10 +1,13 @@
 # Http.pm:  interface to cgi protocol
 #
-# $Id: Http.pm,v 1.9 1997/11/03 11:31:17 mike Exp $
+# $Id: Http.pm,v 1.10 1998/01/31 05:15:27 mike Exp $
 #
 package Vend::Http;
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+#
+# Modified by and
+# Copyright 1997-1998, Mike Heins <mikeh@minivend.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,7 +28,7 @@ package Vend::Http::Base;
 
 use strict;
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.9 $, 10);
+$VERSION = substr(q$Revision: 1.10 $, 10);
 
 #sub Server                    { $_[0]->{'Server'} }
 sub Content_Encoding          { $_[0]->{'Content_Encoding'} }

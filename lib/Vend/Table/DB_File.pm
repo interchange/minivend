@@ -1,6 +1,6 @@
 # Table/DB_File.pm: access a table stored in a DB file hash
 #
-# $Id: DB_File.pm,v 1.9 1997/09/05 07:32:30 mike Exp $
+# $Id: DB_File.pm,v 1.11 1998/01/31 05:23:13 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -21,7 +21,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::DB_File;
-$VERSION = substr(q$Revision: 1.9 $, 10);
+$VERSION = substr(q$Revision: 1.11 $, 10);
 use Carp;
 use strict;
 use Fcntl;
@@ -112,7 +112,11 @@ sub open_table {
     else {
         $flags = O_RDWR;
     }
-	print("Flags are: '$flags'\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("DB_File flags are: '$flags'\n")
+#	if ::debug(0x4);
+# END DEBUG
 
     my $dbm = tie(%$tie, 'DB_File', $filename, $flags, 0600)
         or croak "Could not open '$filename': $!";

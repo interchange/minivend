@@ -1,6 +1,6 @@
 # Table/Msql.pm: access a table stored in an Msql Database
 #
-# $Id: Msql.pm,v 1.8 1997/09/08 04:24:49 mike Exp $
+# $Id: Msql.pm,v 1.10 1998/01/31 05:23:31 mike Exp $
 #
 
 # Basic schema
@@ -24,7 +24,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::Msql;
-$VERSION = substr(q$Revision: 1.8 $, 10);
+$VERSION = substr(q$Revision: 1.10 $, 10);
 
 use Carp;
 use strict;
@@ -211,13 +211,21 @@ sub each_record {
     my ($s) = @_;
 	my ($table,$key,$db, $each) = @$s;
 	unless(defined $each) {
-#print("Each not defined -- listing table $table for $db\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Each not defined -- listing table $table for $db\n")
+#	if ::debug(0x4);
+# END DEBUG
 		$each = $db->query("select * from $table")
 			or croak $db->errmsg();
 		push @$s, $each;
 	}
 	my @cols = $each->fetchrow;
-#print("Cols for Msql each_record:\n--\n@cols\n--\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Cols for Msql each_record:\n--\n@cols\n--\n")
+#	if ::debug(0x4);
+# END DEBUG
 	pop(@$s) unless(scalar @cols);
 	return @cols;
 }
@@ -420,7 +428,11 @@ sub set_row {
 		if ($type[$i] == Msql::CHAR_TYPE) {
 			$fields[$i] = $s->[2]->quote($fields[$i]);
 		}
-##print("field=$fields[$i]\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("field=$fields[$i]\n")
+#	if ::debug(0x4);
+# END DEBUG
 	}
 
 	my $values = join ", ", @fields;

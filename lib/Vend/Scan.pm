@@ -1,6 +1,6 @@
 # Vend/Scan.pm:  Prepare searches for MiniVend
 #
-# $Id: Scan.pm,v 1.22 1997/12/15 02:13:13 mike Exp mike $
+# $Id: Scan.pm,v 1.25 1998/01/31 05:21:52 mike Exp $
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ require Exporter;
 			perform_search
 			);
 
-$VERSION = substr(q$Revision: 1.22 $, 10);
+$VERSION = substr(q$Revision: 1.25 $, 10);
 
 use strict;
 use Vend::Util;
@@ -398,7 +398,11 @@ FORMULATE: {
 			$options->{sql_query} =~ s/(\s)\?([\s]|$)/$1$specs[$i]$2/;
 			$i++;
 		}
-print("mv_sql_query: $options->{sql_query}\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("mv_sql_query: $options->{sql_query}\n")
+#	if ::debug(0x10);
+# END DEBUG
 		$out = $db->array_query ($options->{sql_query},$tables[0])
 					or return 0;
 		last FORMULATE;
@@ -461,9 +465,17 @@ print("mv_sql_query: $options->{sql_query}\n") if $Global::DEBUG;
 					$qb = $qe = "%";
 			}
 			if(! $db->numeric($fields[$i]) ) {
-print("quoting field $i=$specs[$i]\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("quoting field $i=$specs[$i]\n")
+#	if ::debug(0x10);
+# END DEBUG
 				$specs[$i] = $db->quote("$qb$specs[$i]$qe");
-print("quoted field $i=$specs[$i]\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("quoted field $i=$specs[$i]\n")
+#	if ::debug(0x10);
+# END DEBUG
 			}
 
 			push(@query, "$fields[$i] $op $specs[$i]");
@@ -547,7 +559,11 @@ print("quoted field $i=$specs[$i]\n") if $Global::DEBUG;
 		}
 	}
 
-print("complex query: $query\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("complex query: $query\n")
+#	if ::debug(0x10);
+# END DEBUG
 	$out = $db->array_query ($query,$tables[0])
 			or return 0;
 
@@ -559,7 +575,11 @@ print("complex query: $query\n") if $Global::DEBUG;
 	my $q = new Vend::Search %{$options};
 	my $matches = $q->{'global'}->{matches} = scalar @$out;
 	$q->specs(@specs);
-#print("matches: $matches\n@out\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("matches: $matches\n@out\n")
+#	if ::debug(0x10);
+# END DEBUG
 	if($matches > $q->{global}->{match_limit}) {
 		$q->save_more(\@out);
 		$matches = $q->{global}->{match_limit};

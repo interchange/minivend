@@ -2,7 +2,7 @@
 #
 # makecat = MiniVend catalog configurator
 #
-# Copyright 1996,1997 by Michael J. Heins <mikeh@minivend.com>
+# Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -183,18 +183,20 @@ if ($< == 0) {
 my %Conf;
 my %Initial;
 
-my %IfRoot = (qw( minivenduser 1 minivendgroup 1 catuser 1));
+my %IfRoot = (qw( permtype 1 minivenduser 1 minivendgroup 1 catuser 1));
 
 my %Prefix = (
 	vendroot     =>  $VendRoot,
-	basedir      =>  sub { $isroot ? '' : "$ENV{HOME}/catalogs" },
+	basedir      =>  sub {
+							return "$Conf{vendroot}/catalogs"
+								if $Windows;
+							return "$ENV{HOME}/catalogs"
+								unless $isroot;
+							return "~/catalogs";
+							},
 	minivenduser =>  sub {  return 'everybody' if $Windows;
-							$isroot ? '' : get_id(); },
-	minivendgroup=>  sub {
-						return 'nogroup' if $Windows;
-						my $gid = (getpwnam($Conf{minivenduser}))[3];
-						(getgrgid($gid))[0];
-					 },
+							get_id(); },
+	minivendgroup=>  '',
     documentroot =>  $DocrootDefault,
 	cgidir       =>  $CgiDefault,
 	cgibase      =>  $CgiUrlDefault,
@@ -205,7 +207,13 @@ my %Prefix = (
 								$Tilde = $1;
 							}
     						$Conf{catuser} },
-	catroot      =>  sub { $Conf{basedir} . "/" . $catalog_name },
+	catroot      =>  sub {
+							my $dir = $Conf{basedir} . "/" . $catalog_name;
+							return $dir if $Windows;
+							my $userdir = (getpwnam($Conf{catuser}))[7];
+							$dir =~ s/\~/$userdir/;
+							return $dir;
+							},
 	cgiurl       =>  sub { my $url = '';
 							if ($Windows) {
 								$url .= $Conf{cgibase} . '/' .
@@ -280,24 +288,49 @@ my %History = (
 							push(@return, $Servers->{$Servername}->{serveradmin})
 							 if defined $Servers->{$Servername}->{serveradmin};
 						}
-						@return;
+						return @return;
 					},
 	imagedir     =>   sub {
-						my @return = @_;
+						my (@return) = @_;
 						if(defined $Servers->{$Servername}) {
 							push (@return,
 								values %{$Servers->{$Servername}->{alias}})
 							 if defined $Servers->{$Servername}->{alias};
 						}
+						return @return;
+					},
+
+	permtype     =>   sub {
+						my (@return) = @_;
+						push(@return, 'G', 'M', 'U');
+						return @return;
 					},
 
 	imageurl     =>   sub {
-						my @return = @_;
+						my (@return) = @_;
 						if(defined $Servers->{$Servername}) {
 							push (@return,
 								keys %{$Servers->{$Servername}->{alias}})
 							 if defined $Servers->{$Servername}->{alias};
 						}
+						return @return;
+					},
+
+	catuser  =>   sub {
+						return 'everybody' if $Windows;
+						my @return = (@_);
+						my $u;
+						if(defined $Servers->{$Servername}) {
+							$nogood = $Servers->{$Servername}->{'user'}
+							 if defined $Servers->{$Servername}->{'user'};
+						}
+						my @out;
+						while($u = getpwent) {
+							next if $u eq 'root';
+							next if $u eq $nogood;
+							push(@out, $u);
+						}
+						return (@return, sort @out);
 					},
 
 	minivenduser  =>   sub {
@@ -305,31 +338,33 @@ my %History = (
 						my @return = (@_);
 						my $u;
 						if(defined $Servers->{$Servername}) {
-							$nogood = $Servers->{$Servername}->{user}
-							 if defined $Servers->{$Servername}->{user};
+							$nogood = $Servers->{$Servername}->{'user'}
+							 if defined $Servers->{$Servername}->{'user'};
 						}
+						my @out;
 						while($u = getpwent) {
 							next if $u eq 'root';
 							next if $u eq $nogood;
-							push(@return, $u);
+							push(@out, $u);
 						}
-						@return;
+						return (@return, sort @out);
 					},
 
 	minivendgroup  =>   sub {
 						return 'nogroup' if $Windows;
-						my @return = (@_);
+						my (@return) = @_;
 						my $u;
 						if(defined $Servers->{$Servername}) {
-							$nogood = $Servers->{$Servername}->{user}
-							 if defined $Servers->{$Servername}->{user};
+							$nogood = $Servers->{$Servername}->{'group'}
+							 if defined $Servers->{$Servername}->{'group'};
 						}
+						my @out;
 						while($u = getgrent) {
 							next if $u eq 'root';
 							next if $u eq $nogood;
-							push(@return, $u);
+							push(@out, $u);
 						}
-						@return;
+						return (@return, sort @out);
 					},
 
 );
@@ -415,18 +450,28 @@ cycle among them with the UP and DOWN arrows.
 
 EOF
 	}
+	else {
+		print <<EOF;
+
+This information may not be that useful to you, since you don't
+have the Term::ReadLine module installed. If the default setting
+presented is not correct, you will have to know the information.
+C'est la vie.
+
+EOF
+	}
 
 	if(@conf) {
 		# Skip doing this again
 	}
-	elsif($param = $Cfg->val('global', 'serverconf')) {
+	elsif($param = $Cfg->val('base', 'serverconf')) {
 		last FINDCONF if $param =~ /^none$/i;
 		@conf = split /\s+/, $param;
 	}
 	else {
 		if(findexe('locate')) {
 			@conf = findfiles('httpd.conf');
-			$Cfg->setval('global', 'serverconf', join(" ", @conf));
+			$Cfg->setval('base', 'serverconf', join(" ", @conf));
 		}
 		else {
 			print <<EOF;
@@ -438,11 +483,11 @@ command). This may take as many as several minutes.
 EOF
 			$ask = prompt("Find httpd.conf files? ", 'y');
 			@conf = findfiles('httpd.conf') if $ask =~ /^\s*y/i;
-			$Cfg->setval('global', 'serverconf', join(" ", @conf));
+			$Cfg->setval('base', 'serverconf', join(" ", @conf));
 		}
 	}
 	sethistory(@conf);
-	$httpdconf = prompt("Enter path to httpd.conf file: ", shift @conf);
+	$httpdconf = prompt("Enter path to httpd.conf file: ", $conf[0]);
 
 	last FINDCONF if $httpdconf =~ /^none$/i;
 	if($httpdconf) {
@@ -450,10 +495,13 @@ EOF
 		unless (defined $Servers) {
 			print <<EOF;
 
-The file '$httpdconf' was not parsed properly. You can try
-again if you wish. (Don't worry if it didn't work, you will
-have the opportunity to enter all of the proper information
-manually.)
+The file '$httpdconf' was not parsed properly.
+
+Error: $Vend::MakeCat::Error
+
+You can edit the file and try again if you wish. (Don't worry if it
+didn't work, you will have the opportunity to enter all of the proper
+information manually.)
 
 EOF
 			$ask = prompt("Try again? ", 'y');
@@ -500,23 +548,24 @@ EOF
 You are the super-user. You can set the permissions to GROUP, MULTIPLE
 GROUP, or USER mode for catalogs on this server.
 
-GROUP or MULTIPLE GROUP is appropriate when multiple users will be running
+MULTIPLE GROUP or GROUP is appropriate when multiple users will be running
 catalogs on the same server.
 
-Perhaps the best way is to put each user in their own group, and place
-the MiniVend user in that group, i.e.  MULTIPLE GROUP permissions. In
-this mode, only the user of each catalog and the MiniVend server may
-read database and error files -- files that may contain sensitive 
-information.
+MULTIPLE GROUP is the best way. Put each user in their own group, and
+place the MiniVend user in that group.  In this mode, only the user of
+each catalog and the MiniVend server may read database and error files --
+files that may contain sensitive information. If the user's default UMASK
+is 2 on a UNIX system, then this the most troublefree mode of operation.
 
-You can also place all catalog users in a single group, i.e. the
-"minivend" group. This allows the MiniVend user and each individual
-user to read the files associated with a catalog, but others in the
-group may read files from a catalog. This may not be secure. This is
-GROUP mode.
+GROUP mode causes all files to be owned by the MiniVend user, with group
+ownership set to the group the user belongs to. This allows the MiniVend
+user and each individual user to read and write the files associated with
+a catalog, but others in that group may read files from a catalog. This
+may not be secure, and may cause problems when the user creates new
+files that must be read/write to the MiniVend user.
 
 USER mode is appropriate when only one user owns all catalogs running
-on this server.
+on this server, and the MiniVend daemon is run by the same user.
 
   M) MULTIPLE GROUP
   G) GROUP
@@ -524,8 +573,8 @@ on this server.
 
 EOF
 			sethistory("MULTIPLE GROUP", "GROUP", "USER");
-			$Conf{permtype} = prompt("Permission Mode? ", "");
-			unless($Conf{permtype} =~ s/^\s*([mgu]).*/lc $1/ie) {
+			$Conf{permtype} = prompt("Permission Mode? ", "M");
+			unless($Conf{permtype} =~ s/^\s*([mgu]).*/uc $1/ie) {
 				warn "Must be one of M(ULTIPLE), G(ROUP), or U(SER).\n";
 				redo PERMS;
 			}
@@ -549,9 +598,7 @@ EOF
 
 	last DEFSERVER unless @Servers;
 
-	#print Dumper $Servers;
-
-	print <<EOF;
+	print <<EOF if defined $Vend::MakeCat::Prompt_sub;
 
 MiniVend can set many of the defaults for you if it knows the server
 name that is going to be used.
@@ -559,10 +606,6 @@ name that is going to be used.
 Enter the default server that should be used. This is only a default, to
 determine the *first* one that will be looked at -- you will be given
 a choice of all available servers.
-
-EOF
-
-	print <<EOF if defined $Vend::MakeCat::Prompt_sub;
 
 There is a "history" mechanism that will allow you to use the up
 and down arrows on your terminal (assuming you have a standard terminal)
@@ -574,6 +617,7 @@ EOF
 	sethistory(@Servers);
 	$Conf{servername} = prompt('Default server? ', $Servers[0]);
 	$Servername = $Conf{servername};
+	$Cfg->setval('base', 'servername', $Servername);
 
 	}
 	############
@@ -598,12 +642,14 @@ EOF
 
 	for ($i = 0; $i < scalar @ask; $i++) {
 		$p = $ask[$i];
-		@history = &{$History{$p}}(prefix($p)) if defined $History{$p};
-		if(@history) {
+		my $hval;
+		$hval = prefix($p);
+		if (defined $History{$p}) {
+			@history = &{$History{$p}}(prefix($p));
+			$hval = $history[0];
 			sethistory(@history);
 		}
-		$val = $Cfg->val("base", $p);
-		$val = $val || prefix($p);
+		$val = $Cfg->val("base", $p) || $hval;
 		print "\n";
 		print description($p);
 		print "\n\n";
@@ -629,7 +675,7 @@ EOF
 # Set server
 
 print "######### BEGINNING CATALOG CONFIGURATION #########\n";
-print <<EOF if $Vend::MakeCat::History;
+print <<EOF if defined $Vend::MakeCat::Prompt_sub;
 
 During many of the following operations, defaults are placed in
 a buffer for you.  You may use the up and down arrows to toggle
@@ -639,7 +685,10 @@ EOF
 SETSERVER: {
 	sethistory(@Servers);
 	print description('servername');
-	$Servername = $Conf{servername} = prompt("Server name? ", $Servers[0]);
+ 	$Servername = $Cfg->val('base', 'servername');
+	$Servername =
+		$Conf{servername} =
+			prompt("Server name? ", ($Servername || $Servers[0]));
 	$Cfg->setval("catalog $catalog_name", 'servername', $Conf{servername});
 }
 
@@ -648,13 +697,15 @@ SETSERVER: {
 
 	for ($i = 0; $i < scalar @ask; $i++) {
 		$p = $ask[$i];
-		@history = ();
-		@history = &{$History{$p}}(prefix($p)) if defined $History{$p};
-		if(@history) {
+		if (defined $History{$p}) {
+			@history = &{$History{$p}}(prefix($p));
 			sethistory(@history);
+			$val = $Cfg->val("catalog $catalog_name", $p)
+					|| $history[0] || prefix($p);
 		}
-		$val = $Cfg->val("catalog $catalog_name", $p);
-		$val = $val || prefix($p);
+		else {
+			$val = $Cfg->val("catalog $catalog_name", $p) || prefix($p);
+		}
 		if (! $isroot and defined $IfRoot{$p}) {
 			$Conf{$p} = $val;
 			next;
@@ -696,7 +747,7 @@ hard for us to guess the URL needed to access pages from
 the catalog. Please re-specify your HTML document root.
 
 # The base directory for HTML for the catalog, the DocumentRoot.
-# This is a UNIX file name, not a URL.
+# This is a file name, not a URL.
 
 EOF
         $val = '';
@@ -733,7 +784,7 @@ EOF
 
 }
 
-$mvuid = $Windows ? 'everybody' : (getpwnam($Conf{minivenduser}))[0];
+$mvuid = $Windows ? 'everybody' : (getpwnam($Conf{minivenduser}))[2];
 unless (defined $mvuid) {
 	die "$Conf{minivenduser} is not a valid user name on this machine.\n";
 }
@@ -750,7 +801,7 @@ if ($Conf{minivendgroup}) {
 	}
 }
 else {
-	$catgid = $Windows ? 'nogroup' : (getpwnam($Conf{minivenduser}))[3];
+	$mvgid = $Windows ? 'nogroup' : (getpwnam($Conf{minivenduser}))[3];
 }
 
 if($Windows) {
@@ -884,21 +935,18 @@ if($warn) {
 			File::Path::mkpath([$dir], 0, 0775)
 				or die "Couldn't make directory $dir: $!\n";
 		}
-		if($isroot) {
-			chown ($mvuid, $mvgid, $dir)
-				or die "Couldn't change ownership of $dir: $!\n";
-		}
 	}
 }
 
 for(qw(catroot samplehtml imagedir)) {
-		$dir = $Conf{$_};
+	$dir = $Conf{$_};
 
-		# Allow nocopy
-		next if $dir =~ /^\s*none\s*$/i;
+	# Allow nocopy
+	next if $dir =~ /^\s*none\s*$/i;
 
-		die "Directory $dir not writable, can't continue.\n"
-			unless -w $dir or $dir =~ /^\s*none\s*$/i;
+	die "Directory $dir not writable, can't continue.\n"
+		unless -w $dir or $dir =~ /^\s*none\s*$/i;
+	set_owner($dir);
 }
 print "done.\n";
 
@@ -942,17 +990,9 @@ print "done.\n";
 chdir $Conf{catroot} 
  	|| die "Couldn't change directory to $Conf{catroot}: $!\n";
 
-%Mfile = ( qw(
-                catalog.cfg     1
-                error.log       1
-                etc             1
-                products        1
-                products.db     1
-                products.gdbm   1
-				session			1
-                session.db      1
-                session.gdbm    1
-                session.lock    1
+%Xfile = ( qw(
+                reconfig        1
+                report_problem  1
             ) );
 
 my ($umode, $gmode);
@@ -975,6 +1015,16 @@ else {
     __MVC_SERVERNAME    servername
 
 );
+
+sub set_owner {
+	my($file) = @_;
+	return unless $isroot;
+	my ($user, $group) = ($mvuid, $mvgid);
+	if($Conf{permtype} =~ /^m/i) { $user = $catuid; $group = $catgid; }
+	elsif($Conf{permtype} =~ /^g/i) { $group = $catgid; }
+	chown($user, $group, $file)
+		or die "Couldn't set ownership to UID=$user GID=$group for $file: $!\n";
+}
 
 sub substitute {
 	my($parm,$new) = @_;
@@ -1022,38 +1072,28 @@ sub wanted {
 		# None of this stuff applies for Windows, I don't think.
 		# Put Win-specific stuff here.
 	}
-	elsif(defined $Mfile{$file} or $file =~ /\.gdbm$|\.asc$|\.txt$|\.csv$|\.db$/) {
-		if($isroot) {
-			chown ($mvuid, $mvgid, $file)
-				or die "\nCouldn't set ownership of $name: $!\n";
-		}
+	else {
+		set_owner($file);
 		$mode = (stat($file))[2];
-		$mode |= 16 unless $umode;
+		if ($Xfile{$file}) {
+			$mode |= 0550;
+		}
+		else {
+			$mode |= 060 if $gmode;
+			$mode |= 02010 if $gmode and -d $file;
+		}
 		chmod ($mode, $file)
 			or die "\nCouldn't set permissions on $name: $!\n";
-			
-	}
-	else {
-		chmod(0755, $file) if $file =~ /reconfig$|report_problem$/;
-		if($isroot) {
-			chown ($catuid, $catgid, $file)
-				or die "\nCouldn't set ownership on $name: $!\n";
-		}
 	}
 }
 	
 	$File::Find::dont_use_nlink = 1;
+	set_owner($Conf{catroot});
 	File::Find::find(\&wanted, $Conf{catroot});
-
-	if($isroot) {
-		chown ($mvuid, $mvgid, $Conf{catroot})
-			or warn "\nCouldn't set ownership of $Conf{catroot}: $!\n";
-	}
 
 	$cginame = $Conf{cgiurl};
 	$cginame =~ s:.*/::;
 	$cginame = "$Conf{cgidir}/$cginame";
-
 	
 	unless ($prog eq 'NONE') {
 
@@ -1089,6 +1129,18 @@ EOF
 		print "done.\n";
 	}
 
+	my $chg_to_catuser = sub {
+							next if -l $_;
+							$File::Find::prune = 1 if -f _;
+							my $mode = (stat(_))[2];
+							$mode |= 044;
+							$mode |= 011 if -d $_;
+							chmod( $mode, $_)
+								or die "chmod $_ to $mode: $!\n";
+							chown($catuid, $catgid, $_)
+								or die "chown $_: $!\n";
+							
+						 };
 	
 	unless($Conf{samplehtml} eq 'NONE') {
 		print do_msg("Moving HTML files to $Conf{samplehtml}");
@@ -1101,6 +1153,10 @@ EOF
 		if($@) {
 			die "Couldn't move HTML files $Conf{samplehtml}: $@\n";
 		}
+
+		File::Find::find( $chg_to_catuser, $Conf{samplehtml})
+			if $isroot;
+
 		print "done.\n";
 	}
 
@@ -1110,22 +1166,16 @@ EOF
 			chdir 'images';
 			copy_current_to_dir($Conf{imagedir});
 			chdir '..';
+			File::Path::rmtree('images');
 		};
 	
 		if($@) {
 			die "Couldn't move HTML files $Conf{imagedir}: $@\n";
 		}
-		if($isroot) {
-			opendir(CHGIT,$Conf{imagedir})
-				or die "couldn't open $Conf{imagedir}: $!\n";
-			my (@files) = grep !/^\./, readdir CHGIT;
-			closedir CHGIT;
-			for(@files) {
-				chown ($catuid, $catgid, "$Conf{imagedir}/$_")
-					or die "Couldn't chown image files in $Conf{imagedir}: $!\n";
-			}
-		}
-		File::Path::rmtree('images');
+
+		File::Find::find($chg_to_catuser, $Conf{imagedir})
+			if $isroot;
+
 		print "done.\n";
 	}
 
@@ -1271,6 +1321,7 @@ documentroot=
 minivendgroup=
 minivenduser=
 serverconf=
+servername=
 vendroot=
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -1327,13 +1378,12 @@ EOF
 # Default (base) parameters to ask about, in order
 #
 askbase=<<EOF
+cgidir
+cgibase
+documentroot
 vendroot
 basedir
 minivenduser
-minivendgroup
-documentroot
-cgidir
-cgibase
 EOF
 
 # 
@@ -1341,9 +1391,10 @@ EOF
 #
 askconfig=<<EOF
 demotype
+permtype
 minivenduser
-minivendgroup
 catuser
+minivendgroup
 mailorderto
 catroot
 cgidir
@@ -1367,6 +1418,7 @@ imageurl=1
 mailorderto=1
 minivenduser=1
 minivendgroup=1
+permtype=1
 samplehtml=1
 sampleurl=1
 servername=1
@@ -1381,4 +1433,5 @@ documentroot=1
 minivendgroup=1
 minivenduser=1
 serverconf=1
+servername=1
 vendroot=1

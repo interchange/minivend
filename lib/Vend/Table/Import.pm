@@ -1,6 +1,6 @@
 # Table/Import.pm: import a table
 #
-# $Id: Import.pm,v 1.9 1997/09/07 07:15:24 mike Exp $
+# $Id: Import.pm,v 1.10 1998/01/31 05:27:12 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -19,7 +19,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::Import;
-$VERSION = substr(q$Revision: 1.9 $, 10);
+$VERSION = substr(q$Revision: 1.10 $, 10);
 
 require Exporter;
 @ISA = qw(Exporter);
@@ -55,7 +55,17 @@ sub import_quoted { return import_csv(@_) }
 
 sub import_ascii_delimited {
     my ($infile, $delimiter, $create) = @_;
-    $delimiter = quotemeta($delimiter);
+	my ($options, $format);
+
+	if(ref $delimiter) {
+		$options = $delimiter;
+		$delimiter = quotemeta($options->{'delimiter'});
+		$format = uc ($options->{CONTINUE} || 'NONE');
+	}
+	else {
+		$delimiter = quotemeta($delimiter);
+		$format = 'STANDARD';
+	}
 
     open(Vend::Table::Import::IN, "+<$infile")
 		or die "Couldn't open '$infile': $!\n";
@@ -63,24 +73,67 @@ sub import_ascii_delimited {
 
     my $field_names = <IN>;
     chomp $field_names;
+	$field_names =~ s/\s+$//;
     my @field_names = split(/$delimiter/, $field_names);
 	my $field_count = scalar @field_names;
-
 	# HACK!
     $Vend::FIRST_COLUMN_NAME = shift @field_names;
 
     my $out = &$create(@field_names);
 	my $fields;
     my (@fields, $key);
-    eval <<"END";
+	my @addl;
+
+my %format = (
+
+	NONE => <<EndOfRoutine,
         while (<IN>) {
             chomp;
             \$fields = \@fields = split(/$delimiter/, \$_, 99999);
-			push (\@fields, '') until \$fields++ >= $field_count;
+            push (\@fields, '') until \$fields++ >= $field_count;
             \$key = shift \@fields;
             \$out->set_row(\$key, \@fields);
         }
-END
+EndOfRoutine
+
+	UNIX => <<EndOfRoutine,
+        while (<IN>) {
+            chomp;
+			if(s/\\\\\$//) {
+				\$_ .= <IN>;
+				redo;
+			}
+            \$fields = \@fields = split(/$delimiter/, \$_, 99999);
+            push (\@fields, '') until \$fields++ >= $field_count;
+            \$key = shift \@fields;
+            \$out->set_row(\$key, \@fields);
+        }
+EndOfRoutine
+
+	DITTO => <<EndOfRoutine,
+        while (<IN>) {
+            chomp;
+			if(/^$delimiter/) {
+				\$fields = \@addl = split /$delimiter/, \$_, 99999;
+				shift \@addl;
+				my \$i;
+				for(\$i = 0; \$i < \@addl; \$i++) {
+					\$fields[\$i] .= "\n\$addl[\$i]"
+						if \$addl[\$i] ne '';
+				}
+			}
+			else {
+				\$fields = \@fields = split(/$delimiter/, \$_, 99999);
+				push (\@fields, '') until \$fields++ >= $field_count;
+				\$key = shift \@fields;
+			}
+            \$out->set_row(\$key, \@fields);
+        }
+EndOfRoutine
+
+);
+
+    eval $format{$format};
     die $@ if $@;
 
 	unlockfile(\*Vend::Table::Import::IN) or die "unlock\n";

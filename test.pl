@@ -8,6 +8,7 @@ $num_tests = 2;
 die "Must be in build directory\n" unless -d 'blib';
 
 $ENV{MINIVEND_ROOT} = "$cur_dir/blib";
+$ENV{MINIVEND_BADPOSIX} = 1;
 
 open(CONFIG, ">$ENV{MINIVEND_ROOT}/minivend.cfg")
 	or die "open: $!\n";

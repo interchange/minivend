@@ -1,8 +1,10 @@
 # Vend/TextSearch.pm:  Search indexes with Perl
 #
-# $Id: TextSearch.pm,v 1.10 1997/12/02 22:29:09 mike Exp $
+# $Id: TextSearch.pm,v 1.12 1998/01/31 05:22:27 mike Exp $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::TextSearch
+#
+# Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,20 +20,12 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-
-#
-##  vi regex to delete debugs     %s/^\(.*$s->debug\)/#\1/
-##  vi regex to restore debugs     %s/^\([^#]*\)#\(.*$s->debug\)/\1\2/
-#
-
 package Vend::TextSearch;
 require Vend::Search;
 
-# NOAUTO
 @ISA = qw(Vend::Search);
-# END NOAUTO
 
-$VERSION = substr(q$Revision: 1.10 $, 10);
+$VERSION = substr(q$Revision: 1.12 $, 10);
 
 use Text::ParseWords;
 use Search::Dict;
@@ -77,7 +71,11 @@ sub search {
 	my($s,%options) = @_;
     my $g = $s->{global};
 
-#	$s->debug("Vend::TextSearch");
+# DEBUG
+#Vend::Util::logDebug
+#("Text search using Vend::TextSearch\n")
+#	if ::debug(0x10);
+# END DEBUG
 
 	my($delim,$string);
 	my($max_matches,$mod,$spec);
@@ -106,10 +104,10 @@ sub search {
 	}
 
 	if($g->{base_directory}) {
-		my $pre = '';
-		$pre = '(?:[A-Za-z]:)?' if $Global::Windows;
-		@searchfiles =
-			grep s!^($pre[^/])!$g->{base_directory}/$1!, @searchfiles;
+		for(@searchfiles) {
+			$_ = File::Spec->catfile($g->{base_directory}, $_)
+				unless File::Spec->file_name_is_absolute($_);
+		}
 	}
 
  	$return_file_name = $g->{return_file_name};
@@ -140,7 +138,11 @@ sub search {
 
 	@specs = '' if @specs == 0;
 
-#	$s->debug($s->dump_options() . "\n");
+# DEBUG
+#Vend::Util::logDebug
+#($s->dump_options() )
+#	if ::debug(0x10);
+# END DEBUG
 
   SPEC_CHECK: {
 	last SPEC_CHECK if $g->{return_all};
@@ -185,7 +187,11 @@ EOF
 		}
 	}
 
-#	$s->debug($s->dump_options() . "\n");
+# DEBUG
+#Vend::Util::logDebug
+#($s->dump_options())
+#	if ::debug(0x10);
+# END DEBUG
 
 	if ( ! $g->{exact_match} and ! $g->{coordinate}) {
 		@specs = $s->quoted_string( join ' ', @specs);
@@ -193,7 +199,11 @@ EOF
 
 	@specs = $s->escape(@specs);
 
-#	$s->debug("spec='" . (join "','", @specs) . "'");
+# DEBUG
+#Vend::Util::logDebug
+#("spec='" . (join "','", @specs) . "'\n")
+#	if ::debug(0x10 );
+# END DEBUG
 
 	# untaint
 	for(@specs) {
@@ -202,7 +212,12 @@ EOF
 	}
 	@{$s->{'specs'}} = @specs;
 
-#	$s->debug("pats: '", join("', '", @pats), "'");
+# DEBUG
+#Vend::Util::logDebug
+#("pats: '", join("', '", @pats), "'\n")
+#	if ::debug(0x10);
+# END DEBUG
+
   } # last SPEC_CHECK
 
 	if ($g->{coordinate}) {
@@ -247,7 +262,11 @@ EOF
 
 	$g->{overflow} = 0;
 
-#	$s->debug('fields/specs: ', scalar @{$s->{fields}}, " ", scalar @{$s->{specs}});
+# DEBUG
+#Vend::Util::logDebug
+#('fields/specs: ' .  scalar @{$s->{fields}} . "/" .  scalar @{$s->{specs}} . "\n")
+#	if ::debug(0x10);
+# END DEBUG
 
 	if($g->{dict_end}) {
 		if(!$g->{dict_order} && !$g->{dict_fold}) {
@@ -282,20 +301,19 @@ EOF
 
     my $sort_string = $s->find_sort();
 	# If the string is set, append the joined searcfiles;
-	if($sort_string) {
+	if($sort_string and !$Global::Windows) {
 		#$sort_string =~ s!\|\s*$!join ' ', @searchfiles, '|'!e;
 		@searchfiles = join ' ', 'cat', @searchfiles, '|', $sort_string;
 	}
-#	$s->debug("sort_string:  $sort_string");
+# DEBUG
+#Vend::Util::logDebug
+#("sort_string:  $sort_string\n")
+#	if ::debug(0x10) ;
+# END DEBUG
 
 	local($/) = $g->{record_delim};
 
 	foreach $searchfile (@searchfiles) {
-		$searchfile = "$g->{base_directory}/$searchfile"
-			unless ($sort_string						||
-					$searchfile =~ m!^(?:[A-Za-z]:)?/!	||
-					! $g->{base_directory}
-					);
 		open(Vend::TextSearch::SEARCH, $searchfile)
 			or &{$g->{log_routine}}( "Couldn't open search file '$searchfile': $!"), next;
 		my $line;
@@ -315,17 +333,31 @@ EOF
         }
 
 		if($g->{dict_look}) {
-#			$s->debug("Dict search:  look='$g->{dict_look}'");
-#			$s->debug("Dict search:   end='$g->{dict_end}'");
+# DEBUG
+#Vend::Util::logDebug
+#("Dict search:  look='$g->{dict_look}'\n")
+#	if ::debug(0x10);
+#Vend::Util::logDebug
+#("Dict search:   end='$g->{dict_end}'\n")
+#	if ::debug(0x10);
+# END DEBUG
 			look \*Vend::TextSearch::SEARCH,
 				$g->{dict_look}, $g->{dict_order}, $g->{dict_fold};
 		}
 
 		if($g->{dict_end} && defined $limit_sub) {
-#			$s->debug("Dict search: with limit");
+# DEBUG
+#Vend::Util::logDebug
+#("Dict search: with limit\n")
+#	if ::debug(0x10);
+# END DEBUG
 			while(<Vend::TextSearch::SEARCH>) {
 				last if &$dict_limit($_);
-#				#$s->debug("Dict search: found='$_'");
+# DEBUG
+#Vend::Util::logDebug
+#("Dict search: found='$_'\n")
+#	if ::debug(0x10);
+# END DEBUG
 				next unless &$f();
 				next unless &$limit_sub($_);
 				(push @out, $searchfile and last)
@@ -334,10 +366,18 @@ EOF
 			}
 		}
 		elsif($g->{dict_end}) {
-#			$s->debug("Dict search: NO limit");
+# DEBUG
+#Vend::Util::logDebug
+#("Dict search: NO limit\n")
+#	if ::debug(0x10);
+# END DEBUG
 			while(<Vend::TextSearch::SEARCH>) {
 				last if &$dict_limit($_);
-#				# #$s->debug("Dict search: found='$_'");
+# DEBUG
+#Vend::Util::logDebug
+#("Dict search: found='$_'\n")
+#	if ::debug(0x10);
+# END DEBUG
 				next unless &$f();
 				(push @out, $searchfile and last)
 					if $return_file_name;
@@ -382,8 +422,14 @@ EOF
         $#out = $g->{match_limit} - 1;
     }
 
-#	$s->debug($g->{matches}, " matches");
-#	$s->debug("0 .. ", (scalar(@out) - 1));
+# DEBUG
+#Vend::Util::logDebug
+#("$g->{matches} matches\n")
+#	if ::debug(0x10);
+#Vend::Util::logDebug
+#("0 .. " . (scalar(@out) - 1) . "\n" )
+#	if ::debug(0x10);
+# END DEBUG
 
 	\@out;
 }

@@ -1,6 +1,6 @@
 package Vend::Parser;
 
-# $Id: Parser.pm,v 1.7 1997/11/08 16:46:27 mike Exp $
+# $Id: Parser.pm,v 1.11 1998/01/31 05:21:43 mike Exp $
 
 =head1 NAME
 
@@ -92,7 +92,7 @@ modify it under the same terms as Perl itself.
 
 Modified for use by MiniVend.
 
-Copyright 1997 Mike Heins.  
+Copyright 1997-1998 Mike Heins.  
 
 =head1 AUTHOR
 
@@ -106,7 +106,7 @@ use strict;
 
 use HTML::Entities ();
 use vars qw($VERSION);
-$VERSION = sprintf("%d.%02d", q$Revision: 1.7 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.11 $ =~ /(\d+)\.(\d+)/);
 
 
 sub new
@@ -265,7 +265,7 @@ sub parse
 						$val = $3;
 						HTML::Entities::decode($val);
 					# truncated just after the '=' or inside the attribute
-					} elsif ($$buf =~ m|^(=\s*)$| or
+					} elsif ($$buf =~ m|^(=\s*)$|s or
 							 $$buf =~ m|^(=\s*[\"\'].*)|s) {
 						$$buf = "$eaten$1";
 						return $self;
@@ -273,12 +273,24 @@ sub parse
 						# assume attribute with implicit value, but
 						# if not,no value is set and the
 						# eaten value is grown
-print("Implicit test...") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Implicit test...")
+#	if ::debug(0x2);
+# END DEBUG
 						($attr,$val) = $self->implicit($tag,$attr);
 						$old = 1 unless $val;
-print("old=$old val=$val attr=$attr\n") if ! $old and $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("old=$old val=$val attr=$attr\n")
+#	if ::debug(0x2);
+# END DEBUG
 					} else {
-print("Abort attribute parsing, attr='$attr'.\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Abort attribute parsing, attr='$attr'.\n")
+#	if ::debug(0x2);
+# END DEBUG
 						$old = 1;
 					}
 					next if $old;

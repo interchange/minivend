@@ -1,9 +1,9 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.30 1997/12/11 12:42:46 mike Exp $
+# $Id: Server.pm,v 1.35 1998/01/21 18:59:03 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
-# Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,9 +24,10 @@ require Vend::Http;
 @ISA = qw(Vend::Http::CGI);
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.30 $, 10);
+$VERSION = substr(q$Revision: 1.35 $, 10);
 
-use POSIX 'strftime';
+use Vend::Util qw(strftime);
+use POSIX qw(setsid);
 use strict;
 
 my $Pidfile;
@@ -92,7 +93,11 @@ sub respond {
 	}
 
 	if ($Vend::Session->{frames} and $CGI::values{mv_change_frame}) {
-print "Changed Frame: Window-target: " . $CGI::values{mv_change_frame} . "\r\n" if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Changed Frame: Window-target: " . $CGI::values{mv_change_frame} . "\r\n")
+#	if ::debug(0x40);
+# END DEBUG
 		print $fh "Window-target: " . $CGI::values{mv_change_frame} . "\r\n";
     }
 
@@ -100,7 +105,6 @@ print "Changed Frame: Window-target: " . $CGI::values{mv_change_frame} . "\r\n" 
     print $fh $body;
     $s->{'response_made'} = 1;
 }
-    
 
 package Vend::Server;
 require Exporter;
@@ -111,8 +115,8 @@ use Fcntl;
 use Config;
 use Socket;
 use strict;
-use POSIX;
 use Vend::Util;
+use POSIX qw(setsid);
 
 my $LINK_FILE = "$Global::ConfDir/socket";
 
@@ -176,14 +180,12 @@ sub read_cgi_data {
 }
 
 sub connection {
-    my ($debug) = @_;
-
     my (@argv, %env, $entity);
     read_cgi_data(\@argv, \%env, \$entity);
 
     my $http = new Vend::Http::Server \*Vend::Server::MESSAGE, \%env, $entity;
-    
-    ::dispatch($http,$debug);
+
+    ::dispatch($http);
 }
 
 ## Signals
@@ -363,7 +365,7 @@ EOF
 # The servers for both are now combined
 # Can have both INET and UNIX on same system
 sub server_both {
-    my ($socket_filename, $debug) = @_;
+    my ($socket_filename) = @_;
     my ($n, $rin, $rout, $pid, $tick, $max_servers);
 
 	$Vend::MasterProcess = $$;
@@ -378,6 +380,11 @@ sub server_both {
 	my $host = $Global::TcpHost || '127.0.0.1';
 	my $proto = getprotobyname('tcp');
 
+# DEBUG
+#Vend::Util::logDebug
+#("Starting server socket file='$socket_filename' tcpport=$port hosts='$host'\n")
+#	if ::debug($Global::DHASH{SERVER});
+# END DEBUG
 	unlink $socket_filename;
 
 	my $vector = '';
@@ -396,8 +403,7 @@ sub server_both {
 	if($Global::Unix_Mode) {
 		socket(Vend::Server::USOCKET, AF_UNIX, SOCK_STREAM, 0) || die "socket: $!";
 
-		setsockopt(Vend::Server::USOCKET, SOL_SOCKET, SO_REUSEADDR, pack("l", 1))
-			|| die "setsockopt: $!";
+		setsockopt(Vend::Server::USOCKET, SOL_SOCKET, SO_REUSEADDR, pack("l", 1));
 
 		bind(Vend::Server::USOCKET, pack("S", AF_UNIX) . $socket_filename . chr(0))
 			or die "Could not bind (open as a socket) '$socket_filename':\n$!\n";
@@ -413,7 +419,7 @@ sub server_both {
 		chmod 0600, $socket_filename;
 
 		#DEBUG or very insecure installations with no sensitive data
-		#chmod 0666, $socket_filename; #DEBUG
+		chmod 0666, $socket_filename if $ENV{MINIVEND_INSECURE};
 
 	}
 
@@ -449,12 +455,20 @@ sub server_both {
 
 	my $no_fork;
 
-	if($Global::DEBUG or $Global::Windows) {
+	if($Global::Windows or ::debug(0x1000) ) {
+# DEBUG
+#print
+#("Running in foreground, OS=$, debug=$Global::DEBUG\n")
+#	if ::debug(0xFFFF);
+# END DEBUG
 		$no_fork = 1;
 	}
 
     for (;;) {
 
+# DEBUG
+#$Global::DEBUG = $Global::DebugMode;
+# END DEBUG
 
 	  eval {
         $rin = $vector;
@@ -502,8 +516,16 @@ sub server_both {
 	  eval {
 		SPAWN: {
 			last SPAWN unless defined $spawn;
+# DEBUG
+#Vend::Util::logDebug
+#("Spawning connection, " .
+#	($no_fork ? 'no fork, ' : 'forked, ') .  scalar localtime() . "\n")
+#	if ::debug($Global::DHASH{SERVER});
+# END DEBUG
 			if(defined $no_fork) {
-				connection($debug);
+				$Vend::NoFork = {};
+				connection();
+				undef $Vend::NoFork;
 			}
 			elsif(! defined ($pid = fork) ) {
 				logGlobal ("Can't fork: $!");
@@ -515,7 +537,7 @@ sub server_both {
 
 					eval { 
 						&$Sig_inc;
-						connection($debug);
+						connection();
 					};
 					if ($@) {
 						my $msg = $@;
@@ -523,8 +545,8 @@ sub server_both {
 						logError("Runtime error: $msg")
 					}
 
-					&$Sig_dec;
 					select(undef,undef,undef,0.050) until getppid == 1;
+					&$Sig_dec;
 					exit(0);
 				}
 				exit(0);
@@ -534,9 +556,22 @@ sub server_both {
 			wait;
 		}
 	  };
-	  logGlobal("Died in server spawn: $@\n") if $@;
 
-        last if $Signal_Terminate || $Signal_Debug;
+		# clean up dies during spawn
+		if ($@) {
+			logGlobal("Died in server spawn: $@\n") if $@;
+
+			# Below only happens with Windows or foreground debugs.
+			# Prevent corruption of changed $Vend::Cfg entries
+			# (only VendURL/SecureURL at this point).
+			if($Vend::Save and $Vend::Cfg) {
+				Vend::Util::copyref($Vend::Save, $Vend::Cfg);
+				undef $Vend::Save;
+				undef $Vend::Cfg;
+			}
+		}
+
+		last if $Signal_Terminate || $Signal_Debug;
 
 	  eval {
         for(;;) {
@@ -563,21 +598,21 @@ sub server_both {
     return '';
 }
 
-# sub debug {
-#     my ($x, $y);
-#     for (;;) {
-#         print "> ";
-#         $x = <STDIN>;
-#         return if $x eq "\n";
-#         $y = eval $x;
-#         if ($@) {
-#             print $@, "\n";
-#         }
-#         else {
-#             print "$y\n";
-#         }
-#     }
-# }
+ sub debug {
+     my ($x, $y);
+     for (;;) {
+         print "> ";
+         $x = <STDIN>;
+         return if $x eq "\n";
+         $y = eval $x;
+         if ($@) {
+             print $@, "\n";
+         }
+         else {
+             print "$y\n";
+         }
+     }
+ }
 
 
 sub grab_pid {
@@ -611,7 +646,6 @@ sub open_pid {
 }
 
 sub run_server {
-    my ($debug) = @_;
     my $next;
     my $pid;
 	my $silent = 0;
@@ -630,7 +664,7 @@ sub run_server {
 	push (@types, 'UNIX') if $Global::Unix_Mode;
 	my $server_type = join(" and ", @types);
 
-    if ($Global::Windows || $debug) {
+    if ($Global::Windows || ::debug(4096) ) {
         $pid = grab_pid();
         if ($pid) {
             print "The MiniVend server is already running ".
@@ -639,7 +673,7 @@ sub run_server {
         }
 
         print "MiniVend server started ($$) ($server_type)\n";
-		$next = server_both($LINK_FILE, $debug);
+		$next = server_both($LINK_FILE);
     }
 
     else {
@@ -685,14 +719,14 @@ sub run_server {
                 close(STDOUT);
                 close(STDERR);
 
-				if($Global::DebugMode) {
-					$Global::DEBUG = 1;
-					open(Vend::DEBUG, ">>mvdebug");
+				if($Global::DEBUG & 2048) {
+					$Global::DEBUG = $Global::DEBUG || 255;
+					open(Vend::DEBUG, ">>$Global::ConfDir/mvdebug");
 					select Vend::DEBUG;
 					print "Start DEBUG at " . localtime() . "\n";
 					$| =1;
 				}
-				else {
+				elsif (!$Global::DEBUG) {
 					# May as well turn warnings off, not going anywhere
 					$ = 0;
 				}
@@ -710,7 +744,7 @@ sub run_server {
                 fcntl(Vend::Server::Pid, F_SETFD, 1)
                     or die "Can't fcntl close-on-exec flag for '$Pidfile': $!\n";
 
-				$next = server_both($LINK_FILE, $debug);
+				$next = server_both($LINK_FILE);
 
 				unlockfile(\*Vend::Server::Pid);
 				opendir(CONFDIR, $Global::ConfDir) 

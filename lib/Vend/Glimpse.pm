@@ -1,6 +1,6 @@
 # Vend/Glimpse.pm:  Search indexes with Glimpse
 #
-# $Id: Glimpse.pm,v 1.9 1997/09/30 18:16:07 mike Exp $
+# $Id: Glimpse.pm,v 1.11 1998/01/31 05:14:54 mike Exp $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::Glimpse
 #
@@ -20,15 +20,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-##  vi regex to delete debugs     %s/^\(.*$s->debug\)/#\1/
-##  vi regex to restore debugs     %s/^\([^#]*\)#\(.*$s->debug\)/\1\2/
 #
 
 package Vend::Glimpse;
 require Vend::Search;
 @ISA = qw(Vend::Search);
 
-$VERSION = substr(q$Revision: 1.9 $, 10);
+$VERSION = substr(q$Revision: 1.11 $, 10);
 use Text::ParseWords;
 use strict;
 
@@ -102,7 +100,11 @@ sub search {
     $g->{return_delim} = $index_delim
 	        unless defined $g->{return_delim};
 
-#	$s->debug($s->dump_options());
+# DEBUG
+#Vend::Util::logDebug
+#($s->dump_options())
+#	if ::debug(0x10);
+# END DEBUG
 
 	$g->{matches} = 0;
 	$max_matches = $g->{max_matches};
@@ -212,7 +214,11 @@ sub search {
 
     @specs = $s->escape(@specs);
 
-#    $s->debug("spec='" . (join "','", @specs) . "'");
+# DEBUG
+#Vend::Util::logDebug
+#("spec='" . (join "','", @specs) . "'\n")
+#	if ::debug(0x10);
+# END DEBUG
 
     # untaint
     for(@specs) {
@@ -221,9 +227,14 @@ sub search {
     }
 	@{$s->{'specs'}} = @specs;
 
-#    $s->debug("pats: '", join("', '", @pats), "'");
-
-#	$s->debug($s->dump_options());
+# DEBUG
+#Vend::Util::logDebug
+#("pats: '" .  join("', '", @pats) . "'")
+#	if ::debug(0x10);
+#Vend::Util::logDebug
+#($s->dump_options())
+#	if ::debug(0x10);
+# END DEBUG
 
 	$joiner = $g->{or_search} ? ',' : ';';
   CREATE_LIMIT: {
@@ -258,11 +269,19 @@ sub search {
 
 	$spec = join $joiner, @pats;
     push @cmd, "'$spec'";
-#	$s->debug("spec: '", $spec, "'");
+# DEBUG
+#Vend::Util::logDebug
+#	("spec: '$spec'")
+#	if ::debug(0x10);
+# END DEBUG
 
 	$joiner = $spec;
 	$joiner =~ s/['";,]//g;
-#	$s->debug("joiner: '", $spec, "'");
+# DEBUG
+#Vend::Util::logDebug
+#("joiner: '$spec'\n")
+#	if ::debug(0x10);
+# END DEBUG
 	if(length($joiner) < $g->{min_string}) {
 		my $msg = <<EOF;
 Search strings must be at least $g->{min_string} characters.
@@ -275,7 +294,11 @@ EOF
 
     $cmd = join ' ', @cmd;
 
-#	$s->debug("Glimpse command line: $cmd");
+# DEBUG
+#Vend::Util::logDebug
+#("Glimpse command line: $cmd\n")
+#	if ::debug(0x10);
+# END DEBUG
 
     # searches for debug
     $Vend::Glimpse::PID = open(Vend::Glimpse::SEARCH,qq!$cmd |$sort_string !);
@@ -293,7 +316,11 @@ EOF
 
 
 	if($g->{return_file_name}) {
-#		$s->debug("Got to return_fields FILENAME");
+# DEBUG
+#Vend::Util::logDebug
+#("Got to return_fields FILENAME\n")
+#	if ::debug(0x10);
+# END DEBUG
 		$return_sub = sub {@_};
 	}
 	else {
@@ -305,7 +332,11 @@ EOF
 		}
 	}
 
-#	$s->debug('fields/specs: ', scalar @{$s->{fields}}, " ", scalar @{$s->{specs}});
+# DEBUG
+#Vend::Util::logDebug
+#('fields/specs: ' .  scalar @{$s->{fields}} .  "/" . scalar @{$s->{specs}} . "\n")
+#	if ::debug(0x10);
+# END DEBUG
 
 	local($/) = $g->{record_delim};
 
@@ -354,8 +385,14 @@ EOF
         $#out = $g->{match_limit} - 1;
     }
 
-#	$s->debug($g->{matches}, " matches");
-#	$s->debug("0 .. ", (scalar(@out) - 1));
+# DEBUG
+#Vend::Util::logDebug
+#("$g->{matches} matches\n")
+#	if ::debug(0x10);
+#Vend::Util::logDebug
+#("0 .. " . (scalar(@out) - 1) . "\n")
+#	if ::debug(0x10);
+# END DEBUG
 
 	\@out;
 }

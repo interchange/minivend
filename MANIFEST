@@ -152,8 +152,12 @@ doc/minivend.html
 doc/toc.html
 lib/Archive/Tar.pm
 lib/Carp.pm
-lib/File/Basename.pm
 lib/File/CounterFile.pm
+lib/File/Spec.pm
+lib/File/Spec/OS2.pm
+lib/File/Spec/Unix.pm
+lib/File/Spec/VMS.pm
+lib/File/Spec/Win32.pm
 lib/HTML/Entities.pm
 lib/IniConf.pm
 lib/Vend/Cart.pm

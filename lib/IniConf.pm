@@ -408,6 +408,7 @@ section.
 sub Parameters {
   my $self = shift;
   my $sect = shift;
+  $sect = lc $sect if $self->{nocase};
   @{$self->{parms}{$sect}};
 }
 
@@ -564,6 +565,21 @@ Version 0.9 (beta)
   Scott Hutton
     E-Mail:        shutton@pobox.com
     WWW Home Page: http://www.pobox.com/~shutton/
+# 
+# Dear Scott,
+# 
+# Here is a patch which prevents a failure due to a bad reference when
+# passing an Upper case parameter section to IniConf when in -nocase mode:
+# 
+# 410a411
+# >   $sect = lc $sect if $self->{nocase};
+# 
+# I will be patching this in the version I distribute with MiniVend. Thank
+# you very much for the module -- I wish I had had it when I started MiniVend.
+# 
+# Regards,
+# Mike Heins
+# 
 
 =head1 COPYRIGHT
 

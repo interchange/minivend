@@ -1,4 +1,23 @@
-# $Id: Data.pm,v 1.25 1997/12/15 02:12:28 mike Exp mike $
+# Data.pm - Minivend databases
+#
+# $Id: Data.pm,v 1.32 1998/01/31 05:26:38 mike Exp $
+# 
+# Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation and modified by the MiniVend license;
+# either version 2 of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Data;
 require Exporter;
@@ -38,13 +57,13 @@ set_field
 use strict;
 use Carp;
 use File::Basename;
+use File::Spec;
 use Vend::Util;
 use Vend::Interpolate;
 use Vend::Table::DummyDB;
 use Vend::Table::Import qw(import_ascii_delimited import_quoted);
 
-File::Basename::fileparse_set_fstype('MSWin32')
-	if $Global::Windows;
+File::Basename::fileparse_set_fstype($);
 
 BEGIN {
 	if(defined $Msql::VERSION or $Global::Msql) {
@@ -121,7 +140,11 @@ sub open_database {
 sub tie_database {
 	my ($name, $data);
     while (($name,$data) = each %{$Vend::Cfg->{Database}}) {
-#print("Calling tie_database $name $data->{name}, $data->{file}, $data->{type}\n" ) if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Calling tie_database $name $data->{name}, $data->{file}, $data->{type}\n")
+#	if ::debug(0x4);
+# END DEBUG
 		$Vend::Database{$name} =
 			import_database($data->{file}, $data->{type}, $data->{name});
 	}
@@ -131,7 +154,11 @@ sub tie_database {
 sub dummy_database {
 	my ($name, $data);
     while (($name,$data) = each %{$Vend::Cfg->{Database}}) {
-#print("dummy_database $name, $data\n" ) if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("dummy_database $name, $data\n")
+#	if ::debug(0x4);
+# END DEBUG
 		if($data->{type} eq '8' and ! $data->{NAME}) {
 			$Vend::Database{$name} = 
 				import_database($data->{file},$data->{type},$data->{name});
@@ -149,7 +176,11 @@ sub update_productbase {
 		return unless ( defined $Vend::Productbase{$_[0]} or
 						$_[0] eq 'pricing' );
 	}
-#print("Update productbase " . ($_[0] || '') . "\n" ) if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Update productbase " . ($_[0] || '') . "\n")
+#	if ::debug(0x4);
+# END DEBUG
 	undef @Vend::Productbase;
 	for(@{$Vend::Cfg->{ProductFiles}}) {
 		unless ($Vend::Database{$_}) {
@@ -231,7 +262,11 @@ sub set_field {
 
 	# Create it if it doesn't exist
 	unless ($db->record_exists($key)) {
-print("Creating empty record $key\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Creating empty record $key\n")
+#	if ::debug(0x1);
+# END DEBUG
 		my @fields;
 		my $count = scalar $db->columns();
 		@fields = ('') x $count;
@@ -367,11 +402,12 @@ sub database_ref {
 sub read_shipping {
     my($code, $desc, $min, $criterion, $max, $cost);
 
-    open(Vend::SHIPPING,"$Vend::Cfg->{ProductDir}/shipping.asc")
-	|| do {
-		logError("Could not open shipping: $!");
-		return undef;
-		};
+	my $file = File::Spec->catfile($Vend::Cfg->{ProductDir}, "shipping.asc");
+    open(Vend::SHIPPING, $file) or do {
+				logError("Could not open shipping file $file: $!")
+					if $Vend::Cfg->{CustomShipping};
+				return undef;
+			};
 	$Vend::Cfg->{Shipping_desc} = {};
 	$Vend::Cfg->{Shipping_criterion} = {};
 	$Vend::Cfg->{Shipping_min} = {};
@@ -396,7 +432,11 @@ sub read_shipping {
 				}
 			}
 			$Vend::Cfg->{UPSzone} = \@zone;
-#print("\nZone fields: $zone[0]") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("\nZone fields: $zone[0]")
+#	if ::debug(0x4);
+# END DEBUG
 		}
 	}
 	my %seen;
@@ -407,7 +447,11 @@ sub read_shipping {
 		($code, $desc, $criterion, $min, $max, $cost) = split(/\t/);
 		$code = defined $seen{$code} ? $code . $append++ : $code; 
 		$seen{$code} = 1;
-#print "reading shipping code $code\n" if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("reading shipping code $code\n")
+#	if ::debug(0x4);
+# END DEBUG
 		$Vend::Cfg->{Shipping_desc}->{$code} = $desc;
 		$Vend::Cfg->{Shipping_criterion}->{$code} = $criterion;
 		$Vend::Cfg->{Shipping_min}->{$code} = $min;
@@ -423,11 +467,8 @@ sub read_shipping {
 sub read_accessories {
     my($code, $accessories);
 
-    open(Vend::ACCESSORIES,"$Vend::Cfg->{ProductDir}/accessories.asc")
-	|| do {
-		logError("Could not open accessories.asc: $!");
-		return undef;
-		};
+	my $file = File::Spec->catfile($Vend::Cfg->{ProductDir}, 'accessories.asc');
+    open(Vend::ACCESSORIES, $file) or return undef;
     while(<Vend::ACCESSORIES>) {
 		chomp;
 		tr/\r//d;
@@ -446,12 +487,13 @@ sub read_accessories {
 sub read_salestax {
     my($code, $percent);
 
+	my $file = File::Spec->catfile($Vend::Cfg->{ProductDir}, "salestax.asc");
 	$Vend::Cfg->{SalesTaxTable} = {};
-    open(Vend::SALESTAX,"$Vend::Cfg->{ProductDir}/salestax.asc")
-	|| do {
-		logError("Could not open salestax.asc: $!");
-		return undef;
-		};
+    open(Vend::SALESTAX, $file) or do {
+					logError("Could not open salestax file $file: $!")
+						if $Vend::Cfg->{SalesTax};
+					return undef;
+				};
     while(<Vend::SALESTAX>) {
 		chomp;
 		tr/\r//d;
@@ -480,7 +522,11 @@ sub read_pricing {
 sub quantity_price {
 	my ($code,$one,$quan) = @_;
 
-#print("Called quantity price for '$code' '$one' '$quan'\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Called quantity price for '$code' '$one' '$quan'\n")
+#	if ::debug(0x1);
+# END DEBUG
 	return $one unless
 			database_key_exists($Vend::Cfg->{Pricing}, $code);
 	my(@prices);
@@ -550,12 +596,20 @@ sub import_database {
 		croak  "Attempt to access protected database by $CGI::host\n";
 	}
 	else {
-#print("Skipped security check for database $name\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Skipped security check for database $name\n")
+#	if ::debug(0x4);
+# END DEBUG
 	}
 
 	return $Vend::Cfg->{SaveDatabase}->{$name}
 		if defined $Vend::Cfg->{SaveDatabase}->{$name};
-print("Import db: dir=$Vend::Cfg->{DataDir} name=$name db=$database type=$type\n" ) if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Import db: dir=$Vend::Cfg->{DataDir} name=$name db=$database type=$type\n")
+#	if ::debug(0x4);
+# END DEBUG
 
 	my ($delimiter, $record_delim, $change_delimiter, $cacheable);
 
@@ -564,25 +618,24 @@ print("Import db: dir=$Vend::Cfg->{DataDir} name=$name db=$database type=$type\n
 	croak "import_database: No database name!\n"
 		unless $database;
 
-
-	my $data;
+	my $dir;
 
     my $database_txt = $database;
 
 	my ($base,$path,$tail) = fileparse $database_txt, '\.[^/.]+$';
-print("start=$database_txt path='$path' base='$base' tail='$tail'\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("start=$database_txt path='$path' base='$base' tail='$tail'\n")
+#	if ::debug(0x4);
+# END DEBUG
 
-	$path =~ s:^\.[\\/]::;
-
-	unless($path) {
-		$data = $Vend::Cfg->{DataDir} || $Global::ConfigDir;
-		$database_txt = "$data/$database_txt";
+	if(File::Spec->file_name_is_absolute($database_txt)) {
+		$dir = $path;
 	}
 	else {
-		$data = $path;
+		$dir = $Vend::Cfg->{DataDir} || $Global::ConfigDir;
+		$database_txt = File::Spec->catfile($dir,$database_txt);
 	}
-
-	$data =~ s:/$:: ;
 
 	my $database_dbm;
 	my $db;
@@ -592,8 +645,8 @@ print("start=$database_txt path='$path' base='$base' tail='$tail'\n") if $Global
 	if($type == 8) {
 		$New_table_sql = $base;
 		$New_name_sql = $name;
-    	$database_dbm = "$data/$base.sql";
-    	$New_database_dbm = "$data/new_$base.sql";
+    	$database_dbm = File::Spec->catfile($dir,"$base.sql");
+    	$New_database_dbm = File::Spec->catfile($dir,"new_$base.sql");
 		if ($no_import or -f $database_dbm or ! -f $database_txt) {
 			$no_import = 1;
 		}
@@ -608,8 +661,8 @@ print("start=$database_txt path='$path' base='$base' tail='$tail'\n") if $Global
 	elsif($type == 7) {
 		$New_table_sql = $base;
 		$New_name_sql = $name;
-    	$database_dbm = "$data/$base.sql";
-    	$New_database_dbm = "$data/new_$base.sql";
+    	$database_dbm = File::Spec->catfile($dir,"$base.sql");
+    	$New_database_dbm = File::Spec->catfile($dir,"new_$base.sql");
 		if ($no_import or -f $database_dbm or ! -f $database_txt) {
 			$no_import = 1;
 		}
@@ -622,19 +675,19 @@ print("start=$database_txt path='$path' base='$base' tail='$tail'\n") if $Global
 		$change_delimiter = $obj->{DELIMITER} if defined $obj->{DELIMITER};
 	}
     elsif($Global::GDBM) {
-		$New_database_dbm = "$data/new_$base.gdbm";
-    	$database_dbm = "$data/$base.gdbm";
+    	$database_dbm = File::Spec->catfile($dir,"$base.gdbm");
+    	$New_database_dbm = File::Spec->catfile($dir,"new_$base.gdbm");
     	$create_sub = \&create_database_gdbm;
 		$cacheable = 1 if $Global::AcrossLocks;
 	}
     elsif($Global::DB_File) {
-		$New_database_dbm = "$data/new_$base.db";
-    	$database_dbm = "$data/$base.db";
+    	$database_dbm = File::Spec->catfile($dir,"$base.db");
+    	$New_database_dbm = File::Spec->catfile($dir,"new_$base.db");
     	$create_sub = \&create_database_dbfile;
 		$cacheable = 1 if $Global::AcrossLocks;
 	}
     else {
-    	$New_database_dbm = "$data/$base.mem";
+    	$New_database_dbm = File::Spec->catfile($dir,"$base.mem");
     	$create_sub = \&create_database_mem;
 		$cacheable = 1;
 	}
@@ -654,10 +707,15 @@ print("start=$database_txt path='$path' base='$base' tail='$tail'\n") if $Global
 
 		$type = 1 unless $type;
 		($delimiter, $record_delim) = find_delimiter($change_delimiter || $type);
-#print("Type: $type delimiter: '$delimiter'\n") if $Global::DEBUG;
+		$obj->{'delimiter'} = $delimiter;
+# DEBUG
+#Vend::Util::logDebug
+#("Type: $type delimiter: '$delimiter'\n")
+#	if ::debug(0x4);
+# END DEBUG
 		my $save = $/;
 		$/ = $record_delim if defined $record_delim;
-        $db = import_ascii_delimited($database_txt, $delimiter, $create_sub)
+        $db = import_ascii_delimited($database_txt, $obj, $create_sub)
 			unless $delimiter eq 'CSV';
         $db = import_quoted($database_txt, $create_sub)
 			if $delimiter eq 'CSV';
@@ -676,7 +734,11 @@ print("start=$database_txt path='$path' base='$base' tail='$tail'\n") if $Global
 	my $read_only = ! defined $Vend::WriteDatabase{$name};
 	if($type == 8) {
 		my $cols = $obj->{NAME} || undef;
-#print("columns from config: @$cols \n") if $cols and $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("columns from config: @{$cols}\n")
+#	if ::debug(0x4) and $cols;
+# END DEBUG
 		$db->close_table() if defined $db;
     	$db = Vend::Table::DBI->open_table(
 					$obj,
@@ -686,7 +748,11 @@ print("start=$database_txt path='$path' base='$base' tail='$tail'\n") if $Global
 			$obj->{NAME} = $db->[3];
 		}
 			
-#print("Opening DBI: object '$db'\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Opening DBI: object '$db'\n")
+#	if ::debug(0x4);
+# END DEBUG
 	}
 	elsif($type == 7) {
 		$db->close_table() if defined $db;
@@ -696,15 +762,21 @@ print("start=$database_txt path='$path' base='$base' tail='$tail'\n") if $Global
     elsif($Global::GDBM) {
 		$db->close_table if defined $db;
 		undef $db;
-#print("Opening GDBM: RO=$read_only\n") if $Global::DEBUG;
+# DEBUG
+#Vend::Util::logDebug
+#("Opening GDBM: RO=$read_only\n")
+#	if ::debug(0x4);
+# END DEBUG
     	$db = Vend::Table::GDBM->open_table({Read_only => $read_only},
-                                              "$data/$base.gdbm");
+									  File::Spec->catfile($dir,"$base.gdbm")
+									  );
 	}
     elsif($Global::DB_File) {
 		$db->close_table() if defined $db;
 		undef $db;
     	$db = Vend::Table::DB_File->open_table({Read_only => $read_only},
-                                              "$data/$base.db");
+									  File::Spec->catfile($dir,"$base.db")
+									  );
 	}
 
 	if(defined $cacheable) {
@@ -727,11 +799,12 @@ sub export_database {
 			return undef;
 		};
 
+	$db = $db->ref();
+
 	my $ref;
 	$ref = $Vend::Cfg->{Database}->{$Vend::Basefinder{$db}}
 		or croak "Bad database '$db'.\n";
 
-	$db = $db->ref();
 
 	my $sql = 0;
 	# Some things not supported for SQL types -- can 
@@ -745,7 +818,7 @@ sub export_database {
 	$file = $file || $ref->{'file'};
 
 	unless($file =~ m!^([A-Za-z]:)?/!) {
-		$file = "$Vend::Cfg->{DataDir}/$file";
+		$file = File::Spec->catfile( $Vend::Cfg->{DataDir}, $file);
 	}
 
 	my @cols = $db->columns();
@@ -878,7 +951,7 @@ my $code = <<'EOF';
 	sub {
 	my($item, $quantity) = @_;
 	my ($price, $base);
-	$quantity = $quantity || $item->{quantity};
+	$quantity = $quantity || undef;
 	$base = product_code_exists_ref($item->{code}, $item->{mv_ib});
 	$price = database_field($base, $item->{code}, $Vend::Cfg->{PriceField});
 EOF
@@ -888,7 +961,7 @@ EOF
 
 ###
 $code .= <<'EOF';
-	$price = &{$Vend::Cfg->{QuantityPriceRoutine}}($item->{code}, $price, $quantity);
+	$price = &{$Vend::Cfg->{QuantityPriceRoutine}}($item->{code}, $price, $quantity || undef);
 EOF
 ###
 
@@ -909,16 +982,20 @@ EOF
 				unless defined $Vend::Database{$Vend::Cfg->{CommonAdjust}};
 ###
 $code .= <<'EOF';
-	$price += database_field($Vend::Database{$Vend::Cfg->{CommonAdjust}},
+	my $adder = database_field($Vend::Database{$Vend::Cfg->{CommonAdjust}},
 							 $item->{$_}, $_ ) || 0;
+	$price = 0 if $adder =~ s/^=//;
+	$price += $adder;
 EOF
 ###
 		}
 		else {
 ###
 $code .= <<'EOF';
-	$price += database_field($Vend::Cfg->{Pricing},
+	my $adder = database_field($Vend::Cfg->{Pricing},
 							 $item->{code}, $item->{$_} ) || 0;
+	$price = 0 if $adder =~ s/^=//;
+	$price += $adder;
 EOF
 ###
 		}

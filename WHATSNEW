@@ -1,47 +1,130 @@
 
-                      W H A T ' S   N E W 
+                  W H A T ' S   N E W 
+
+MiniVend 3.06 fixes some bugs with 3.05 and adds some features.
+
+    * Catalog permissions configuration for multi-user,
+      multi-catalog servers greatly improved.
+
+    * Added [if ordered ...] back in, inadvertantly deleted
+      in 3.05.
+
+    * Added ! comparisons for [if ....][/if], [if-data ...],
+      [if-field ...] and the like.
+
+    * Made UserTag available globally in minivend.cfg.
+
+    * Only call CPAN if it was previously used by somebody.
+
+    * PriceAdjustment can now be absolute, where an 
+      adjustment value of =10.99 will set the price
+      directly to 10.99. Previously the adjustment was
+      only relative to the single price for the item.
+
+    * Added new CONTINUE modifier to allow more flexible
+      specification of long database fields during ASCII
+      import. DITTO format allows you to add additional text
+      on the next line, while UNIX accepts \ as a line
+      continuation. This allows you to maintain very
+      large description fields while still remaining within
+      the 255 character limit of many databases and
+      spreadsheets.
+
+    * Added passed default to [default variable]
+      tag, now can be [default variable passed-default].
+
+    * We can't always use POSIX::strftime anymore because of
+      bad RedHat 5.0 Perl release. 8-( A substitute routine is
+      provided and should be selected if POSIX::strftime doesn't
+      work. Instructions provided for making a good Perl, should
+      build OK.
+
+    * Added grouped items with mv_order_group. Using this,
+      Sub-items can be tied to a master item placed on a
+      form-based order.  The first mv_order_item defined
+      becomes the master, additional are sub-items. All
+      sub-items are deleted when a master item is deleted
+      from the cart.
+
+    * Fixed path problems with database/search path
+      resolution.
+
+    * Fixed VendURL mangling when going to a SecureURL
+      with a different SCRIPT_NAME.
+
+    * [compat] [/compat] tag pairs are stripped from [old]
+      pages.
+      
+    * Static pages were shown to all browsers -- now only
+      shown to those which have given us back our cookie.
+
+    * [loop ...] lists are now reliably nested with 
+      [loop with="-a" arg="A B C"] or [loop-a 1 2 3].
+
+    * Tag end parsing fixed for [loop ...] and others that
+      auto-interpolate.
+
+    * Finally added a real debug facility, with multi-level
+      control and in-page display. Messages are still crude,
+      though, and user input is encouraged.
+
+    * Errors during catalog configuration are now
+      displayed to the console on startup.
+
+    * Slightly refined [more-list] to accept a different
+      border for selected and non-selected pages when using
+      images.
+
+    * Added error message in Windows install to prevent the
+      large number of questions from users who try to install
+      MiniVend without Perl 5.004 on the machine.
+
+    * CYGWIN.DLL now installed in SYSTEMROOT/system, not just
+      C:/windows/system.
+
+    * Tested on Windows NT 4.0 x386.
 
 MiniVend 3.05 is a major update that adds the following:
 
-	* Windows95/NT and UNIX versions unified, many changes
-	  to handle line-ending differences
+    * Windows95/NT and UNIX versions unified, many changes
+      to handle line-ending differences
 
-	* SendMailProgram and EncryptProgram now accept 'none'
-	  as parameters, avoid the need for external programs.
+    * SendMailProgram and EncryptProgram now accept 'none'
+      as parameters, avoid the need for external programs.
 
-	* Removed all autoloading options
+    * Removed all autoloading options
 
-	* Added rotate "floor"
+    * Added rotate "floor"
 
-	* Makecat program just a bit smarter about some things
+    * Makecat program just a bit smarter about some things
 
-	* No UNIX command dependencies
+    * No UNIX command dependencies
 
-	* Removed sample demo from distribution, too outdated
+    * Removed sample demo from distribution, too outdated
 
-	* Catalogs can be added online
+    * Catalogs can be added online
 
-	* Mode indicator file mode.{inet,unix} in MVROOT/etc
+    * Mode indicator file mode.{inet,unix} in MVROOT/etc
 
-	* Removed final vestiges of DES encryption
+    * Removed final vestiges of DES encryption
 
-	* Workaround for DBI <= 0.90 AutoCommit problem
+    * Workaround for DBI <= 0.90 AutoCommit problem
 
-	* Went to multi-README files
+    * Went to multi-README files
 
     Bug fixes include:
 
-	* Numerous fixes to sql_search (mv_searchtype=sql)
+    * Numerous fixes to sql_search (mv_searchtype=sql)
 
-	* Fixed tag_sort bug for multiple sorting of search lists
+    * Fixed tag_sort bug for multiple sorting of search lists
 
-	* Fixed [tag sql] query [/tag] to match docs
+    * Fixed [tag sql] query [/tag] to match docs
 
-	* Fixed missing Global variables
+    * Fixed missing Global variables
 
-	* Fixed close_database, no more SQL disconnect warnings
+    * Fixed close_database, no more SQL disconnect warnings
 
-	* Fixed bug in Windows file-based sessions
+    * Fixed bug in Windows file-based sessions
 
 MiniVend 3.04 is a minor release to fix bugs in 3.03:
 

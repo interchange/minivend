@@ -2,7 +2,7 @@
 #
 # MiniVend version 2.03
 #
-# $Id: Cart.pm,v 1.7 1997/12/02 22:27:31 mike Exp $
+# $Id: Cart.pm,v 1.9 1998/01/31 05:14:12 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -30,15 +30,13 @@
 package Vend::Cart;
 require Exporter;
 
-# NOAUTO
 @ISA = qw(Exporter);
-# END NOAUTO
 
 @EXPORT = qw(get_cart set_cart toss_cart);
 @EXPORT_OK = qw(create add set);
 
 
-$VERSION = substr(q$Revision: 1.7 $, 10);
+$VERSION = substr(q$Revision: 1.9 $, 10);
 $DEBUG   = 0;
 
 use Carp;
@@ -122,9 +120,12 @@ sub set {
 sub toss_cart {
 	my($s) = @_;
 	my $i;
+	my (@master);
     DELETE: for (;;) {
         foreach $i (0 .. $#$s) {
             if ($s->[$i]->{'quantity'} == 0) {
+				push (@master, $s->[$i]->{mv_mi})
+					if defined $s->[$i]->{mv_mi} && ! $s->[$i]->{mv_si};
 				next if defined $s->[$i]->{mv_control} and
 								$s->[$i]->{mv_control} =~ /\bnotoss\b/;
                 splice(@$s, $i, 1);
@@ -134,6 +135,18 @@ sub toss_cart {
         last DELETE;
     }
 
+	return 1 unless @master;
+	my $mi;
+	my @save;
+
+	# Brute force delete for subitems of any deleted master items
+	foreach $mi (@master) {
+        foreach $i (0 .. $#$s) {
+            push(@save, $i)
+				unless $s->[$i]->{'mv_mi'} and $s->[$i]->{'mv_mi'} eq $mi;
+        }
+	}
+	@$s = @$s[@save];
     1;
 }
 

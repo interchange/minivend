@@ -2,9 +2,9 @@
 
 cat <<EOF
 
- MiniVend Version 2.0 Configuration
+ MiniVend Version 3.0 Configuration
 
- Copyright 1996,1997 Michael J. Heins, <mikeh@minivend.com>
+ Copyright 1996-1998 Michael J. Heins, <mikeh@minivend.com>
 
  MiniVend is largely based on Vend 0.2
  Copyright 1995 Andrew M. Wilcox <awilcox@maine.com>

@@ -5,7 +5,7 @@
 
    Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 
-   Copyright 1996,1997 by Michael J. Heins <mikeh@minivend.com>
+   Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -188,6 +188,7 @@ static void open_socket()
         ServAddr.sin_addr.s_addr = ip_address.s_addr;
     }
     else {
+		ServAddr.sin_addr = *((struct in_addr *)hp->h_addr);
         ServAddr.sin_family = hp->h_addrtype;
         /* We'll fill in the rest of the structure below. */
     }
