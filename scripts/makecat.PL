@@ -127,7 +127,7 @@ my $Configfile;
 my $Cfg;
 my $Logfile = 'makecat.log';
 my $catalog_name;
-my %Conf;
+use vars qw( %Conf );
 my $Inetmode;
 my $Windows;
 my $pid;
