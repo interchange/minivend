@@ -932,7 +932,7 @@ my %o_default_var = (qw/
 
 my %o_default_defined = (
 	mv_update_empty		=> 1,
-	restrict_allow		=> 'page area',
+	restrict_allow		=> 'page area var cgi',
 );
 
 my %o_default = (
@@ -1193,6 +1193,7 @@ sub resolve_options {
 		panel_height
 		panel_id
 		panel_width
+		restrict_allow
 		spacer_row_class
 		spacer_row_style
 		spacer_height
