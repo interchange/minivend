@@ -1150,7 +1150,7 @@ sub _ca_postcode {
 
 sub _zip {
 	my($ref,$var,$val) = @_;
-	defined $val and $val =~ /^\s*\d{5}(?:[-]\d{4})?\s*$/
+	defined $val and $val =~ /^\s*\d{5}(?:-?\d{4})?\s*$/
 		and return (1, $var, '');
 	return (undef, $var, errmsg("'%s' not a US zip code", $val));
 }
