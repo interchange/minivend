@@ -823,6 +823,7 @@ sub check_order {
 	my ($profile, $vref) = @_;
 	my($codere) = '[-\w_#/.]+';
 	my $params;
+	$Profile = $profile;
 	if(defined $Vend::Cfg->{OrderProfileName}->{$profile}) {
 		$profile = $Vend::Cfg->{OrderProfileName}->{$profile};
 		$params = $Vend::Cfg->{OrderProfile}->[$profile];
@@ -835,7 +836,6 @@ sub check_order {
 	}
 	else { return undef }
 	return undef unless $params;
-	$Profile = $profile;
 
 	my $ref = \%CGI::values;
 	$params = interpolate_html($params);
