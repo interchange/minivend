@@ -2138,7 +2138,7 @@ sub send_mail {
 #::logDebug("testing sendmail send none=$none");
 		last SEND if $none;
 #::logDebug("in Sendmail send $using");
-		open(MVMAIL,"|$Vend::Cfg->{SendMailProgram}") or last SEND;
+		open(MVMAIL,"|$Vend::Cfg->{SendMailProgram} -t") or last SEND;
 		my $mime = '';
 		$mime = Vend::Interpolate::mime('header', {}, '') if $use_mime;
 		print MVMAIL "To: $to\n", $reply, "Subject: $subject\n"
