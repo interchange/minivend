@@ -1416,6 +1416,15 @@ ADDITIONAL: {
 	close ADDL;
 }
 
+CRYPTPW: {
+	my $pw = substitute('CRYPTPW', '__');
+	last CRYPTPW unless $pw;
+	my @letters = ('A' .. 'Z', 'a' .. 'z');
+	my $salt = $letters[ int rand(scalar @letters) ];
+	$salt .= $letters[ int rand(scalar @letters) ];
+	$ENV{MVC_CRYPTPW} = crypt($pw, $salt);
+}
+
 PRECMD: {
 	last PRECMD unless -f "$dir/config/precopy_commands";
 	open(ADDL, "< $dir/config/precopy_commands") 
