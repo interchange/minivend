@@ -1481,6 +1481,7 @@ EOF
 		$prof .= "\n" unless $prof =~ /\n\s*\z/;
 		if(ref $check) {
 			while ( my($k, $v) = each %$check ) {
+				next unless length $v;
 				$error->{$k} = 1;
 				$v =~ s/\s+$//;
 				$v =~ s/^\s+//;
@@ -1568,6 +1569,12 @@ EOF
 			or return $die->("table-editor: bad table '%s'", $table);
 	}
 
+	$opt->{ui_data_fields} =~ s/[,\0\s]+/ /g;
+
+	if($opt->{ui_wizard_fields}) {
+		$opt->{ui_data_fields} = $opt->{ui_display_only} = $opt->{ui_wizard_fields};
+	}
+
 	if(! $opt->{ui_data_fields}) {
 		if( $opt->{notable}) {
 			::logError("table_editor: no place to get fields!");
@@ -1576,12 +1583,6 @@ EOF
 		else {
 			$opt->{ui_data_fields} = join " ", $db->columns();
 		}
-	}
-
-	$opt->{ui_data_fields} =~ s/[,\0\s]+/ /g;
-
-	if($opt->{ui_wizard_fields}) {
-		$opt->{ui_data_fields} = $opt->{ui_display_only} = $opt->{ui_wizard_fields};
 	}
 
 	my $keycol;
