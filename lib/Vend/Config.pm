@@ -3238,6 +3238,7 @@ sub parse_dirconfig {
 			next unless -f "$dir/$_";
 #::logDebug("reading key=$_ from $dir/$_");
 			$ref->{$_} = readfile("$dir/$_", $Global::NoAbsolute, 0);
+			$ref->{$_} = substitute_variable($ref->{$_}) if $C->{ParseVariables};
 			$sref->{$_} = "$dir/$_";
 		}
 	}
