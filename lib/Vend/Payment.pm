@@ -115,6 +115,7 @@ sub map_actual {
 		b_address2
 		b_city
 		b_country
+		b_company
 		b_fname
 		b_lname
 		b_name
@@ -135,6 +136,7 @@ sub map_actual {
 		country
 		cvv2
 		email
+		company
 		fname
 		item_code
 		item_desc
