@@ -480,24 +480,11 @@ sub goto_buf {
 		$$buf = '';
 		return;
 	}
-	while($$buf =~ s!  .+?
-							(
-								(?:
-								\[ label \s+ (?:name \s* = \s* ["']?)?	|
-								<[^>]+? \s+ mv.label \s*=\s*["']?		|
-								<[^>]+? \s+
-									mv \s*=\s*["']? label
-									[^>]*? \s+ mv.name\s*=\s*["']?		|
-								<[^>]+? \s+ mv \s*=\s*["']? label  \s+  |
-								)
-								(\w+)
-							|
-								</body\s*>
-							)
-					!$1!ixs )
-	{
-			last if $name eq $2;
-	}
+	$$buf =~ s!.*?\[label\s+(?:name\s*=\s*(?:["'])?)?($name)['"]*\s*\]!!is
+		and return;
+	$$buf =~ s:.*?</body\s*>::is
+		and return;
+	$$buf = '';
 	return;
 	# syntax color "'
 }
@@ -638,9 +625,9 @@ sub start {
 					if $attr->{abort};
 				return ($self->{SEND} = 1);
 			}
-			goto_buf($args[0], \$Initialized->{_buf});
+			goto_buf($args[0], $buf);
 			$self->{ABORT} = 1;
-			$self->{SEND} = 1 if ! $Initialized->{_buf};
+			$self->{SEND} = 1 if ! $$buf;
 			return 1;
 		}
 		elsif($tag eq 'bounce') {
