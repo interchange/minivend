@@ -798,7 +798,8 @@ sub mail_order {
 # LEGACY
 	if ($::Values->{mv_order_report}) {
 		unless( allowed_file($::Values->{mv_order_report}) ) {
-			my $msg = errmsg(
+			my $msg = $Vend::File::errstr
+					|| errmsg(
 							"%s: Can't use file '%s' with NoAbsolute set",
 							'mail_order',
 							 $::Values->{mv_order_report},

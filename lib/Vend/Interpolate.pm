@@ -2191,11 +2191,12 @@ sub log {
 
 	$file = Vend::Util::escape_chars($file);
 	unless(Vend::File::allowed_file($file)) {
-		my $msg = errmsg(
-						"%s: Can't use file '%s' with NoAbsolute set",
-						'log',
-						$file,
-					);
+		my $msg = $Vend::File::errstr
+				|| errmsg(
+								"%s: Can't use file '%s' with NoAbsolute set",
+								'log',
+								$file,
+							);
 		::logError($msg);
 		::logGlobal({ level => 'auth'}, $msg);
 		return undef;
@@ -2424,11 +2425,12 @@ sub tag_counter {
 	}
 
 	unless (allowed_file($file)) {
-		my $msg = errmsg(
-						"%s: Can't use file '%s' with NoAbsolute set",
-						'counter',
-						$file,
-					);
+		my $msg = $Vend::File::errstr
+				|| errmsg(
+								"%s: Can't use file '%s' with NoAbsolute set",
+								'counter',
+								$file,
+							);
 		::logError($msg);
 		::logGlobal({ level => 'auth'}, $msg);
 		return undef;
