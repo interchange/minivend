@@ -2975,7 +2975,7 @@ sub mvtime {
 		my $neg = $opt->{adjust} =~ s/^\s*-\s*//;
 		my $diff;
 		$opt->{adjust} =~ s/^\s*\+\s*//;
-		if($opt->{adjust} !~ /[a-z]/) {
+		if($opt->{adjust} !~ /[A-Za-z]/) {
 			$opt->{adjust} =~ s/00$//;
 			$diff = (60 * 60) * $opt->{adjust};
 		}
@@ -5260,6 +5260,7 @@ sub tag_tree {
 			$row->{mv_increment} = $increment++;
 			push(@rows, $row);
 			my $code = $row->{$keyfield};
+			$row->{mv_toggled} = 1 if $memo->{$code};
 #::logDebug("next row sub=$sub=$row->{$sub}");
 			my $next = $row->{$sub}
 				or next ROW;
