@@ -407,6 +407,8 @@ sub catalog_directives {
 	['SetGroup',		 'valid_group',      ''],
 	['UseModifier',		 'array',     	     ''],
 	['AutoModifier',	 'array',     	     ''],
+	['MaxQuantityField', undef,     	     ''],
+	['MinQuantityField', undef,     	     ''],
 	['LogFile', 		  undef,     	     'etc/log'],
 	['Pragma',		 	 'boolean',     	 ''],
 	['DynamicData', 	 'boolean',     	 ''],
