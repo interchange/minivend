@@ -505,6 +505,7 @@ sub date_widget {
 		$val = Vend::Interpolate::filter_value('date_change', $val);
 	}
 	@t = localtime();
+	$val = POSIX::strftime("%Y%m%d", @t) if not $val;
 	my $sel = 0;
 	my $out = qq{<SELECT NAME="$name">};
 	my $o;
