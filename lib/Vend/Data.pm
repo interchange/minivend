@@ -1811,7 +1811,6 @@ sub update_data {
 	my $table		= $CGI::values{mv_data_table};
 	my $prikey		= $CGI::values{mv_data_key};
 	my $decode		= is_yes($CGI::values{mv_data_decode});
-	my ($ref, $db, $database);
 
 	my $en_col;
 #::logDebug("data_enable=$::Scratch->{mv_data_enable}, checking");
@@ -2087,12 +2086,12 @@ sub update_data {
 		@multis = sort { $a <=> $b } @multis;
 	}
 
-#::logDebug("update_data:db=$db key=$prikey VALUES=" . ::uneval(\%CGI::values));
-#::logDebug("update_data:db=$db key=$prikey data=" . ::uneval(\%data));
+#::logDebug("update_data:db=$base_db key=$prikey VALUES=" . ::uneval(\%CGI::values));
+#::logDebug("update_data:db=$base_db key=$prikey data=" . ::uneval(\%data));
 	my $select_key;
  SETDATA: {
 	for($i = 0; $i < @{$data{$prikey}}; $i++) {
-#::logDebug("iteration of update_data:db=$db key=$prikey data=" . ::uneval(\%data));
+#::logDebug("iteration of update_data:db=$base_db key=$prikey data=" . ::uneval(\%data));
 		@k = (); @v = ();
 		for(keys %data) {
 #::logDebug("iteration of field $_");
