@@ -127,7 +127,11 @@ sub stuff {
     return $val;
 }
 
-*unstuff = \&Vend::Util::unhexify;
+sub unstuff {
+    my ($val) = @_;
+    $val =~ s,%(..),chr(hex($1)),eg;
+    return $val;
+}
 
 sub autonumber {
 	my $s = shift;
@@ -229,7 +233,7 @@ sub column_index {
     my ($s, $column) = @_;
 	$s = $s->import_db() if ! defined $s->[$TIE_HASH];
     my $i = $s->[$COLUMN_INDEX]{$column};
-    die "There is no column named '$column'" unless defined $i;
+    die "There is no column named '$column' in $s->[$FILENAME]" unless defined $i;
     return $i;
 }
 
