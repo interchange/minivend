@@ -51,6 +51,10 @@ sub calculate {
 	}
 
 	$country = $::Values->{$o->{geo}};
+
+	if($opt->{packaging_weight}) {
+		$weight += $opt->{packaging_weight};
+	}
 #::logDebug("ready to calculate postal type=$type country=$country weight=$weight");
 
 	if($opt->{source_grams}) {
@@ -152,6 +156,7 @@ sub calculate {
 
 	do {
 		$cost = tag_data($opt->{table}, $zone, $weight);
+		$weight++;
 	} until $cost or $its++ > $maxits;
 		
 	return do_error(

@@ -1038,6 +1038,22 @@ sub tag_ups {
 	my(@fieldnames);
 	my($i,$point,$zone);
 
+	$weight += $opt->{packaging_weight} if $opt->{packaging_weight};
+
+	if($opt->{source_grams}) {
+		$weight *= 0.00220462;
+	}
+	elsif($opt->{source_kg}) {
+		$weight *= 2.20462;
+	}
+	elsif($opt->{source_oz}) {
+		$weight /= 16;
+	}
+
+	if($opt->{oz}) {
+		$weight *= 16;
+	}
+
 #::logDebug("tag_ups: type=$type zip=$zip weight=$weight code=$code opt=" . uneval($opt));
 
 	if(my $modulo = $opt->{aggregate}) {
@@ -1055,7 +1071,6 @@ sub tag_ups {
 	}
 
 	$code = 'u' unless $code;
-
 
 	unless (defined $Vend::Database{$type}) {
 		logError("Shipping lookup called, no database table named '%s'", $type);
