@@ -890,7 +890,7 @@ sub get_option_hash {
 	unless ($string =~ /,/) {
 		@opts = grep $_ ne "=", Text::ParseWords::shellwords($string);
 		for(@opts) {
-			s/^(\w+)=(["'])(.*)\2$/$1$3/;
+			s/^(\w[-\w]*\w)=(["'])(.*)\2$/$1$3/;
 		}
 	}
 	else {
@@ -900,6 +900,7 @@ sub get_option_hash {
 	my %hash;
 	for(@opts) {
 		my ($k, $v) = split /[\s=]+/, $_, 2;
+		$k =~ s/-/_/g;
 		$hash{$k} = $v;
 	}
 	if($merge) {
