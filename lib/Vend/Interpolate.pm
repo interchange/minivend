@@ -1977,7 +1977,7 @@ sub tag_options {
 			push @rf, ($map{$_} || $_);
 		}
 		my @def;
-		if($item->{code}) {
+		if($item and $item->{code}) {
 			@def = split /-/, $item->{code};
 		}
 		my $fsel = $map{sku} || 'sku';
@@ -1990,7 +1990,7 @@ sub tag_options {
 		my $ary = $db->query($q); 
 		my $ref;
 		my $i = 0;
-		my $phony = { %$item };
+		my $phony = { %{$item || { }} };
 		foreach $ref (@$ary) {
 
 			next unless $ref->[3];
@@ -2192,9 +2192,6 @@ sub tag_accessories {
 #::logDebug("tag_accessories: item is a hash");
 		$ishash = 1;
 	}
-	else {
-		$item = {};
-	}
 
 	# Had extra if got here
 #::logDebug("tag_accessories: code=$code opt=" . ::uneval_it($opt) . " item=" . ::uneval_it($item) . " extra=$extra");
@@ -2212,6 +2209,7 @@ sub tag_accessories {
 	return Vend::Form::display($opt, $item)
 		if $::Variable->{MV_DANGEROUS_NEW_FORM}
 		or $Global::Variable->{MV_DANGEROUS_NEW_FORM};
+	$item ||= {};
 	my $p = $opt->{prepend} || '';
 	my $a = $opt->{append} || '';
 	my $delimiter = $opt->{delimiter} || ',';
