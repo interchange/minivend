@@ -919,7 +919,7 @@ EndOfExcel
 				push @fh, $fh;
 				if($o[$i] =~ s/c//) {
 					$index .= <<EndOfIndex;
-			map { print { \$fh[$i] } "\$_\\t\$fields[0]\\n" } split /\s*,\s*/, \$fields[$fnum];
+			map { print { \$fh[$i] } "\$_\\t\$fields[0]\\n" } split /\\s*,\\s*/, \$fields[$fnum];
 EndOfIndex
 				}
 				else {
