@@ -622,14 +622,14 @@ EOF
 				$col =~ s/[^\d,.]//g;
 			$code .= <<EOF;
 my \$addl = join " ", \@\$line[$col];
-push \@\$line .= \$addl;
+push \@\$line, \$addl;
 EOF
 			}
 			else {
 				$wild_card = 1;
 				$code .= <<EOF;
 my \$addl = join " ", \@\$line;
-push \@\$line .= \$addl;
+push \@\$line, \$addl;
 EOF
 			}
 		}
