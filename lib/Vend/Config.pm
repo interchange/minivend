@@ -3838,7 +3838,8 @@ sub parse_tag {
 					"Local usertag %s overrides global definition",
 					$tag,
 				)
-			);
+			)
+				unless $C->{Limit}{override_tag} =~ /\b$tag\b/;
 		}
 
 		my $sub;
