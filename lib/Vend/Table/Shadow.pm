@@ -162,7 +162,6 @@ sub row {
 		for (my $i = 0; $i < @cols; $i++) {
 			$column = $cols[$i];
 			if (exists $s->[$CONFIG]->{MAP}->{$column}->{$locale}) {
-				$column = $s->[$CONFIG]->{MAP}->{$column}->{$locale};
 				$row[$i] = $s->field($key, $column);
 			}
 		}
