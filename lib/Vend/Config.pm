@@ -522,6 +522,7 @@ sub catalog_directives {
 	['SOAP_Action',		 'action',			 ''],				   
 	['SOAP_Control',     'action',             ''],		  
 	['UserDB',			 'locale',	     	 ''], 
+	['UserControl',		 'yesno',	     	 'No'], 
 	['UserDatabase',	 undef,		     	 ''],  #undocumented
 	['RobotLimit',		 'integer',		      0],
 	['OrderLineLimit',	 'integer',		      0],
@@ -2480,6 +2481,13 @@ my %Default = (
 						$C->{AdminUserDB} = {} unless $C->{AdminUserDB};
 						$C->{AdminUserDB}{$_} = $set->{$_}{admin};
 					}
+					return 1;
+				},
+		UserControl => sub {
+					shift;
+					return 1 unless defined $C;
+					return 1 unless $C->{UserControl};
+					require Vend::UserControl;
 					return 1;
 				},
 		AutoModifier => sub {
