@@ -763,10 +763,10 @@ my %Alias = (
 						warning			warnings
 						shipping_description	shipping_desc
 						process_target	process
+						process_order	process
 				),
 					getlocale		=> 'setlocale get=1',
 					process_search		=> 'area href=search',
-					process_order		=> 'process order=1',
 					buzzard		=> 'data table=products column=artist key=',
 			);
 
