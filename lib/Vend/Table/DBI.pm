@@ -113,8 +113,25 @@ sub create {
 #::logDebug("trying create table $tablename");
 	my @call = find_dsn($config);
 	my $dattr = pop @call;
-	my $db = DBI->connect( @call )
-		or die "DBI connect failed: $DBI::errstr\n";
+
+	my $db;
+	eval {
+		$db = DBI->connect( @call );
+	};
+	if(! $db) {
+		my $msg = $@ || $DBI::errstr;
+		if(! $msg) {
+			my($dname);
+			(undef, $dname) = split /:+/, $config->{DSN};
+			eval {
+				DBI->install_driver($dname);
+			};
+			$msg = $@
+					|| $DBI::errstr
+					|| "unknown error. Driver '$dname' installed?";
+		}
+		die "connect failed (create) -- $msg\n";
+	}
 
 	if($config->{HANDLE_ONLY}) {
 		return bless [$config, $tablename, undef, undef, undef, $db], $class;
@@ -243,7 +260,21 @@ sub open_table {
 #::logDebug("db_file: $config->{db_file}");
 #::logDebug("db_file_extended: $config->{db_file_extended}");
 	unless ($db = $DBI_connect_cache{ $config->{dsn_id} }) {
-		$db = DBI->connect( @call );
+		eval {
+			$db = DBI->connect( @call );
+		};
+		if(! $db) {
+			my $msg = $@ || $DBI::errstr;
+			if(! $msg) {
+				my($dname);
+				(undef, $dname) = split /:+/, $config->{DSN};
+				eval {
+					DBI->install_driver($dname);
+				};
+				$msg = $@ || $DBI::errstr || "unknown error. Driver '$dname' installed?";
+			}
+			die "connect failed -- $msg\n";
+		}
 		$DBI_connect_cache{$config->{dsn_id}} = $db;
 #::logDebug("connected to $config->{dsn_id}");
 	}
