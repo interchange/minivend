@@ -2060,7 +2060,7 @@ sub parse_locale {
 			if(POSIX::setlocale(POSIX::LC_ALL, $name) ) {
 				$store->{$name} = POSIX::localeconv();
 			}
-			POSIX::setlocale($past);
+			POSIX::setlocale(POSIX::LC_ALL, $past);
 		}
 
 		my($sethash);
