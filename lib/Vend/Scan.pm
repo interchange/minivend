@@ -1,6 +1,6 @@
 # Vend/Scan.pm:  Prepare searches for MiniVend
 #
-# $Id: Scan.pm,v 1.35 1998/06/06 08:12:58 mike Exp mike $
+# $Id: Scan.pm,v 1.24 1998/01/18 05:55:19 mike Exp $
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ require Exporter;
 			perform_search
 			);
 
-$VERSION = substr(q$Revision: 1.35 $, 10);
+$VERSION = substr(q$Revision: 1.24 $, 10);
 
 use strict;
 use Vend::Util;
@@ -426,7 +426,8 @@ sub sql_search {
 
 	my $db = Vend::Data::database_exists_ref($tables[0])
 				or do {
-					logError("non-existent database '$tables[0]'");
+#					logError("non-existent database '$tables[0]'");
+					logError( errmsg('Scan.pm:1', "non-existent database '%s'" , $tables[0]) );
 					return undef;
 				};
 	$db = $db->ref();
@@ -853,7 +854,8 @@ sub perform_search {
 			if ($@) {
 				::display_special_page(
 					$Vend::Cfg->{SpecialPage}{'badsearch'},
-					"Bad search type $options{search_type}: $@"
+					errmsg('Scan.pm:2', "Bad search type %s: %s",
+							$options{search_type}, $@ )
 					);
 				return 0;
 			}
@@ -1041,7 +1043,8 @@ sub _column_opt {
 			$_ = $col;
 		}
 		else {
-			logError("Bad search column '$_'");
+#			logError("Bad search column '$_'");
+			logError( errmsg('Scan.pm:3', "Bad search column '%s'" , $_) );
 			return undef;
 		}
 	}
@@ -1062,7 +1065,8 @@ sub _column {
 			$_ = $col;
 		}
 		else {
-			logError("Bad search column '$_'");
+#			logError("Bad search column '$_'");
+			logError( errmsg('Scan.pm:4', "Bad search column '%s'" , $_) );
 			return undef;
 		}
 	}

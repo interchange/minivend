@@ -25,7 +25,7 @@
 #
 package Vend::Search;
 
-$VERSION = substr(q$Revision: 1.19 $, 10);
+$VERSION = substr(q$Revision: 1.21 $, 10);
 $DEBUG = 0;
 
 my $Joiner;
@@ -79,7 +79,7 @@ sub new {
 		return_file_name	=> '',
 		#save_context		=> undef,
 		save_dir			=> '',
-		search_file			=> 'products.asc',
+		search_file			=> ($Vend::Cfg->{Variable}{MV_DEFAULT_SEARCH_FILE} || 'products.asc'),
 		search_mod			=> '',
 		sort_command		=> '',
 		sort_crippled		=> 0,

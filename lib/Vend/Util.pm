@@ -1,6 +1,6 @@
 # Util.pm - Minivend utility functions
 #
-# $Id: Util.pm,v 1.35 1998/06/06 08:13:37 mike Exp mike $
+# $Id: Util.pm,v 1.22 1998/01/16 07:30:42 mike Exp mike $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
@@ -31,6 +31,7 @@ copyref
 currency
 check_security
 dump_structure
+errmsg
 evalr
 file_modification_time
 format_log_msg
@@ -74,7 +75,7 @@ use Config;
 use Fcntl;
 use subs qw(logError logGlobal);
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.35 $, 10);
+$VERSION = substr(q$Revision: 1.22 $, 10);
 
 BEGIN {
 	eval {
@@ -347,26 +348,48 @@ sub us_number {
 }
 
 sub setlocale {
-	my ($locale, $persist) = @_;
+	my ($locale, $currency, $persist) = @_;
 	$locale = $Vend::Session->{'scratch'}{mv_locale} unless defined $locale;
-    if ( not defined $Vend::Cfg->{Locale_repository}{$locale}) {
-        Vend::Util::logError("attempt to set non-existant locale '$locale'");
+
+	my $loc = $Vend::Cfg->{Locale};
+	my $curr;
+
+    if ( $locale and not defined $Vend::Cfg->{Locale_repository}{$locale}) {
+        Vend::Util::logError( errmsg('Util.pm:1', "attempt to set non-existant locale '%s'" , $locale) );
         return '';
     }
-    $Vend::Cfg->{Locale}
-         = $Vend::Cfg->{Locale_repository}{$locale};
 
-	for(@Vend::Config::Locale_directives_scalar) {
-		$Vend::Cfg->{$_} = $Vend::Cfg->{Locale}->{$_}
-			if defined $Vend::Cfg->{Locale}->{$_};
+	$loc  = $Vend::Cfg->{Locale_repository}{$locale} if $locale;
+
+    if ( $currency and not defined $Vend::Cfg->{Locale_repository}{$currency}) {
+        Vend::Util::logError( errmsg('Util.pm:2', "attempt to set non-existant currency '%s'" , $currency) );
+        return '';
+    }
+	$curr = $Vend::Cfg->{Locale_repository}{$currency} if $currency;
+
+	if($locale) {
+		for(@Vend::Config::Locale_directives_scalar) {
+			$Vend::Cfg->{$_} = $Vend::Cfg->{Locale}->{$_}
+				if defined $Vend::Cfg->{Locale}->{$_};
+		}
+
+		for(@Vend::Config::Locale_directives_ary) {
+			@{$Vend::Cfg->{$_}} = split (/\s+/, $Vend::Cfg->{Locale}->{$_})
+				if $Vend::Cfg->{Locale}->{$_};
+		}
 	}
 
-	for(@Vend::Config::Locale_directives_ary) {
-		@{$Vend::Cfg->{$_}} = split (/\s+/, $Vend::Cfg->{Locale}->{$_})
-			if $Vend::Cfg->{Locale}->{$_};
+	if ($currency) {
+		for(@Vend::Config::Locale_directives_currency) {
+			$Vend::Cfg->{$_} = $curr->{$_}
+				if defined $curr->{$_};
+		}
+		@{$loc}{@Vend::Config::Locale_keys_currency} =
+				@{$curr}{@Vend::Config::Locale_keys_currency};
 	}
 
-	$Vend::Session->{scratch}{mv_locale} = $locale      if $persist;
+	$Vend::Session->{scratch}{mv_locale}   = $locale    if $persist and $locale;
+	$Vend::Session->{scratch}{mv_currency} = $currency  if $persist and $currency;
     return '';
 }
 
@@ -526,9 +549,8 @@ sub uneval_it {
 }
 
 
-# See if Storable is installed with XSUB. But since it is
-# not as reliable, require that an environment var be set.
-# If it is, session writes will be about 5X faster
+# See if we have Storable and the user has OKed its use
+# If so, session storage/write will be about 5x faster
 eval {
 	die unless $ENV{MINIVEND_STORABLE};
 	require Storable;
@@ -701,7 +723,9 @@ sub readin {
     my($file) = @_;
     my($fn, $contents, $dir, $level);
     local($/);
-	
+
+	$Global::Variable->{MV_PAGE} = $file;
+
 	$file =~ s#\.html?$##;
 	($dir = $file) =~ s#/[^/]*##;
 	$dir = $Vend::Cfg->{PageDir} . "/" . $dir;
@@ -755,6 +779,8 @@ sub readfile {
     my($contents);
     local($/);
 
+	$Global::Variable->{MV_FILE} = $file;
+
 # DEBUG
 #Vend::Util::logDebug
 #("readfile '$file'\n")
@@ -762,8 +788,10 @@ sub readfile {
 # END DEBUG
 
 	if($no and ($file =~ m:^\s*/: or $file =~ m#\.\./.*\.\.#)) {
-		logError("Can't read file '$file' with NoAbsolute set");
-		logGlobal("Can't read file '$file' with NoAbsolute set");
+#		logError("Can't read file '$file' with NoAbsolute set");
+		logError( errmsg('Util.pm:3', "Can't read file '%s' with NoAbsolute set" , $file) );
+#		logGlobal("Can't read file '$file' with NoAbsolute set");
+		logGlobal( errmsg('Util.pm:4', "Can't read file '%s' with NoAbsolute set" , $file) );
 		return undef;
 	}
 
@@ -1227,6 +1255,17 @@ sub logDebug {
 		print $msg;
 	}
 	return;
+}
+
+sub errmsg {
+	my($selector,$fmt, @strings) = @_;
+	if($Global::Locale and defined $Global::Locale->{$selector}) {
+	 	$fmt = $Global::Locale->{$selector};
+	}
+	elsif($Vend::Cfg->{Locale} and defined $Vend::Cfg->{Locale}->{$selector}) {
+	 	$fmt = $Vend::Cfg->{Locale}->{$selector};
+	}
+	return sprintf $fmt, @strings;
 }
 
 sub logGlobal {

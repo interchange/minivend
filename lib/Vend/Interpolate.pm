@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # Interpolate.pm - Interpret MiniVend tags
 # 
-# $Id: Interpolate.pm,v 1.54 1998/06/06 08:11:45 mike Exp mike $
+# $Id: Interpolate.pm,v 1.40 1998/01/16 07:30:42 mike Exp mike $
 #
 # Copyright 1996 by Michael J. Heins <mikeh@iac.net>
 #
@@ -24,7 +24,7 @@ package Vend::Interpolate;
 require Exporter;
 @ISA = qw(Exporter);
 
-$VERSION = substr(q$Revision: 1.54 $, 10);
+$VERSION = substr(q$Revision: 1.40 $, 10);
 
 @EXPORT = qw (
 
@@ -259,6 +259,9 @@ my $Some = '[\000-\377]*?';
 my $Codere = '[\w-_#/.]+';
 my $Coderex = '[\w-_:#=/.%]+';
 my $Mandx = '\s+([\w-_:#=/.%]+)';
+my $Mandf = '(?:%20|\s)+([\w-_#/.]+)';
+my $Spacef = '(?:%20|\s)+';
+my $Spaceo = '(?:%20|\s)*';
 my $Optx = '(?:\s+)?([\w-_:#=/.%]+)?';
 my $Mand = '\s+([\w-_#/.]+)';
 my $Opt = '(?:\s+)?([\w-_#/.]+)?';
@@ -392,9 +395,14 @@ sub cache_html {
 sub ref_or_positional {
 	my($stuff, $patt, @names) = @_;
 	my ($ref, @out);
-	if($stuff =~ /^\s*{/) {
+
+	if(ref $stuff) {
+		$ref = $stuff;
+	}
+	elsif($stuff =~ /^\s*{/) {
 		$ref = $ready_safe->reval($stuff);
 	}
+
 	if(ref $ref) {
 		for(@names) {
 			push @out, ($ref->{$_} || undef);	
@@ -608,7 +616,7 @@ sub cache_scan_html {
 	$html =~ s#$T{'discount'}$Mand$T($Some)$T{'/discount'}$T#
 				  tag_discount($1,$2)#geo
 				  		and $CacheInvalid = 1;
-    $html =~ s#$T{'subtotal'}$Opt$Opt$T#subtotal($1,$2)#geo
+    $html =~ s#$T{'subtotal'}$Opt$Opt$T#tag_subtotal($1,$2)#geo
 			and $CacheInvalid = 1;
     $html =~ s#$T{'shipping-desc'}$Opt$T#
 					tag_shipping_desc($1)#geo;
@@ -746,7 +754,7 @@ sub scan_html {
     $html =~ s!$T{'nitems'}$Opt$T!tag_nitems($1)!geo;
 	$html =~ s#$T{'discount'}$Mand$T($Some)$T{'/discount'}$T#
 				  tag_discount($1,$2)#geo;
-    $html =~ s#$T{'subtotal'}$Opt$Opt$T#subtotal($1,$2)#geo;
+    $html =~ s#$T{'subtotal'}$Opt$Opt$T#tag_subtotal($1,$2)#geo;
     $html =~ s#$T{'shipping-desc'}$Opt$T#
 					tag_shipping_desc($1)#geo;
     $html =~ s#$T{'shipping'}$Opt$Opt$Opt$T#tag_shipping($1,$2,$3)#geo;
@@ -854,7 +862,8 @@ sub tag_data {
 				? '' : $Vend::Cfg->{SalesTaxTable}->{$field} );
 	}
 	else {
-		logError("Bad data '$selector' '$field' '$key'");
+#		logError("Bad data '$selector' '$field' '$key'");
+		logError( errmsg('Interpolate.pm:1', "Bad data '%s' '%s' '%s'" , $selector, $field, $key) );
 		return '';
 	}
 }
@@ -1177,6 +1186,24 @@ sub show_current_accessory_label {
 	return '';
 }
 
+sub build_accessory_textarea {
+	my($name, $type, $default, @opts) = @_;
+
+	my $select;
+	my $run = qq|<TEXTAREA NAME="$name"|;
+
+	while($type =~ m/\b(row|col)(?:umn)s?[=\s'"]*(\d+)/gi) {
+		$run .= " \U$1\ES=$2";
+	}
+	if ($type =~ m/\bwrap[=\s'"]*(hard|soft|none)/i) {
+		$run .= qq{WRAP="$1"};
+	}
+	$run .= '>';
+	$run .= $default;
+	$run .= '</TEXTAREA>';
+}
+
+
 sub build_accessory_select {
 	my($name, $type, $default, @opts) = @_;
 
@@ -1375,10 +1402,13 @@ sub tag_accessories {
 		return qq|<INPUT TYPE="hidden" NAME="$name" VALUE="$label">|;
 	}
 
-	# Building select or radio/check box if got here
+	# Building select, textarea, or radio/check box if got here
 
 	if ($type =~ /^(radio|check)/i) {
 		return build_accessory_box($name, $type, $default, @opts);
+	}
+	elsif($type =~ /^textarea/i) {
+		return build_accessory_textarea($name, $type, $default, @opts);
 	}
 	else {
 		return build_accessory_select($name, $type, $default, @opts);
@@ -1516,7 +1546,8 @@ sub tag_perl {
 	}
 		
 	if ($@) {
-		logGlobal("Safe: $@\n$body\n");
+#		logGlobal("Safe: $@\n$body\n");
+		logGlobal( errmsg('Interpolate.pm:2', "Safe: %s\n%s\n" , $@, $body) );
 		return '';
 	}
 	undef %Vend::Interpolate::Safe;
@@ -1865,7 +1896,7 @@ sub do_parse_tag {
 
 # Returns the text of a user entered field named VAR.
 sub tag_value {
-    my($var,$esc,$set) = @_;
+    my($var,$esc,$set,$hide) = @_;
     my($value);
 
 	local($) = 0;
@@ -1878,6 +1909,7 @@ sub tag_value {
 		$value =~ s/\]/&#93;/g;
 		$value =~ s/(['"])/\\$1/g if $esc;
     }
+	return '' if $hide;
     return $value;
 }
 
@@ -2303,7 +2335,11 @@ sub tag_calc {
 
 	$result = $ready_safe->reval($body);
 	if ($@) {
-		logGlobal("Safe: $@\n$body\n");
+		my $msg;
+		$msg = $Vend::Session->{active_routine} || '';
+		$msg .= $@;
+#		logGlobal("Safe: $msg\n$body\n");
+		logGlobal( errmsg('Interpolate.pm:3', "Safe: %s\n%s\n" , $msg, $body) );
 		return 0;
 	}
 	return $result;
@@ -2677,7 +2713,7 @@ sub tag_search_list {
 
 	my $return;
 	if($Vend::OnlyProducts) {
-		$text =~ s#$T{'item-field'}\s+#[item-data $Vend::OnlyProducts #g;
+		$text =~ s#$T{'item-field'}$Spacef#[item-data $Vend::OnlyProducts #g;
 		$text =~ s#$T{'if-field'}\s+(!\s*)?#[if-data $1$Vend::OnlyProducts #g;
 		$text =~ s#$T{'/if-field'}\]#[/if-data]#g;
 	}
@@ -2692,24 +2728,24 @@ sub tag_search_list {
 		$count++;
 
 	    $run = $text;
-	    $run =~ s:$T{'item-param'}\s+(\d+)\]:$fields[$1]:go;
-	    $run =~ s:$T{'item-param'}$Mand\]:$fields[$field_hash{$1}]:go;
-		$run =~ s#$T{'if-field'}\s+(!?)\s*($Codere)\]($Some)$T{'/if-field'}\]#
+	    $run =~ s:$T{'item-param'}$Spacef(\d+)\]:$fields[$1]:go;
+	    $run =~ s:$T{'item-param'}$Mandf\]:$fields[$field_hash{$1}]:go;
+		$run =~ s#$T{'if-field'}$Spacef(!?)\s*($Codere)\]($Some)$T{'/if-field'}\]#
 				  product_field($2, $code)	?	pull_if($3,$1)
 											:	pull_else($3,$1)#geo;
         tag_item_data_row($code,\$run);
 	    $run =~ s:$T{'item-increment'}\]:$count:go;
-		$run =~ s:$T{'item-accessories'}(\s+[^\]]+)?\]:
+		$run =~ s:$T{'item-accessories'}($Spacef[^\]]+)?\]:
 						tag_accessories($code,'',$1):geo;
 		$run =~ s:$T{'item-code'}\]:$code:go;
 		$run =~ s:$T{'item-description'}\]:trim_desc(product_description($code)):geo;
-		$run =~ s:$T{'item-field'}$Mand\]:product_field($1, $code):geo;
+		$run =~ s:$T{'item-field'}$Mandf\]:product_field($1, $code):geo;
 		$run =~ s#$T{'item-link'}\]#"[page $linkdir$link]"
 						. $linkvalue . '[/page]'#geo;
 		$run =~ s!$T{'item-price'}(?:\s+)?(\d+)?$Opt\]!
 					currency(product_price($code,$1), $2)!geo;
 
-		1 while $run =~ s!	$T{'on-change'} \s+ ($Codere)\] \s*
+		1 while $run =~ s!	$T{'on-change'} $Spacef ($Codere)\] \s*
 						$T{'condition'}\]
 						($Some)
 						$T{'/condition'}\]
@@ -3094,13 +3130,13 @@ sub tag_item_data_row {
 					)
 				|| {};
 		$done = 1;
-		$$text =~ s#$T{'if-data'}\s+(!?)\s*$table$Mand\]
+		$$text =~ s#$T{'if-data'}$Spacef(!?)$Spaceo$table$Mandf\]
 				($Some)
 				$T{'/if-data'}\]#
 				$row->{$2}	? pull_if($3,$1)
 							: pull_else($3,$1)#xge
 			and undef $done;
-		$$text =~ s/$T{'item-data'}\s+$table$Mand\]/$row->{$1}/g
+		$$text =~ s/$T{'item-data'}$Spacef$table$Mandf\]/$row->{$1}/g
 			and undef $done;
 		last if $done;
 	}
@@ -3114,7 +3150,7 @@ sub tag_loop_data_row {
 	my $done;
     while($$text =~ /
                 (?:$T{'loop-data'}|$T{'if-loop-data'})  # Want the last one
-                $with \s+ !?\s* ($Codere) \s
+                $with $Spacef !?\s* ($Codere) \s
                 (?!$All(?:$T{'loop-data'}|$T{'if-loop-data'}))
                 /x) {
 		$table = $1;
@@ -3124,13 +3160,13 @@ sub tag_loop_data_row {
 					)
 				|| {};
 		$done = 1;
-		$$text =~ s#$T{'if-loop-data'}$with\s+(!?)\s*$table$Mand\]
+		$$text =~ s#$T{'if-loop-data'}$with$Spacef(!?)\s*$table$Mand\]
 				($Some)
 				$T{'/if-loop-data'}$with\]#
 				$row->{$2}	? pull_if($3,$1)
 							: pull_else($3,$1)#xge
 			and undef $done;
-		$$text =~ s/$T{'loop-data'}$with\s+$table$Mand\]/$row->{$1}/g
+		$$text =~ s/$T{'loop-data'}$with$Spacef$table$Mand\]/$row->{$1}/g
 			and undef $done;
 		last if $done;
 	}
@@ -3144,7 +3180,7 @@ sub tag_sql_data_row {
 	my $done;
     while($$text =~ /
                 (?:$T{'msql-data'}|$T{'if-msql-data'})  # Want the last one
-                \s+ !?\s* ($Codere)\s
+                $Spacef !?$Spaceo ($Codere)\s
                 (?!$All(?:$T{'msql-data'}|$T{'if-msql-data'}))
                 /xo) {
 		$table = $1;
@@ -3154,13 +3190,13 @@ sub tag_sql_data_row {
 					)
 				|| {};
 		$done = 1;
-		$$text =~ s#$T{'if-msql-data'}\s+(!?)\s*$table$Mand\]
+		$$text =~ s#$T{'if-msql-data'}$Spacef(!?)$Spaceo$table$Mand\]
 				($Some)
 				$T{'/if-msql-data'}\]#
 				$row->{$2}	? pull_if($3,$1)
 							: pull_else($3,$1)#xge
 			and undef $done;
-		$$text =~ s/$T{'msql-data'}\s+$table$Mand\]/$row->{$1}/g
+		$$text =~ s/$T{'msql-data'}$Spacef$table$Mand\]/$row->{$1}/g
 			and undef $done;
 		last if $done;
 	}
@@ -3184,8 +3220,8 @@ sub tag_item_list {
 
 	my $return;
 	if($Vend::OnlyProducts) {
-		$text =~ s/$T{'item-field'}\s+/[item-data $Vend::OnlyProducts /g;
-		$text =~ s/$T{'if-field'}\s+(!\s*)?/[if-data $1$Vend::OnlyProducts /g;
+		$text =~ s/$T{'item-field'}$Spacef/[item-data $Vend::OnlyProducts /g;
+		$text =~ s/$T{'if-field'}$Spacef(!$Spaceo)?/[if-data $1$Vend::OnlyProducts /g;
 		$text =~ s!$T{'/if-field'}\]![/if-data]!g;
 	}
 	foreach $i (0 .. $#$cart) {
@@ -3195,22 +3231,22 @@ sub tag_item_list {
 
 		$run = $text;
 		tag_item_data_row($code,\$run);
-		$run =~ s#$T{'if-field'}\s+(!?)\s*($Codere)\]($Some)$T{'/if-field'}\]#
+		$run =~ s#$T{'if-field'}$Spacef(!?)$Spaceo($Codere)\]($Some)$T{'/if-field'}\]#
 				  product_field($2, $code)	?	pull_if($3,$1)
 											:	pull_else($3,$1)#geo;
-		$run =~ s#$T{'if-modifier'}\s+(!?)\s*($Codere)\]($Some)$T{'/if-modifier'}\]#
+		$run =~ s#$T{'if-modifier'}$Spacef(!?)$Spaceo($Codere)\]($Some)$T{'/if-modifier'}\]#
 				  $item->{$2}	?	pull_if($3,$1)
 								:	pull_else($3,$1)#geo;
 		$run =~ s:$T{'item-increment'}\]:$i + 1:geo;
-		$run =~ s:$T{'item-accessories'}(\s+[^\]]+)?\]:
+		$run =~ s:$T{'item-accessories'}($Spacef[^\]]+)?\]:
 						tag_accessories($code,$item,$1):geo;
 		$run =~ s:$T{'item-quantity'}\]:$item->{'quantity'}:go;
-		$run =~ s:$T{'item-modifier'}\s+(\w+)\]:$item->{$1}:go;
+		$run =~ s:$T{'item-modifier'}$Spacef(\w+)\]:$item->{$1}:go;
 		$run =~ s:$T{'quantity-name'}\]:quantity$i:go;
-		$run =~ s:$T{'modifier-name'}\s+(\w+)\]:$1$i:go;
+		$run =~ s:$T{'modifier-name'}$Spacef(\w+)\]:$1$i:go;
 		$run =~ s!$T{'item-subtotal'}$Opt$T!currency(item_subtotal($item),$1)!geo;
 		$run =~ s:$T{'item-code'}\]:$code:go;
-		$run =~ s:$T{'item-field'}$Mand\]:item_field($item, $1):geo;
+		$run =~ s:$T{'item-field'}$Mandf\]:item_field($item, $1):geo;
 		$run =~ s:$T{'item-description'}\]:trim_desc(item_description($item)):geo;
 		$run =~ s#$T{'item-link'}\]#"[page $linkdir$code]"
 				  . $linkvalue . '[/page]'#geo;
@@ -3259,9 +3295,9 @@ sub tag_sql_list {
 	my $linkdir = $Vend::Cfg->{'ItemLinkDir'};
 
 	if($Vend::OnlyProducts) {
-		$text =~ s/$T{'msql-field'}\s+/[sql-data $Vend::OnlyProducts /g;
-		$text =~ s/$T{'if-msql-field'}\s+(!\s*)?/[if-sql-data $1$Vend::OnlyProducts /g;
-		$text =~ s!$T{'/if-msql-field'}(\s+$Codere)?\]![/if-msql-data$1]!g;
+		$text =~ s/$T{'msql-field'}$Spacef/[sql-data $Vend::OnlyProducts /g;
+		$text =~ s/$T{'if-msql-field'}$Spacef(!$Spaceo)?/[if-sql-data $1$Vend::OnlyProducts /g;
+		$text =~ s!$T{'/if-msql-field'}($Spacef$Codere)?\]![/if-msql-data$1]!g;
 	}
     foreach $item (@$obj) {
 		$code = $item->[0];
@@ -3274,7 +3310,7 @@ sub tag_sql_list {
 
 	    $run = $text;
 	    $run =~ s:$T{'msql-param'}\s+(\d+)\]:$item->[$1]:go;
-		$run =~ s#$T{'if-msql-field'}\s+(!?)\s*($Codere)\]
+		$run =~ s#$T{'if-msql-field'}$Spacef(!?)$Spaceo($Codere)\]
 						($Some)
 				  $T{'/if-msql-field'}\]#
 				  product_field($2, $code)	?	pull_if($3, $1)
@@ -3299,8 +3335,8 @@ sub loop_with {
 	return '' unless $code && defined $run;
 	$with = '' unless defined $with;
 	if($Vend::OnlyProducts) {
-		$run =~ s/$T{'loop-field'}$with\s+/[loop-data$with $Vend::OnlyProducts /g;
-		$run =~ s/$T{'if-loop-field'}$with\s+(!\s*)?/[if-loop-data$with $1$Vend::OnlyProducts /g;
+		$run =~ s/$T{'loop-field'}$with$Spacef/[loop-data$with $Vend::OnlyProducts /g;
+		$run =~ s/$T{'if-loop-field'}$with$Spacef(!\s*)?/[if-loop-data$with $1$Vend::OnlyProducts /g;
 		$run =~ s!$T{'/if-loop-field'}$with\]![/if-loop-data$with]!g;
 	}
 	$run =~ s#$T{'loop-last'}$with\]
@@ -3312,28 +3348,28 @@ sub loop_with {
 				$T{'/loop-next'}$with\]#
 					interpolate_html($1) ? '' : return ''#xge;
 
-	$run =~ s#$T{'if-loop-field'}$with\s+(!?)\s*($Codere)\]
+	$run =~ s#$T{'if-loop-field'}$with$Spacef(!?)\s*($Codere)\]
 					($Some)
 				$T{'/if-loop-field'}$with\]#
 			  product_field($2, $code)	?	pull_if($3,$1)
 										:	pull_else($3,$1)#xge;
 	tag_loop_data_row($code,\$run,$with);
 	$run =~ s:$T{'loop-increment'}$with\]:$i:xg;
-	$run =~ s:$T{'loop-accessories'}$with(\s+[^\]]+)?\]:tag_accessories($code,'',$1):ge;
+	$run =~ s:$T{'loop-accessories'}$with($Spacef[^\]]+)?\]:tag_accessories($code,'',$1):ge;
 	$run =~ s:$T{'loop-code'}$with\]:$code:g;
-	$run =~ s:$T{'loop-field'}$with$Mand\]:product_field($1, $code):ge;
+	$run =~ s:$T{'loop-field'}$with$Mandf\]:product_field($1, $code):ge;
 	$run =~ s:$T{'loop-description'}$with\]:trim_desc(product_description($code)):ge;
 	$run =~ s#$T{'loop-link'}$with\]#"[page " . $Vend::Cfg->{'ItemLinkDir'} . "$code]"
 			  . $Vend::Cfg->{'ItemLinkValue'} . '[/page]'#ge;
 	$run =~ s!$T{'loop-price'}$with(?:\s+)?(\d+)?$Opt$T!
 				currency(product_price($code,$1), $2)!ge;
 
-	1 while $run =~ s!	$T{'loop-change'}$with \s+ ($Codere)\] \s*
+	1 while $run =~ s!	$T{'loop-change'}$with $Spacef ($Codere)\] \s*
 					$T{'condition'}\]
 					($Some)
 					$T{'/condition'}\]
 					([\000-\377]*?)
-				$T{'/loop-change'}$with \s+ \1 \]!
+				$T{'/loop-change'}$with $Spacef \1 \]!
 						check_change($1,$2)
 										?	pull_if($3)
 										:	pull_else($3)!xge;
@@ -3345,32 +3381,32 @@ sub loop_substitute {
 	my ($code,$run,$i) = @_;
 	my $return;
 	if($Vend::OnlyProducts) {
-		$run =~ s/$T{'loop-field'}\s+/[loop-data $Vend::OnlyProducts /g;
-		$run =~ s/$T{'if-loop-field'}\s+(!\s*)?/[if-loop-data $1$Vend::OnlyProducts /g;
+		$run =~ s/$T{'loop-field'}$Spacef/[loop-data $Vend::OnlyProducts /g;
+		$run =~ s/$T{'if-loop-field'}$Spacef(!\s*)?/[if-loop-data $1$Vend::OnlyProducts /g;
 		$run =~ s!$T{'/if-loop-field'}\]![/if-loop-data]!g;
 	}
-	$run =~ s#$T{'if-loop-field'}\s+(!?)\s*($Codere)\]
+	$run =~ s#$T{'if-loop-field'}$Spacef(!?)\s*($Codere)\]
 					($Some)
 				$T{'/if-loop-field'}\]#
 			  product_field($2, $code)	?	pull_if($3,$1)
 										:	pull_else($3,$1)#xgeo;
 	tag_loop_data_row($code,\$run);
 	$run =~ s:$T{'loop-increment'}\]:$i:xgo;
-	$run =~ s:$T{'loop-accessories'}(\s+[^\]]+)?\]:tag_accessories($code,'',$1):geo;
+	$run =~ s:$T{'loop-accessories'}($Spacef[^\]]+)?\]:tag_accessories($code,'',$1):geo;
 	$run =~ s:$T{'loop-code'}\]:$code:go;
-	$run =~ s:$T{'loop-field'}$Mand\]:product_field($1, $code):geo;
+	$run =~ s:$T{'loop-field'}$Mandf\]:product_field($1, $code):geo;
 	$run =~ s:$T{'loop-description'}\]:trim_desc(product_description($code)):geo;
 	$run =~ s#$T{'loop-link'}\]#"[page " . $Vend::Cfg->{'ItemLinkDir'} . "$code]"
 			  . $Vend::Cfg->{'ItemLinkValue'} . '[/page]'#geo;
 	$run =~ s!$T{'loop-price'}(?:\s+)?(\d+)?$Opt$T!
 				currency(product_price($code,$1), $2)!geo;
 
-	1 while $run =~ s!	$T{'loop-change'} \s+ ($Codere)\] \s*
+	1 while $run =~ s!	$T{'loop-change'} $Spacef ($Codere)\] \s*
 					$T{'condition'}\]
 					($Some)
 					$T{'/condition'}\]
 					($Some)
-				$T{'/loop-change'} \s+ \1 \]!
+				$T{'/loop-change'} $Spacef \1 \]!
 						check_change($1,$2)
 										?	pull_if($3)
 										:	pull_else($3)!xgeo;
@@ -3502,9 +3538,11 @@ sub search_page {
 	my $key = $q->{global}->{cache_key};
 
  	unless (defined $page) {
-		logError("Missing special page: $page");
-		logGlobal("Missing special page: $page");
-		return main::response('plain', "No search page '$page' found!");
+#		logError("Missing special page: $page");
+		logError( errmsg('Interpolate.pm:4', "Missing special page: %s" , $page) );
+#		logGlobal("Missing special page: $page");
+		logGlobal( errmsg('Interpolate.pm:5', "Missing special page: %s" , $page) );
+		return main::response('plain', errmsg('Interpolate.pm:6', "No search page '%s' found!", $page) );
 	}
 
 	my $no_match_found = 0;
@@ -3632,8 +3670,8 @@ sub fly_page {
 		$page =~ s/__LANG__/$Vend::Cfg->{Variable}->{LANG}/g; 
 	}
 	if($Vend::OnlyProducts) {
-		$page =~ s/$T{'item-field'}\s+/[item-data $Vend::OnlyProducts /g;
-		$page =~ s/$T{'if-field'}\s+(!\s*)?/[if-data $1$Vend::OnlyProducts /g;
+		$page =~ s/$T{'item-field'}$Spacef/[item-data $Vend::OnlyProducts /g;
+		$page =~ s/$T{'if-field'}$Spacef(!$Spaceo)?/[if-data $1$Vend::OnlyProducts /g;
 		$page =~ s!$T{'/if-field'}\]![/if-data]!g;
 	}
 
@@ -3641,8 +3679,7 @@ sub fly_page {
 	$page =~ s#($T{'fly-list'}\s+[\s\S]+?$T{'/fly-list'}\])#
 					$it[$it] = $1; '_@_POSTFLY' . $it++ . '_@_';#xgeo;
 
-
-	$page =~ s#$T{'if-field'}\s+(!?)\s*($Codere)\]($Some)$T{'/if-field'}\]#
+	$page =~ s#$T{'if-field'}$Spacef(!?)$Spaceo($Codere)\]($Some)$T{'/if-field'}\]#
 			  database_field($base, $code, $2)	?	pull_if($3,$1)
 										:	pull_else($3,$1)#geo;
 	tag_item_data_row($code,\$page);
@@ -3652,7 +3689,7 @@ sub fly_page {
 					database_field($base,$code,$Vend::Cfg->{DescriptionField})!geo;
 	$page =~ s!$T{'item-price'}(?:\s+)?(\d+)?$Opt$T!
 					currency(product_price($code,$1 || 1,$base), $2)!geo;
-	$page =~ s:$T{'item-field'}$Mand\]:database_field($base,$code,$1):geo;
+	$page =~ s:$T{'item-field'}$Mandf\]:database_field($base,$code,$1):geo;
 	$page =~ s:_\@_POSTFLY(\d+)_\@_:$it[$1]:g;
 
     $page;
@@ -3675,8 +3712,10 @@ sub order_page {
 	$page = readin($which);
 
  	unless (defined $page) {
-		logError("Missing special page: $which");
-		logGlobal("Missing special page: $which");
+#		logError("Missing special page: $which");
+		logError( errmsg('Interpolate.pm:7', "Missing special page: %s" , $which) );
+#		logGlobal("Missing special page: $which");
+		logGlobal( errmsg('Interpolate.pm:8', "Missing special page: %s" , $which) );
 		return main::response('plain', "No page defined!");
 	}
     main::response('html',interpolate_html($page, $wantref));
@@ -3812,6 +3851,20 @@ sub shipping {
 			$total = $total + $Vend::Items->[$i]->{$field};
     	}
 	}
+	elsif ( index($field, ':') != -1) {
+		my ($base, $field) = split /:+/, $field;
+		my $db = database_exists_ref($base);
+		unless ($db and db_column_exists($db,$field) ) {
+			logError("Bad shipping field '$field' or table '$base'. Returning 0");
+			$Vend::Items = $save if defined $save;
+			return 0;
+		}
+    	foreach $i (0 .. $#$Vend::Items) {
+			my $item = $Vend::Items->[$i];
+			$total += (database_field($base, $item->{code}, $field) || 0) *
+						$item->{'quantity'};
+		}
+	}
 	else {
 		unless (column_exists $field) {
 			logError("Custom shipping field '$field' doesn't exist. Returning 0");
@@ -3827,7 +3880,7 @@ sub shipping {
 	}
 	$Vend::Items = $save if defined $save;
 
-	my $final = 0;
+	my $final;
 
 	# We will LAST this loop and return $final if a match is found
 	SHIPIT: 
@@ -4000,7 +4053,7 @@ sub shipping {
 		}
 	}
 
-	if($final) {
+	if(defined $final) {
 		return Vend::Util::currency($final, 1, ship_opt($mode,'PriceDivide') );
 	}
 	# If we got here, the mode and quantity fit was not found
@@ -4317,7 +4370,7 @@ sub tag_order {
 		$page = defined $page ? "/$page" : '';
 		$page = $base . $page;
 	}
-	$quantity =~ s/^(\d+)/+$1/ if defined $quantity;
+	$quantity =~ s/^(\d+)/_$1/ if defined $quantity;
     unless(defined $page) {
         $page = $action;
     }   

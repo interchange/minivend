@@ -286,3 +286,5 @@ sub {
 EOF
 
 #include userdb.cfg
+
+# #include locale.error

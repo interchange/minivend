@@ -17,17 +17,18 @@ IMPORTANT NOTE: If you don't give evidence of having read and
 WINDOWS INSTALLATION
 --------------------
 
-    Obtain the self-extracting executable minivend-3.09.exe
+    Obtain the self-extracting executable minivend-3.10.exe
     and double-click on it.
 
     IMPORTANT NOTE: If you get the message "Bad command or file name"
     when trying to install, then that means that Perl is not installed
     on your machine or is not in your path.  Go to http://www.perl.com
     and install the *standard* 5.004 version (AKA the Gurusamy Sarathy
-    port). MiniVend will not work with the ActiveState 5.003 port.
+    port). MiniVend will not work with the ActiveState 5.003 port; it
+	appears to work well with the "Merge" port.
     
     If you already have the CYGWIN.DLL executable or plan on using the
-    Perl link CGI, you can download the file minivend-3.09-nodll.exe
+    Perl link CGI, you can download the file minivend-3.10-nodll.exe
     and do the same.
 
     The defaults are set for Microsoft Personal Web Server on Win95 --
@@ -42,26 +43,26 @@ WINDOWS INSTALLATION
     You should get PGP as soon as possible so that you might have
     secure credit card number storage.
 
-    Many features are untested in the Windows version, and it 
+    Some features are untested in the Windows version, and it 
     can be considered a beta.
 
 UNIX INSTALLATION
 ------------------
 Here is the short version:
 
-    gzip -dc minivend-3.09.tar.gz | tar xvf -
-    cd minivend-3.09
+    gzip -dc minivend-3.10.tar.gz | tar xvf -
+    cd minivend-3.10
     ./configure
 
 Long version with comments:
 
     # Unzip and untar the file -- if you have GNU tar, you can substitute
-    # 'tar xzf minivend-3.09.tar.gz'
-    gzip -dc minivend-3.09.tar.gz | tar xvf -
+    # 'tar xzf minivend-3.10.tar.gz'
+    gzip -dc minivend-3.10.tar.gz | tar xvf -
 
     # Change directory to the one that was created 
     #
-    cd minivend-3.09
+    cd minivend-3.10
 
     # If you have trouble with picking up the wrong Perl version,
     # try  '/dir/where/perl/is/perl Makefile.PL

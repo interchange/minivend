@@ -1,6 +1,64 @@
 
                   W H A T ' S   N E W 
 
+MiniVend 3.10 is a bug-fix release with a few minor updates.
+
+    * New IpQuad global directive allows removal of any IP address
+      qualification from the session name, allowing transferred
+      sessions from server to server. Just set
+      
+        DomainTail No
+        IpHead     Yes
+        IpQuad     0
+
+      in minivend.cfg and transfer of sessions from AOL or WebTV
+      should now be possible. This makes it possible to use different
+      domains for the secure server and the non-secure server, even
+      when the browser will not set cookies outside the current
+      domain.
+
+      IMPORTANT NOTE: Remember that security is compromised
+      greatly by this; it should be used in combination with
+      PGP-encrypted credit card information with CreditCardAuto,
+      or with MiniVend's internal CyberCash routines. YOU SHOULD
+      NEVER STORE ANY UNENCRYPTED CREDIT CARD INFORMATION ANYWHERE
+      WHEN USING THIS WORKAROUND.
+
+    * New URLDECODE tag, specific to the new/HTML tag style, provides
+      unescape and URL translation services for <A HREF...> and
+      <IMG ....> tags. If you use FrontPage or other
+      HTML editors they will translate spaces to %20 within
+      an image SRC or anchor HREF. Now you can do:
+
+        <IMG MV=urldecode SRC="[value%20saved_image]"> 
+
+      Flypages and search lists are done automatically.
+
+    * HTML-style CHECKED and SELECTED now works properly.
+
+    * Fixed EXCEL import mode so it also strips paired double quotes.
+
+    * Lotus NOTES format can now be exported.
+
+    * Now can have separate language and currency locales,
+      using the mv_currency scratch variable just as with mv_locale;
+      and with [setlocale locale=fr_FR currency=en_US].
+
+    * New Global Locale tag gives global default for error
+      messages. Error messages are numbered by module, and can
+      be changed. A default file locale.error will define the
+      usable keys; it is not configured in by default.
+
+    * Error messages are numbered and the current locale can
+      be used to generate many of them. This is not yet complete,
+      but should be much improved. See the locale.error file for
+      a list of keys to define for translation.
+
+    * MiniVend should work with the Storable module version
+      0.6@3 or higher, greatly increasing speed of session
+      storage and recall. To use, install at least that version
+      and set the environment variable MINIVEND_STORABLE to 1.
+
 MiniVend 3.09 is a release that optimizes speed and adds features
 that allow operation with some HTML editors.
 

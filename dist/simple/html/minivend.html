@@ -398,7 +398,6 @@ The user hears about your catalog via a search engine, link from another page, o
 The link program, which is a regular 
 <FONT SIZE=-1>CGI</FONT> program, calls the MiniVend server. The MiniVend server sees the path information which is appended to the 
 <FONT SIZE=-1>URL</FONT> calling it, and brings up the corresponding page. The page contains a link to order items from your catalog.
- 
 
 <P>
 
@@ -563,7 +562,7 @@ The
 
 <LI><STRONG></STRONG>
 The server is already running as a daemon, and the request calls a small 
-<FONT SIZE=-1>C</FONT> program (source is vlink.c or tlink.c) that is 
+<FONT SIZE=-1>C</FONT> program (source is vlink.c or tlink.c) that is
 <EM>named according to which catalog is being called.</EM> This program communicates with the MiniVend program via a 
 <FONT SIZE=-1>UNIX-</FONT> or INET-domain socket.
 
@@ -650,18 +649,18 @@ are some of the many:
 
 <P>
 
-<PRE>  Florida 
-     <A HREF="ftp://ftp.cis.ufl.edu/pub/perl/CPAN/">ftp://ftp.cis.ufl.edu/pub/perl/CPAN/</A> 
-  Illinois 
-     <A HREF="ftp://uiarchive.cso.uiuc.edu/pub/lang/perl/CPAN/">ftp://uiarchive.cso.uiuc.edu/pub/lang/perl/CPAN/</A> 
-  Massachusetts 
-     <A HREF="ftp://ftp.delphi.com/pub/mirrors/packages/perl/CPAN/">ftp://ftp.delphi.com/pub/mirrors/packages/perl/CPAN/</A> 
-  Oklahoma 
-     <A HREF="ftp://ftp.uoknor.edu/mirrors/CPAN/">ftp://ftp.uoknor.edu/mirrors/CPAN/</A> 
-  Texas 
+<PRE>  Florida
+     <A HREF="ftp://ftp.cis.ufl.edu/pub/perl/CPAN/">ftp://ftp.cis.ufl.edu/pub/perl/CPAN/</A>
+  Illinois
+     <A HREF="ftp://uiarchive.cso.uiuc.edu/pub/lang/perl/CPAN/">ftp://uiarchive.cso.uiuc.edu/pub/lang/perl/CPAN/</A>
+  Massachusetts
+     <A HREF="ftp://ftp.delphi.com/pub/mirrors/packages/perl/CPAN/">ftp://ftp.delphi.com/pub/mirrors/packages/perl/CPAN/</A>
+  Oklahoma
+     <A HREF="ftp://ftp.uoknor.edu/mirrors/CPAN/">ftp://ftp.uoknor.edu/mirrors/CPAN/</A>
+  Texas
      <A HREF="ftp://ftp.metronet.com/pub/perl/">ftp://ftp.metronet.com/pub/perl/</A>
-     <A HREF="ftp://ftp.sedl.org/pub/mirrors/CPAN/">ftp://ftp.sedl.org/pub/mirrors/CPAN/</A> 
-     <A HREF="ftp://ftp.sterling.com/programming/languages/perl/">ftp://ftp.sterling.com/programming/languages/perl/</A> 
+     <A HREF="ftp://ftp.sedl.org/pub/mirrors/CPAN/">ftp://ftp.sedl.org/pub/mirrors/CPAN/</A>
+     <A HREF="ftp://ftp.sterling.com/programming/languages/perl/">ftp://ftp.sterling.com/programming/languages/perl/</A>
 </PRE>
 
 <P>
@@ -672,8 +671,8 @@ are some of the many:
 
 <PRE>  Czech Republic
      <A HREF="ftp://sunsite.mff.cuni.cz/Languages/Perl/CPAN/">ftp://sunsite.mff.cuni.cz/Languages/Perl/CPAN/</A>
-  Finland 
-     <A HREF="ftp://ftp.funet.fi/pub/languages/perl/CPAN/">ftp://ftp.funet.fi/pub/languages/perl/CPAN/</A> 
+  Finland
+     <A HREF="ftp://ftp.funet.fi/pub/languages/perl/CPAN/">ftp://ftp.funet.fi/pub/languages/perl/CPAN/</A>
   France 
      <A HREF="ftp://ftp.ibp.fr/pub/perl/CPAN/">ftp://ftp.ibp.fr/pub/perl/CPAN/</A> 
      <A HREF="ftp://ftp.pasteur.fr/pub/computing/unix/perl/CPAN/">ftp://ftp.pasteur.fr/pub/computing/unix/perl/CPAN/</A> 
@@ -827,7 +826,7 @@ If you have trouble with ./configure, try this:
 <P>
 
 <PRE>    perl Makefile.PL
-    make 
+    make
     make test
     make install
 </PRE>
@@ -916,7 +915,7 @@ have differing information in a file named for the subcatalog.)
 
 <P>
 
-<DT><STRONG><A NAME="item_config">config 
+<DT><STRONG><A NAME="item_config">config
 
 </A></STRONG><DD>
 Directory that will be read when directives are set with the &lt;filename notation. For example, the file <CODE>config/static.pages</CODE>
@@ -1069,15 +1068,15 @@ substituted, and include (at least):
 
 <P>
 
-<PRE>    MVC_BASEDIR      MVC_IMAGEDIR     
-    MVC_CATROOT      MVC_IMAGEURL       
-    MVC_CATUSER      MVC_MAILORDERTO    
-    MVC_CGIBASE      MVC_MINIVENDGROUP  
-    MVC_CGIDIR       MVC_MINIVENDUSER   
-    MVC_CGIURL       MVC_SAMPLEHTML     
-    MVC_DEMOTYPE     MVC_SAMPLEURL      
-    MVC_DOCUMENTROOT MVC_VENDROOT       
-    MVC_ENCRYPTOR       
+<PRE>    MVC_BASEDIR      MVC_IMAGEDIR
+    MVC_CATROOT      MVC_IMAGEURL
+    MVC_CATUSER      MVC_MAILORDERTO
+    MVC_CGIBASE      MVC_MINIVENDGROUP
+    MVC_CGIDIR       MVC_MINIVENDUSER
+    MVC_CGIURL       MVC_SAMPLEHTML
+    MVC_DEMOTYPE     MVC_SAMPLEURL
+    MVC_DOCUMENTROOT MVC_VENDROOT
+    MVC_ENCRYPTOR
 </PRE>
 
 <P>
@@ -1401,8 +1400,13 @@ calculated for them.
 
 </A></STRONG><DD>
 
-<FONT SIZE=-1>A</FONT> comma-separated string containing product size information, for example: Small, Medium, Large, 
-<FONT SIZE=-1>XL</FONT>
+<FONT SIZE=-1>A</FONT> comma-separated string containing product size
+information, for example:
+
+<P>
+
+<PRE>  Small, Medium, Large, XL
+</PRE>
 
 <P>
 
@@ -1509,7 +1513,7 @@ directory.
 The demo catalogs supplied with MiniVend are there to give you a starting
 point for your own catalog. Play with them, change them, and rename them --
 add your own icons, change flypage.html, change the results.html files,
-etc. 
+etc.
 
 <P>
 
@@ -1812,10 +1816,10 @@ should match (don't use [item-list] list [/item_list]).
 <P>
 
 <DL>
-<DT><STRONG><A NAME="item__value">[value field flag* set*]
+<DT><STRONG><A NAME="item__value">[value field flag*]
 
 </A></STRONG><DD>
-named attributes: [value name=field flag=1 set=``new value'']
+named attributes: [value name=field escaped=1 set=``new value'' hide=1]
 
 <P>
 
@@ -1836,9 +1840,8 @@ methods.)
 
 <P>
 
-If the <CODE>set</CODE> value is present, the form variable value will be set to it and the empty
-string returned. Use this to ``uncheck'' a checkbox or set other form
-variable values to defaults.
+If the <CODE>set</CODE> value is present, the form variable value will be set to it and the new value returned. Use this to ``uncheck'' a checkbox or set other form variable values to defaults. If 
+<FONT SIZE=-1>HIDE</FONT> is set, the value will be set but not returned to the page.
 
 <P>
 
@@ -1882,7 +1885,6 @@ the argument is read back into the session.
 
 <FONT SIZE=-1>A</FONT> bit of magic occurs if MiniVend has built a static page for the target page. Instead of generating a normal MiniVend-parsed page reference, a static page reference will be inserted if the user has accepted and sent back a cookie with the session 
 <FONT SIZE=-1>ID.</FONT>
- 
 
 <P>
 
@@ -1925,7 +1927,7 @@ Expands into &lt;/a&gt;. Used with the page element, such as:
 
 <P>
 
-<PRE>  [page shirts]Our shirt collection[/page]. 
+<PRE>  [page shirts]Our shirt collection[/page].
 </PRE>
 
 <P>
@@ -1971,7 +1973,7 @@ item.
 
 <P>
 
-Example: 
+Example:
 
 <P>
 
@@ -2301,7 +2303,7 @@ is fine.
 <STRONG>IMPORTANT NOTE:</STRONG> The field names must be on the first line of the
 <CODE>products.asc</CODE> file. These field names must match <EM>exactly</EM> the field names of the [item_field] tags in your catalog pages, or the
 MiniVend server will not access them properly. Field names can contain the
-characters <STRONG>A-Za-z0-9</STRONG>, along with hyphen (<CODE>-</CODE>), underscore (<CODE>_</CODE>), pound sign/hash mark (<CODE>#</CODE>), slash (<CODE>/</CODE>), and period (<CODE>.</CODE>). 
+characters <STRONG>A-Za-z0-9</STRONG>, along with hyphen (<CODE>-</CODE>), underscore (<CODE>_</CODE>), pound sign/hash mark (<CODE>#</CODE>), slash (<CODE>/</CODE>), and period (<CODE>.</CODE>).
 
 <P>
 
@@ -2464,7 +2466,7 @@ Then re-start the server.
 </A></STRONG><DD>
 This uses Perl hashes to store the data directly in memory. Every time you
 restart the MiniVend server, it will re-import all in-memory databases for
-every catalog. 
+every catalog.
 
 <P>
 
@@ -12950,15 +12952,18 @@ The locale could be set to <CODE>fr_FR</CODE> (French for France) in one of two 
 <P>
 
 <DL>
-<DT><STRONG><A NAME="item__setlocale">[setlocale locale=locale* persist=1*]
+<DT><STRONG><A NAME="item__setlocale">[setlocale locale=locale* currency=locale* persist=1*]
 
 </A></STRONG><DD>
 This tag is for new-style tags only and will not work for <CODE>[old]</CODE>.
 
 <P>
 
-Immediately sets the locale to <CODE>locale</CODE>, and will cause it to persist in future user pages if the <CODE>persist</CODE> is set to a non-zero, non-blank value. If there are no arguments, sets it
-back to the user's default locale.
+Immediately sets the locale to <CODE>locale</CODE>, and will cause it to persist in future user pages if the <CODE>persist</CODE> is set to a non-zero, non-blank value. If the <CODE>currency</CODE> attribute is set, modifies the pricing and currency-specific locale keys
+and MiniVend configuration directives to that locale. If there are no
+arguments, sets it back to the user's default locale as defined in the
+scratch variables <CODE>mv_locale</CODE> and
+<CODE>mv_currency</CODE>.
 
 <P>
 
@@ -13006,13 +13011,21 @@ This tag is only available in new mode (``NewTags Yes'' or [new]).
 
 </A></STRONG><DD>
 This is the same as [page catalog], except when the link is followed it
-will set the locale to <CODE>fr_FR</CODE> before displaying the page.
+will set the locale to <CODE>fr_FR</CODE> before displaying the page. This is persistent.
+
+<P>
+
+<DT><STRONG>[page process/locale/fr_FR/currency/en_US/page/catalog]
+
+</A></STRONG><DD>
+This is the same as [page catalog], except when the link is followed it
+will set the locale to <CODE>fr_FR</CODE> and the pricing/number display to the locale <CODE>en_US</CODE> before displaying the page. This is persistent.
 
 <P>
 
 </DL>
-Once the locale is set for that user, it is in effect for the duration of
-their session.
+Once the locale is persistently set for a user, it is in effect for the
+duration of their session.
 
 <P>
 
@@ -14006,6 +14019,42 @@ with a capital letter, and can contain only word characters (<STRONG>A-Z,a-z,0-9
 
 <P>
 
+There are several standard variables which you should not use:
+
+<P>
+
+<DL>
+<DT><STRONG><A NAME="item_MV_PAGE">MV_PAGE
+
+</A></STRONG><DD>
+Name of the last page read in, as in the page called with mv_nextpage or
+mv_orderpage
+
+<P>
+
+<DT><STRONG><A NAME="item_MV_FILE">MV_FILE
+
+</A></STRONG><DD>
+Name of the last file read in, as in [file ...] or an externally located
+perl routine
+
+<P>
+
+<DT><STRONG><A NAME="item_LANG">LANG
+
+</A></STRONG><DD>
+The current locale for language
+
+<P>
+
+<DT><STRONG><A NAME="item_CURRENCY">CURRENCY
+
+</A></STRONG><DD>
+The current locale for currency
+
+<P>
+
+</DL>
 </DL>
 <P>
 <HR>
@@ -14405,7 +14454,7 @@ forms:
                                the form MM/YY (will take a four-digit
                                year as well). If it is not present,
                                the fields mv_credit_card_exp_month and
-                               mv_credit_card_exp_year are looked at. 
+                               mv_credit_card_exp_year are looked at.
                                It is set by MiniVend when the card
                                validation returns, if not previously
                                set.
@@ -14941,7 +14990,7 @@ versions of MiniVend.
 Sets the special locale array. Tries to use 
 <FONT SIZE=-1>POSIX</FONT> setlocale based on the value of itself, then
 tries to accept a custom setting with the proper definitions of <CODE>mon_decimal_point</CODE>, <CODE>thousands_sep</CODE>, and <CODE>frac_digits</CODE>, which are the the only international settings required. Default if not
-set is to use US-English settings. 
+set is to use US-English settings.
 
 <P>
 
@@ -15031,7 +15080,7 @@ Defaults to <EM>minivend</EM>.
 
 <P>
 
-<DT><STRONG><A NAME="item_Mv_AlinkColor">Mv_AlinkColor 
+<DT><STRONG><A NAME="item_Mv_AlinkColor">Mv_AlinkColor
 
 </A></STRONG><DD>
 Sets the accessed link colors to be used in the color schemes. The line must begin with 
@@ -15113,7 +15162,7 @@ with 1.
 
 <P>
 
-<DT><STRONG><A NAME="item_Mv_VlinkColor">Mv_VlinkColor 
+<DT><STRONG><A NAME="item_Mv_VlinkColor">Mv_VlinkColor
 
 </A></STRONG><DD>
 Sets the visited link colors to be used in the color schemes. The line must begin with 
@@ -15136,7 +15185,7 @@ Remember, the schemes are numbered in the order that they occur.
 
 <FONT SIZE=-1>A</FONT> yes/no directive. When set to <STRONG>Yes</STRONG>, it disallows the old-style period escaping of one-click search spec
 strings, and allows HTTP-style escaping of passed arguments (the <CODE>[page name arg]</CODE>
-tag, among others). 
+tag, among others).
 
 <P>
 
@@ -15901,7 +15950,7 @@ The location of the sendmail binary, needed for mailing orders. Must be found at
 
 </A></STRONG><DD>
 Changes the default when ordering an item via MiniVend to allowing multiple
-lines on the order form for each item. The default, <CODE>No</CODE>, puts all orders with the same part number on the same line. 
+lines on the order form for each item. The default, <CODE>No</CODE>, puts all orders with the same part number on the same line.
 
 <P>
 
@@ -16188,7 +16237,7 @@ The above would be called with:
         sort_cart ( [item-list]
                         &quot;[item-description]&quot;, &quot;[item-code]&quot;,
                     [/item-list] )
-    [/perl] 
+    [/perl]
 </PRE>
 
 <P>
@@ -16215,7 +16264,7 @@ defined.
 
 <P>
 
-Defining 
+Defining
 
 <P>
 
@@ -16432,7 +16481,7 @@ To start the server:
 
 <P>
 
-<PRE>          or 
+<PRE>          or
 </PRE>
 
 <P>
@@ -16456,7 +16505,7 @@ To re-start the server:
 
 <P>
 
-<PRE>          or 
+<PRE>          or
 </PRE>
 
 <P>
@@ -16484,7 +16533,6 @@ To stop the server:
 You will see a message stating that a 
 <FONT SIZE=-1>TERM</FONT> signal has been sent to the process 
 <FONT SIZE=-1>ID</FONT> the server is running under -- that information is also sent to /home/minivend/error.log.
- 
 
 <P>
 
@@ -16655,7 +16703,7 @@ you will need to stop the server before running <CODE>expire</CODE> -- this will
 
 <P>
 
-If you have GDBM_File and are using it for sessions, <CODE>expire</CODE> accepts a <CODE>-r</CODE> option which tells it to recover lost disk space with a 
+If you have GDBM_File and are using it for sessions, <CODE>expire</CODE> accepts a <CODE>-r</CODE> option which tells it to recover lost disk space with a
 <EM>gdbm_reorganize</EM> call. This will not work for DB_File, sorry.
 
 <P>
@@ -16814,7 +16862,7 @@ with a particular type of operation, the debug levels are:
     Place in mvdebug     2048  N/A     N/A
     Run in foreground    4096  N/A     N/A
  
-    Verbose in HTML      2047 
+    Verbose in HTML      2047
     Verbose foreground   5119
 </PRE>
 
@@ -17025,7 +17073,6 @@ Set this to the
 <FONT SIZE=-1>ASCII</FONT> codes for 
 <FONT SIZE=-1>'M'</FONT> and 
 <FONT SIZE=-1>'V')</FONT> and does not normally need to be changed.
- 
 
 <P>
 

@@ -1,6 +1,6 @@
 # Table/Import.pm: import a table
 #
-# $Id: Import.pm,v 1.14 1998/05/02 03:07:56 mike Exp $
+# $Id: Import.pm,v 1.16 1998/07/04 21:59:55 mike Exp mike $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -19,7 +19,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::Import;
-$VERSION = substr(q$Revision: 1.14 $, 10);
+$VERSION = substr(q$Revision: 1.16 $, 10);
 
 require Exporter;
 @ISA = qw(Exporter);
@@ -34,7 +34,7 @@ sub import_csv {
     die "The source file '$source' does not exist\n" unless -e $source;
 
     open(Vend::Table::Import::IN, "+<$source")
-		or die "Can't open '$source' for reading: $!\n";
+		or die "Can't open '$source' read/write: $!\n";
 	lockfile(\*Vend::Table::Import::IN, 1, 1) or die "lock\n";
     my @columns = read_quoted_fields(\*IN);
     die "$source is empty\n" unless @columns;
@@ -80,12 +80,12 @@ sub import_ascii_delimited {
 	}
 
     open(Vend::Table::Import::IN, "+<$infile")
-		or die "Couldn't open '$infile': $!\n";
+		or die "Couldn't open '$infile' read/write: $!\n";
 	lockfile(\*Vend::Table::Import::IN, 1, 1) or die "lock\n";
 
     my $field_names = <IN>;
     chomp $field_names;
-	$field_names =~ s/\s+$//;
+	$field_names =~ s/\s+$// unless $format eq 'NOTES';
     my @field_names = split(/$delimiter/, $field_names);
 	my $field_count = scalar @field_names;
 
@@ -98,7 +98,7 @@ sub import_ascii_delimited {
 		$field_hash = {};
 		for(@field_names) {
 			s/:.*//;	
-			if(/\S\s+/) {
+			if(/\S[ \t]+/) {
 				die "Only one notes field allowed in NOTES format.\n"
 					if $para_sep;
 				$para_sep = $_;
@@ -108,19 +108,23 @@ sub import_ascii_delimited {
 				$field_hash->{$_} = $idx++;
 			}
 		}
+		my $msg;
 		@field_names = grep $_, @field_names;
 		$para_sep =~ s/($codere)[\t ]*(.)/$2/;
 		push(@field_names, ($1 || 'notes_field'));
+		$idx = $#field_names;
 		if ($para_sep) {
 			$para_sep =~ s/[ \t\r\n].*//;
-			my $msg;
 			$msg = length($para_sep) != 1	? "'$para_sep'"
 											: sprintf '0x%02x', ord $para_sep;
-			::logError("notes_field='$field_names[$idx]' delimiter: $msg");
+#			::logError("notes_field='$field_names[$idx]' delimiter: $msg")
+			::logError( Vend::Util::errmsg('Table/Import.pm:1', "notes_field='%s' delimiter: %s" , $field_names[$idx], $msg) )
+				if $Vend::Cfg->{DisplayErrors};
 		}
 		else {
 			$para_sep = "\f";
 		}
+		push(@field_names, $para_sep);
 
 	}
 	local($/) = "\n" . $para_sep ."\n"
@@ -140,9 +144,10 @@ sub import_ascii_delimited {
 		$excel = <<'EndOfExcel';
 			if(/"[^\t]*,/) {
 				for (@fields) {
-					next unless /,/;
+					next unless /[,"]/;
 					s/^"//;
 					s/"$//;
+					s/""/"/g;
 				}
 			}
 EndOfExcel

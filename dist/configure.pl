@@ -33,7 +33,8 @@ use lib "./lib";
 
 # Check for Windows
 my $Windows;
-$Windows = 1 if $Config{osname} =~ /win32/i;
+$Windows = 1 if $^O =~ /win32/i;
+umask 0 if $Windows;
 
 # Find external commands
 
@@ -303,7 +304,7 @@ sub shbang {
 sub findexe {
 	my($exe) = @_;
 	my($dir,$path) = ('', $ENV{PATH});
-	if($Config{osname} =~ /bsd/i and $path !~ /sbin/) {
+	if($^O =~ /bsd/i and $path !~ /sbin/) {
 		$path .= ":/usr/sbin:/sbin";
 	}
 	$path =~ s/\(\)//g;
@@ -470,7 +471,7 @@ EOF
 
 LOCK: {
 	last LOCK unless
-		$Config{'osname'} =~ /solaris/i;
+		$^O =~ /solaris/i;
 	if($ENV{PATH} !~ m:/usr/ccs/bin:) {
 		$ENV{PATH} = "$ENV{PATH}:/usr/ccs/bin";
 	}
@@ -480,7 +481,7 @@ LOCK: {
 
 		print <<EOF;
 
-Your operating system ($Config{'osname'}) doesn't fully support
+Your operating system ($^O) doesn't fully support
 flock(), so you will need the File::Lock module in order for
 MiniVend to operate.  the latest version can be obtained from
 http://www.perl.com in the CPAN area.  Expect a ***fatal*** error

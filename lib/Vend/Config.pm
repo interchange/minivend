@@ -1,6 +1,6 @@
 # Config.pm - Configure Minivend
 #
-# $Id: Config.pm,v 1.47 1998/06/06 08:11:22 mike Exp mike $
+# $Id: Config.pm,v 1.33 1998/01/16 07:30:42 mike Exp mike $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
@@ -33,6 +33,7 @@ use strict;
 use vars qw(
 			$VERSION $C %SetGlobals
 			@Locale_directives_ary @Locale_directives_scalar
+			@Locale_directives_currency @Locale_keys_currency
 			);
 use Carp;
 use Safe;
@@ -40,11 +41,41 @@ use Fcntl;
 use Vend::Parse;
 use Vend::Util;
 
-$VERSION = substr(q$Revision: 1.47 $, 10);
+$VERSION = substr(q$Revision: 1.33 $, 10);
 
 for( qw(search refresh cancel return secure unsecure submit control checkout) ) {
 	$Global::LegalAction{$_} = 1;
 }
+
+@Locale_directives_currency = (
+qw/
+		CommonAdjust
+		PriceCommas
+		PriceDatabase
+		PriceDivide
+		PriceField
+		SalesTax
+		TaxShipping
+
+/	);
+
+@Locale_keys_currency = (
+qw/
+	currency_symbol
+	frac_digits
+	int_curr_symbol
+	int_frac_digits
+	mon_decimal_point
+	mon_grouping
+	price_picture
+	mon_thousands_sep
+	n_cs_precedes
+	negative_sign
+	p_cs_precedes
+	p_sep_by_space
+	positive_sign
+
+/   );
 
 @Locale_directives_scalar = (
 qw/
@@ -125,7 +156,9 @@ sub global_directives {
 	['MaxServers',       'integer',          2],
 	['GlobalSub',		 'subroutine',       ''],
 	['FullUrl',			 'yesno',            'No'],
+	['Locale',			 'locale',            ''],
 	['IpHead',			 'yesno',            'No'],
+	['IpQuad',			 'integer',          '1'],
 	['DomainTail',		 'yesno',            'Yes'],
 	['SafeSignals',	 	 'yesno',            'Yes'],
 	['AcrossLocks',		 'yesno',            'No'],

@@ -1,4 +1,4 @@
-# MiniVend V3.09
+# MiniVend V3.10
 # 
 # Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -30,7 +30,7 @@ interested in problems, suggestions, or comments, but does not have time
 to offer free individual support in most cases. See the MiniVend website at
 http://www.minivend.com/minivend/ for more information.
 
-   IMPORTANT NOTE:  MiniVend 3.09 requires Perl 5.004 or higher.
+   IMPORTANT NOTE:  MiniVend 3.10 requires Perl 5.004 or higher.
    (It will probably work with 5.003 on some UNIX systems and *may*
    work with Perl 5.002 -- IF you comment out any lines which 
    contain "use locale;". Neither are supported.)
@@ -204,16 +204,19 @@ need to run in INET/TLINK mode instead of UNIX/VLINK mode.
 WINDOWS INSTALLATION
 --------------------
 
-    Obtain the self-extracting executable minivend-3.09.exe
+    Obtain the self-extracting executable minivend-3.10.exe
     and double-click on it. You MUST already have Perl 5.004
     INSTALLED and in your PATH.
+
+    Alternatively, you can unzip the file yourself and run
+    "setup".
 
 UNIX INSTALLATION
 ------------------
 Here is the short version:
 
-    gzip -dc minivend-3.09.tar.gz | tar xvf -
-    cd minivend-3.09
+    gzip -dc minivend-3.10.tar.gz | tar xvf -
+    cd minivend-3.10
     ./configure
 
 More information is in the file INSTALL.

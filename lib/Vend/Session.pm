@@ -1,6 +1,6 @@
 # Session.pm - Minivend Sessions
 #
-# $Id: Session.pm,v 1.27 1998/06/06 08:23:08 mike Exp mike $
+# $Id: Session.pm,v 1.29 1998/07/04 21:59:30 mike Exp mike $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
@@ -24,7 +24,7 @@ package Vend::Session;
 require Exporter;
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.27 $, 10);
+$VERSION = substr(q$Revision: 1.29 $, 10);
 
 @ISA = qw(Exporter);
 
@@ -78,7 +78,6 @@ if($Global::GDBM) {
 			);
 		die "Could not tie to $Vend::Cfg->{'SessionDatabase'}: $!\n"
 			unless defined $DB_object;
-print ("db object=$DB_object\n");
 	};
 }
 elsif($Global::DB_File) {
@@ -231,6 +230,7 @@ sub write_session {
 # END DEBUG
 	my $time = time;
     $Vend::Session->{'time'} = $time;
+    my $save = $Vend::Session->{'user'};
     undef $Vend::Session->{'user'};
     #undef $Vend::Session->{'arg'};
 	undef $Vend::Session->{'items'};
@@ -238,6 +238,7 @@ sub write_session {
     $s = uneval_fast($Vend::Session);
     $Vend::SessionDBM{$Vend::SessionName} = $s or 
 		die "Data was not stored in DBM file\n";
+    $Vend::Session->{'user'} = $save;
 }
 
 sub unlock_session {
@@ -270,7 +271,8 @@ sub lock_session {
 			$left = $now - $locktime;
 			if ( $left > $Global::HammerLock ) {
 				$Vend::SessionDBM{$lockname} = "$now:$$";
-				logError("Hammered session lock $lockname left by PID $pid");
+#				logError("Hammered session lock $lockname left by PID $pid");
+				logError( errmsg('Session.pm:1', "Hammered session lock %s left by PID %s" , $lockname, $pid) );
 				return 1;
 			}
 			elsif ($left < 0) {

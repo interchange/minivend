@@ -2,7 +2,7 @@
 #
 # MiniVend session expiration
 #
-# $Id: expire,v 1.10 1998/06/06 08:35:56 mike Exp mike $
+# $Id: expire,v 1.7 1997/11/03 13:14:28 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -88,6 +88,7 @@ BEGIN {
 
 use Vend::Session;
 use Vend::Config qw(get_catalog_default parse_time);
+use vars qw/$opt_c $opt_r $opt_e/;
 
 my $USAGE = <<EOF;
 usage: expire [-r] -c catalog [-e 'SessionExpire']
@@ -100,8 +101,7 @@ usage: expire [-r] -c catalog [-e 'SessionExpire']
       -e time     vary expire time from default in catalog.cfg.
                   time is a string like '4 hours' or '2 days'
 
-      -r          reorganize database and recover lost disk space,
-                  only works with GDBM
+      -r          reorganize database and recover lost disk space
 EOF
 
 my $catalog;
@@ -110,25 +110,17 @@ my $reorg;
 
 $Vend::Cfg = {};
 
+use Getopt::Std;
+
+getopts('c:e:r') or die "$@\n$USAGE\n";
+
+$catalog    = $opt_c || undef;
+$expiretime = $opt_e || undef;
+$reorg      = $opt_r;
+
 GETOPT: {
 
-if($ARGV[0] eq '-c') {
-	shift(@ARGV);
-	$catalog = shift(@ARGV);
-	redo GETOPT if $ARGV[0] eq '-e';
-	last GETOPT;
-}
-elsif($ARGV[0] eq '-e') {
-	shift(@ARGV);
-	$expiretime = shift(@ARGV);
-	redo GETOPT;
-}
-elsif($ARGV[0] eq '-r') {
-	shift(@ARGV);
-	$reorg = 1 if $Global::GDBM;
-	redo GETOPT;
-}
-else {
+	last GETOPT if $catalog;
 	$Vend::Cfg->{SessionDatabase} = shift
 		|| die $USAGE;
 	$Vend::Cfg->{SessionDatabase} =~ s/\.(gdbm|db)$//;
@@ -151,8 +143,6 @@ EOF
 		die "Aborting, no lock files found!\n"
 			unless -f "$dir/$file.lock";
 	}
-
-}
 
 } # END GETOPT
 
@@ -215,7 +205,13 @@ $Vend::Cfg->{SessionExpire} = parse_time('SessionExpire', $expiretime);
 
 die $USAGE unless defined $Vend::Cfg->{SessionLockFile};
 
+my $db_reorg = $Global::DB_File ? $reorg : undef;
+
+undef $reorg unless $Global::GDBM;
+
 get_session() unless $reorg;
 expire_sessions($reorg);
 release_session() unless $reorg;
+
+system "compact ." if $db_reorg;
 

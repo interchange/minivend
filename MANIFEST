@@ -10,10 +10,14 @@ WHATSNEW
 configure
 configure.bat
 dist/README
+dist/README-win.txt
+dist/README.OS
+dist/WHATSNEW
 dist/bin/autosplit
 dist/bin/buildtree
 dist/bin/check
 dist/bin/checkstat.sh
+dist/bin/compact
 dist/bin/dump
 dist/bin/expire
 dist/bin/htpasswd.pl
@@ -36,10 +40,12 @@ dist/configure
 dist/configure.pl
 dist/error.log
 dist/etc/mvconf.cmt
+dist/locale.error
 dist/manifest
 dist/minivend.cfg.dist
 dist/simple/catalog.cfg
 dist/simple/config/.empty
+dist/simple/etc/order.number
 dist/simple/etc/order.profiles
 dist/simple/etc/report
 dist/simple/etc/search.profiles

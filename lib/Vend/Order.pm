@@ -2,7 +2,7 @@
 #
 # MiniVend version 1.04
 #
-# $Id: Order.pm,v 1.20 1998/05/02 03:03:22 mike Exp $
+# $Id: Order.pm,v 1.16 1998/01/16 07:30:42 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -30,7 +30,7 @@
 package Vend::Order;
 require Exporter;
 
-$VERSION = substr(q$Revision: 1.20 $, 10);
+$VERSION = substr(q$Revision: 1.16 $, 10);
 $DEBUG = 0;
 
 @ISA = qw(Exporter);
@@ -92,12 +92,23 @@ my %Parse = (
 							},
 );
 
-eval {
+my $CC2;
+my $CC3;
 
+eval {
 	require CCLib;
 	import CCLib qw(SetServer sendmserver);
-	logGlobal "CyberCash module found.";
+	$CC2 = 1;
+#	logGlobal "CyberCash module found.";
+	my $ver = $CCLib::VERSION || '2.1';
+	logGlobal( errmsg('Order.pm:1', "CyberCash module found (CyberCash 2).", $ver ) );
+};
 
+eval {
+	require CCMckDirectLib3_2;
+	import CCMckDirectLib3_2 qw/SendCC2_1Server/;
+	$CC3 = 1;
+	logGlobal( errmsg('Order.pm:2', "CyberCash module found (CyberCash 3).") );
 };
 
 $Vend::CyberCash = ! $@;
@@ -132,7 +143,8 @@ sub testSetServer {
 	for(sort keys %options) {
 		$out .= "$_=$options{$_}\n";
 	}
-	logError("Test CyberCash SetServer:\n$out\n");
+#	logError("Test CyberCash SetServer:\n$out\n");
+	logError( errmsg('Order.pm:3', "Test CyberCash SetServer:\n%s\n" , $out) );
 	1;
 }
 
@@ -217,8 +229,11 @@ sub cyber_charge {
 	$actual{cyber_mode} = 'mauthcapture'
 		unless $actual{cyber_mode};
 	
+	my $CC3;
+
     unless ($actual{cyber_mode} eq 'minivend_test') {
-		SetServer(%payment);
+		$CC3 = 1 if defined $Vend::Cfg->{CYBER_VERSION} and $Vend::Cfg->{CYBER_VERSION} >= 3;
+		SetServer(%payment) unless $CC3;
 	}
 	else {
 		testSetServer(%payment);
@@ -260,6 +275,8 @@ sub cyber_charge {
 #	if ::debug(0x1);
 # END DEBUG
 
+	if($CC3) {
+	}
 
     my %result;
     if ($actual{cyber_mode} ne 'minivend_test') {
@@ -652,7 +669,7 @@ sub _postcode {
 
 sub _ca_postcode {
 	my($ref,$var,$val) = @_;
-	$val =~ s/\W_//;
+	$val =~ s/[_\W]+//g;
 	defined $val
 		and
 	$val =~ /^[ABCEGHJKLMNPRSTVXYabceghjklmnprstvxy]\d[A-Za-z]\d[A-Za-z]\d$/

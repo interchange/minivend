@@ -5,12 +5,17 @@ current software and then restart the server.  The only
 incompatible changes are bug fixes (which may fool any
 workarounds you have made).
 
-The "simple" demo runs unchanged from MiniVend 3.01 to
+The "simple" demo runs mostly unchanged from MiniVend 3.01 to
 3.09. The usual source of any upgrade problems is illegal
 syntax in tags, which might work on earlier versions but
 is rejected in later, stricter versions. Especially check
 nested [if ...] tags -- some problems can be solved by
 putting a [then] [/then] around the true-executed condition.
+
+One gotcha has to do with the [page scan/se=whatever] tag
+in NewTags mode. If you have a URL like this you will need
+to surround it with a [compat] [/compat] pair, or better 
+yet remove the first slash and make it [page scan se=whatever].
 
 IMPORTANT NOTE:  It is highly recommended that you copy the
 current software to a backup directory or an archive in case

@@ -1,6 +1,6 @@
 # Table/DBI.pm: access a table stored in an DBI/DBD Database
 #
-# $Id: DBI.pm,v 1.21 1998/06/06 08:13:51 mike Exp mike $
+# $Id: DBI.pm,v 1.22 1998/07/04 21:59:52 mike Exp mike $
 #
 # Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -19,7 +19,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::DBI;
-$VERSION = substr(q$Revision: 1.21 $, 10);
+$VERSION = substr(q$Revision: 1.22 $, 10);
 
 use Carp;
 use strict;
@@ -192,10 +192,12 @@ sub create {
 	
 	$db->do($query)
 		or croak "DBI: Create table '$tablename' failed: $DBI::errstr\n";
-	::logError("table $tablename created: $query");
+#	::logError("table $tablename created: $query");
+	::logError( Vend::Util::errmsg('Table/DBI.pm:1', "table %s created: %s" , $tablename, $query) );
 
 	$db->do("create index ${key}_idx on $tablename ($key)")
-		or ::logError("table $tablename index failed: $DBI::errstr");
+#		or ::logError("table $tablename index failed: $DBI::errstr");
+		or ::logError( Vend::Util::errmsg('Table/DBI.pm:2', "table %s index failed: %s" , $tablename, $DBI::errstr) );
 # DEBUG
 #Vend::Util::logDebug
 #("Created table, I think.\n")
@@ -533,7 +535,8 @@ sub set_row {
 	while(scalar @cols < scalar @fields) {
 		my $val = pop @fields;
 		my $t = $s->[$TABLE]; my $f = $fields[0];
-		::logError("set_row $t: field with value '$val' removed from record '$f'");
+#		::logError("set_row $t: field with value '$val' removed from record '$f'");
+		::logError( Vend::Util::errmsg('Table/DBI.pm:3', "set_row %s: field with value '%s' removed from record '%s'" , $t, $val, $f) );
 	}
 
 	while(scalar @cols > scalar @fields) {

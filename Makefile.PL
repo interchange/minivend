@@ -26,7 +26,7 @@ my @mods_to_get;
 my $Lock_troubles;
 my $Windows;
 
-$VERSION = '3.09';
+$VERSION = '3.10';
 
 # See if we have the CPAN module
 my $Cpan = 0;
@@ -174,7 +174,10 @@ sub install_file {
 			or die "Couldn't make directory $mkdir: $!\n";
 	}
 
-	if (! -f $srcfile) {
+	if ($Windows) {
+		$perms = 0777;
+	}
+	elsif (! -f $srcfile) {
 		die "Source file $srcfile missing.\n";
 	}
 	else {
@@ -359,7 +362,7 @@ EOF
 	eval {
 		require IniConf;
 	};
-	if ($@) {
+	if ($Windows or $@) {
 		push @extra_lib_files, 'IniConf.pm';
 	}
 
@@ -526,11 +529,13 @@ EOF
 		
 		}
 	}
-
+		umask 0;
 		require Win32::Shortcut;
 		import Win32::Shortcut;
 		my $short = new Win32::Shortcut;
-		$short->Load("win/minivend.pif");
+		# Apparently Win32::Shortcut won't reliably work when starting
+		# from here
+		#$short->Load("win/minivend.pif");
 		open(WINBAT, ">minivend.bat") 
 			or die "create minivend.bat: $!\n";
 		print WINBAT "set PGPPATH=$ENV{PGPPATH}\n" if $ENV{PGPPATH};
@@ -545,21 +550,30 @@ EOF
 		$short->{WorkingDirectory}	=~ s:/:\\:g;
 		$short->{File}              = "Start MiniVend Server";
 		$short->Save();
+		undef $short;
 		open(WINBAT, ">makecat.bat") 
 			or die "create makecat.bat: $!\n";
 		print WINBAT <<EOF;
 $Config{perlpath} $realdir/bin/makecat
 EOF
 		close(WINBAT);
+		$short = new Win32::Shortcut;
+		# Apparently Win32::Shortcut won't reliably work when starting
+		# from here
+		#$short->Load("win/minivend.pif");
 		$short->{Path}				= "$realdir/makecat.bat";
 		$short->{WorkingDirectory}	= "$realdir";
 		$short->{Path} 				=~ s:/:\\:g;
 		$short->{WorkingDirectory}	=~ s:/:\\:g;
-		$short->{ShowCmd}			= 3;
 		$short->{File}              = "Make MiniVend Catalog";
 		$short->Save();
 
-		File::Copy::copy('win/POSIX.pm', 'lib/POSIX.pm');
+		File::Copy::copy('win/POSIX.pm', 'lib/POSIX.pm')
+			or die "File::Copy::copy error 'win/POSIX.pm': $!\n";
+		File::Copy::copy('Start MiniVend Server.pif', 'dist')
+			or die "File::Copy::copy error 'Start MiniVend Server.pif': $!\n";
+		File::Copy::copy('Make MiniVend Catalog.pif', 'dist')
+			or die "File::Copy::copy error 'Make MiniVend Catalog.pif': $!\n";
 		@winfiles = grep m:^lib/:, @files;
 		push @winfiles, 'makecat.bat', 'minivend.bat';
 		push @winfiles, 'lib/POSIX.pm';

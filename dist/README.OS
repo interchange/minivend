@@ -1,4 +1,4 @@
-# MiniVend V3.09
+# MiniVend V3.10
 # 
 # Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -24,7 +24,8 @@ Windows 95    DB_File          ?????         MiniVend may not stand up
                                              catalogs. Server will not stop
                                              from the keyboard, you must close
                                              the DOS window to stop (unless
-                                             you get the GNU toolset).
+                                             you get the GNU toolset or
+                                             use the ActiveState "Merge").
 
 
 Windows NT    DB_File          ?????         Some features of MiniVend

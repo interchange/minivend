@@ -1,6 +1,6 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.42 1998/06/06 08:13:11 mike Exp mike $
+# $Id: Server.pm,v 1.43 1998/07/04 21:59:27 mike Exp mike $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
@@ -24,7 +24,7 @@ require Vend::Http;
 @ISA = qw(Vend::Http::CGI);
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.42 $, 10);
+$VERSION = substr(q$Revision: 1.43 $, 10);
 
 use Vend::Util qw(strftime);
 use POSIX qw(setsid);
@@ -355,9 +355,8 @@ EOF
 				my ($script_name,$build) = split /\s+/, $_;
                 my $cat = $Global::Selector{$script_name};
                 unless (defined $cat) {
-                    logGlobal(<<EOF);
-Bad script name '$script_name' for reconfig.
-EOF
+#                    logGlobal("Bad script name '$script_name' for reconfig.")
+                    logGlobal( errmsg('Server.pm:1', "Bad script name '%s' for reconfig." , $script_name) );
                     next;
                 }
                 $c = ::config_named_catalog($cat->{'CatalogName'},
@@ -368,13 +367,16 @@ EOF
 						next unless $Global::SelectorAlias{$_} eq $script_name;
 						$Global::Selector{$_} = $c;
 					}
-					logGlobal "Reconfig of $c->{CatalogName} successful, build=$build.";
+#					logGlobal "Reconfig of $c->{CatalogName} successful, build=$build.";
+					logGlobal( errmsg('Server.pm:2', "Reconfig of %s successful, build=%s.",
+						$c->{CatalogName},
+						$build)
+					);
 				}
 				else {
-					logGlobal <<EOF;
-Error reconfiguring catalog $script_name from running server ($$):
-$@
-EOF
+					logGlobal( errmsg(
+'Server.pm:3', "Error reconfiguring catalog %s from running server (%s)\n%s",
+						$script_name, $$, $@) );
 				}
 			}
 			unlockfile(\*Vend::Server::RECONFIG)
@@ -469,11 +471,14 @@ sub server_both {
 			close(Vend::Server::INET_MODE_INDICATOR);
 		}
 		elsif ($Global::Unix_Mode) {
-			logGlobal "INET mode error port $port: $@\n\nContinuing in UNIX MODE ONLY\n";
+#			logGlobal "INET mode error port $port: $@\n\nContinuing in UNIX MODE ONLY\n";
+			logGlobal( errmsg('Server.pm:4', "INET mode error port %s: %s\n\nContinuing in UNIX MODE ONLY\n" , $port, $@) );
 		}
 		else {
-			logGlobal "INET mode server failed to start: $@\n";
-			logGlobal "SERVER TERMINATING";
+#			logGlobal "INET mode server failed to start: $@\n";
+			logGlobal( errmsg('Server.pm:5', "INET mode server failed to start on port %s: %s", $port, $@ ) );
+#			logGlobal "SERVER TERMINATING";
+			logGlobal( errmsg('Server.pm:6', "SERVER TERMINATING" ) );
 			exit 1;
 		}
 	}
@@ -514,7 +519,8 @@ sub server_both {
             }
             else {
 				my $msg = $!;
-				logGlobal("error '$msg' from select.");
+#				logGlobal("error '$msg' from select.");
+				logGlobal( errmsg('Server.pm:7', "error '%s' from select." , $msg) );
                 die "select: $msg\n";
             }
         }
@@ -536,7 +542,8 @@ sub server_both {
             die "Why did select return with $n?";
         }
 	  };
-	  logGlobal("Died in select, retrying: $@") if $@;
+#	  logGlobal("Died in select, retrying: $@") if $@;
+	  logGlobal( errmsg('Server.pm:8', "Died in select, retrying: %s", $@ ) ) if $@;
 
 
 	  eval {
@@ -554,7 +561,8 @@ sub server_both {
 				undef $Vend::NoFork;
 			}
 			elsif(! defined ($pid = fork) ) {
-				logGlobal ("Can't fork: $!");
+#				logGlobal ("Can't fork: $!");
+				logGlobal( errmsg('Server.pm:9', "Can't fork: %s", $! ) );
 				die ("Can't fork: $!");
 			}
 			elsif (! $pid) {
@@ -567,8 +575,10 @@ sub server_both {
 					};
 					if ($@) {
 						my $msg = $@;
-						logGlobal("Runtime error: $msg");
-						logError("Runtime error: $msg")
+#						logGlobal("Runtime error: $msg");
+						logGlobal( errmsg('Server.pm:10', "Runtime error: %s" , $msg) );
+#						logError("Runtime error: $msg")
+						logError( errmsg('Server.pm:11', "Runtime error: %s" , $msg) )
 					}
 
 					select(undef,undef,undef,0.050) until getppid == 1;
@@ -585,7 +595,8 @@ sub server_both {
 
 		# clean up dies during spawn
 		if ($@) {
-			logGlobal("Died in server spawn: $@\n") if $@;
+#			logGlobal("Died in server spawn: $@\n") if $@;
+			logGlobal( errmsg('Server.pm:12', "Died in server spawn: %s", $@) ) if $@;
 
 			# Below only happens with Windows or foreground debugs.
 			# Prevent corruption of changed $Vend::Cfg entries
@@ -608,7 +619,8 @@ sub server_both {
         }
 
 	  };
-	  logGlobal("Died in housekeeping, retry.\n") if $@;
+#	  logGlobal("Died in housekeeping, retry.\n") if $@;
+	  logGlobal( errmsg('Server.pm:13', "Died in housekeeping, retry." ) ) if $@;
 
 
     }
@@ -617,7 +629,8 @@ sub server_both {
     restore_signals();
 
    	if ($Signal_Terminate) {
-       	logGlobal("STOP server ($$) on signal TERM");
+#       	logGlobal("STOP server ($$) on signal TERM");
+       	logGlobal( errmsg('Server.pm:14', "STOP server (%s) on signal TERM" ), $$ );
        	return 'terminate';
    	}
 
@@ -763,7 +776,8 @@ sub run_server {
                 open(STDERR, ">&Vend::DEBUG");
                 select(STDERR); $| = 1; select(STDOUT);
 
-                logGlobal("START server ($$) ($server_type)");
+#                logGlobal("START server ($$) ($server_type)");
+                logGlobal( errmsg('Server.pm:15', "START server (%s) (%s)" , $$, $server_type) );
 
                 setsid();
 

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# $Id: UserDB.pm,v 1.2 1998/03/21 12:07:46 mike Exp $
+# $Id: UserDB.pm,v 1.4 1998/07/04 21:59:39 mike Exp mike $
 #
 # Copyright 1997 by Michael J. Heins <mikeh@iac.net>
 #
@@ -8,7 +8,7 @@
 
 package Vend::UserDB;
 
-$VERSION = substr(q$Revision: 1.2 $, 10);
+$VERSION = substr(q$Revision: 1.4 $, 10);
 $DEBUG = 0;
 
 use vars qw! $VERSION $DEBUG @S_FIELDS @B_FIELDS @P_FIELDS %S_to_B %B_to_S!;
@@ -203,6 +203,7 @@ sub new {
 						BILLING		=> $options{bill_field} || 'accounts',
 						SHIPPING	=> $options{addr_field} || 'address_book',
 						PREFERENCES	=> $options{pref_field} || 'preferences',
+						ORDERS     	=> $options{ord_field}  || 'orders',
 						CARTS		=> $options{cart_field} || 'carts',
 						PASSWORD	=> $options{pass_field} || 'password',
 						LAST		=> $options{time_field} || 'time',
@@ -229,6 +230,7 @@ sub create_db {
 	push @out, $user->{LOCATION}{PASSWORD};
 	push @out, $user->{LOCATION}{LAST};
 	push @out, @S_FIELDS, @B_FIELDS, @P_FIELDS;
+	push @out, $user->{LOCATION}{ORDERS};
 	push @out, $user->{LOCATION}{SHIPPING};
 	push @out, $user->{LOCATION}{BILLING};
 	push @out, $user->{LOCATION}{PREFERENCES};
@@ -542,7 +544,8 @@ sub login {
 			$self->{ERROR} = $@;
 		}
 		else {
-			logError "Vend::UserDB error: $@\n";
+#			logError("Vend::UserDB error: $@\n");
+			logError( errmsg('UserDB.pm:1', "Vend::UserDB error: %s\n", $@ ) );
 		}
 		return undef;
 	}
@@ -587,7 +590,8 @@ sub new_account {
 			$self->{ERROR} = $@;
 		}
 		else {
-			logError "Vend::UserDB error: $@\n";
+#			logError("Vend::UserDB error: $@\n");
+			logError( errmsg('UserDB.pm:2', "Vend::UserDB error: %s\n", $@ ) );
 		}
 		return undef;
 	}

@@ -1,6 +1,6 @@
 # Data.pm - Minivend databases
 #
-# $Id: Data.pm,v 1.38 1998/06/01 17:02:06 mike Exp $
+# $Id: Data.pm,v 1.40 1998/07/04 21:57:12 mike Exp mike $
 # 
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -369,7 +369,8 @@ sub sql_query {
 							$db->array_query($query, $table, $config, @arg)
 							);
 	# shouldn't reach this if proper tag
-	logError("Bad SQL query selector: '$type' for $table");
+#	logError("Bad SQL query selector: '$type' for $table");
+	logError( errmsg('Data.pm:1', "Bad SQL query selector: '%s' for %s" , $type, $table) );
 	return '';
 }
 
@@ -471,7 +472,8 @@ sub read_shipping {
 
 	my $file = File::Spec->catfile($Vend::Cfg->{ProductDir}, "shipping.asc");
     open(Vend::SHIPPING, $file) or do {
-				logError("Could not open shipping file $file: $!")
+#				logError("Could not open shipping file $file: $!")
+				logError( errmsg('Data.pm:2', "Could not open shipping file %s: %s" , $file, $!) )
 					if $Vend::Cfg->{CustomShipping};
 				return undef;
 			};
@@ -516,7 +518,8 @@ sub read_shipping {
 			if ($@
 				or ref($ref) !~ /HASH/
 				or ! $ref->{'zone_name'}) {
-				logError("Bad shipping configuration for mode $code, skipping.");
+#				logError("Bad shipping configuration for mode $code, skipping.");
+				logError( errmsg('Data.pm:3', "Bad shipping configuration for mode %s, skipping." , $code) );
 				$Vend::Cfg->{Shipping_cost}->{$code} = 0;
 				next;
 			}
@@ -557,7 +560,8 @@ sub read_shipping {
 			my $ref = $Vend::Cfg->{Shipping_zone}{$zone};
 			my @zone = split(/[\r\n]+/, readfile($ref->{zone_file}) );
 			unless (@zone) {
-				logError("Bad shipping file for zone '$zone', lookup disabled.");
+#				logError("Bad shipping file for zone '$zone', lookup disabled.");
+				logError( errmsg('Data.pm:4', "Bad shipping file for zone '%s', lookup disabled." , $zone) );
 				next;
 			}
 			if($zone[0] !~ /\t/) {
@@ -612,7 +616,8 @@ sub read_salestax {
 	my $file = File::Spec->catfile($Vend::Cfg->{ProductDir}, "salestax.asc");
 	$Vend::Cfg->{SalesTaxTable} = {};
     open(Vend::SALESTAX, $file) or do {
-					logError("Could not open salestax file $file: $!")
+#					logError("Could not open salestax file $file: $!")
+					logError( errmsg('Data.pm:5', "Could not open salestax file %s: %s" , $file, $!) )
 						if $Vend::Cfg->{SalesTax};
 					return undef;
 				};
@@ -933,7 +938,8 @@ sub export_database {
 
 	$db = database_exists_ref($db)
 		or do {
-			logError("Vend::Data export: non-existent database $db");
+#			logError("Vend::Data export: non-existent database $db");
+			logError( errmsg('Data.pm:6', "Vend::Data export: non-existent database %s" , $db) );
 			return undef;
 		};
 
@@ -973,12 +979,14 @@ sub export_database {
 									if defined $ref->{FIRST_COLUMN_NAME};
 	}
 	elsif ($field and ! $delete) {
-		logError("Adding field $_");
+#		logError("Adding field $_");
+		logError( errmsg('Data.pm:7', "Adding field %s" , $_) );
 		push @cols, $_;
 		$notouch = 1;
 	}
 	elsif ($field and $delete) {
-		logError("Deleting $field...");
+#		logError("Deleting $field...");
+		logError( errmsg('Data.pm:8', "Deleting %s..." , $field) );
 		my @new = @cols;
 		@cols = ();
 		my $i = 0;
@@ -989,7 +997,8 @@ sub export_database {
 			else {
 				$nuke = $i;
 				$notouch = 1;
-				logError("Deleting field $_");
+#				logError("Deleting field $_");
+				logError( errmsg('Data.pm:9', "Deleting field %s" , $_) );
 			}
 			$i++;
 		}
@@ -1015,6 +1024,27 @@ sub export_database {
 			$tempdata =~ tr/\n/\r/;
 			print Vend::Data::EXPORT $tempdata;
 			print Vend::Data::EXPORT qq%"\n%;
+		}
+	}
+	elsif ($delim eq "\n" and $ref->{CONTINUE} eq 'NOTES') {
+		my $sep = pop @cols;
+		my $nf  = pop @cols;
+		print Vend::Data::EXPORT join "\n", $first_name, @cols;
+		print Vend::Data::EXPORT "\n$nf $sep\n\n";
+		my $i;
+		while( (@data) = $db->each_record() ) {
+			splice(@data, $nuke, 1) if defined $nuke;
+			print Vend::Data::EXPORT "$first_name: ";
+			print Vend::Data::EXPORT shift(@data);
+			print Vend::Data::EXPORT "\n";
+			# Yes, we don't want the last field yet. 8-)
+			for($i = 0; $i < $#data; $i++) {
+				print Vend::Data::EXPORT
+					"$cols[$i]: $data[$i]\n" unless $data[$i] eq '';
+			}
+			print Vend::Data::EXPORT "\n";
+			print Vend::Data::EXPORT pop(@data);
+			print Vend::Data::EXPORT "\n$sep\n";
 		}
 	}
 	else {

@@ -2,7 +2,7 @@
 #
 # MiniVend version 3.09
 #
-# $Id: minivend,v 1.29 1998/06/06 08:36:52 mike Exp mike $
+# $Id: minivend,v 1.19 1998/01/18 06:42:42 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -107,8 +107,9 @@ $Global::ErrorFile = 'error.log';
 use lib "$Global::VendRoot/lib";
 use vars qw($VERSION);
 
+
+%Global::DHASH = (
 # DEBUG
-#%Global::DHASH = (
 #	OFF        => 0,
 #	NORMAL     => 1,
 #	TAG        => 2,
@@ -125,14 +126,14 @@ use vars qw($VERSION);
 #	COMMENT    => 1024,
 #	FILE       => 2048,
 #	FOREGROUND => 4096,
-#);
 # END DEBUG
+);
 
 sub debug {
 	return ($_[0] || 0) & $Global::DEBUG;
 }
 
-$VERSION = '3.09';
+$VERSION = '3.10';
 use strict;
 use Fcntl;
 
@@ -228,7 +229,8 @@ sub check_html {
 	my($out) = @_;
 
 	unless($Global::CheckHTML) {
-		logError("Can't check HTML: No global CheckHTML defined. Contact admin.");
+#		logError("Can't check HTML: No global CheckHTML defined. Contact admin.");
+		logError( errmsg('bin/minivend:1', "Can't check HTML: No global CheckHTML defined. Contact admin." ) );
 	}
 
 	my $file = POSIX::tmpnam();
@@ -268,7 +270,8 @@ sub interaction_error {
     my($msg) = @_;
     my($page);
 
-    logError ("Difficulty interacting with browser: $msg");
+#    logError ("Difficulty interacting with browser: $msg");
+    logError( errmsg('bin/minivend:2', "Difficulty interacting with browser: %s" , $msg) );
 
     $page = readin($Vend::Cfg->{Special}->{'interact'});
     if (defined $page) {
@@ -276,7 +279,8 @@ sub interaction_error {
 		response('html',interpolate_html($page, $wantref));
     }
 	else {
-		logError("Missing special page: interact");
+#		logError("Missing special page: interact");
+		logError( errmsg('bin/minivend:3', "Missing special page: interact" ) );
 		response('plain',"$msg\n");
     }
 }
@@ -416,7 +420,8 @@ sub cache_page {
 				if defined $Vend::Cfg->{CollectData}->{cache};
 			open PAGECACHE, ">$pagedir/$pagename.html"
 				or do {
-					logGlobal "Page cache failure: $!";
+#					logGlobal("Page cache failure: $!");
+					logGlobal( errmsg('bin/minivend:4', "Page cache failure: %s", $! ) );
 					die "Page cache failure: $!\n";
 				};
 			print PAGECACHE $$out;
@@ -472,10 +477,13 @@ sub do_order
 
     my $base = product_code_exists_tag($code, $catalog || undef);
 
-	$quantity = $quantity =~ /^[-+](\d+)$/ ? $quantity : 1;
+	$quantity = (defined $quantity and $quantity =~ /^[-+](\d+)$/)
+				? ($quantity =~ s/^_//, $quantity)
+				: 1;
 
     if (! $base ) {
-		logError("Attempt to order missing product code: $code");
+#		logError("Attempt to order missing product code: $code");
+		logError( errmsg('bin/minivend:5', "Attempt to order missing product code: %s" , $code) );
 		display_special_page($Vend::Cfg->{Special}->{'noproduct'}, $code);
 		return;
     }
@@ -738,7 +746,8 @@ sub add_items {
        ($j++,next) unless $quantity;
 		$base = product_code_exists_tag($code, $bases[$j] || undef);
 		if (! $base ) {
-			logError("Attempt to order missing product code: $code");
+#			logError("Attempt to order missing product code: $code");
+			logError( errmsg('bin/minivend:6', "Attempt to order missing product code: %s" , $code) );
 			return;
 		}
 
@@ -817,10 +826,16 @@ sub update_data {
 
 	unless (defined $CGI::values{'mv_data_table'} and 
 		    defined $CGI::values{'mv_data_key'}      ) {
-		logError("Attempted database operation without table, fields, or key.\n" .
-				 "Table: '$CGI::values{'mv_data_table'}'\n" .
-				 "Fields:'$CGI::values{'mv_data_fields'}'\n" .
-				 "Key:   '$CGI::values{'mv_data_key'}'  \n"     );
+		logError( errmsg(
+					'bin/minivend:7', "Attempted database operation without table, fields, or key.\n" .
+					 "Table: '%s'\n" .
+					 "Fields:'%s'\n" .
+					 "Key:   '%s'\n",
+					 $CGI::values{'mv_data_table'},
+					 $CGI::values{'mv_data_fields'},
+					 $CGI::values{'mv_data_key'}
+					 )
+				 );
 		
 		return undef;
 	}
@@ -872,9 +887,10 @@ sub update_data {
 	}
 
 	unless ($data{$prikey}) {
-		logError("No key '$prikey' found in database $function operation.\n" .
-				 "Table: '$CGI::values{'mv_data_table'}'\n" .
-				 "Key:   '$CGI::values{'mv_data_key'}'  \n"   );
+		logError("No key '%s' found in database='%s' table='%s' key='%s'",
+				$prikey, $function,
+				 $CGI::values{mv_data_table},
+				 $CGI::values{mv_data_key}   );
 		return undef;
 	}
 
@@ -925,7 +941,6 @@ sub update_data {
 			}
 		}
 				
-		#logGlobal("\nquery: $query\n");
 		sql_query('set', "", $query, $msql || undef, $database)
 			if $type eq 'sql';
 	}
@@ -1291,11 +1306,15 @@ sub do_process {
     }
 	elsif ($todo eq 'set') {
 		update_user();
+		$nextpage = $CGI::values{mv_nextpage}
+			if $CGI::values{mv_nextpage};
 		update_data();
 		display_page($nextpage);
     }
 	elsif ($todo eq 'return') {
 		update_user();
+		$nextpage = $CGI::values{mv_nextpage}
+			if $CGI::values{mv_nextpage};
 		update_quantity() || return; #Return on error
 		display_page($nextpage);
     }
@@ -1310,6 +1329,8 @@ sub do_process {
 	}
 	elsif ($todo eq 'control') {
 		update_user();
+		$nextpage = $CGI::values{mv_nextpage}
+			if $CGI::values{mv_nextpage};
 		do_page($nextpage);
 		return;
 	}
@@ -1317,6 +1338,8 @@ sub do_process {
 		if ($CGI::secure) {
 			$Vend::Session->{'secure'} = 1;
 			update_user();
+			$nextpage = $CGI::values{mv_nextpage}
+				if $CGI::values{mv_nextpage};
 			update_quantity() || return; #Return on error
 			do_page($nextpage);
 			return;
@@ -1380,7 +1403,6 @@ sub change_global_directive {
 	die "Bad directive '$line'.\n" unless defined $ref;
 	no strict 'refs';
 	${"Global::" . $ref->[0]} = $ref->[1];
-#logGlobal("Set $ref->[0]=$ref->[1]");
 	$Global::Structure{$ref->[0]} = $ref->[1];
 
 	dump_structure($Global::Structure, $Global::ConfigFile)
@@ -1409,11 +1431,13 @@ sub add_catalog {
 		for(@{$g->{alias}}) {
 			if (exists $Global::Selector{$_}
 				and $Global::SelectorAlias{$_} ne $g->{'script'}) {
-				logGlobal "Alias $_ used a second time, skipping.\n";
+#				logGlobal("Alias $_ used a second time, skipping.\n");
+				logGlobal( errmsg('bin/minivend:8', "Alias %s used a second time, skipping.\n" , $_) );
 				next;
 			}
 			elsif (m![^\w-_:#/.]!) {
-				logGlobal "Bad alias $_, skipping.\n";
+#				logGlobal "Bad alias $_, skipping.\n";
+				logGlobal( errmsg('bin/minivend:9', "Bad alias %s, skipping.\n" , $_) );
 			}
 			$Global::Selector{$_} = $c;
 			$Global::SelectorAlias{$_} = $g->{'script'};
@@ -1443,7 +1467,8 @@ sub remove_catalog {
 	my @aliases;
 
 	unless(defined $g) {
-		logGlobal "Attempt to remove non-existant catalog $name.\n";
+#		logGlobal "Attempt to remove non-existant catalog $name.\n";
+		logGlobal( errmsg('bin/minivend:10', "Attempt to remove non-existant catalog %s.\n" , $name) );
 		return undef;
 	}
 
@@ -1467,12 +1492,14 @@ sub config_named_catalog {
 
 	$g = $Global::Catalog{$cat_name};
 	unless (defined $g) {
-		logGlobal "Can't find catalog '$cat_name'";
+#		logGlobal "Can't find catalog '$cat_name'";
+		logGlobal( errmsg('bin/minivend:11', "Can't find catalog '%s'" , $cat_name) );
 		return undef;
 	}
 
 	$Vend::Log_suppress = 1;
-    logGlobal "Config '$g->{'name'}' $source";
+    logGlobal ( errmsg('bin/minivend:12', "Config '%s' %s", $g->{'name'}, $source) )
+		unless $Vend::Quiet;
 	undef $Vend::Log_suppress;
 
     chdir $g->{'dir'}
@@ -1493,7 +1520,8 @@ $Global::DEBUG = $Global::DebugMode || 0;
 # END DEBUG
     if($@) {
 		my $msg = $@;
-        logGlobal "$g->{'name'} config error: $msg";
+#        logGlobal "$g->{'name'} config error: $msg";
+        logGlobal( errmsg('bin/minivend:13', "%s config error: %s" , $g->{'name'}, $msg) );
      	return undef;
     }
 
@@ -1554,7 +1582,7 @@ EOF
     if($@) {
 		my $msg = $@;
 		$msg =~ s/\s+$//;
-        logGlobal $g->{'name'} . " config error: $msg";
+        logGlobal( errmsg('bin/minivend:14', "%s config error: %s" , $g->{'name'}, $msg) );
      	return undef;
     }
 
@@ -1986,8 +2014,10 @@ sub map_cgi {
 		$host =~ s/.*?([-A-Za-z0-9]+\.[A-Za-z]+)$/$1/;
 	}
 	elsif($Global::IpHead) {
-		$ip =~ s/\.\d+\.\d+\.\d+$//;
-		$host = '';
+		my @ip;
+		@ip = split /\./, $ip;
+		$ip = '';
+		$ip = join ".", @ip[0 .. ($Global::IpQuad - 1)] if $Global::IpQuad;
 	}
 	#
 	# end AOL fix
@@ -1998,13 +2028,8 @@ sub map_cgi {
 		if http()->Https_on;
 
     $user = http()->Authenticated_User;
-	#
-	# This is removed to guarantee that the user name is REMOTE_USER
-	# Needed to guarantee security
-    # $user = http()->Client_Ident
-	#   unless (defined $user && $user ne '');
-	#
     $user = '' unless defined $user;
+
     $CGI::user = $user;
     $CGI::useragent = http()->User_Agent;
     $CGI::cookie = http()->Cookie;
@@ -2059,7 +2084,6 @@ sub dispatch {
 	my($g, $action);
 
 	if($Global::AllowQuery and @Global::argv > 1) {
-#::logGlobal("Argv: '" . (join "','", @Global::argv) . "'");
 		$CGI::script_name = shift @Global::argv;
 		$CGI::script_name =~ m:^/: and  die "Can't db_query from web: $CGI::script_name";
 		$Vend::Cfg = $Global::Selector{$CGI::script_name} || die "Bad script.\n";
@@ -2083,7 +2107,8 @@ sub dispatch {
 
 	unless (defined $Global::Standalone) {
 		unless (defined $Global::Selector{$CGI::script_name}) {
-			logGlobal("Undefined catalog: $CGI::script_name");
+#			logGlobal("Undefined catalog: $CGI::script_name");
+			logGlobal( errmsg('bin/minivend:15', "Undefined catalog: %s" , $CGI::script_name) );
 			return '';
 		}
 		$Vend::Cfg = $Global::Selector{$CGI::script_name};
@@ -2129,8 +2154,10 @@ sub dispatch {
 		eval {$) = "$Vend::Cfg->{SetGroup} $Vend::Cfg->{SetGroup}"};
 		if ($@) {
 			my $msg = $@;
-			logGlobal("Can't set group to GID $Vend::Cfg->{SetGroup}: $msg");
-			logError("Can't set group to GID $Vend::Cfg->{SetGroup}: $msg");
+#			logGlobal("Can't set group to GID $Vend::Cfg->{SetGroup}: $msg");
+			logGlobal( errmsg('bin/minivend:16', "Can't set group to GID %s: %s" , $Vend::Cfg->{SetGroup}, $msg) );
+#			logError("Can't set group to GID $Vend::Cfg->{SetGroup}: $msg");
+			logError( errmsg('bin/minivend:17', "Can't set group to GID %s: %s" , $Vend::Cfg->{SetGroup}, $msg) );
 		}
 	}
 
@@ -2155,7 +2182,8 @@ EOF
 		return '' unless check_security(0, 1);
 		my $msg = $build ? 'yes' : 'no';
 		logData("$Global::ConfDir/reconfig", $CGI::script_name, $build);
-		logGlobal("Reconfig '$Vend::Cfg->{CatalogName}' rebuild=$msg");
+#		logGlobal("Reconfig '$Vend::Cfg->{CatalogName}' rebuild=$msg");
+		logGlobal( errmsg('bin/minivend:18', "Reconfig '%s' rebuild=%s" , $Vend::Cfg->{CatalogName}, $msg) );
 	}
 
 	chdir $Vend::Cfg->{'VendRoot'} 
@@ -2268,7 +2296,7 @@ EOF
 
 	ROUTINES: {
 		last ROUTINES unless index($path, '/process/') == 0;
-		while ($path =~ s:/process/(locale|language)/([^/]*)/:/process/:) {
+		while ($path =~ s:/process/(locale|language|currency)/([^/]*)/:/process/:) {
 			$Vend::Session->{scratch}->{"mv_$1"} = $2;
 		}
 		if($path =~ s:/process/subroutine/(.*):/process:) {
@@ -2286,7 +2314,11 @@ EOF
 		$locale = $Vend::Session->{scratch}->{mv_locale}	and
 		defined $Vend::Cfg->{Locale_repository}->{$locale}
 	)
-	{ Vend::Util::setlocale(); }
+	{ 
+		Vend::Util::setlocale(	$locale,
+								($Vend::Session->{scratch}{mv_currency} || undef)
+							);
+	}
 	
 	if($Vend::Cfg->{Autoload}) {
 		do_sub($Vend::Cfg->{Autoload});
@@ -2302,7 +2334,6 @@ EOF
 		undef $H;
 		if($Vend::Save) {
 			copyref ($Vend::Save, $Vend::Cfg);
-			logGlobal "Copied Vend::Save";
 			undef $Vend::Save;
 		}
 		undef $Vend::Cfg;
@@ -2339,7 +2370,6 @@ EOF
 	undef $H;
 	if($Vend::Save) {
 		copyref ($Vend::Save, $Vend::Cfg);
-		logGlobal "Copied Vend::Save";
 		undef $Vend::Save;
 	}
 	undef $Vend::Cfg;
@@ -2440,6 +2470,8 @@ sub parse_options {
 				unless $Vend::mode eq 'serve';
 			die "-b(uild) requires argument\n" unless @ARGV;
 			$Vend::CatalogToBuild{shift @ARGV} = 1;
+		} elsif (m/^-q(uiet)?$/i) {
+			$Vend::Quiet = 1;
 		} elsif (m/^-f(iles)?$/i) {
 			$Vend::BuildSpec = shift @ARGV;
 			die "Missing file spec for -files option\n"

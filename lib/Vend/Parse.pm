@@ -1,6 +1,6 @@
 # Parse.pm - Parse MiniVend tags
 # 
-# $Id: Parse.pm,v 1.36 1998/06/06 08:12:42 mike Exp mike $
+# $Id: Parse.pm,v 1.21 1998/01/16 07:30:42 mike Exp mike $
 #
 # Copyright 1997-1998 by Michael J. Heins <mikeh@iac.net>
 #
@@ -20,12 +20,12 @@
 
 package Vend::Parse;
 
-# $Id: Parse.pm,v 1.36 1998/06/06 08:12:42 mike Exp mike $
+# $Id: Parse.pm,v 1.21 1998/01/16 07:30:42 mike Exp mike $
 
 require Vend::Parser;
 
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.36 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.21 $ =~ /(\d+)\.(\d+)/);
 
 use Safe;
 use Vend::Util;
@@ -40,7 +40,7 @@ require Exporter;
 
 @ISA = qw(Exporter Vend::Parser);
 
-$VERSION = substr(q$Revision: 1.36 $, 10);
+$VERSION = substr(q$Revision: 1.21 $, 10);
 @EXPORT = ();
 @EXPORT_OK = qw(find_matching_end);
 
@@ -94,7 +94,7 @@ my %PosNumber =	( qw!
 				search_region	 1
 				selected		 3
 				set				 1
-				setlocale		 2
+				setlocale		 3
 				shipping		 3
 				shipping_desc	 1
 				shipping_description	 1
@@ -102,7 +102,7 @@ my %PosNumber =	( qw!
 				subtotal		 2
 				tag				 1
 				total_cost		 2
-				value			 3
+				value			 4
 
 			! );
 
@@ -158,7 +158,7 @@ my %Order =	(
 				search			=> [qw( arg   )],
 				search_region	=> [qw( arg   )],
 				selected		=> [qw( name value multiple )],
-				setlocale		=> [qw( locale persist )],
+				setlocale		=> [qw( locale persist currency )],
 				set				=> [qw( name  )],
 				'shipping'		=> [qw( name cart noformat )],
 				shipping_desc	=> [qw( name  )],
@@ -167,7 +167,7 @@ my %Order =	(
 				'subtotal'		=> [qw( name noformat )],
 				tag				=> [qw( op base file type )],
 				total_cost		=> [qw( name noformat )],
-				value			=> [qw( name escaped set)],
+				value			=> [qw( name escaped set hide)],
 
 			);
 
@@ -236,7 +236,7 @@ my %InvalidateCache = (
 my %Implicit = (
 
 			'data' =>		{ qw( increment increment ) },
-			'value' =>		{ qw( escaped	escaped ) },
+			'value' =>		{ qw( escaped	escaped hide hide ) },
 			'checked' =>	{ qw( multiple	multiple ) },
 			'area'    =>	{ qw( secure	secure ) },
 			'page'    =>	{ qw( secure	secure ) },
@@ -434,6 +434,8 @@ my %attrAlias = (
 my %Alias = (
 
 				qw(
+						url			urldecode
+						urld		urldecode
 						href		area
 						a			pagetarget
 				)
@@ -670,6 +672,29 @@ sub comment
 
 my %Monitor = ( qw(    calc  1 currency  1 ) );
 
+sub build_html_tag {
+	my ($orig, $attr, $attrseq) = @_;
+	$orig =~ s/\s+.*//s;
+	for (@$attrseq) {
+		$orig .= qq{ \U$_="} ;
+		$attr->{$_} =~ s/"/\\"/g;
+		$orig .= $attr->{$_};
+		$orig .= '"';
+	}
+	$orig .= ">";
+}
+
+my %implicitHTML = (qw/checked CHECKED selected SELECTED/);
+
+sub format_html_attribute {
+	my($attr, $val) = @_;
+	if(defined $implicitHTML{$attr}) {
+		return $implicitHTML{$attr};
+	}
+	$val =~ s/"/&quot;/g;
+	return qq{$attr="$val"};
+}
+
 sub html_start {
     my($self, $tag, $attr, $attrseq, $origtext, $end_tag) = @_;
 	$tag =~ tr/-/_/;   # canonical
@@ -679,12 +704,18 @@ sub html_start {
 #::logGlobal("attributes: ", %{$attr}) if $Monitor{$tag};
 	my($tmpbuf);
     # $attr is reference to a HASH, $attrseq is reference to an ARRAY
+	my($return_html);
 
 	unless (defined $Routine{$tag}) {
 		if(defined $Alias{$tag}) {
 			my ($rest, $text);
 			($tag, $rest) = split /\s+/, $Alias{$tag}, 2;
 			_find_tag (\$rest, $attr, $attrseq);
+		}
+		elsif ($tag eq 'urldecode') {
+			$attr->{urldecode} = 1;
+			$return_html = $origtext;
+			$return_html =~ s/\s+.*//s;
 		}
 		else {
 			$self->{OUT} .= $origtext;
@@ -707,14 +738,25 @@ sub html_start {
 			$attr->{$new} = delete $attr->{$trib};
 			$trib = $new;
 		}
+		elsif (0 and defined $Alias{$trib}) {
+			my $new = $Alias{$trib} ;
+			$attr->{$new} = delete $attr->{$trib};
+			$trib = $new;
+		}
 		# Parse tags within tags, only works if the [ is the
 		# first character.
+		$attr->{$trib} =~ s/%([A-Fa-f0-9]{2})/chr(hex($1))/eg if $attr->{urldecode};
 		next unless $attr->{$trib} =~ /\[\w+[-\w]*\s*[\000-\377]*\]/;
 
 		my $p = new Vend::Parse;
 		$p->parse($attr->{$trib});
 		$attr->{$trib} = $p->{OUT};
 		$self->{INVALID} += $p->{INVALID};
+	}
+
+	if($tag eq 'urldecode') {
+		$self->{OUT} .= build_html_tag($return_html, $attr, $attrseq);
+		return 1;
 	}
 
 	$attr->{'decode'} = 1 unless defined $attr->{'decode'};
@@ -746,7 +788,11 @@ sub html_start {
 
 #::logGlobal("tag=$tag end_tag=$end_tag attributes:\n" . Vend::Util::uneval($attr)) if$Monitor{$tag};
 
+	my $prefix = '';
+	my $midfix = '';
+	my $postfix = '';
 	my @out;
+
 	if($insertHTML{$end_tag}
 		and ! $attr->{noinsert}
 		and $tag =~ /^($insertHTML{$end_tag})$/) {
@@ -757,10 +803,15 @@ sub html_start {
 			unless $attr->{showmv};
 		if (defined $replaceAttr{$tag}
 			and $replaceAttr{$tag}->{$end_tag}
-			and	! $attr->{noreplace}) {
-			@out = grep $_ !~ /^($replaceAttr{$tag}->{$end_tag})\b/i, @out;
-			$out[0] .= qq{ \U$replaceAttr{$tag}->{$end_tag}="};
-			$out[1] = defined $out[1] ? qq{" } . $out[1] : '"';
+			and	! $attr->{noreplace})
+		{
+			my $t = $replaceAttr{$tag}->{$end_tag};
+			@out = grep $_ !~ /^($t)\b/i, @out;
+			unless(defined $implicitHTML{$t}) {
+				$out[0] .= qq{ \U$t="};
+				$out[1] = defined $out[1] ? qq{" } . $out[1] : '"';
+			}
+			else { $midfix = ' ' }
 		}
 		else {
 			$out[0] = " " . $out[0] . " "
@@ -774,9 +825,6 @@ sub html_start {
 		}
 #::logGlobal("inserted " . join "|", @out);
 	}
-
-	my $prefix = '';
-	my $postfix = '';
 
 	if($hasEndTag{$tag}) {
 		my $rowfix;
@@ -817,7 +865,7 @@ sub html_start {
 								"[/$enclose]";
 				}
 			}
-			# GACK!!! No table row attributes in Frontpage????
+			# GACK!!! No table row attributes in some editors????
 			elsif (defined $rowfixHTML{$end_tag}
 				and $tag =~ /^($rowfixHTML{$end_tag})$/
 				and $attr->{rowfix} )
@@ -840,6 +888,8 @@ sub html_start {
 				$tmpbuf = $origtext . find_html_end($end_tag, $buf);
 			}
 		}
+
+		$tmpbuf =~ s/%([A-Fa-f0-9]{2})/chr(hex($1))/eg if $attr->{urldecode};
 
 		if ($attr->{interpolate}) {
 			my $p = new Vend::Parse;
@@ -864,26 +914,37 @@ sub html_start {
 
 
 	}
-	elsif(! $attr->{interpolate}) {
-		if(@out) {
-			$self->{OUT} .= "<\U$end_tag ";
-			if 		($out[0] =~ / > \s*$ /x ) { }   # End of tag, do nothing
-			elsif	($out[0] =~ / ^[^"]*"$/x ) {     # End of tag
-				$self->{OUT} .= shift(@out);
-			}
-			else {
-				unshift(@out, '');
-			}
-		}
-		$self->{OUT} .= &$routine( @args );
-		$self->{OUT} .= join(" ", @out);
-	}
 	else {
-		if(@out) {
-			$$buf = "<\U$end_tag " . &$routine( @args ) . join(" ", @out) . $$buf;
+		if(! @out and $attr->{prepend} or $attr->{append}) {
+			my @tmp;
+			@tmp = Text::ParseWords::shellwords($origtext);
+			shift @tmp;
+			@tmp = grep $_ !~ /^[Mm][Vv][=.]/, @tmp
+				unless $attr->{showmv};
+			$postfix = $attr->{prepend} ? "<\U$end_tag " . join(" ", @tmp) : '';
+			$prefix = $attr->{append} ? "<\U$end_tag " . join(" ", @tmp) : '';
+		}
+		if(! $attr->{interpolate}) {
+			if(@out) {
+				$self->{OUT} .= "<\U$end_tag ";
+				if 		($out[0] =~ / > \s*$ /x ) { }   # End of tag, do nothing
+				elsif	($out[0] =~ / ^[^"]*"$/x ) {     # End of tag
+					$self->{OUT} .= shift(@out);
+				}
+				else {
+					unshift(@out, '');
+				}
+			}
+			$self->{OUT} .= $prefix . &$routine( @args ) . $midfix;
+			$self->{OUT} .= join(" ", @out) . $postfix;
 		}
 		else {
-			$$buf = &$routine( @args ) . $$buf;
+			if(@out) {
+				$$buf = "<\U$end_tag " . &$routine( @args ) . $midfix . join(" ", @out) . $$buf;
+			}
+			else {
+				$$buf = $prefix . &$routine( @args ) . $postfix . $$buf;
+			}
 		}
 	}
 

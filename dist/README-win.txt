@@ -1,4 +1,4 @@
-# MiniVend V3.09
+# MiniVend V3.10
 # 
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
 #
@@ -31,10 +31,11 @@
           and NT 4.0 workstation.
 
         * Perl 5.004 for Win32 -- accept no substitutes. THIS
-          PROGRAM WILL RUN ON NO EARLIER VERSION OF PERL. PERIOD.
-          IT WILL NOT RUN on the ActiveState port. The version
-          you need is variously known as the "CORE", "Standard",
-          or "Gurusamy Sarathy" version.
+          PROGRAM WILL RUN ON NO EARLIER VERSION OF PERL. PERIOD.  It
+          will not run on the ActiveState port build 3xx series;
+          it does appear to run very well with the "Merge" version. The
+          version you need is also variously known as the "CORE",
+          "Standard", or "Gurusamy Sarathy" version.
 
         * Web server. Almost any that has CGI capability
           should work. Tested on Microsoft Personal Web Server,
@@ -103,16 +104,16 @@
   
     Installation:
 
-    1. Download the minivend-3.09.exe distribution file
+    1. Download the minivend-3.10.exe distribution file
     and run it in the normal Windows fashion.
     
     ( If you don't want to execute the self-extracting ZIP file,
-      then you can obtain the standard minivend-3.09.tar.gz file and
+      then you can obtain the standard minivend-3.10.tar.gz file and
       install that instead. )
       
       You will have to obtain the CYGWIN.DLL file if you want to
       use TLINK.EXE as your link CGI. The standard distribution .EXE
-      file has it included -- the minivend-3.09-nodll.exe file
+      file has it included -- the minivend-3.10-nodll.exe file
       eliminates it.
 
     2. Select a directory to install MiniVend in -- it defaults

@@ -11,11 +11,14 @@ Search Results
 
 <P>
 <H2>
+[search-region send=1]
 [more-list]
 	Matches [matches] of
 [/more-list]
-[value name=mv_search_match_count send=1]
-	title[if value mv_search_match_count != 1]s[/if] found</H2>
+[if value mv_search_match_count > 1]
+	[value mv_search_match_count] titles found
+[/if]
+</H2>
 [more-list]
 [more]
 [/more-list]
@@ -25,8 +28,8 @@ Search Results
 <B>[item_increment].</B>
 <I>[item-field title]</I><BR>
 <B>[item-field artist]</B><BR>
-[page href="[item-code]" send=1]<IMG BORDER=0 SRC="details.gif">[/page]
-[order [item-code]]<IMG BORDER=0 SRC="ordernow.gif">[/order]
+[page href="[item-code]" send=1]<IMG ALT=" INFO " BORDER=0 SRC="details.gif">[/page]
+[order [item-code]]<IMG ALT=" ORDER " BORDER=0 SRC="ordernow.gif">[/order]
 <B>Our Price [item-price]</B><p>
 <HR>
 [/search-list]
@@ -40,6 +43,7 @@ Sorry, no matches for [value mv_searchspec].
 [more]
 <HR>
 [/more-list]
+[/search-region]
 <P ALIGN=CENTER>
 [buttonbar 0]
 

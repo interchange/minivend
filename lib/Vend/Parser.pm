@@ -1,6 +1,6 @@
 package Vend::Parser;
 
-# $Id: Parser.pm,v 1.14 1998/06/01 17:04:54 mike Exp $
+# $Id: Parser.pm,v 1.15 1998/07/04 21:58:33 mike Exp mike $
 
 =head1 NAME
 
@@ -106,7 +106,7 @@ use strict;
 
 use HTML::Entities ();
 use vars qw($VERSION);
-$VERSION = sprintf("%d.%02d", q$Revision: 1.14 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.15 $ =~ /(\d+)\.(\d+)/);
 
 
 sub new
@@ -198,7 +198,6 @@ sub parse
 				$self->{HTML} = 1;
 				$end_brack = '[^>]'
 			}
-			#$self->{HTML} = $eaten eq '[' ? 0 : 1;
 
 
 			# This first thing we must find is a tag name.  RFC1866 says:
@@ -208,7 +207,7 @@ sub parse
 			#   the SGML declaration for HTML, 9.5, "SGML Declaration
 			#   for HTML".  In a start-tag, the element name must
 			#   immediately follow the tag open delimiter `<'.
-			if ($$buf =~ s|^(([a-zA-Z][-a-zA-Z0-9._]*)((?:\s+$end_brack+)?\s+[mM][Vv]\s*=\s*)?\s*)||) {
+			if ($$buf =~ s|^(([a-zA-Z][-a-zA-Z0-9._]*)((?:\s+$end_brack+)?\s+[Mm][Vv]\s*=)?\s*)||) {
 				$eaten .= $1;
 
 				my ($tag, $end_tag);
@@ -217,9 +216,9 @@ sub parse
 				my $old;
 
 				if(! $3) {
+					$tag = lc $2;
 					($self->text($eaten), next)
 						if $self->{HTML};
-					$tag = lc $2;
 				}
 				else {
 					$end_tag = $2;
@@ -236,6 +235,7 @@ sub parse
 				}
 #::logGlobal("Found tag=$tag end_tag=$end_tag buf eaten=$eaten length=" . length $$buf) if $self->{HTML};
 				my $nopush;
+				my $urldecode = ($tag =~ s/^urld?(?:ecode)?$/urldecode/) ? 1 : 0;
 
 				# Then we would like to find some attributes
 				#
@@ -247,7 +247,7 @@ sub parse
 					$eaten .= $1;
 					my $attr = lc $2;
 					$attr =~ s/^[Mm][Vv]\.?// || undef $attr
-						if $self->{HTML};
+						if $self->{HTML} and ! $urldecode;
 #::logGlobal("Found attr=$attr eaten=$eaten length=" . length $$buf) if $self->{HTML};
 						
 					my $val;

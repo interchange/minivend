@@ -57,7 +57,13 @@ PARSECFG: {
 	close MVCFG;
 
 	eval {
-		$file = "$VendRoot/etc/active.catalogs";
+		$file = "$VendRoot/catalogs.list";
+		open(MVCFG, $file) or die "Couldn't read $file: $!\n";
+		while(<MVCFG>) { push(@cfglines, $_) if /^\s*(sub)?catalog\s+/i }
+		close MVCFG;
+	};
+	eval {
+		$file = "$VendRoot/active.catalogs";
 		open(MVCFG, $file) or die "Couldn't read $file: $!\n";
 		while(<MVCFG>) { push(@cfglines, $_) if /^\s*(sub)?catalog\s+/i }
 		close MVCFG;
