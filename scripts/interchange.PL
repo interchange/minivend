@@ -40,6 +40,12 @@ BEGIN {
 	
 	($Global::VendRoot = $ENV{MINIVEND_ROOT})
 		if defined $ENV{MINIVEND_ROOT};
+
+	## This should only happen in "make test"
+	if($Global::VendRoot =~ m{/blib$}) {
+		shift @INC;
+		shift @INC;
+	}
 	
 	$Global::VendRoot = $Global::VendRoot || '/usr/local/interchange';
 #	$Global::VendRoot = $Global::VendRoot || '~_~INSTALLARCHLIB~_~';
@@ -769,10 +775,12 @@ sub main_loop {
 			unless $ENV{MINIVEND_ROOT} =~ m{/blib$};
 	}
 
+# LEGACY
 	# Kept here for compatibility
 	eval {
 		require Vend::Payment::CyberCash;
 	};
+# END LEGACY
 
 	# These modules no longer necessary, why take up memory?
 	delete $INC{'Getopt/Long.pm'};
