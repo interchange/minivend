@@ -2550,6 +2550,7 @@ my %Hash_ref = (  qw!
 my %Ary_ref = (   qw!
 						NAME                NAME
 						BINARY              BINARY 
+						PRECREATE           PRECREATE 
 						POSTCREATE          POSTCREATE 
 						INDEX               INDEX 
 						ALTERNATE_DSN       ALTERNATE_DSN

@@ -320,6 +320,17 @@ sub create {
 	$config->{KEY_INDEX} = $keycol;
 	$config->{KEY} = $key;
 
+	if(ref $config->{PRECREATE}) {
+		for(@{$config->{PRECREATE}} ) {
+			$db->do($_) 
+				or ::logError(
+								"DBI: Post creation query '%s' failed: %s" ,
+								$_,
+								$DBI::errstr,
+					);
+		}
+	}
+
 	if($config->{CREATE_SQL}) {
 #::logDebug("Trying to create with specified CREATE_SQL:\n$config->{CREATE_SQL}");
 		eval {
