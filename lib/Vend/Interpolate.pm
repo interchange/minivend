@@ -3570,7 +3570,6 @@ sub find_sort {
 		$page,
 		$prefix,
 		$more_id,
-		$form_arg,
 		$session,
 		$link_template,
 		);
@@ -3653,6 +3652,9 @@ sub tag_more_list {
 		$more_id = $q->{mv_more_id};
 		$form_arg .= "\nmi=$more_id";
 	}
+	else {
+		$more_id = undef;
+	}
 
 	if($r =~ s:\[border\]($All)\[/border\]::i) {
 		$border = $1;
@@ -3663,9 +3665,12 @@ sub tag_more_list {
 		$border =~ s/\D//g;
 	}
 
-	$r =~ s:\[link[-_]template\]($All)\[/link[-_]template\]::i
-		and $link_template = $1;
-	$link_template ||= q{<A HREF="$URL$">$ANCHOR$</A>};
+	if ($r =~ s:\[link[-_]template\]($All)\[/link[-_]template\]::i) {
+		$link_template = $1;
+	}
+	else {
+		$link_template = q{<A HREF="$URL$">$ANCHOR$</A>};
+	}
 
 	if(! $chunk or $chunk >= $total) {
 		return '';
