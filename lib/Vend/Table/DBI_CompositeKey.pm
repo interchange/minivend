@@ -169,6 +169,8 @@ sub key_values {
 	return @key;
 }
 
+sub autonumber { return '' }
+
 sub inc_field {
     my ($s, $key, $column, $value) = @_;
 	$s = $s->import_db() if ! defined $s->[$DBI];
