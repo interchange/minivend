@@ -477,6 +477,9 @@ EOF
 // If you want to move these functions to the HEAD
 	function ${vpf}menu_link (idx) {
 
+		if( ${vpf}browserType() == "other" )
+			return;
+
 		var l = ${vpf}lines[ idx ];
 
 		if(l == undefined) {
@@ -572,6 +575,8 @@ EOF
 
 	function ${vpf}getRightX( obj )
 	{
+		if( ${vpf}browserType() == "other" )
+			return;
 		var pos = 0;
 		if( ${vpf}browserType() == "ie" )
 			if(${vpf}anchor_down == 1) 
@@ -594,6 +599,9 @@ EOF
 
 	function ${vpf}getTopX( obj )
 	{
+		if( ${vpf}browserType() == "other" )
+			return;
+
 		var pos = 0;
 		if( ${vpf}browserType() == "ie" )
 			if(${vpf}anchor_down) 
@@ -627,6 +635,9 @@ EOF
 
 	function ${vpf}menuClear(level)
 	{
+		if( ${vpf}browserType() == "other" )
+			return;
+
 		if (level == undefined)
 			level = 0;
 		level++;
@@ -642,6 +653,9 @@ EOF
 
 	function ${vpf}menuBusy()
 	{
+		if( ${vpf}browserType() == "other" )
+			return;
+
 		clearTimeout( ${vpf}timeoutCode );
 		${vpf}timeoutCode = -1;
 	}
@@ -1102,7 +1116,7 @@ sub tree_line {
 		return unless $status;
 	}
 
-	if($row->{page} and $row->{page} !~ /^\w+:/) {
+	if($row->{page} and $row->{page} !~ m{^(\w+:)?/}) {
 		my $form = $row->{form};
 		if($form and $form !~ /[\r\n]/) {
 			$form = join "\n", split $Global::UrlSplittor, $form;
