@@ -156,7 +156,7 @@ sub log_http_data {
 }
 
 sub map_misc_cgi {
-	if (!$CGI::remote_host && $CGI::remote_addr){
+	if ($Global::RobotHost && !$CGI::remote_host && $CGI::remote_addr) {
 		$CGI::remote_host = gethostbyaddr(Socket::inet_aton($CGI::remote_addr),Socket::AF_INET);
 	}
 	$CGI::host = $CGI::remote_host || $CGI::remote_addr;
