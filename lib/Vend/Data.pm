@@ -304,7 +304,7 @@ sub import_text {
 	if($options->{file}) {
 		$fn = $options->{file};
 		Vend::File::allowed_file($fn)
-			or die "No absolute file names like '$fn' allowed.\n";
+			or die ::errmsg("No absolute file names like '%s' allowed.\n", $fn);
 	}
 	else {
 		Vend::Util::writefile($fn, $text)
@@ -1851,8 +1851,8 @@ sub update_data {
 	unshift(@fields, $prikey);
 
     my @file_fields = split /[\s\0,]+/, $CGI::values{mv_data_file_field};
-    my @file_paths = split /[\s\0,]+/, $CGI::values{mv_data_file_path};
-    my @file_oldfiles = split /[\s\0,]+/, $CGI::values{mv_data_file_oldfile};
+    my @file_paths = split /\0/, $CGI::values{mv_data_file_path};
+    my @file_oldfiles = split /\0/, $CGI::values{mv_data_file_oldfile};
 
 	if($en_col) {
 		$en_col =~ s/^\s+//;
