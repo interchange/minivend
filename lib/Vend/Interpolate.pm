@@ -5799,6 +5799,10 @@ sub fly_page {
     if($page) {
 		$selector = 'passed in tag';
 	}
+	elsif(	$Vend::ForceFlypage ) {
+		$selector = $Vend::ForceFlypage;
+		undef $Vend::ForceFlypage;
+	}
 	elsif(	$selector = $Vend::Cfg->{PageSelectField}
 			and db_column_exists($base,$selector)
 		)

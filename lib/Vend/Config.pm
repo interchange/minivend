@@ -424,6 +424,7 @@ sub catalog_directives {
 	['NoSearch',         'wildcard',         'userdb'],
 	['OrderCounter',	 undef,     	     ''],
 	['MimeType',         'hash',             ''],
+	['AliasTable',	 	 undef,     	     ''],
 	['ImageAlias',	 	 'hash',     	     ''],
 	['TableRestrict',	 'hash',     	     ''],
 	['Filter',		 	 'hash',     	     ''],
