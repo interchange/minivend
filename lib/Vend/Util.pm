@@ -232,6 +232,16 @@ sub commify {
     return $_;
 }
 
+sub safe_sprintf {
+	my $fmt = shift;
+	my $save = POSIX::setlocale (&POSIX::LC_NUMERIC);
+	return sprintf($fmt, @_) if $save eq 'C';
+	POSIX::setlocale (&POSIX::LC_NUMERIC, 'C');
+	my $val = sprintf($fmt, @_);
+	POSIX::setlocale (&POSIX::LC_NUMERIC, $save);
+	return $val;
+}
+
 sub picture_format {
 	my($amount, $pic, $sep, $point) = @_;
     $pic	= reverse $pic;
@@ -239,7 +249,7 @@ sub picture_format {
 	$sep	= ',' unless defined $sep;
 	$pic =~ /(#+)\Q$point/;
 	my $len = length($1);
-	$amount = sprintf('%.' . $len . 'f', $amount);
+	$amount = safe_sprintf('%.' . $len . 'f', $amount);
 	$amount =~ tr/0-9//cd;
 	my (@dig) = split //, $amount;
 	$pic =~ s/#/pop(@dig)/eg;
@@ -336,7 +346,7 @@ sub currency {
 		$fmt = "%.2f";
 	}
 
-	$amount = sprintf $fmt, $amount;
+	$amount = safe_sprintf($fmt, $amount);
 	$amount =~ s/\./$dec/ if defined $dec;
 	$amount = commify($amount, $sep || undef)
 		if $Vend::Cfg->{PriceCommas};
