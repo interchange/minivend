@@ -182,6 +182,7 @@ my %InitializeEmpty = (qw(
 
 my %AllowScalarAction = (qw(
 					FileControl			1
+					SOAP_Control		1
 				));
 
 my $StdTags;
@@ -304,6 +305,7 @@ sub global_directives {
 	['SOAP_MaxRequests', 'integer',           50],
 	['SOAP_StartServers', 'integer',          1],
 	['SOAP_Host',         undef,              'localhost 127.0.0.1'],
+	['SOAP_Control',     'action',           ''],
 	['IPCsocket',		 undef,	     	 	 "$Global::VendRoot/etc/socket.ipc"],
 	['HouseKeeping',     'integer',          60],
 	['Mall',	          'yesno',           'No'],
@@ -520,6 +522,7 @@ sub catalog_directives {
 	['SOAP',			 'yesno',			 'No'],
 	['SOAP_Enable',		 'hash',			 ''],
 	['SOAP_Action',		 'action',			 ''],				   
+	['SOAP_Control',     'action',             ''],		  
 	['UserDB',			 'locale',	     	 ''], 
 	['UserDatabase',	 undef,		     	 ''],  #undocumented
 	['RobotLimit',		 'integer',		      0],
