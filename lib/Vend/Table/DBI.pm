@@ -494,7 +494,8 @@ sub row_hash {
 		unless $s->[$TYPE];
 	my $ref;
 	if($s->config('UPPERCASE')) {
-		my $aref = $sth->fetchrow_arrayref();
+		my $aref = $sth->fetchrow_arrayref()
+			or return undef;
 		$ref = {};
 		my @nm = @{$sth->{NAME}};
 		for ( my $i = 0; $i < @$aref; $i++) {
