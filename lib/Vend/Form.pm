@@ -74,6 +74,8 @@ my $Tag = new Vend::Tags;
 		.
 		qq({ROWS?} size="{ROWS}"{/ROWS?})
 		.
+		qq({DISABLED?} DISABLED{/DISABLED?})
+		.
 		qq({MULTIPLE?} MULTIPLE{/MULTIPLE?})
 		.
 		qq({EXTRA?} {EXTRA}{/EXTRA?})
@@ -93,6 +95,8 @@ my $Tag = new Vend::Tags;
 		qq({ROWS?} rows="{ROWS}"{/ROWS?})
 		.
 		qq({COLS?} cols="{COLS}"{/COLS?})
+		.
+		qq({DISABLED?} DISABLED{/DISABLED?})
 		.
 		qq({MAXLENGTH?} maxlength="{MAXLENGTH}"{/MAXLENGTH?})
 		.
@@ -138,6 +142,8 @@ my $Tag = new Vend::Tags;
 		.
 		qq({COLS?} size="{COLS}"{/COLS?})
 		.
+		qq({DISABLED?} DISABLED{/DISABLED?})
+		.
 		qq({MAXLENGTH?} maxlength="{MAXLENGTH}"{/MAXLENGTH?})
 		.
 		qq({EXTRA?} {EXTRA}{/EXTRA?})
@@ -163,6 +169,8 @@ my $Tag = new Vend::Tags;
 		.
 		qq({EXTRA?} {EXTRA}{/EXTRA?})
 		.
+		qq({DISABLED?} DISABLED{/DISABLED?})
+		.
 		qq({SELECTED?} CHECKED{/SELECTED?})
 		.
 		qq(>&nbsp;{TLABEL})
@@ -171,6 +179,8 @@ my $Tag = new Vend::Tags;
 		qq(<input type="{VARIANT}" name="{NAME}" value="{TVALUE}")
 		.
 		qq({EXTRA?} {EXTRA}{/EXTRA?})
+		.
+		qq({DISABLED?} DISABLED{/DISABLED?})
 		.
 		qq({SELECTED?} CHECKED{/SELECTED?})
 		.
@@ -189,6 +199,8 @@ my $Tag = new Vend::Tags;
 		qq(<td{TD_VALUE?} {TD_VALUE}{/TD_VALUE?}>)
 		.
 		qq(<input type="{VARIANT}" name="{NAME}" value="{TVALUE}")
+		.
+		qq({DISABLED?} DISABLED{/DISABLED?})
 		.
 		qq({EXTRA?} {EXTRA}{/EXTRA?})
 		.
