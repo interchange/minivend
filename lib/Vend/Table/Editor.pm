@@ -1925,6 +1925,11 @@ EOF
 				$prof .= "$_=mandatory\n";
 			}
 		}
+
+		## Enable individual widget checks
+		$::Scratch->{mv_individual_profile} = 1;
+
+		## Call the profile in the form
 		$opt->{hidden}{mv_form_profile} = 'ui_profile';
 		my $fail = $opt->{mv_failpage} || $Global::Variable->{MV_PAGE};
 
@@ -3115,6 +3120,16 @@ $l_pkey</td>};
 
 	my @extra_hidden;
 	my $icount = 0;
+
+	my $reload;
+	## Find out what our errors are
+	if($CGI->{mv_form_profile} eq 'ui_profile' and $Vend::Session->{errors}) {
+		for(keys %{$Vend::Session->{errors}}) {
+			$error->{$_} = 1;
+		}
+		$reload = 1 unless $opt->{no_reload};
+	}
+
 	foreach my $col (@cols) {
 		my $t;
 		my $c;
@@ -3203,6 +3218,10 @@ $l_pkey</td>};
 			$overridden = 1;
 		}
 
+		if($reload and defined $CGI::values{$col}) {
+			$currval = $CGI::values{$col};
+		}
+
 		my $namecol;
 		if($serialize) {
 #::logDebug("serialize=$serialize");
@@ -3230,6 +3249,10 @@ $l_pkey</td>};
 #::logDebug("fetched hk=$hk value=$currval");
 			$overridden = 1;
 			$namecol = $c = $serialize;
+
+			if($reload and defined $CGI::values{$namecol}) {
+				$currval = $CGI::values{$namecol};
+			}
 		}
 
 		$namecol = $col unless $namecol;

@@ -970,15 +970,25 @@ sub do_check {
 }
 
 sub check_order {
-	my ($profiles, $vref) = @_;
+	my ($profiles, $vref, $individual) = @_;
 	reset_order_vars();
 	my $status;
 	$Vend::Session->{errors} = {}
 		unless ref $Vend::Session->{errors} eq 'HASH';
 
+	## Must have some security on mv_individual_profile because data
+	## lookups can be done via filter and/or unique
+	if($individual and ! delete($::Scratch->{mv_individual_profile})) {
+		::logError("Individual profile supplied without scratch authorization");
+		undef $individual;
+	}
+
 	for my $profile (split /\0+/, $profiles) {
 
-		$status = check_order_each($profile, $vref);
+		$status = check_order_each($profile, $vref, $individual);
+		
+		# only do the individual checks once
+		undef $individual;
 
 		my $np = $CGI::values{mv_nextpage};
 		if ($status) {
@@ -1048,7 +1058,7 @@ sub check_order {
 }
 
 sub check_order_each {
-	my ($profile, $vref) = @_;
+	my ($profile, $vref, $individual) = @_;
 	my $params;
 	$Profile = $profile;
 	if(defined $Vend::Cfg->{OrderProfileName}->{$profile}) {
@@ -1076,6 +1086,32 @@ sub check_order_each {
 	my($var,$val,$message);
 	my $status = 1;
 	my(@param) = split /[\r\n]+/, $params;
+
+	## Find marker for individual insertion
+	if($individual) {
+		my $mark;
+		my $i = -1;
+		for(@param) {
+			$i++;
+			next unless /^\s*\&fatal\s*=\s*(.*)/i and is_yes($1);
+			$mark = $i;
+			last;
+		}
+		if(! defined  $mark) {
+			$i = -1;
+			for(@param) {
+				$i++;
+				next unless /^\s*\&update\s*=\s*(.*)/i and is_yes($1);
+				$mark = $i + 1;
+				last;
+			}
+		}
+		$mark = 0 unless defined $mark;
+		my @newparams = split /\0/, $individual;
+		splice(@param, $mark, 0, @newparams);
+	}
+
+#::logDebug("Total profile:\n" . join ("\n", @param));
 	my $m;
 	my $join;
 	my $here;

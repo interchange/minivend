@@ -1206,6 +1206,11 @@ if($opt->{debug}) {
 	}
 
 	$opt->{value} = $opt->{default} if ! defined $opt->{value};
+
+	if(length($opt->{blank_default}) and ! length($opt->{value}) ) {
+		$opt->{value} = $opt->{blank_default};
+	}
+
     $opt->{encoded} = encode($opt->{value}, $ESCAPE_CHARS::std);
     $opt->{value} =~ s/&#91;/\[/g if $opt->{enable_itl};
 
@@ -1264,6 +1269,12 @@ if($opt->{debug}) {
 							|| $daction{default};
 	}
 
+	if(my $c = $opt->{check}) {
+		$c = "$opt->{name}=$c" unless $c =~ /=/;
+		HTML::Entities::encode($c);
+		no warnings;
+		$opt->{append} .= qq{<input type=hidden name="mv_individual_profile" value="$c">};
+	}
 	return $sub->($opt, $data);
 }
 

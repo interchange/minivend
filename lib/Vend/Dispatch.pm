@@ -596,7 +596,11 @@ sub do_process {
 	}
 
 	if($CGI::values{mv_form_profile}) {
-		my ($status) = check_order($CGI::values{mv_form_profile}, \%CGI::values);
+		my ($status) = check_order(
+							$CGI::values{mv_form_profile},
+							\%CGI::values,
+							$CGI::values{mv_individual_profile},
+							);
 		return 1 if defined $status and ! $status;
 	}
 
