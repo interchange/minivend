@@ -2,7 +2,7 @@
 
 # $Id$
 
-ICVERSION='5.1.0'
+ICVERSION='5.3.0'
 
 cat <<EOF
 
