@@ -31,7 +31,7 @@
 		[calc]
 			my $thing = $CGI->{ui_text_qualification};
 			$thing =~ s/^\s*\w+=//;
-			return "Preference edit: $thing";
+			return errmsg("Preference edit: %s", $thing);
 		[/calc]
 	[else]
 		[scratch page_title]
