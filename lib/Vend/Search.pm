@@ -1156,6 +1156,7 @@ eval {
 
 	# Prime sort routine
 	use locale;
+	local($^W);
 	sort { $routine } ('30','31') or 1;
 
 	@$target = sort { &$routine } @$target;
