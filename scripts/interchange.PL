@@ -645,11 +645,7 @@ sub update_data {
 	}
 
 	if( $multi and ($max - $min) > 1 and ! $CGI::values{mv_data_force}) {
-		my $msg = errmsg(
-				"probable bad form -- number of values min=%s (%s) max=%s (%s)",
-				$min, $minname, $max, $maxname,
-				);
-		Vend::Interpolate::set_error($msg);
+		logError("probable bad form -- number of values min=%s (%s) max=%s (%s)", $min, $minname, $max, $maxname);
 		return;
 	}
 
