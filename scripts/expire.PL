@@ -224,8 +224,14 @@ my $g;
 
 if(defined $catalog) {
 	my($name,$dir,$param);
-	chdir $Global::VendRoot;
+
+	# Parse the interchange.cfg file to look for script/catalog info
+	# but don't read in the core tags
+	$Vend::ControllingInterchange = 1;
+	chdir $Global::VendRoot
+		or die "Couldn't change to $Global::VendRoot: $!\n";
 	global_config();
+
 	$g = $Global::Catalog{$catalog};
 	chdir $g->{dir} or die "chdir to $g->{dir}: $!\n";
 	$Vend::Cfg = Vend::Config::config(

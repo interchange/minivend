@@ -155,6 +155,8 @@ unless ($opt_n) {
 }
 
 # Parse the interchange.cfg file to look for script/catalog info
+# but don't read in the core tags
+$Vend::ControllingInterchange = 1;
 chdir $Global::VendRoot or die "Couldn't change to $Global::VendRoot: $!\n";
 global_config();
 
