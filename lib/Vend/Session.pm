@@ -230,6 +230,7 @@ sub new_session {
 			last unless exists $Vend::SessionDBM{$name};
 		}
     }
+	$Vend::new_session = 1;
 	count_ip(1);
 	undef $Vend::Cookie;
     $Vend::SessionName = $name;
