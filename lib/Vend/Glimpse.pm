@@ -28,6 +28,9 @@ require Vend::Search;
 
 $VERSION = substr(q$Revision$, 10);
 use strict;
+use Vend::File;
+use Vend::Util;
+
 
 sub array {
 	my ($s, $opt) = @_;
@@ -324,7 +327,7 @@ EOF
 		$s->hash_fields($s->{mv_field_names}, qw/mv_sort_field/);
 #::logDebug("gsearch after hash fields: self=" . ::Vend::Util::uneval_it({%$s}));
 		$s->sort_search_return(\@out);
-		$delayed_return = $s->get_return(1,1);
+		$delayed_return = $s->get_return(1);
 		@out = map { $delayed_return->($_) } @out;
 	}
 #::logDebug("after delayed return: self=" . ::Vend::Util::uneval_it({%$s}));
@@ -356,7 +359,7 @@ EOF
 		@out = map { join $s->{mv_return_delim}, @$_ } @out;
 		$s->{mv_results} = join $s->{mv_record_delim}, @out;
 	}
-	else {
+	elsif($s->{mv_return_reference} eq 'HASH') {
 		my $col = scalar @{$s->{mv_return_fields}};
 		my @col;
 		my @names;
