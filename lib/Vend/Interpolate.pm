@@ -3141,6 +3141,8 @@ sub tag_page {
 	resolve_static(), $url = $urlroutine->($page, $arg)
 		unless $url;
 
+	$url .= '#' . $opt->{anchor} if $opt->{anchor};
+
     return qq{<a href="$url"$extra>};
 }
 
@@ -3169,7 +3171,11 @@ sub tag_area {
 
 	resolve_static();
 
-	return $urlroutine->($page, $arg);
+	my $anchor = '';
+	if($opt->{anchor}) {
+		$anchor = '#' . $opt->{anchor};
+	}
+	return $urlroutine->($page, $arg) . $anchor;
 }
 
 }
