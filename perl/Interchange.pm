@@ -1,8 +1,8 @@
-# Interchange.pm - Interchange access for perl scripts
+# Interchange.pm - Interchange access for Perl scripts
 #
 # $Id$
 # 
-# Copyright (C) 1996-2000 Akopia, Inc. <info@akopia.com>
+# Copyright (C) 1996-2001 Red Hat, Inc. <interchange@redhat.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

@@ -1,9 +1,8 @@
-#!/usr/bin/perl
-# Document.pm - Document object for embedded Perl/ASP
+# Vend::Document - Document object for Interchange embedded Perl/ASP
 # 
 # $Id$
 #
-# Copyright (C) 1996-2000 Akopia, Inc. <info@akopia.com>
+# Copyright (C) 1996-2001 Red Hat, Inc. <interchange@redhat.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
