@@ -2109,7 +2109,7 @@ my $pretty_vector = unpack('b*', $rin);
 	  eval {
 		SPAWN: {
 			last SPAWN unless defined $spawn;
-#::logDebug #("Spawning connection, " .  ($no_fork ? 'no fork, ' : 'forked, ') .  scalar localtime() . "\n");
+#::logDebug("Spawning connection, " .  ($no_fork ? 'no fork, ' : 'forked, ') .  scalar localtime() . "\n");
 			if(defined $no_fork) {
 				$::Instance = {};
 				connection();
