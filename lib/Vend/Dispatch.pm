@@ -353,8 +353,12 @@ EOF
 		return 0;
 	}
 
-	$Vend::StatusLine = "Content-Type: " .
-						($CGI::values{mv_content_type} || 'application/octet-stream');
+	my $size = -s $CGI::values{mv_data_file};
+	$CGI::values{mv_content_type} ||=  'application/octet-stream';
+	$Vend::StatusLine = <<EOF;
+Content-Type: $CGI::values{mv_content_type}
+Content-Length: $size
+EOF
 	::response(	Vend::Util::readfile ($CGI::values{mv_data_file}) );
 	return 0;
 }
