@@ -1814,7 +1814,7 @@ sub update_data {
 
 	my $en_col;
 #::logDebug("data_enable=$::Scratch->{mv_data_enable}, checking");
-	if($::Scratch->{mv_data_enable} =~ /^(\w+):(.*?):/) {
+	if($::Scratch->{mv_data_enable} =~ /^(\w+):(.*?):/s) {
 		# check for single key and possible set of columns
 		my $en_table = $1;
 		$en_col   = $2;
