@@ -59,6 +59,12 @@ my %cyber_remap = (
 	/
 );
 
+my %ignore_mv_payment = (
+	qw/
+		gateway 1
+	/
+);
+
 sub charge_param {
 	my ($name, $value, $mode) = @_;
 	my $opt;
@@ -75,12 +81,16 @@ sub charge_param {
 	}
 
 	if(defined $value) {
-		$opt = {} unless $opt;
-		return $opt->{$name} = $value;
+		return $pay_opt->{$name} = $value;
 	}
 
+	# Find if set in route or options
 	return $opt->{$name}		if defined $opt->{$name};
 
+	# "gateway" and possibly other future options
+	return undef if $ignore_mv_payment{$name};
+
+	# Now check Variable space as last resort
 	my $uname = "MV_PAYMENT_\U$name";
 
 	return $::Variable->{$uname} if defined $::Variable->{$uname};
