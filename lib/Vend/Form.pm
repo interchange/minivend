@@ -326,7 +326,7 @@ INITTIME: {
 
 	for(1 .. 12) {
 		$t[4] = $_ - 1;
-		$t[5] = 1;
+		$t[3] = 1;
 		push @Months, [sprintf("%02d", $_), POSIX::strftime("%B", @t)];
 	}
 
