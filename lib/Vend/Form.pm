@@ -251,6 +251,30 @@ sub attr_list {
 	return $body;
 }
 
+sub show_data {
+	my $opt = shift;
+	my $ary = shift;
+	return undef if ! $ary;
+	my @out;
+	for(@$ary) {
+		push @out, join "=", @$_;
+	}
+	my $delim = Vend::Interpolate::get_joiner($opt->{delimiter}, ',');
+	return join $delim, @out;
+}
+
+sub show_options {
+	my $opt = shift;
+	my $ary = shift;
+	return undef if ! $ary;
+	my @out;
+	eval {
+		@out = map {$_->[0]} @$ary;
+	};
+	my $delim = Vend::Interpolate::get_joiner($opt->{delimiter}, ',');
+	return join $delim, @out;
+}
+
 sub template_sub {
 	my $opt = shift;
 	return attr_list($Template{$opt->{type}} || $Template{default}, $opt);
@@ -743,7 +767,9 @@ sub display {
 	my %daction = (
 		value       => \&processed_value,
 		display     => \&current_label,
-		show        => sub { return $data },
+		value       => sub { my $opt = shift; return $opt->{value} },
+		show        => \&show_data,
+		options     => \&show_options,
 		select      => \&dropdown,
 		default     => \&template_sub,
 		radio       => \&box,
@@ -802,8 +828,8 @@ sub parse_type {
 		return $opt;
 	}
 
-	return if $opt->{type} =~ /^[a-z]+$/;
-	$opt->{type} = lc $opt->{type} || 'text';
+	$opt->{type} = lc($opt->{type}) || 'text';
+	return if $opt->{type} =~ /^[a-z][a-z0-9]*$/;
 
 	my $type = $opt->{type};
 	return if $type =~ /^[a-z]+$/;
