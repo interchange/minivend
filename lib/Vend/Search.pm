@@ -685,6 +685,9 @@ EOF
 			}
 			$relate .= ' );';
 		}
+		elsif (! ref $code[0] ) {
+			die("bad limit creation code in coordinated search, probably search group without search specification.");
+		}
 		else {
 			$relate = "return ( " . join("", @{$code[0]}) . " );";
 		}
