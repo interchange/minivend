@@ -344,11 +344,7 @@ EOF
 
 	$Vend::StatusLine = "Content-Type: " .
 						($CGI::values{mv_content_type} || 'application/octet-stream');
-	::response(	Vend::Util::readfile (
-					$CGI::values{mv_data_file},
-					$Global::NoAbsolute,
-				)
-			);
+	::response(	Vend::Util::readfile ($CGI::values{mv_data_file}) );
 	return 0;
 }
 

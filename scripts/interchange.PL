@@ -223,6 +223,7 @@ BEGIN {
 
 
 use Vend::Util;
+use Vend::File;
 use Vend::Server;
 use Vend::Session;
 use Vend::Config;

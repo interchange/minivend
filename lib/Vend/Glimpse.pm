@@ -241,6 +241,8 @@ EOF
 		# Get field names only if no sort (will throw it off) or
 		# not already defined
 		if($s->{mv_field_file}) {
+			allowed_file($s->{mv_field_file})
+				or return $s->search_error("can't open fields file");
 			$s->{mv_field_file} =
 					::catfile($Vend::Cfg->{ProductDir}, $s->{mv_field_file})
 				unless ::file_name_is_absolute($s->{mv_field_file});

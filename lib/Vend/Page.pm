@@ -63,8 +63,11 @@ sub display_special_page {
 		};
 
 	$subject = $subject || 'unspecified error';
+
+	my $noname = $name;
+	$noname =~ s:^\.\./::;
 	
-	$page = readfile($name, $Global::NoAbsolute, 1) || readin($name);
+	$page = readfile($noname, $Global::NoAbsolute, 1) || readin($name);
 
 	die ::get_locale_message(412, "Missing special page: %s\n", $name)
 		unless defined $page;

@@ -33,6 +33,7 @@ $VERSION = substr(q$Revision$, 10);
 
 use strict;
 use Vend::Util;
+use Vend::File;
 use Vend::Interpolate;
 use Vend::Data qw(product_code_exists_ref column_index);
 use Vend::TextSearch;
@@ -879,7 +880,7 @@ sub _file_security {
 	$passed = [] unless $passed;
 	my(@files) = grep /\S/, split /\s*[,\0]\s*/, $param, -1;
 	for(@files) {
-		my $ok = (file_name_is_absolute($_) or /\.\./) ? 0 : 1;
+		my $ok = allowed_file($_);
 		if(!$ok) {
 			$ok = 1 if $_ eq $::Variable->{MV_SEARCH_FILE};
 			$ok = 1 if $::Scratch->{$_};

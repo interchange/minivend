@@ -44,6 +44,7 @@ use Safe;
 use Fcntl;
 use Vend::Parse;
 use Vend::Util;
+use Vend::File;
 use Vend::Data;
 
 $VERSION = substr(q$Revision$, 10);
@@ -212,6 +213,7 @@ sub global_directives {
 
 	['RunDir',			 'root_dir',     	 $Global::RunDir || 'etc'],
 	['DebugFile',		  undef,     	     ''],
+	['CatalogUser',		 'hash',			 ''],
 	['ConfigDir',		  undef,	         'etc/lib'],
 	['ConfigDatabase',	 'config_db',	     ''],
 	['ConfigParseComments',	'yesno',		'Yes'],
@@ -2379,6 +2381,15 @@ my %Default = (
 						return 1;
 					},
 		ProductFiles => \&set_default_search,
+		VendRoot => sub {
+			my @paths = map { quotemeta $_ }
+							$C->{VendRoot},
+							@{$C->{TemplateDir} || []},
+							@{$Global::TemplateDir || []};
+			my $re = join "|", @paths;
+			$C->{AllowedFileRegex} = qr{^($re)};
+			return 1;
+		},
 );
 
 sub set_global_defaults {
