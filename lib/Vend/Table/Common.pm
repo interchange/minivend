@@ -756,6 +756,12 @@ my %Sort = (
     rn  => sub { $b <=> $a              },
 );
 
+my $fafh;
+sub file_access {
+	my $function = shift;
+	return <$fafh> 
+}
+
 sub import_ascii_delimited {
     my ($infile, $options, $table_name) = @_;
 	my ($format);
@@ -845,6 +851,17 @@ sub import_ascii_delimited {
 	}
 	else {
 		$out = $options->{Object};
+	}
+
+	if(! $out) {
+		die errmsg(q{No database object for table: %s
+
+Probable mismatch of Database directive to database type,
+for example calling DBI without proper modules or database
+access.
+},
+					$table_name,
+					);
 	}
 	my $fields;
     my (@fields, $key);
