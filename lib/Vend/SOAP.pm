@@ -126,6 +126,12 @@ sub tag_soap {
 		@args = $opt;
 	}
 
+	if($opt->{trace_transport}) {
+		if (exists $Vend::Cfg->{Sub}->{$opt->{trace_transport}}) {
+			SOAP::Trace->import('transport' => $Vend::Cfg->{Sub}->{$opt->{trace_transport}});
+		}
+	}
+
 	my $result;
 #::logDebug("to method call, uri=$uri proxy=$proxy call=$method args=" . ::uneval(\@args));
 	eval {
