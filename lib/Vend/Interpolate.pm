@@ -6169,7 +6169,7 @@ sub tag_shipping {
 			$out = Vend::Form::display($o);
 		}
 		else {
-			join "", @out;
+			$out = join "", @out;
 		}
 	}
 	else {
