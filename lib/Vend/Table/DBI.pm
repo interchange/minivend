@@ -2,7 +2,7 @@
 #
 # $Id$
 #
-# Copyright (C) 2002-2003 Interchange Development Group
+# Copyright (C) 2002-2004 Interchange Development Group
 # Copyright (C) 1996-2002 Red Hat, Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -1160,7 +1160,9 @@ sub get_slice {
 }
 
 sub set_slice {
-    my ($s, $key, $fary, $vary) = @_;
+    my ($s, $key, $fin, $vin) = @_;
+	my ($fary, $vary);
+	
 	$s = $s->import_db() if ! defined $s->[$DBI];
 
     if($s->[$CONFIG]{Read_only}) {
@@ -1175,10 +1177,14 @@ sub set_slice {
 	my $tkey;
 	my $sql;
 
-	if(ref $fary ne 'ARRAY') {
-		my $href = $fary;
+	if (ref $fin eq 'ARRAY') {
+		$fary = [@$fin];
+		$vary = [@$vin];
+	}
+	else {
+		my $href = $fin;
 		if(ref $href ne 'HASH') {
-			$href = { $fary, $vary, @_ }
+			$href = { splice (@_, 2) };
 		}
 		$vary = [ values %$href ];
 		$fary = [ keys   %$href ];
