@@ -461,7 +461,7 @@ sub catalog_directives {
 	['MinQuantityField', undef,     	     ''],
 	['LogFile', 		  undef,     	     'etc/log'],
 	['Pragma',		 	 'boolean_value',    ''],
-	['DynamicData', 	 'boolean',     	 ''],
+	['DynamicData', 	 'warn',     	 ''],
 	['NoImport',	 	 'boolean',     	 ''],
 	['NoImportExternal', 'yesno',	     	 'no'],
 	['CommonAdjust',	 undef,  	     	 ''],
