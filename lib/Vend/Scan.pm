@@ -873,19 +873,17 @@ sub _scalar {
 	defined $_[1] ? $_[1] : '';
 }
 
-my $Pat = ($^O =~ /win32/i) ? '([A-Za-z]:)?[\\/]' : '/';
-
 sub _file_security {
 	my ($junk, $param, $passed) = @_;
 	$passed = [] unless $passed;
 	my(@files) = grep /\S/, split /\s*[,\0]\s*/, $param, -1;
 	for(@files) {
-		my $ok = (m:^$Pat:o || /\.\./) ? 0 : 1;
+		my $ok = (file_name_is_absolute($_) or /\.\./) ? 0 : 1;
 		if(!$ok) {
 			$ok = 1 if $_ eq $::Variable->{MV_SEARCH_FILE};
 			$ok = 1 if $::Scratch->{$_};
 		}
-		if($_ !~ /\./) {
+		if(/^\w+$/ and ! $::Variable->{MV_DEFAULT_SEARCH_DB}) {
 			$_ = $Vend::Cfg->{Database}{$_}{file}
 				if defined $Vend::Cfg->{Database}{$_};
 		}

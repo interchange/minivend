@@ -2060,6 +2060,9 @@ sub tag_perl {
 				$Sql{$tab} = $hole->wrap($db->dbh())
 					if $db->can('dbh');
 				$Db{$tab} = $hole->wrap($db);
+				if($db->config('name') ne $tab) {
+					$Db{$db->config('name')} = $Db{$tab};
+				}
 			}
 			else {
 				$Sql{$tab} = $db->[$Vend::Table::DBI::DBI]
