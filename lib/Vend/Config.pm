@@ -1805,6 +1805,7 @@ sub parse_require {
 			$module =~ /[^\w:]/ and return undef;
 			if(! $C or $Global::AllowGlobal->{$C->{CatalogName}}) {
 				eval "require $module$oldtype;";
+				::logGlobal("while eval'ing module %s got [%s]", $module, $@) if ($@);
 				return ! $@;
 			}
 			else {
