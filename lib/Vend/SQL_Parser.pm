@@ -17,8 +17,6 @@ Vend::SQL_Parser - Interchange SQL parser class
 C<Vend::SQL_Parser> will tokenize a SQL query so that it can
 be evaluated for an Interchange search spec.
 
-=back
-
 =head1 COPYRIGHT
 
 Copyright 2002-2003 Interchange Development Group
