@@ -1749,10 +1749,12 @@ sub _find_tag {
 	return ($eaten);
 }
 
-# checks for implicit tags
-# INT is special in that it doesn't get pushed on @attrseq
+# Implicit tag attributes
+# These are deprecated. Please do not document them,
+# as they may go away in the future.
 sub implicit {
 	my($self, $tag, $attr) = @_;
+	# 'int' is special in that it doesn't get pushed on @attrseq
 	return ('interpolate', 1, 1) if $attr eq 'int';
 	return ($attr, undef) unless defined $Implicit{$tag} and $Implicit{$tag}{$attr};
 	my $imp = $Implicit{$tag}{$attr};
