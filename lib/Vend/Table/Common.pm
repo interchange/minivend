@@ -354,6 +354,7 @@ sub set_slice {
 		unshift @$fary, $keyname;
 		unshift @$vary, $key;
 	}
+
 	my @current;
 
 	@current = $s->row($key)
@@ -361,8 +362,13 @@ sub set_slice {
 
 	@current[ map { $s->column_index($_) } @$fary ] = @$vary;
 
-	$s->set_row(@current)
-		or die "failed to create row slice routine.";
+	$key = $s->set_row(@current);
+	length($key) or
+		::logError(
+			"Did set_slice with empty key on table %s",
+			$s->[$CONFIG]{name},
+		);
+
 	return $key;
 }
 
@@ -407,8 +413,9 @@ sub clone_set {
 sub stuff_row {
     my ($s, @fields) = @_;
 	my $key = $fields[$s->[$KEY_INDEX]];
+#::logDebug("stuff key=$key");
 	$fields[$s->[$KEY_INDEX]] = $key = $s->autonumber()
-		if ! $key;
+		if ! length($key);
 	$s->filter(\@fields, $s->[$COLUMN_INDEX], $s->[$CONFIG]{FILTER_TO})
 		if $s->[$CONFIG]{FILTER_TO};
     $s->[$TIE_HASH]{"k$key"} = join("\t", map(stuff($_), @fields));
