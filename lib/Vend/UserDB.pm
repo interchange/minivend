@@ -1716,7 +1716,7 @@ sub userdb {
 			return undef;
 		}
 		if ($status = $user->login(%options) ) {
-			if( $Vend::Cfg->{AdminUserDB}{$user->{PROFILE}} ) {
+			if( $Vend::ReadOnlyCfg->{AdminUserDB}{$user->{PROFILE}} ) {
 				$Vend::admin = 1;
 			}
 			undef $Vend::Cookie;

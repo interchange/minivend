@@ -1017,6 +1017,7 @@ CONFIGLOOP:
 
 	finalize_mapped_code();
 
+	set_readonly_config();
 	# Ugly legacy stuff so API won't break
 	$C->{Special} = $C->{SpecialPage} if defined $C->{SpecialPage};
 	return $C;
@@ -2580,6 +2581,19 @@ my %Default = (
 
 sub set_global_defaults {
 	## Nothing here currently
+}
+
+my @readonly_members = qw/
+	UserDB_repository
+	AdminUserDB
+/;
+
+sub set_readonly_config {
+	my $cat = $C->{CatalogName} or return;
+	my $ro = $Global::ReadOnlyCfg{$cat} ||= {};
+	for(@readonly_members) {
+		$ro->{$_} = copyref($C->{$_});
+	}
 }
 
 sub set_defaults {

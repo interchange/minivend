@@ -966,6 +966,8 @@ EOF
 	}
 
 	$Vend::Cat = $Vend::Cfg->{CatalogName};
+	$Vend::ReadOnlyCfg = $Global::ReadOnlyCfg{$Vend::Cat};
+
 	my $catref = $Global::Catalog{$Vend::Cat};
 	if(! $Global::Foreground and defined $catref->{directive}) {
 		no strict 'refs';
