@@ -52,7 +52,7 @@ DOIT: {
 #
 # $Id$
 #
-# Copyright (C) 1996-2001 Red Hat, Inc. <interchange@redhat.com>
+# Copyright (C) 1996-2002 Red Hat, Inc. <interchange@redhat.com>
 #
 # This program was originally based on Vend 0.2 and 0.3
 # Copyright 1995-96 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -234,12 +234,15 @@ if(defined $catalog) {
 
 	$g = $Global::Catalog{$catalog};
 	chdir $g->{dir} or die "chdir to $g->{dir}: $!\n";
-	$Vend::Cfg = Vend::Config::config(
+	eval {$Vend::Cfg = Vend::Config::config(
 					$g->{name},
 					$g->{dir},
 					"$g->{dir}/etc",
 					$g->{base} || undef,
-					);
+					)};
+    if ($@) {
+        die "$0: Configuration for catalog $catalog failed: $@\n";
+    }
 }
 else {
 	$Vend::Cfg->{ScratchDir} = '/tmp';
@@ -301,7 +304,7 @@ expire -- expire Interchange session files and databases
 
 =head1 VERSION
 
-1.0
+1.1
 
 =head1 SYNOPSIS
 
