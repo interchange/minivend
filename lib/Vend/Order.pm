@@ -775,7 +775,8 @@ sub charge {
 	else {
 		$Vend::Session->{cybercash_error} = '';
 	}
-	$Vend::Session->{cybercash_id} = $result{'order-id'};
+	$Vend::Session->{payment_id} =
+		$Vend::Session->{cybercash_id} = $result{'order-id'};
 	if($Vend::Cfg->{EncryptProgram} =~ /(pgp|gpg)/) {
 		$CGI::values{mv_credit_card_force} = 1;
 		(
@@ -1731,13 +1732,15 @@ sub add_items {
        $attr{mv_mi}->[$i] = $group[$i] ? ++$Vend::Session->{pageCount} : 0;
 	}
 
-	my $separate =
-				$Vend::Cfg->{SeparateItems} ||
-				$CGI::values{mv_separate_items} ||
-				(
-					defined $Vend::Session->{scratch}->{mv_separate_items}
-				 && is_yes( $Vend::Session->{scratch}->{mv_separate_items} )
-				 );
+	my $separate = defined $CGI::values{mv_separate_items}
+					? is_yes($CGI::values{mv_separate_items})
+					: (
+						$Vend::Cfg->{SeparateItems} ||
+						(
+							defined $Vend::Session->{scratch}->{mv_separate_items}
+						 && is_yes( $Vend::Session->{scratch}->{mv_separate_items} )
+						 )
+						);
 	$j = 0;
 	my $set;
 	foreach $code (@items) {
