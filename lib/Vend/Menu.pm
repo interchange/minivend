@@ -1122,13 +1122,13 @@ sub tree_line {
 			$form = join "\n", split $Global::UrlSplittor, $form;
 		}
 
-		if($form) {
-			$form .= "\nopen=";
+		$row->{page} = Vend::Tags->area( { href => $row->{page}, form => $form });
+		if($row->{page} =~ m{\?.+=}) {
+			$row->{page} .= $Global::UrlJoiner . 'open=';
 		}
 		else {
-			$form = 'open=';
+			$row->{page} .= '?open=';
 		}
-		$row->{page} = Vend::Tags->area( { href => $row->{page}, form => $form });
 	}
 
 	my @values = @{$row}{@$fields};
