@@ -533,24 +533,22 @@ my %intrinsic = (
 					return 1;
 					},
 	ic_session => sub {
-					my ($fn, $write, $sub) = @_;
-					return 1 if $Vend::Session->{$sub};
-					return 0;
-					},
-	ic_session_deny => sub {
-					my ($fn, $write, $sub) = @_;
-					return 0 if $Vend::Session->{$sub};
-					return 1;
+					my ($fn, $write, $sub, $compare) = @_;
+					my $false = $sub =~ s/^!\s*//;
+					my $status	= length($compare)
+								? ($Vend::Session->{$sub} eq $compare)
+								: ($Vend::Session->{$sub});
+					return ! $false if $status;
+					return $false;
 					},
 	ic_scratch => sub {
-					my ($fn, $write, $sub) = @_;
-					return 1 if $::Scratch->{$sub};
-					return 0;
-					},
-	ic_scratch_deny => sub {
-					my ($fn, $write, $sub) = @_;
-					return 0 if $::Scratch->{$sub};
-					return 1;
+					my ($fn, $write, $sub, $compare) = @_;
+					my $false = $sub =~ s/^!\s*//;
+					my $status	= length($compare)
+								? ($::Scratch->{$sub} eq $compare)
+								: ($::Scratch->{$sub});
+					return ! $false if $status;
+					return $false;
 					},
 	ic_userdb => sub {
 		my ($fn, $write, $profile, $sub, $mode) = @_;
