@@ -1477,11 +1477,14 @@ sub userdb {
 
 #::logDebug("Called userdb function=$function opt=$opt " .  Data::Dumper::Dumper($opt));
 
-	if(ref $opt) {
+	if(ref $opt eq 'HASH') {
 		%options = %$opt;
 	}
-	else {
+	elsif (! ref $opt) {
 		%options = ($opt, @_);
+	}
+	else {
+		%options = @_;
 	}
 
 	my $status = 1;
