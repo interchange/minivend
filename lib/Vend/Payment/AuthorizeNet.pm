@@ -5,7 +5,7 @@
 #
 # $Id$
 #
-# Copyright (C) 2003 Interchange Development Group, http://www.icdevgroup.org/
+# Copyright (C) 2003-2004 Interchange Development Group, http://www.icdevgroup.org/
 # Copyright (C) 1999-2002 Red Hat, Inc.
 #
 # Authors:
@@ -428,7 +428,6 @@ sub authorizenet {
         }
         push @query, "$key=$val";
     }
-    my $string = join '&', @query;
 
 #::logDebug("Authorizenet query: " . ::uneval(\%query));
     $opt->{extra_headers} = { Referer => $referer };
