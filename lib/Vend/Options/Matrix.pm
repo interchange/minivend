@@ -76,7 +76,6 @@ use vars qw/%Default/;
 				item_add_routine => 'Vend::Options::Matrix::testit',
 				table => 'options',
 				variant_table => 'variants',
-				sort => 'o_sort,o_group',
 			);
 
 my $Admin_page;
