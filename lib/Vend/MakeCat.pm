@@ -518,7 +518,7 @@ sub prompt {
     print "[$default] " if $default;
 	local ($/) = "\n";
     chomp($ans = <STDIN>);
-    $ans ? $ans : $default;
+    length($ans) ? $ans : $default;
 }
 
 sub addhistory {
