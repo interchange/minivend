@@ -713,7 +713,7 @@ sub logData {
 
 	$file = ">>$file" unless $file =~ /^[|>]/;
 
-	my $msg = tabbed @msg;
+	my $msg = tabbed @msg if @msg > 1;
 
     eval {
 		unless($file =~ s/^[|]\s*//) {
