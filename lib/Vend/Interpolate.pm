@@ -3737,7 +3737,7 @@ sub tag_more_list {
 		}
 	}
 	else {
-		$r =~ s:\[(last|next)[-_]anchor\]$All\[/\1[-_]anchor\]::i;
+		$r =~ s:\[(last|next)[-_]anchor\]$All\[/\1[-_]anchor\]::gi;
 	}
 	
 	unless ($page_anchor) {
