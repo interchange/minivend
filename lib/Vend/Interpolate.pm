@@ -6354,7 +6354,7 @@ sub taxable_amount {
     foreach $i (0 .. $#$Vend::Items) {
 		$item =	$Vend::Items->[$i];
 		next if is_yes( $item->{mv_nontaxable} );
-		next if is_yes( item_field($item, $Vend::Cfg->{NonTaxableField}) );
+		next if is_yes( item_common($item, $Vend::Cfg->{NonTaxableField}, 1) );
 		$tmp = item_subtotal($item);
 		unless (defined $Vend::Session->{discount}) {
 			$taxable += $tmp;
