@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #
-# Vend version 0.2 (alpha)
-# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+# Vend version 0.2.1
+# Copyright 1995, 1996 by Andrew M. Wilcox <awilcox@maine.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1335,8 +1335,7 @@ sub cgi_environment {
     $CGI::request_method = $ENV{'REQUEST_METHOD'};
     die "REQUEST_METHOD is not defined" unless defined $CGI::request_method;
 
-    $CGI::path_info = $ENV{'PATH_INFO'};
-    die "PATH_INFO is not defined" unless defined $CGI::path_info;
+    $CGI::path_info = $ENV{'PATH_INFO'} || '';
 
     $host = $ENV{'REMOTE_HOST'};
     $host = $ENV{'REMOTE_ADDR'} unless (defined $host && $host ne '');
@@ -1400,7 +1399,7 @@ sub parse_options {
 }
 
 sub version {
-    print "Vend version 0.2 Copyright 1995 Andrew M. Wilcox\n";
+    print "Vend version 0.2.1 Copyright 1995, 1996 Andrew M. Wilcox\n";
 }
 
 sub usage {

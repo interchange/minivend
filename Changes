@@ -1,3 +1,6 @@
+Version 0.2.1
+  (cgi_environment): Fixed bug with PATH_INFO.
+
 Version 0.2
   svend.c cleaned up
   configuration directives now get correct default values
