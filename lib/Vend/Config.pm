@@ -2288,7 +2288,7 @@ sub get_configdb {
 sub parse_routeconfig {
 	my ($var, $value) = @_;
 
-	my ($table, $file, $type);
+	my ($file, $type);
 	return '' if ! $value;
 	local($Vend::Cfg) = $C;
 
@@ -2317,7 +2317,7 @@ sub parse_routeconfig {
 sub parse_dbconfig {
 	my ($var, $value) = @_;
 
-	my ($table, $file, $type);
+	my ($file, $type);
 	return '' if ! $value;
 	local($Vend::Cfg) = $C;
 
@@ -2371,10 +2371,10 @@ sub parse_dbdatabase {
 	my ($k, @f);	# key and fields
 	my @l;			# refs to locale repository
 	my @n;			# names of locales
+	my $name;		# names of current locale
 
 	@n = $db->columns();
-	my $name;
-	my $k = 0;
+	$k = 0;
 	foreach $name (@n) {
 		next if $k++ == $kindex;
 		my $file = $db->field('_file', $name);
