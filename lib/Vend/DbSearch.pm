@@ -312,19 +312,16 @@ sub search {
 		$s->{mv_results} = join $s->{mv_record_delim}, @out;
 	}
 	else {
-		my $col = scalar @{$s->{mv_return_fields}};
-		my @col;
 		my @names;
-		@names = @{$s->{mv_field_names}};
+		@names = @{ $s->{mv_field_names} }[ @{$s->{mv_return_fields}} ];
 		$names[0] eq '0' and $names[0] = 'code';
-		my %hash;
-		my $key;
+		my @ary;
 		for (@out) {
-			@col = split /$s->{mv_return_delim}/, $_, $col;
-			$hash{$col[0]} = {};
-			@{ $hash{$col[0]} } {@names} = @col;
+			my $h = {};
+			@{ $h } {@names} = @$_;
+			push @ary, $h;
 		}
-		$s->{mv_results} = \%hash;
+		$s->{mv_results} = \@ary;
 	}
 	return $s;
 }
