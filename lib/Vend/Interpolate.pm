@@ -629,13 +629,13 @@ sub interpolate_html {
 }
 
 sub filter_value {
-	my($filter, $value, $tag) = @_;
+	my($filter, $value, $tag, @passed_args) = @_;
 #::logDebug("filter_value: filter='$filter' value='$value' tag='$tag'");
 	my @filters = Text::ParseWords::shellwords($filter); 
 	my @args;
 	for (@filters) {
 		next unless length($_);
-		@args = ();
+		@args = @passed_args;
 		if(/%/) {
 			$value = sprintf($_, $value);
 			next;
@@ -1193,7 +1193,7 @@ sub tag_data {
 					my $val = shift;
 					shift;
 					my %allowed;
-					@allowed{@_} = @_;
+					$allowed{lc $_} = 1 for @_;
 					$val =~ s{<(/?(\w[-\w]*)[\s>])}
 						     { ($allowed{lc $2} ? '<' : '&lt;') . $1 }ge;
 					return $val;

@@ -1094,9 +1094,10 @@ sub update_values {
 			$value = Vend::Interpolate::filter_value(
 						'restrict_html',
 						$value,
-						$key,
+						undef,
 						@$restrict,
 					);
+			$::Values->{$key} = $value;
 			next;
 		}
 		$value =~ tr/<[//d;
