@@ -244,7 +244,7 @@ sub global_directives {
 #   Directive name      Parsing function    Default value
 
 	['RunDir',			 'root_dir',     	 $Global::RunDir || 'etc'],
-	['DebugFile',		  undef,     	     ''],
+	['DebugFile',		 'root_dir',     	 ''],
 	['CatalogUser',		 'hash',			 ''],
 	['ConfigDir',		  undef,	         'etc/lib'],
 	['ConfigDatabase',	 'config_db',	     ''],
@@ -477,7 +477,6 @@ sub catalog_directives {
 	['OptionsEnable',	 undef,     	     ''],
 	['OptionsAttribute', undef,     	     ''],
 	['Options',			 'locale',     	     ''],
-	['DifferentSecure',	 'boolean',  	     ''],
 	['AlwaysSecure',	 'boolean',  	     ''],
 	['Password',         undef,              ''],
 	['AdminSub',		 'boolean',			 ''],
