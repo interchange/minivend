@@ -1102,6 +1102,8 @@ sub new_account {
 		return undef;
 	}
 	
+	$Vend::Session->{login_table} = $self->{DB_ID};
+
 	1;
 }
 
