@@ -127,6 +127,10 @@ require Exporter;
 
 BEGIN {
 	$VERSION = '4.9.6';
+
+	unless ($] >= 5.006) {
+		die "Interchange $VERSION requires Perl 5.6.0 or later,\nbut you're trying to run it under Perl $]. Exiting.\n";
+	}
 }
 
 use Fcntl;
