@@ -297,7 +297,6 @@ sub search {
 #::logDebug("did next_search: " . ::uneval(\@out));
 	}
 
-	$s->{matches} = scalar(@out);
 #::logDebug("before delayed return: self=" . ::Vend::Util::uneval_it({%$s}));
 
 	if($delayed_return and $s->{matches} > 0) {
@@ -311,8 +310,13 @@ sub search {
 	if($s->{mv_unique}) {
 		my %seen;
 		@out = grep ! $seen{$_->[0]}++, @out;
-		$s->{matches} = scalar(@out);
 	}
+
+	if($s->{mv_max_matches} > 0) {
+		splice @out, $s->{mv_max_matches};
+	}
+
+	$s->{matches} = scalar(@out);
 
 	if ($s->{matches} > $s->{mv_matchlimit}) {
 		$s->save_more(\@out)

@@ -202,7 +202,7 @@ my %Parse = (
 	mv_exact_match          =>  \&_yes,
 	mv_head_skip            =>  \&_number,
 	mv_matchlimit           =>  sub { $_[1] =~ /(\d+)/ ? $1 : 50 },
-	mv_max_matches          =>  sub { $_[1] =~ /(\d+)/ ? $1 : 2000 },
+	mv_max_matches          =>  sub { $_[1] =~ /(\d+)/ ? $1 : -1 },
 	mv_min_string           =>  sub { $_[1] =~ /(\d+)/ ? $1 : 1 },
 	mv_profile              =>  \&parse_profile,
 	mv_range_alpha          =>  \&_array,
