@@ -1,6 +1,6 @@
 # Config.pm - Configure Minivend
 #
-# $Id: Config.pm,v 1.67 1999/08/14 07:44:07 mike Exp $
+# $Id: Config.pm,v 1.56 1999/02/15 08:50:46 mike Exp mike $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
@@ -40,7 +40,7 @@ use Fcntl;
 use Vend::Parse;
 use Vend::Util;
 
-$VERSION = substr(q$Revision: 1.67 $, 10);
+$VERSION = substr(q$Revision: 1.56 $, 10);
 
 for( qw(search refresh cancel return secure unsecure submit control checkout) ) {
 	$Global::LegalAction{$_} = 1;
@@ -315,6 +315,7 @@ sub catalog_directives {
     ['BackendOrder',	 undef,     	     ''],
     ['SalesTax',		 undef,     	     ''],
     ['NewReport',     	 'yesno', 			 'Yes'],
+    ['RetireDBM',  	 	 undef,     	     ''],
     ['StaticDBM',  	 	 undef,     	     ''],
     ['Static',   	 	 'yesno',     	     'No'],
     ['StaticAll',		 'yesno',     	     'No'],

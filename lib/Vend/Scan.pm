@@ -1,6 +1,6 @@
 # Vend/Scan.pm:  Prepare searches for MiniVend
 #
-# $Id: Scan.pm,v 1.55 1999/08/14 07:46:33 mike Exp $
+# $Id: Scan.pm,v 1.56 1999/08/15 19:04:09 mike Exp mike $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
@@ -29,7 +29,7 @@ require Exporter;
 			perform_search
 			);
 
-$VERSION = substr(q$Revision: 1.55 $, 10);
+$VERSION = substr(q$Revision: 1.56 $, 10);
 
 use strict;
 use Vend::Util;
@@ -279,7 +279,13 @@ my %Parse = (
 	sort_field			=>	\&_column_opt,
 	sort_option			=>	\&_opt,
 	sort_crippled		=>	\&_yes,
-	base_directory      => 	\&_file_security_scalar,
+	sql_query			=>  sub {
+								my($ref, $val) = @_;
+								my $p = Vend::Interpolate::escape_scan($val, $ref);
+								find_search_params($ref, $p);
+								return $val;
+							},
+	#base_directory      => 	\&_file_security_scalar,
 	search_file         => 	\&_file_security,
 	field_names         =>	\&_array,
 	spelling_errors     => 	sub { my $n = int($_[1]); $n < 8 ? $n : 1; },
@@ -383,6 +389,22 @@ sub parse_map {
 		$ref->{$var} = join "\0", @$ary;
 	}
 	return 1;
+}
+
+sub parse_profile_ref {
+    my ($ref, $profile) = @_;
+    my ($var, $term, $p);
+    foreach $p (keys %$profile) {
+		next unless
+			$term = $Scan{$p}
+					or
+			(defined $Map{$p} and $term = $p);
+		$var = $Map{$term} or next;
+		$ref->{$var} = $profile->{$p}, next
+			if ref $profile->{$p} || ! defined $Parse{$var};
+		$ref->{$var} = &{$Parse{$var}}($ref,$profile->{$p});
+    }
+    return;
 }
 
 sub parse_profile {
@@ -744,54 +766,46 @@ FORMULATE: {
 # END SQL
 
 sub finish_up {
-	my($c,$q,$out) = @_;
-	my($v) = $::Values;
-	my $matches = $q->{'global'}->{'matches'};
-	$v->{'mv_search_match_count'}	= $matches;
-	$v->{'mv_matchlimit'}			= $q->{'global'}{match_limit};
-	$v->{'mv_first_match'}			= $q->{'global'}{first_match};
-	$v->{'mv_searchspec'}			= $c->{mv_searchspec} 
-						  			|| $c->{mv_dict_look};
-	$v->{'mv_raw_searchspec'}		= $c->{mv_raw_searchspec};
-	$v->{'mv_raw_dict_look'}		= $c->{mv_raw_dict_look};
-	$v->{'mv_dict_look'}			= $c->{mv_dict_look}
-									|| $q->{'global'}->{dict_look} || '';
+    my($c,$q,$out) = @_;
+    my $g = $q->{'global'};
+    return 0 unless defined $g->{matches};
+    my $matches = $g->{'matches'};
+    $::Values->{mv_search_match_count}    = $matches;
+    $::Values->{mv_matchlimit}            = $g->{match_limit};
+    $::Values->{mv_first_match}           = $g->{first_match}
+            if defined $g->{first_match};
+    $::Values->{mv_searchspec} = $c->{mv_searchspec} || $c->{mv_dict_look} || '';
+    $::Values->{mv_raw_searchspec} = $c->{mv_raw_searchspec}
+            if defined  $c->{mv_raw_searchspec};
+    $::Values->{mv_raw_dict_look} = $c->{mv_raw_dict_look}
+            if defined $c->{mv_raw_dict_look};
+    $::Values->{mv_dict_look} = $c->{mv_dict_look} || $g->{dict_look} || '';
+
+    undef $::Values->{mv_search_over_msg}
+                       unless $g->{'overflow'};
+    return 1 if $matches > 0 and ! defined $Vend::Cfg->{CollectData}{matched};
 	my $msg;
-	if ( $matches > 0 ) {
-		if (defined $Vend::Cfg->{'CollectData'}->{'matched'}) {
-			$msg = join " ",
-						"search matched $matches: ",
+    if ($matches == 0 and defined $Vend::Cfg->{CollectData}{nomatch}) {
+          $msg = join " ", @{$q->{specs}}, $g->{dict_look};
+          logData($Vend::Cfg->{LogFile}, format_log_msg('no match: ' . $msg));
+    }
+    elsif ( $matches > 0) {
+		$msg = join ' ', "search matched $matches: ",
 						@{$q->{'specs'}},
-						$q->{'global'}->{dict_look};
-			logData($Vend::Cfg->{'LogFile'}, format_log_msg($msg));
-		}
+                        $g->{dict_look};
+		logData($Vend::Cfg->{LogFile}, format_log_msg($msg));
 	}
-	elsif (defined $matches and $matches == 0) {
-		$msg = join " ",
-						@{$q->{specs}},
-						$q->{'global'}->{dict_look};
-		if (defined $Vend::Cfg->{'CollectData'}->{'nomatch'}) {
-			logData($Vend::Cfg->{'LogFile'}, format_log_msg('no match: ' . $msg));
-		}
-	}
-	else {
+    elsif ($matches < 0) {
 		# Got an error handled by search module
 		return 0;
 	}
-
-	if($Vend::Cfg->{'Delimiter'} eq 'CSV') {
-		for(@$out) { s/^"//; s/[",|].*$//; }
-	}
-
-	undef $v->{'mv_search_over_msg'}
-    			 unless $q->global('overflow');
 
 	return 1;
 }
 
 # Search for an item with glimpse or text engine
 sub perform_search {
-	my($c,$more_matches) = @_;
+    my($c,$more_matches,$pre_made) = @_;
 
 	my $delay;
 
@@ -836,7 +850,7 @@ sub perform_search {
 	$options{search_mod} = ++$Vend::Session->{pageCount}
 		unless $options{session_key};
 
-	$options{'save_dir'} = $Vend::Cfg->{'ScratchDir'};
+	$options{save_dir} = $Vend::Cfg->{ScratchDir};
 
 	if (defined $more_matches and $more_matches) {
 		return do_more($c, \%options, $more_matches, $delay );
@@ -852,9 +866,11 @@ sub perform_search {
 	parse_map($c) if defined $c->{mv_search_map};
 
 	if(defined $c->{mv_sql_query}) {
-		my $params = Vend::Interpolate::escape_scan($c->{mv_sql_query}, $c);
+		my $params = Vend::Interpolate::escape_scan(delete $c->{mv_sql_query}, $c);
 		find_search_params($c, $params);
 	}
+
+	$c->{mv_sort_field} = delete $c->{tf} if defined $c->{tf};
 
 	if (! $c->{mv_sort_option} and $c->{mv_sort_field}) {
 		my (@f) = split /\0/, $c->{mv_sort_field};
@@ -867,15 +883,20 @@ sub perform_search {
 			if defined $found;
 	}
 
-	$c->{mv_verbatim_columns} = 1 if $c->{mv_searchtype} eq 'db';
-	foreach $param ( grep defined $c->{$_}, @Order) {
-		$p = $Map{$param};
-		$options{$p} = $c->{$param};
-		$options{$p} =
-			&{$Parse{$p}}(\%options, $options{$p})
-				if defined $Parse{$p};
-		last if $options{$p} eq '-1' and $p eq 'mv_profile';
-		delete $options{$p} unless defined $options{$p};
+	if($pre_made) {
+		parse_profile_ref(\%options,$c);
+	}
+	else {
+		$c->{mv_verbatim_columns} = 1 if $c->{mv_searchtype} eq 'db';
+		foreach $param ( grep defined $c->{$_}, @Order) {
+			$p = $Map{$param};
+			$options{$p} = $c->{$param};
+			$options{$p} =
+				&{$Parse{$p}}(\%options, $options{$p})
+					if defined $Parse{$p};
+			last if $options{$p} eq '-1' and $p eq 'mv_profile';
+			delete $options{$p} unless defined $options{$p};
+		}
 	}
 
 # SQL
@@ -885,13 +906,10 @@ sub perform_search {
 	}
 # END SQL
 
-	unless(defined $options{'search_file'}) {
-		if ($Vend::Cfg->{'Delimiter'} eq 'CSV') {
-			$options{'index_delim'} = ',';
-		}
-		elsif ($Vend::Cfg->{'Delimiter'} ne "\t") {
-			$options{'index_delim'} = $Vend::Cfg->{'Delimiter'};
-			$options{'return_delim'} = "\t"
+	unless(defined $options{search_file}) {
+		if ($Vend::Cfg->{Delimiter} ne "\t") {
+			$options{index_delim} = $Vend::Cfg->{Delimiter};
+			$options{return_delim} = "\t"
 				unless defined $options{return_delim};
 		}
 	}
@@ -910,25 +928,29 @@ sub perform_search {
 
   SEARCH: {
 
-		$options{'search_spec'} = $options{'dict_look'} 
-			unless defined $options{'search_spec'};
+		$options{search_spec} = $options{dict_look} 
+			unless defined $options{search_spec};
 
-		if(ref $options{'search_spec'}) {
-			@specs = @{$options{'search_spec'}};
-			delete $options{'search_spec'};
+		if(ref $options{search_spec}) {
+			@specs = @{$options{search_spec}};
+			delete $options{search_spec};
 		}
 	
-		if (! defined $options{search_type} or $options{search_type} eq 'text') {
+		if (defined $pre_made) {
+			$q = $pre_made;
+			@{$q->{global}}{keys %options} = (values %options);
+		}
+		elsif (! defined $options{search_type} or $options{search_type} eq 'text') {
 			$q = new Vend::TextSearch %options;
+		}
+		elsif ( $options{search_type} eq 'db'){
+			$q = new Vend::DbSearch %options;
 		}
 # GLIMPSE
 		elsif ( $options{search_type} eq 'glimpse'){
 			$q = new Vend::Glimpse %options;
 		}
 # END GLIMPSE
-		elsif ( $options{search_type} eq 'db'){
-			$q = new Vend::DbSearch %options;
-		}
 		else  {
 			eval {
 				no strict 'refs';
@@ -960,15 +982,18 @@ sub perform_search {
 			if defined $options{'search_field'} ;
 		$q->{'specs'} = \@specs;
 
-		if($q->{'global'}->{list_only}) {
-			$q->{'global'}->{error_routine} = \&Vend::Util::logError;
-			$q->{'global'}->{error_page} = 'Bad search, probably bad search string.';
-		}
+		#if($q->{'global'}->{list_only}) {
+			$q->{'global'}->{error_routine} = sub {
+										 $q->{global}{error} = join "|", @_; 
+										 ::logError($q->{global}{error});
+									 };
+			#$q->{'global'}->{error_page} = 'Bad search: ';
+		#}
 #::logGlobal(Vend::Util::uneval($q));
 		$out = $q->search();
   } # last SEARCH
 
-	if($q->{'global'}->{list_only}) {
+	if($q->{global}->{list_only}) {
 		return $out;
 	}
 
@@ -1001,6 +1026,7 @@ sub sql_statement {
 
 	die "SQL is not enabled for MiniVend. Get the SQL::Statement module.\n"
 		unless $INC{'SQL/Statement.pm'};
+
 
 	my $parser = SQL::Parser->new('Ansi');
 
@@ -1182,7 +1208,6 @@ sub _column {
 			logError( errmsg('Scan.pm:4', "Bad search column '%s'" , $_) );
 		}
 	}
-#::logGlobal("fields=", @fields);
 	\@fields;
 }
 

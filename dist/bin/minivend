@@ -2,7 +2,7 @@
 #
 # MiniVend version 3.15
 #
-# $Id: minivend,v 1.51 1999/08/14 10:30:32 mike Exp mike $
+# $Id: minivend,v 1.38 1999/02/12 12:24:23 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -151,7 +151,7 @@ sub debug {
 }
 
 BEGIN {
-	$VERSION = '3.15beta5';
+	$VERSION = '3.15beta6';
 }
 use strict;
 use Fcntl;
@@ -1622,9 +1622,9 @@ EOF
 				eval { logError("Cleared $dir") };
 			}
 		}
-		read_accessories();
-		read_salestax();
-		read_shipping();
+		Vend::Data::read_accessories();
+		Vend::Data::read_salestax();
+		Vend::Data::read_shipping();
 		open_database(1);
 		my $db;
 		DREAD: {
@@ -1661,7 +1661,7 @@ EOF
 		(
 			$Vend::Cfg->{ItemPriceRoutine},
 			$Vend::Cfg->{QuantityPriceRoutine}
-		)	= read_pricing();
+		)	= Vend::Data::read_pricing();
 
 		LREAD: {
 			last LREAD unless $db = $Vend::Cfg->{LocaleDatabase};
@@ -1873,6 +1873,56 @@ sub build_page {
 	return $status;
 
 }
+
+sub retire_id {
+	return if ! $Vend::Cfg->{RetireDBM};
+	my $id = shift;
+	tie_retired_dbm(1)
+		or do {
+			::logError( errmsg('retire_id',
+								"Tried to retire session ID %s and failed.",
+								$id)
+						);
+			return undef;
+		};
+	$Vend::RetireDBM{$id} = 1;
+	return;
+}
+
+sub tie_retired_dbm {
+	my $rw = shift;
+	untie(%Vend::RetireDBM) if $rw;
+
+	if($Global::GDBM) {
+        my $flags = $rw ? &GDBM_WRITER : &GDBM_READER;
+        $flags = &GDBM_NEWDB
+            if $rw && $Vend::BuildingPages;
+        tie(%Vend::RetireDBM,
+            'GDBM_File',
+            "$Vend::Cfg->{RetireDBM}.gdbm",
+            $flags,
+            $Vend::Cfg->{'FileCreationMask'},
+        )
+        or undef $Vend::Cfg->{RetireDBM};
+	}
+	elsif ($Global::DB_File) {
+		tie(%Vend::RetireDBM,
+			'DB_File',
+			"$Vend::Cfg->{RetireDBM}.db",
+			
+			($rw ? &O_RDWR | &O_CREAT : &O_RDONLY),
+			$Vend::Cfg->{'FileCreationMask'},
+			)
+		or undef $Vend::Cfg->{RetireDBM};
+	}
+	else {
+		undef $Vend::Cfg->{RetireDBM};
+	}
+	::logError("Failed to create RetireDBM $Vend::Cfg->{RetireDBM}")
+		if $rw && ! $Vend::Cfg->{RetireDBM};
+	return $Vend::Cfg->{RetireDBM} || undef;
+}
+
 
 sub tie_static_dbm {
 	my $rw = shift;
@@ -2515,18 +2565,19 @@ EOF
 #Vend::Util::logDebug ("session='$sessionid' cookie='$CGI::cookie' chost='$CGI::cookiehost'\n") if ::debug(0x20);
 # END DEBUG
 
-    if ($sessionid) {
+    if ($sessionid and ! $Vend::RetireDBM{$sessionid}) {
 		$Vend::SessionID = $sessionid;
     	$Vend::SessionName = session_name();
 		get_session();
 		my $now = time;
 		if ($Vend::Session->{'expire'}) {
-			init_session() if
+			retire_id($sessionid), new_session() if
 				$now > $Vend::Session->{'expire'};
 				
 		}
 		elsif ($now - $Vend::Session->{'time'} > $Vend::Cfg->{'SessionExpire'}) {
-	    	init_session();
+	    	retire_id($sessionid);
+			new_session();
 		}
 		elsif($Vend::Cfg->{RobotLimit}) {
 			if ($now - $Vend::Session->{'time'} > 30) {
@@ -3086,54 +3137,6 @@ sub set_file_permissions {
 	$Vend::Cfg->{'Umask'} = $u;
 }
 
-sub read_socket {
-}
-
-sub checkRegexSpeed {
-	local($_) = 'x' x 10000;
-	my $start = (times)[0];
-	my $i;
-	for($i = 0; $i < 5000; $i++) { }
-	my $overhead = (times)[0] - $start;
-	$start = (times)[0];
-	for($i = 0; $i < 5000; $i++) { m/^/; }
-	my $delta = (times)[0] - $start;
-    my $naughty = $delta > $overhead * 10;
-	#printf "It seems your code is %s (overhead=%.2f, delta=%.2f)\n",
-    #        $naughty ? "contaminated":"clean", $overhead, $delta;
-	if($naughty) {
-		print q|It seems your code is contaminated by a library with $', $`, or $&.|;
-		printf "\n (overhead=%.2f, delta=%.2f)", $overhead, $delta;
-		print "\n";
-		my $file;
-		foreach $file (values %INC) {
-			open CHECK, $file or die "open $file: $!\n";
-			while (<CHECK>) {
-				next unless /[^\$'+]\$['`&]/;
-				print "\nHere is a possibly offending line in\n$file:\n\n";
-				print;
-			}
-		}
-		close CHECK;
-		print <<EOF;
-
-Try setting the environment variable PERL5LIB to the MiniVend directory
-and see if it doesn't fix it:
-	
-	setenv PERL5LIB '$Global::VendRoot/lib'
-
-	          or
-
-	PERL5LIB='$Global::VendRoot/lib'; export PERL5LIB
-
-Fixing this will improve the speed of MiniVend by a small percentage. If
-you can't do it, don't worry about it.
-
-EOF
-	}
-			
-}
-
 ## MAIN
 
 sub catch_warnings {
@@ -3196,7 +3199,6 @@ print "\n##### DEBUG MODE, level=0x" .
 	$Global::DebugMode = $Global::DEBUG;
 
 	$| = 1;
-	checkRegexSpeed if ::debug(0xF801);
 	logGlobal("MiniVend V$VERSION");
 	CATCONFIG: {
 		my $i = 0;

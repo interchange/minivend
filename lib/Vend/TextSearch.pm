@@ -1,6 +1,6 @@
 # Vend/TextSearch.pm:  Search indexes with Perl
 #
-# $Id: TextSearch.pm,v 1.27 1999/08/14 07:47:11 mike Exp $
+# $Id: TextSearch.pm,v 1.28 1999/08/15 19:04:48 mike Exp mike $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::TextSearch
 #
@@ -22,30 +22,108 @@
 
 package Vend::TextSearch;
 require Vend::Search;
+require Exporter;
 
+use vars qw(@ISA);
 @ISA = qw(Vend::Search);
 
-$VERSION = substr(q$Revision: 1.27 $, 10);
+$VERSION = substr(q$Revision: 1.28 $, 10);
 
 use Search::Dict;
 use strict;
 
+sub array {
+	my ($self, $opt) = @_;
+	$self->{global}{return_reference} = 1;
+	$self->{global}{list_only} = 1;
+	Vend::Scan::perform_search($opt, undef, $self);
+}
+
+sub hash {
+	my ($self, $opt) = @_;
+	$self->{global}{return_reference} = 'HASH';
+	$self->{global}{list_only} = 1;
+	Vend::Scan::perform_search($opt, undef, $self);
+}
+
+sub list {
+	my ($self, $opt) = @_;
+	$self->{global}{list_only} = 1;
+	Vend::Scan::perform_search($opt, undef, $self);
+}
+
+
+sub init {
+	my ($s, $options) = @_;
+
+	$s->{global} = {
+		all_chars			=> 1,
+		base_directory		=> $Vend::Cfg->{ProductDir},
+		begin_string		=> 0,
+		#column_ops			=> undef,
+		coordinate			=> 0,
+		error_page			=> $Vend::Cfg->{Special}{badsearch},
+		error_routine		=> \&main::display_special_page,
+		exact_match			=> 0,
+		first_match			=> 0,
+		record_delim		=> $/,
+		head_skip			=> 1,
+		index_delim			=> "\t",
+		#index_file			=> '',
+		log_routine			=> \&Vend::Util::logError,
+		match_limit			=> 50,
+		max_matches			=> 2000,
+		min_string			=> 1,
+		next_pointer		=> 0,
+		negate      		=> 0,
+		or_search			=> 0,
+		return_all			=> 0,
+		#range_look			=> '',
+		#range_min			=> '',
+		#range_max			=> '',
+		#range_alpha			=> '',
+		#return_delim		=> undef,
+		#return_fields		=> undef,
+		return_file_name	=> '',
+		#save_context		=> undef,
+		save_dir			=> '',
+		search_file			=> ($Vend::Cfg->{Variable}{MV_DEFAULT_SEARCH_FILE} || 'products.asc'),
+		search_mod			=> '',
+		sort_command		=> '',
+		sort_crippled		=> 0,
+		#sort_field			=> '',
+		#sort_option			=> '',
+		#session_id			=> '',
+		#session_key			=> '',
+		spelling_errors		=> 0,
+		substring_match		=> 0,
+		uneval_routine		=> \&Vend::Util::uneval_it,
+	};
+
+	for(keys %$options) {
+		$s->{global}->{$_} = $options->{$_};
+	}
+
+	$s->{specs}       = []; # The search text, raw, per field 
+							# Special case is form with only one searchspec,
+							# it searches in all columns, takes its
+							# options from first position
+
+	$s->{fields}      = [];	# The columns to search, by number
+
+	$s->{cases}       = [];	# set for NOT
+
+	$s->{negates}     = [];	# set for NOT
+
+	return;
+}
+
 sub new {
     my ($class, %options) = @_;
 	my $self = new Vend::Search;
-	my ($key,$val);
-	init($self);
-	while ( ($key,$val) = each %options) {
-		$self->{global}->{$key} = $val;
-	}
 	bless $self, $class;
-}
-
-sub init {
-	my $s = shift;
-	my $g = $s->{global};
-	$g->{'dict_look'}	= '';
-	$g->{'dict_end'}	= '';
+	$self->init(\%options);
+	return $self;
 }
 
 sub version {
@@ -102,7 +180,10 @@ sub search {
 	}
 
 	# Auto-index search
-	if($g->{dict_look} and $g->{dict_limit} =~ /[^-0-9]/) {
+	if(	$g->{dict_look}
+		and defined $g->{dict_limit}
+		and $g->{dict_limit} =~ /[^-0-9]/	)
+	{
 		my $f = $g->{dict_limit};
 		$g->{dict_limit} = -1;
 		for (@searchfiles) {
@@ -404,11 +485,11 @@ sub search {
 
 	return \@out unless $g->{return_reference};
 
-	if($g->{return_reference} eq 'ARRAY') {
+	if($g->{return_reference} ne 'HASH') {
 		my $col = scalar @{$g->{return_fields}};
 		@out = map { [ split /$g->{return_delim}/, $_, $col ] } @out;
 	}
-	elsif($g->{return_format} eq 'HASH') {
+	else {
 		my $col = scalar @{$g->{return_fields}};
 		my @col;
 		my @names;
@@ -426,6 +507,22 @@ sub search {
 
 	\@out;
 }
+
+# Unfortunate hack need for Safe searches
+*spec_check         = \&Vend::Search::spec_check;
+*more_matches       = \&Vend::Search::more_matches;
+*get_return         = \&Vend::Search::get_return;
+*map_ops            = \&Vend::Search::map_ops;
+*get_limit          = \&Vend::Search::get_limit;
+*saved_params       = \&Vend::Search::saved_params;
+*range_check        = \&Vend::Search::range_check;
+*create_search_and  = \&Vend::Search::create_search_and;
+*create_search_or   = \&Vend::Search::create_search_or;
+*save_context       = \&Vend::Search::save_context;
+*find_sort          = \&Vend::Search::find_sort;
+*dump_options       = \&Vend::Search::dump_options;
+*save_more          = \&Vend::Search::save_more;
+*sort_search_return = \&Vend::Search::sort_search_return;
 
 1;
 __END__

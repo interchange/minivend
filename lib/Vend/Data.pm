@@ -1,6 +1,6 @@
 # Data.pm - Minivend databases
 #
-# $Id: Data.pm,v 1.60 1999/08/14 07:45:55 mike Exp $
+# $Id: Data.pm,v 1.52 1999/02/15 08:50:59 mike Exp mike $
 # 
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -45,10 +45,6 @@ product_code_exists_tag
 product_description
 product_field
 product_price
-read_accessories
-read_pricing
-read_salestax
-read_shipping
 set_field
 
 );

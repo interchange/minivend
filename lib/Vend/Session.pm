@@ -1,6 +1,6 @@
 # Session.pm - Minivend Sessions
 #
-# $Id: Session.pm,v 1.36 1999/06/07 08:07:49 mike Exp $
+# $Id: Session.pm,v 1.37 1999/08/15 19:04:25 mike Exp mike $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
@@ -24,7 +24,7 @@ package Vend::Session;
 require Exporter;
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.36 $, 10);
+$VERSION = substr(q$Revision: 1.37 $, 10);
 
 @ISA = qw(Exporter);
 
@@ -419,6 +419,7 @@ sub dump_sessions {
     open_session();
     while(($session_name, $s) = each %Vend::SessionDBM) {
 		next if $session_name eq 'dumpprog:DUMP';
+		next if $session_name =~ /^LOCK_/;
 		if(defined $called) {
 			next unless $session_name =~ /$called/;
 		}

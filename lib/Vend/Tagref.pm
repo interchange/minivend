@@ -1,6 +1,6 @@
 # Tagref.pm - Document MiniVend tags
 # 
-# $Id: Tagref.pm,v 1.2 1999/08/14 10:28:01 mike Exp mike $
+# $Id: Tagref.pm,v 1.2 1999/08/14 10:28:01 mike Exp $
 #
 # Copyright 1997-1999 by Michael J. Heins <mikeh@iac.net>
 #
@@ -22,7 +22,7 @@ package Vend::Tagref;
 use lib "$Global::VendRoot/lib";
 use lib '../lib';
 
-# $Id: Tagref.pm,v 1.2 1999/08/14 10:28:01 mike Exp mike $
+# $Id: Tagref.pm,v 1.2 1999/08/14 10:28:01 mike Exp $
 
 use Vend::Parse;
 

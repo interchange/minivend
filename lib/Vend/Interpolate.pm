@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # Interpolate.pm - Interpret MiniVend tags
 # 
-# $Id: Interpolate.pm,v 1.91 1999/08/13 18:25:04 mike Exp $
+# $Id: Interpolate.pm,v 1.80 1999/02/28 18:30:31 mike Exp $
 #
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
 #
@@ -24,7 +24,7 @@ package Vend::Interpolate;
 require Exporter;
 @ISA = qw(Exporter);
 
-$VERSION = substr(q$Revision: 1.91 $, 10);
+$VERSION = substr(q$Revision: 1.80 $, 10);
 
 @EXPORT = qw (
 
@@ -1616,6 +1616,47 @@ sub safe_tag {
 # END OLDTAGS
 
 # MVASP
+use vars qw/
+		$CGI
+		$CGI_array
+		$Carts
+		$Config
+		%Db
+		$DbSearch
+		$Document
+		$Items
+		$Scratch
+		$Session
+		%Sql
+		$Tag
+		$TextSearch
+		$Values
+		/;
+
+my $new_safe = new Safe 'MVASP';
+$new_safe->share( qw/
+							$CGI_array
+							$CGI
+							$Document
+							%Db
+							$DbSearch
+							$Search
+							$Carts
+							$Config
+							%Sql
+							$Items
+							$Scratch
+							$Session
+							$Tag
+							$TextSearch
+							$Values
+							&tag_data
+							&spec_check
+							&Log
+							&HTML
+							&interpolate_html
+					/
+);
 
 sub mvasp {
 	my ($tables, $text) = @_;
@@ -1627,6 +1668,9 @@ sub mvasp {
 			next unless $db;
 			$db = $db->ref();
 			$db->touch();
+			$Db{$_} = $db;
+			$Sql{$_} = $db->[$Vend::Table::DBI::DBI]
+				if $db =~ /::DBI/;
 		}
 	}
 	while ( $text =~ s/(.*?)<%//s || $text =~ s/(.+)//s ) {
@@ -1665,7 +1709,7 @@ sub tag_perl {
 
 	%Vend::Interpolate::Safe = ();
 	@share = split /\s+/, $args if $args;
-	my $safe = new Safe;
+	my $safe;
 	my @other;
 	for(@share) {
 		if( /^value/) {
@@ -1677,45 +1721,20 @@ sub tag_perl {
 # MVASP
 		elsif($_ eq 'new') {
 			$new = 1;
-			use vars qw/
-					$CGI
-					$CGI_array
-					$Carts
-					$Config
-					$Document
-					$Items
-					$Scratch
-					$Session
-					$Tag
-					$Values
-					/;
+			$safe = $new_safe, $MVASP::Safe = 1
+				unless $Global::AllowGlobal->{$Vend::Cfg->{CatalogName}};
 			$CGI     = \%CGI::values;
 			$CGI_array     = \%CGI::values_array;
 			$Carts   = $Vend::Session->{carts};
 			$Config  = $Vend::Cfg;
 			$Document = new Vend::Tags::Document;
+			$DbSearch   = new Vend::DbSearch;
+			$TextSearch = new Vend::TextSearch;
 			$Scratch = $::Scratch;
 			$Session = $Vend::Session;
 			*Log = \&Vend::Util::logError;
 			*HTML = \&Vend::Tags::Document::HTML;
 			$Tag = new Vend::Tags;
-			$Values  = $::Values;
-			$safe->share(qw/
-							$CGI_array
-							$CGI
-							$Document
-							$Carts
-							$Config
-							$Items
-							$Scratch
-							$Session
-							$Tag
-							$Values
-							&tag_data
-							&Log
-							&HTML
-							&interpolate_html
-					/);
 		}
 # END MVASP
 		elsif($_ eq 'sub') {
@@ -1764,19 +1783,27 @@ sub tag_perl {
 		}
 	}
 
-	$safe->untrap(@{$Global::SafeUntrap})
-		if $Global::SafeUntrap;
 
 	$body =~ tr/\r//d if $Global::Windows;
 
-	if($new) {
+# MVASP
+	if($new and $safe) {
 		$safe->reval($body);
+		$result = join "", @Vend::Tags::Out;
+		undef $MVASP::Safe;
+	}
+	elsif($new) {
+		eval($body);
 		$result = join "", @Vend::Tags::Out;
 	}
 	else {
+# END MVASP
+		$safe = new Safe
+			unless defined $safe;
+		$safe->untrap(@{$Global::SafeUntrap})
+			if $Global::SafeUntrap;
 		$safe->share(qw/
-				%Safe	&Vend::Parse::parse
-				&do_tag	&tag_data	&interpolate_html
+					%Safe &do_tag	&tag_data	&interpolate_html
 				/);
 # OLDTAGS
 		$safe->share('&safe_tag');
@@ -1834,8 +1861,10 @@ sub tag_perl {
 		else {
 			$result = $safe->rdo($body);
 		}
+# MVASP
 	}
-		
+# END MVASP
+
 	if ($@) {
 		my $msg = $@;
 		logError( errmsg('Interpolate.pm:2', "Safe: %s\n%s\n" , $msg, $body) );
@@ -3697,6 +3726,20 @@ sub tag_loop_data_row {
 	return $_;
 }
 
+sub query {
+	my ($query, $opt, $text) = @_;
+	$opt->{table} = $Vend::Cfg->{ProductFiles}[0]
+		unless $opt->{table};
+	my $db = $Vend::Database{$opt->{table}} ;
+	return $opt->{failure} if ! $db;
+
+	if($db =~ /Vend::Table::DummyDB/) {
+		$db = $db->ref();
+		$db->touch();
+	}
+	return $db->do_query($opt, $text);
+}
+
 # SQL
 sub tag_sql_data_row {
 	my $key = shift;
@@ -4079,7 +4122,6 @@ sub tag_loop_list {
 sub search_page {
 
 	my($q,$o,$page) = @_;
-
 	my $delay_or_immediate;
 
 	# If page is not defined, then $q and $o must be
@@ -4742,10 +4784,8 @@ sub salestax {
 	push(@code, 'DEFAULT');
 
 	if(! defined $Vend::Cfg->{SalesTaxTable}->{'default'}) {
-		if ( ! read_salestax() ) {
-			logError("Sales tax failed, no tax file, returning 0");
-			return 0;
-		}
+		logError("Sales tax failed, no tax file, returning 0");
+		return 0;
 	}
 
 	CHECKSHIPPING: {
@@ -5095,9 +5135,11 @@ sub timed_build {
 		$abort = 1 if $file =~ m:MM=:;
 	}
 
-    if($abort or ! $CGI::cookie or ! $opt->{login} && $Vend::Session->{logged_in}) {
-        return Vend::Interpolate::interpolate_html(shift);
-    }
+	return Vend::Interpolate::interpolate_html(shift)
+		if $abort
+		or !  $CGI::cookie
+		or $Vend::BuildingPages
+		or ! $opt->{login} && $Vend::Session->{logged_in};
 
     if($opt->{noframes} and $::Session->{frames}) {
         return '';
@@ -5204,6 +5246,40 @@ sub AUTOLOAD {
 }
 
 1;
+
+package Vend::Tags::Db;
+
+require Exporter;
+require AutoLoader;
+
+use vars qw($AUTOLOAD @ISA);
+@ISA = qw(Exporter);
+
+sub new {
+	return bless {}, shift;
+}
+
+sub dbi {
+	shift;
+	return ${Vend::Database{shift}}{$Vend::Table::DBI::DBI};
+}
+
+sub ref {
+	my ($s, $name) = @_;
+	return $Vend::Database{$name};
+}
+
+sub AUTOLOAD {
+	shift;
+	my $select = $AUTOLOAD;
+	$select =~ s/.*:://;
+	my $db = $Vend::Database{$_};
+	return $db;
+}
+
+1;
+
+
 
 package Vend::Tags::Document;
 

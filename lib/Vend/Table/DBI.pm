@@ -1,6 +1,6 @@
 # Table/DBI.pm: access a table stored in an DBI/DBD Database
 #
-# $Id: DBI.pm,v 1.29 1999/07/16 10:59:02 mike Exp $
+# $Id: DBI.pm,v 1.25 1999/02/15 08:51:44 mike Exp mike $
 #
 # Copyright 1996-1999 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -19,7 +19,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::DBI;
-$VERSION = substr(q$Revision: 1.29 $, 10);
+$VERSION = substr(q$Revision: 1.25 $, 10);
 
 use strict;
 
@@ -302,208 +302,6 @@ sub field_accessor {
     };
 }
 
-use vars qw/$mv_sql_hash
-            $mv_sql_hash_order
-            $mv_sql_array
-            @mv_sql_param
-            %mv_sql_names/;
-
-sub substitute_arg {
-	my ($s, $query, @arg) = @_;
-	my ($tmp, $arg);
-	foreach $arg (@arg) {
-		$query =~
-			s{  (\w+)									# a field name
-				(
-					\s+like\s+			|       		# substring
-					\s*[!=><][=><]?\s*	|				# compare
-					\s+between\s+		|				# range
-					\s+in[(\s]+							# enumerated
-				)
-				'?(%?)%s(%?)'?									# The parameter
-			}{$1 . $2 . $s->quote("$3$arg$4", $1)}ixe 
-	or
-
-		$query =~ s/'(%?)%s(%?)'/$s->[$DBI]->quote("$1$arg$2")/e 
-	or
-		defined $s->[$CONFIG]->{QUOTEALL}
-			and $query =~ s/(([^%])%s)/$s->[$DBI]->quote($arg)/e
-	or
-		$query =~ s/([^%])%s/$1$arg/;
-	}
-	return $query;
-}
-
-sub param_query {
-    my($s, $text, $table, $config, @arg) = @_;
-
-    if($s->[$CONFIG]{Read_only} and $text !~ /^\s*select\s+/i) {
-		::logError("Attempt to write read-only database $s->[$CONFIG]{name} with query '$text'");
-		return undef;
-	}
-
-    $text = $s->substitute_arg($text, @arg) if @arg;
-
-	my $db = $s->[$DBI];
-    my $sth = $db->prepare($text)
-		or die "$table: $DBI::errstr\n";
-	my(@row);
-	my(@out);
-    $sth->execute() or die $DBI::errstr;
-	while(@row = $sth->fetchrow_array()) {
-		push @out, @row;
-	}
-	my $r = '"';
-	if(ref $config and $config->{PERL}) {
-		@mv_sql_param = @out;
-		return unless $config->{BOTH};
-	}
-	for(@out) { s/\s+$//; s/"/\\"/g }
-	$r .= join '" "', @out;
-	$r .= '"';
-	return $r;
-}
-
-sub array_query {
-	my($s, $text, $table, $config, @arg) = @_;
-
-    if($s->[$CONFIG]{Read_only} and $text !~ /^\s*select\s+/i) {
-		::logError("Attempt to write read-only database $s->[$CONFIG]{name} with query '$text'");
-		return undef;
-	}
-
-	$text = $s->substitute_arg($text, @arg) if @arg;
-	my $db = $s->[$DBI];
-    my $sth = $db->prepare($text)
-		or die "$table: $DBI::errstr\n";
-    $sth->execute() or die $DBI::errstr;
-    my $i = 0;
-    %mv_sql_names = map { (lc $_, $i++) } @{$sth->{NAME}};
-	my $out = $sth->fetchall_arrayref;
-	if(ref $config and $config->{PERL}) {
-		$mv_sql_array = $out;
-		return unless $config->{BOTH};
-	}
-	return $out;
-}
-
-sub hash_query {
-    my($s, $text, $table, $config, @arg) = @_;
-
-    if($s->[$CONFIG]{Read_only} and $text !~ /^\s*select\s+/i) {
-		::logError("Attempt to write read-only database $s->[$CONFIG]{name} with query '$text'");
-		return undef;
-	}
-
-    $text = $s->substitute_arg($text, @arg) if @arg;
-
-	my $key = $s->[$KEY];
-    my $sth = $s->[$DBI]->prepare($text)
-		or die "$table: $DBI::errstr\n";
-    $sth->execute() or die $DBI::errstr;
-	my $out = {};
-	my @out;
-	my $tkey;
-	my $ref;
-	while($ref = $sth->fetchrow_hashref()) {
-		$tkey = $ref->{$key};
-		push (@out, $tkey);
-		$out->{$tkey} = $ref;
-	}
-	if(ref $config and $config->{PERL}) {
-		$mv_sql_hash = $out;
-		$mv_sql_hash_order = \@out;
-		return unless $config->{BOTH};
-	}
-	return $out;
-}
-
-sub html_query {
-    my($s, $text, $table, $config, @arg) = @_;
-
-    if($s->[$CONFIG]{Read_only} and $text !~ /^\s*select\s+/i) {
-		::logError("Attempt to write read-only database $s->[$CONFIG]{name} with query '$text'");
-		return undef;
-	}
-   
-    $text = $s->substitute_arg($text, @arg) if @arg;
-
-	my $db = $s->[$DBI];
-    my $sth = $db->prepare($text)
-		or die "$table: $DBI::errstr\n";
-	my(@row);
-    $sth->execute() or die $DBI::errstr;
-	my $r = '<TR>';
-	for(@{$sth->{NAME}}) {
-		$r .= "<TH><B>$_</B></TH>";
-	}
-	$r .= '</TR>';
-	while(@row = $sth->fetchrow_array()) {
-		$r .= "<TR>";
-		for(@row) {
-			$r .= "<TD>$_</TD>";
-		}
-		$r .= "</TR>";
-	}
-	if (ref $config) {
-		defined $config->{TR} and $r =~ s/<TR>/<TR $config->{TR}>/g;
-		defined $config->{TH} and $r =~ s/<TH>/<TH $config->{TH}>/g;
-		defined $config->{TD} and $r =~ s/<TD>/<TD $config->{TD}>/g;
-	}
-	$r;
-}
-
-sub set_query {
-	my($s, $text, $table, $config, @arg) = @_;
-
-    if($s->[$CONFIG]{Read_only} and $text !~ /^\s*select\s+/i) {
-		::logError("Attempt to write read-only database $s->[$CONFIG]{name} with query '$text'");
-		return undef;
-	}
-
-	$config = {} unless ref $config;
-	$text = $s->substitute_arg($text, @arg) if @arg;
-	my $rc = $s->[$DBI]->do($text);
-	unless (defined $config->{IF} || defined $config->{ELSE}) {
-		die "$table: $DBI::errstr\n" unless defined $rc;
-		return '';
-	}
-	$rc = 0 if $rc eq '0E0';
-	return $config->{COUNT} . $rc if defined $config->{COUNT};
-	return $rc ? ($config->{IF} || '') : ($config->{ELSE} || '');
-}
-
-sub touch {return ''}
-
-# Now supported, including qualification
-sub each_record {
-    my ($s, $qual) = @_;
-#::logError("qual=$qual");
-    my ($table,$key,$db,$cols,$config,$each) = @$s;
-    unless(defined $each) {
-        $each = $db->prepare("select * from $table" . ($qual || '') )
-            or die $DBI::errstr;
-        push @$s, $each;
-		$each->execute();
-    }
-    my @cols;
-    @cols = $each->fetchrow_array;
-    pop(@$s) unless(scalar @cols);
-    return @cols;
-}
-
-sub field_settor {
-    my ($s, $column) = @_;
-    return sub {
-        my ($key, $value) = @_;
-		$value = $s->[$DBI]->quote($value)
-			unless exists $s->[$CONFIG]->{NUMERIC}->{$column};
-		$key = $s->[$DBI]->quote($key)
-			unless exists $s->[$CONFIG]{NUMERIC}{$s->[$KEY]};
-        $s->[$DBI]->do("update $s->[$TABLE] SET $column=$value where $s->[$KEY] = $key");
-    };
-}
-
 sub set_row {
     my ($s, @fields) = @_;
 	my @cols = @{$s->[$CONFIG]->{NAME}};
@@ -541,6 +339,18 @@ sub row_hash {
     $sth->execute()
 		or die("execute error: $DBI::errstr");
 	return $sth->fetchrow_hashref();
+}
+
+sub field_settor {
+    my ($s, $column) = @_;
+    return sub {
+        my ($key, $value) = @_;
+		$value = $s->[$DBI]->quote($value)
+			unless exists $s->[$CONFIG]->{NUMERIC}->{$column};
+		$key = $s->[$DBI]->quote($key)
+			unless exists $s->[$CONFIG]{NUMERIC}{$s->[$KEY]};
+        $s->[$DBI]->do("update $s->[$TABLE] SET $column=$value where $s->[$KEY] = $key");
+    };
 }
 
 sub field {
@@ -631,6 +441,7 @@ sub list_fields {
 sub table_exists {
 	my ($dbh, $name) = @_;
 	my($rc, @row);
+eval {
 	my $sth = $dbh->prepare(<<EOF);
 	SELECT 1
 	FROM tables
@@ -643,7 +454,285 @@ EOF
 		$rc = $row[0];
 	}
 	$sth->finish() or die "$DBI::errstr\n";
+};
 	$rc;
+}
+
+
+
+# OLDSQL
+
+use vars qw/$mv_sql_hash
+            $mv_sql_hash_order
+            $mv_sql_array
+            @mv_sql_param
+            %mv_sql_names/;
+
+sub substitute_arg {
+	my ($s, $query, @arg) = @_;
+	my ($tmp, $arg);
+	foreach $arg (@arg) {
+		$query =~
+			s{  (\w+)									# a field name
+				(
+					\s+like\s+			|       		# substring
+					\s*[!=><][=><]?\s*	|				# compare
+					\s+between\s+		|				# range
+					\s+in[(\s]+							# enumerated
+				)
+				'?(%?)%s(%?)'?									# The parameter
+			}{$1 . $2 . $s->quote("$3$arg$4", $1)}ixe 
+	or
+
+		$query =~ s/'(%?)%s(%?)'/$s->[$DBI]->quote("$1$arg$2")/e 
+	or
+		defined $s->[$CONFIG]->{QUOTEALL}
+			and $query =~ s/(([^%])%s)/$s->[$DBI]->quote($arg)/e
+	or
+		$query =~ s/([^%])%s/$1$arg/;
+	}
+	return $query;
+}
+
+sub param_query {
+    my($s, $text, $table, $config, @arg) = @_;
+
+    if($s->[$CONFIG]{Read_only} and $text !~ /^\s*select\s+/i) {
+		::logError("Attempt to write read-only database $s->[$CONFIG]{name} with query '$text'");
+		return undef;
+	}
+
+    $text = $s->substitute_arg($text, @arg) if @arg;
+
+	my $db = $s->[$DBI];
+    my $sth = $db->prepare($text)
+		or die "$table: $DBI::errstr\n";
+	my(@row);
+	my(@out);
+    $sth->execute() or die $DBI::errstr;
+	while(@row = $sth->fetchrow_array()) {
+		push @out, @row;
+	}
+	my $r = '"';
+	if(CORE::ref $config and $config->{PERL}) {
+		@mv_sql_param = @out;
+		return unless $config->{BOTH};
+	}
+	for(@out) { s/\s+$//; s/"/\\"/g }
+	$r .= join '" "', @out;
+	$r .= '"';
+	return $r;
+}
+
+sub array_query {
+	my($s, $text, $table, $config, @arg) = @_;
+
+    if($s->[$CONFIG]{Read_only} and $text !~ /^\s*select\s+/i) {
+		::logError("Attempt to write read-only database $s->[$CONFIG]{name} with query '$text'");
+		return undef;
+	}
+
+	$text = $s->substitute_arg($text, @arg) if @arg;
+	my $db = $s->[$DBI];
+    my $sth = $db->prepare($text)
+		or die "$table: $DBI::errstr\n";
+    $sth->execute() or die $DBI::errstr;
+    my $i = 0;
+    %mv_sql_names = map { (lc $_, $i++) } @{$sth->{NAME}};
+	my $out = $sth->fetchall_arrayref;
+	if(CORE::ref $config and $config->{PERL}) {
+		$mv_sql_array = $out;
+		return unless $config->{BOTH};
+	}
+	return $out;
+}
+
+sub hash_query {
+    my($s, $text, $table, $config, @arg) = @_;
+
+    if($s->[$CONFIG]{Read_only} and $text !~ /^\s*select\s+/i) {
+		::logError("Attempt to write read-only database $s->[$CONFIG]{name} with query '$text'");
+		return undef;
+	}
+
+    $text = $s->substitute_arg($text, @arg) if @arg;
+
+	my $key = $s->[$KEY];
+    my $sth = $s->[$DBI]->prepare($text)
+		or die "$table: $DBI::errstr\n";
+    $sth->execute() or die $DBI::errstr;
+	my $out = {};
+	my @out;
+	my $tkey;
+	my $ref;
+	while($ref = $sth->fetchrow_hashref()) {
+		$tkey = $ref->{$key};
+		push (@out, $tkey);
+		$out->{$tkey} = $ref;
+	}
+	if(CORE::ref $config and $config->{PERL}) {
+		$mv_sql_hash = $out;
+		$mv_sql_hash_order = \@out;
+		return unless $config->{BOTH};
+	}
+	return $out;
+}
+
+sub html_query {
+    my($s, $text, $table, $config, @arg) = @_;
+
+    if($s->[$CONFIG]{Read_only} and $text !~ /^\s*select\s+/i) {
+		::logError("Attempt to write read-only database $s->[$CONFIG]{name} with query '$text'");
+		return undef;
+	}
+   
+    $text = $s->substitute_arg($text, @arg) if @arg;
+
+	my $db = $s->[$DBI];
+    my $sth = $db->prepare($text)
+		or die "$table: $DBI::errstr\n";
+	my(@row);
+    $sth->execute() or die $DBI::errstr;
+	my $r = '<TR>';
+	for(@{$sth->{NAME}}) {
+		$r .= "<TH><B>$_</B></TH>";
+	}
+	$r .= '</TR>';
+	while(@row = $sth->fetchrow_array()) {
+		$r .= "<TR>";
+		for(@row) {
+			$r .= "<TD>$_</TD>";
+		}
+		$r .= "</TR>";
+	}
+	if (CORE::ref $config) {
+		defined $config->{TR} and $r =~ s/<TR>/<TR $config->{TR}>/g;
+		defined $config->{TH} and $r =~ s/<TH>/<TH $config->{TH}>/g;
+		defined $config->{TD} and $r =~ s/<TD>/<TD $config->{TD}>/g;
+	}
+	$r;
+}
+
+sub set_query {
+	my($s, $text, $table, $config, @arg) = @_;
+
+    if($s->[$CONFIG]{Read_only} and $text !~ /^\s*select\s+/i) {
+		::logError("Attempt to write read-only database $s->[$CONFIG]{name} with query '$text'");
+		return undef;
+	}
+
+	$config = {} unless CORE::ref $config;
+	$text = $s->substitute_arg($text, @arg) if @arg;
+	my $rc = $s->[$DBI]->do($text);
+	unless (defined $config->{IF} || defined $config->{ELSE}) {
+		die "$table: $DBI::errstr\n" unless defined $rc;
+		return '';
+	}
+	$rc = 0 if $rc eq '0E0';
+	return $config->{COUNT} . $rc if defined $config->{COUNT};
+	return $rc ? ($config->{IF} || '') : ($config->{ELSE} || '');
+}
+
+# END OLDSQL
+
+sub touch {return ''}
+
+# Now supported, including qualification
+sub each_record {
+    my ($s, $qual) = @_;
+#::logError("qual=$qual");
+    my ($table,$key,$db,$cols,$config,$each) = @$s;
+    unless(defined $each) {
+        $each = $db->prepare("select * from $table" . ($qual || '') )
+            or die $DBI::errstr;
+        push @$s, $each;
+		$each->execute();
+    }
+    my @cols;
+    @cols = $each->fetchrow_array;
+    pop(@$s) unless(scalar @cols);
+    return @cols;
+}
+
+sub sprintf_substitute {
+	my ($s, $query, $fields, $cols) = @_;
+	my ($tmp, $arg);
+	my $i;
+	if(defined $cols->[0]) {
+		for($i = 0; $i <= $#$fields; $i++) {
+			$fields->[$i] = $s->quote($fields->[$i], $cols->[$i])
+				if defined $cols->[0];
+		}
+	}
+	return sprintf $query, @$fields;
+}
+
+sub query {
+    my($s, $opt, $text, @arg) = @_;
+
+    if($s->[$CONFIG]{Read_only} and $text !~ /^\s*select\s+/i) {
+		::logError("Attempt to write read-only database $s->[$CONFIG]{name} with query '$text'");
+		return undef;
+	}
+	
+	$opt->{table} = $s->[$NAME] if ! defined $opt->{table};
+	$opt->{query} = $text if ! $opt->{query};
+
+	if(defined $opt->{values}) {
+		# do nothing
+		@arg = $opt->{values} =~ /['"]/
+				? ( Text::ParseWords::shellwords($opt->{values})  )
+				: (grep /\S/, split /\s+/, $opt->{values});
+		@arg = @{$::Values}{@arg};
+	}
+
+	my @cols;
+	if($opt->{columns}) {
+		@cols = grep /\S/, split /\s+/, $opt->{columns};
+	}
+
+	my $query;
+    $query = ! scalar @arg
+			? $opt->{query}
+			: $s->sprintf_substitute ($opt->{query}, \@arg, \@cols);
+
+	my(@row);
+	my(@out);
+    my $sth;
+	my $ref;
+	my $db = $s->[$DBI];
+	my $return;
+
+eval {
+    if($s->[$CONFIG]{Read_only} and $query !~ /^\s*select\s+/i) {
+		die ("Attempt to write read-only database $s->[$CONFIG]{name}");
+	}
+    $sth = $db->prepare($query)
+		or die $DBI::errstr;
+    $sth->execute() or die $DBI::errstr;
+	if($opt->{arrayref} || $opt->{list}) {
+		$ref =
+			$Vend::Tmp->{$opt->{arrayref}}
+			= $sth->fetchall_arrayref();
+	}
+	elsif ($opt->{hashref}) {
+		$ref =
+			$Vend::Tmp->{$opt->{hashref}}
+			= $sth->fetchall_hashref();
+	}
+};
+	if($@) {
+		::logError("DBI query failed for $opt->{table}: $@\nquery was: $query");
+		$return = $opt->{failure} || undef;
+	}
+
+	if ($opt->{list}) {
+		return Vend::Interpolate::tag_sql_list($text, $ref);
+	}
+	if($opt->{text}) {
+		return $Vend::Util->uneval($ref);
+	}
+	return $opt->{success};
 }
 
 sub version { $Vend::Table::DBI::VERSION }

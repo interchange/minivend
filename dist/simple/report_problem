@@ -87,6 +87,10 @@ EOF
 	}
 	$msg .= "\n\n";
 
+	if (length($msg) < 20) {
+		die "Sorry, you have to give a better description than that!\n";
+	}
+
 	open(MAIL, "|$SENDMAIL_PROGRAM $REPORT_ADDRESS")
 		or die "Couldn't fork: $!\n";
 	select MAIL;

@@ -1,6 +1,6 @@
 # Parse.pm - Parse MiniVend tags
 # 
-# $Id: Parse.pm,v 1.56 1999/08/14 07:46:21 mike Exp $
+# $Id: Parse.pm,v 1.48 1999/02/15 08:51:10 mike Exp mike $
 #
 # Copyright 1997-1999 by Michael J. Heins <mikeh@iac.net>
 #
@@ -20,12 +20,12 @@
 
 package Vend::Parse;
 
-# $Id: Parse.pm,v 1.56 1999/08/14 07:46:21 mike Exp $
+# $Id: Parse.pm,v 1.48 1999/02/15 08:51:10 mike Exp mike $
 
 require Vend::Parser;
 
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.56 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.48 $ =~ /(\d+)\.(\d+)/);
 
 use Safe;
 use Vend::Util;
@@ -40,7 +40,7 @@ require Exporter;
 
 @ISA = qw(Exporter Vend::Parser);
 
-$VERSION = substr(q$Revision: 1.56 $, 10);
+$VERSION = substr(q$Revision: 1.48 $, 10);
 @EXPORT = ();
 @EXPORT_OK = qw(find_matching_end);
 
@@ -97,6 +97,7 @@ my %PosNumber =	( qw!
                 process_order    2
                 process_search   1
                 process_target   2
+				query			 1
                 rotate           2
                 row              1
                 salestax         2
@@ -174,6 +175,7 @@ my %Order =	(
 				process_order	=> [qw( target secure )],
 				process_search	=> [qw( target )],
 				process_target	=> [qw( target secure )],
+				query			=> [qw( query )],
 				random			=> [],
 				read_cookie		=> [qw( name )],
 				rotate			=> [qw( ceiling floor )],
@@ -299,9 +301,9 @@ my %PosRoutine = (
 				'and'			=> sub { return &Vend::Interpolate::tag_if(@_, 1) },
 				'if'			=> \&Vend::Interpolate::tag_if,
 				'tag'			=> \&Vend::Interpolate::do_tag,
-# SQL
+# OLDSQL
 				'sql'			=> \&Vend::Data::sql_query,
-# END SQL
+# END OLDSQL
 			);
 
 my %Routine = (
@@ -383,6 +385,7 @@ my %Routine = (
 				process_search	=> \&Vend::Interpolate::tag_process_search,
 				process_target	=> \&Vend::Interpolate::tag_process_target,
 				random			=> \&Vend::Interpolate::tag_random,
+				query			=> \&Vend::Interpolate::query,
 				read_cookie     => \&Vend::Util::read_cookie,
 				rotate			=> \&Vend::Interpolate::tag_rotate,
 				row				=> \&Vend::Interpolate::tag_row,
@@ -514,6 +517,7 @@ my %addAttr = (
 					input_filter    1
 					index           1
 					onfly			1
+					query			1
 					page            1
 					price           1
 					area            1
@@ -604,6 +608,7 @@ my %hasEndTag = (
 						perl			1
 						mvasp			1
 						post			1
+						query			1
 						row				1
 						set				1
 						search_region	1
@@ -655,16 +660,22 @@ my $Initialized = 0;
 
 sub global_init {
 		add_tags($Global::UserTag);
+		my $tag;
+		foreach $tag (keys %Routine) {
+			$Order{$tag} = []
+				if ! defined $Order{$tag};
+			next if defined $PosNumber{$tag};
+			$PosNumber{$tag} = scalar @{$Order{$tag}};
+		}
 }
 
-sub new
-{
+sub new {
     my $class = shift;
     my $self = new Vend::Parser;
 	$self->{INVALID} = 0;
 
 	add_tags($Vend::Cfg->{UserTag})
-		unless $Tags_added;
+		unless $Tags_added++;
 
 	$self->{TOPLEVEL} = 1 if ! $Initialized;
 
@@ -765,6 +776,10 @@ sub add_tags {
 		else {
 			Vend::Util::copyref $ref->{$area}, $myRefs{$area};
 		}
+	}
+	for (keys %{$ref->{Routine}}) {
+		next if defined $PosNumber{$_};
+		$PosNumber{$_} = scalar @{$Order{$_}};
 	}
 }
 
@@ -1282,20 +1297,11 @@ EOF
 	return 1;
 }
 
-sub end
-{
+sub end {
     my($self, $tag) = @_;
 	my $save = $tag;
 	$tag =~ tr/-/_/;   # canonical
-	
-# DEBUG
-#Vend::Util::logDebug
-#("called Vend::Parse::end with $tag\n")
-#	if ::debug(0x2);
-# END DEBUG
-
 	$self->{OUT} .= $isEndAnchor{$tag} ? '</a>' : "[/$save]";
-
 }
 
 sub find_html_end {
@@ -1421,6 +1427,8 @@ sub implicit {
 	return ($attr, $imp) if $imp =~ s/^$attr=//i;
 	return ( $Implicit{$tag}{$attr}, $attr );
 }
+
+$Tags_added = 0;
 
 1;
 __END__

@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 #
-# $Id: Search.pm,v 1.34 1999/08/13 18:26:45 mike Exp $
+# $Id: Search.pm,v 1.35 1999/08/15 19:04:19 mike Exp mike $
 #
 # Vend::Search -- Base class for search engines
 #
@@ -27,7 +27,7 @@
 #
 package Vend::Search;
 
-$VERSION = substr(q$Revision: 1.34 $, 10);
+$VERSION = substr(q$Revision: 1.35 $, 10);
 $DEBUG = 0;
 
 my $Joiner;
@@ -41,74 +41,56 @@ else {
 
 use strict;
 use vars qw($DEBUG $VERSION);
+#
+#sub init {
+#	my $s = shift;
+#	my($opt) = @_;
+#
+#	my $g = {
+#		all_chars			=> 1,
+#		base_directory		=> $Vend::Cfg->{ProductDir},
+#		begin_string		=> 0,
+#		coordinate			=> 0,
+#		error_routine		=> sub { return undef },
+#		first_match			=> 0,
+#		record_delim		=> $/,
+#		head_skip			=> 1,
+#		index_delim			=> "\t",
+#		log_routine			=> \&Vend::Util::logError,
+#		match_limit			=> 50,
+#		max_matches			=> 2000,
+#		min_string			=> 1,
+#		next_pointer		=> 0,
+#		negate      		=> 0,
+#		or_search			=> 0,
+#		return_all			=> 0,
+#		search_file			=> ($Vend::Cfg->{Variable}{MV_DEFAULT_SEARCH_FILE}
+#								|| 'products.asc'),
+#		uneval_routine		=> \&Vend::Util::uneval_it,
+#	};
+#
+#	for(keys %$s) {
+#		$g->{$_} = delete $s->{$_};
+#	}
+#
+#	for(keys %$opt) {
+#		$g->{$_} = $opt->{$_};
+#	}
+#
+#	$s->{global}      = $g;
+#	$s->{specs}       = [];
+#	$s->{fields}      = [];
+#	$s->{cases}       = [];
+#	$s->{negates}     = [];
+#	return;
+#}
+#
 
 sub new {
-	my ($class, %options) = @_;
-	my $s = {};
-
-	$DEBUG = $Global::DEBUG;
-
-	$s->{global} = {
-		all_chars			=> 1,
-		base_directory		=> $Vend::Cfg->{'ProductDir'},
-		begin_string		=> 0,
-		#column_ops			=> undef,
-		coordinate			=> 0,
-		error_page			=> $Vend::Cfg->{'Special'}->{'badsearch'} || 'badsearch',
-		error_routine		=> \&main::display_special_page,
-		exact_match			=> 0,
-		first_match			=> 0,
-		record_delim		=> $/,
-		head_skip			=> 1,
-		index_delim			=> "\t",
-		#index_file			=> '',
-		log_routine			=> \&Vend::Util::logError,
-		match_limit			=> 50,
-		max_matches			=> 2000,
-		min_string			=> 1,
-		next_pointer		=> 0,
-		negate      		=> 0,
-		or_search			=> 0,
-		return_all			=> 0,
-		#range_look			=> '',
-		#range_min			=> '',
-		#range_max			=> '',
-		#range_alpha			=> '',
-		#return_delim		=> undef,
-		#return_fields		=> undef,
-		return_file_name	=> '',
-		#save_context		=> undef,
-		save_dir			=> '',
-		search_file			=> ($Vend::Cfg->{Variable}{MV_DEFAULT_SEARCH_FILE} || 'products.asc'),
-		search_mod			=> '',
-		sort_command		=> '',
-		sort_crippled		=> 0,
-		#sort_field			=> '',
-		#sort_option			=> '',
-		#session_id			=> '',
-		#session_key			=> '',
-		spelling_errors		=> 0,
-		substring_match		=> 0,
-		uneval_routine		=> \&Vend::Util::uneval_it,
-	};
-
-	for(keys %options) {
-		$s->{global}->{$_} = $options{$_};
-	}
-
-	$s->{specs}       = []; # The search text, raw, per field 
-							# Special case is form with only one searchspec,
-							# it searches in all columns, takes its
-							# options from first position
-
-	$s->{fields}      = [];	# The columns to search, by number
-
-	$s->{cases}       = [];	# set for NOT
-
-	$s->{negates}     = [];	# set for NOT
-
-	bless $s, $class;
-
+	my $class = shift;
+	my $self = {};
+	bless $self, $class;
+	return $self;
 }
 
 sub global {
@@ -346,7 +328,7 @@ sub get_return {
 
 	if(!defined $g->{return_fields}) {
 		$return_sub = sub { substr($_[0], 0, index($_[0], $g->{index_delim})) };
-#::logGlobal("default return_fields");
+#::logError("default return_fields");
 	}
 	elsif ( ref($g->{return_fields}) =~ /^ARRAY/ ) {
 		$return_sub = sub {
@@ -354,7 +336,7 @@ sub get_return {
 			return join $g->{return_delim},
 						(split /\Q$g->{index_delim}/, $_[0])[@{$g->{return_fields}}];
 		};
-#::logGlobal("array return_fields");
+#::logError("array return_fields");
 	}
 	elsif ( ref($g->{return_fields}) =~ /^HASH/ ) {
 		$return_sub = sub {
@@ -369,19 +351,20 @@ sub get_return {
 			return undef unless @return;
 			join $g->{index_delim}, @return;
 		};
-#::logGlobal("hash return_fields");
+#::logError("hash return_fields");
 	}
 	elsif( $g->{return_fields} ) {
 		$return_sub = sub { substr($_[0], 0, index($_[0], $g->{return_fields})) };
-#::logGlobal("scalar return_fields");
+#::logError("scalar return_fields");
 	}
 	else {
-#::logGlobal("return all fields");
+#::logError("return all fields");
 		$return_sub = sub { @_ };
 	}
 
 	# We will pick out the return fields later if sorting
 	if($g->{sort_field} and ! $g->{sort_command}) {
+#::logError("return two subs 2nd is: $return_sub");
 		return ( sub {@_}, $return_sub);
 	}
 
@@ -921,6 +904,7 @@ use vars qw/ %Sort_field /;
 	rn	=> sub { $_[1] <=> $_[0]			},
 );
 
+
 sub sort_search_return {
     my ($s, $target) = @_;
 	my $g = $s->{'global'};
@@ -933,6 +917,18 @@ sub sort_search_return {
 	else {
 		@Opts = ($g->{sort_option}) x scalar @Flds;
 	}
+
+my %Sorter = (
+
+	none	=> sub { $_[0] cmp $_[1]			},
+	f	=> sub { (lc $_[0]) cmp (lc $_[1])	},
+	fr	=> sub { (lc $_[1]) cmp (lc $_[0])	},
+	n	=> sub { $_[0] <=> $_[1]			},
+	nr	=> sub { $_[1] <=> $_[0]			},
+	r	=> sub { $_[1] cmp $_[0]			},
+	rf	=> sub { (lc $_[1]) cmp (lc $_[0])	},
+	rn	=> sub { $_[1] <=> $_[0]			},
+);
 
 	my $last = 'none';
 	my $i;
@@ -958,11 +954,23 @@ sub {
 	my \@b = (split /$delim/, \$b, $max)[$f_string];
 	my \$r;
 EOF
-	for($i = 0; $i < @Flds; $i++) {
-		$code .= <<EOF;
+#::logError("No define of Sort_field") if ! defined $Sort_field{'none'};
+
+	if($MVASP::Safe) {
+		for($i = 0; $i < @Flds; $i++) {
+			$code .= <<EOF;
+	\$r = &{\$Sorter{'$Opts[$i]'}}(\$a[$i], \$b[$i]) and return \$r;
+EOF
+		}
+	}
+	else {
+		for($i = 0; $i < @Flds; $i++) {
+			$code .= <<EOF;
 	\$r = &{\$Vend::Search::Sort_field{'$Opts[$i]'}}(\$a[$i], \$b[$i]) and return \$r;
 EOF
+		}
 	}
+
 	$code .= "return 0\n}\n";
 
 	my $routine;

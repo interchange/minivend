@@ -4,77 +4,167 @@
 </HEAD>
 <BODY MV="body 1">
 <CENTER>
-<H1>Order Status</H1>
-<TABLE BORDER=3><TR><TD>
-<TABLE>
-[loop search="
-		st=db
-		bd=transactions
-		fi=transactions
-		tf=code
-		sf=username
-		se=[data session username]
-		ml=1000
-		"]
-[calc]
-		$out = <<'EOF';
-</TD><TD ALIGN=RIGHT>
-[loop-data transactions nitems]&nbsp;
-</TD><TD ALIGN=RIGHT>
-[loop-data transactions subtotal]&nbsp;
-</TD><TD>
-[loop-data transactions payment_tax]&nbsp;
-</TD><TD>
-[loop-data transactions shipping]&nbsp;
-</TD><TD>
-EOF
-	$out .= "$status &nbsp;</TD></TR>";
-	$tmp = q![loop-data transactions order_number]!;
-		if(! $testit{$tmp}++) {
-			$status = q{[loop-data transactions status]};
-			$previous_summary = $summary;
-			$summary = <<EOF;
-<TR>
-	<TH>&nbsp;</TH>
-	<TH ALIGN=RIGHT><HR></TH>
-	<TH ALIGN=RIGHT><HR></TH>
-	<TH ALIGN=LEFT><FONT SIZE="-1">Payment/Tax</TH>
-	<TH ALIGN=LEFT><FONT SIZE="-1">Shipping</TH>
-	<TH>&nbsp;</TH>
-	</TR><TD><FONT SIZE="-1">Summary
-$out
-EOF
-			return '';
-		}
-		if ($testit{$tmp} == 2) {
-			$status = '';
-			my $return = $previous_summary || '';
-			$return .= '<TR><TD COLSPAN=7><HR></TD></TR>'
-				if $previous_summary;
-			$return .= <<EOF;
-<TR>
-	<TH><FONT SIZE="-1">Order number</TH>
-	<TH ALIGN=RIGHT><FONT SIZE="-1">Quantity</TH>
-	<TH ALIGN=RIGHT><FONT SIZE="-1">Price</TH>
-	<TH ALIGN=LEFT><FONT SIZE="-1">Item Description</TH>
-	<TH ALIGN=LEFT><FONT SIZE="-1">Item Code</TH>
-	<TH><FONT SIZE="-1">Order Status</TH>
-	<TH>&nbsp;</TH>
-	</TR><TD>$tmp
-$out
-EOF
-			return $return;
-		}
-		return "<TR><TD>&nbsp;$out";
-[/calc]
-[/loop]
-[calc]$summary[/calc]
-</TABLE>
-<P>
-</CENTER>
-</TD></TR></TABLE>
-<P>
+__LOGOBAR__
 __MENUBAR__
+<H1>Order Status</H1>
+[mvasp transactions]
+<%
+	my $uid = $Session->{username};
+	my $spec = {
+				rf	=>	[qw/ 0 status nitems subtotal payment_tax shipping order_date/],
+				bd	=>	'transactions',
+				fi	=>	['transactions'],
+				tf	=>	0,
+				sf	=>	['username'],
+				se	=>	$uid,
+				};
+
+	$DbSearch->{table} = $Db{transactions};
+	my $orders = $DbSearch->array($spec);
+	
+	if (! $uid) {
+		HTML ("<H2>You are not logged in.</H2>");
+		return;
+	}
+
+	if(! $orders or scalar @$orders == 0) {
+		HTML "No pending orders.";
+		return;
+	}
+
+	HTML "<TABLE CELLSPACING=0 CELLMARGIN=0 BORDER=0>";
+
+	my $trailer_template = <<'EOF';
+<TR>
+	<TD BGCOLOR="#000000">
+		<FONT COLOR="#FFFFFF" SIZE="-2">DATE</FONT>
+	</TD>
+	<TD BGCOLOR="#000000">
+		<FONT COLOR="#FFFFFF" SIZE="-2">ORDER ID</FONT>
+	</TD>
+	<TD BGCOLOR="#000000">
+		<FONT COLOR="#FFFFFF" SIZE="-2">QTY TOTAL</FONT>
+	</TD>
+	<TD BGCOLOR="#000000">
+		<FONT COLOR="#FFFFFF" SIZE="-2">PAYMENT/TAX/SHIPPING</FONT>
+	</TD>
+	<TD BGCOLOR="#000000">
+		<FONT COLOR="#FFFFFF" SIZE="-2">SUBTOTAL</FONT>
+	</TD>
+	<TD BGCOLOR="#000000">
+		<FONT COLOR="#FFFFFF" SIZE="-2">SHIPPING</FONT>
+	</TD>
+</TR>
+<TR>
+	<TD BGCOLOR="#FFFFFF">
+		<FONT COLOR="#000000">$date</FONT>
+	</TD>
+	<TD BGCOLOR="#FFFFFF">
+		<FONT COLOR="#000000">$order_number</FONT>
+	</TD>
+	<TD BGCOLOR="#FFFFFF" ALIGN=RIGHT>
+		<FONT COLOR="#000000">$nitems</FONT>
+	</TD>
+	<TD BGCOLOR="#FFFFFF">
+		<FONT COLOR="#000000">$payment_tax  $shipping</FONT>
+	</TD>
+	<TD BGCOLOR="#FFFFFF" ALIGN=RIGHT>
+		<FONT COLOR="#000000">$subtotal</FONT>
+	</TD>
+	<TD BGCOLOR="#FFFFFF">
+		<FONT COLOR="#000000">$status</FONT>
+	</TD>
+</TR>
+<TR>
+	<TD COLSPAN=6>
+		&nbsp;<BR>&nbsp;<BR>
+	</TD>
+</TR>
+EOF
+
+	my $header_template = <<'EOF';
+<TR>
+	<TD BGCOLOR="#000000">
+		<FONT COLOR="#FFFFFF" FONT SIZE="-1">Line</FONT>
+	</TD>
+	<TD BGCOLOR="#000000">
+		<FONT COLOR="#FFFFFF" FONT SIZE="-1">SKU</FONT>
+	</TD>
+	<TD BGCOLOR="#000000" ALIGN=RIGHT>
+		<FONT COLOR="#FFFFFF" FONT SIZE="-1">QTY</FONT>
+	</TD>
+	<TD BGCOLOR="#000000">
+		<FONT COLOR="#FFFFFF" FONT SIZE="-1">DESCRIPTION</FONT>
+	</TD>
+	<TD BGCOLOR="#000000" ALIGN=RIGHT>
+		<FONT COLOR="#FFFFFF" FONT SIZE="-1">PRICE</FONT>
+	</TD>
+	<TD BGCOLOR="#000000">
+		<FONT COLOR="#FFFFFF" FONT SIZE="-1">STATUS</FONT>
+	</TD>
+</TR>
+EOF
+
+		my $line_template = <<'EOF';
+<TR>
+	<TD BGCOLOR="#DDDDDD">
+		<FONT COLOR="#000000">$line</FONT>
+	</TD>
+	<TD BGCOLOR="#DDDDDD">
+		<FONT COLOR="#000000">$code</FONT>
+	</TD>
+	<TD BGCOLOR="#DDDDDD" ALIGN=RIGHT>
+		<FONT COLOR="#000000">$nitems</FONT>
+	</TD>
+	<TD BGCOLOR="#DDDDDD">
+		<FONT COLOR="#000000">$description</FONT>
+	</TD>
+	<TD BGCOLOR="#DDDDDD" ALIGN=RIGHT>
+		<FONT COLOR="#000000">$price</FONT>
+	</TD>
+	<TD BGCOLOR="#DDDDDD">
+		<FONT COLOR="#000000">$status</FONT>
+	</TD>
+</TR>
+EOF
+
+	my %hash;
+
+	my @fields = qw/order_number status nitems subtotal payment_tax shipping date/;
+	my @line = qw/line status nitems price description code date/;
+
+	my $row;
+
+	my %summary;
+	my $first;
+	my $record;
+	foreach $record (@$orders) {
+		if($record->[0] =~ s/^\d+-//) {
+			HTML $header_template if $first;
+			undef $first;
+			@hash{@line} = @$record;
+			$hash{price} = $Tag->currency({ body=> $hash{price} });
+			$row = $line_template;
+			$row =~ s/\$(\w+)/$hash{$1}/eg;
+			HTML $row;
+		}
+		else {
+			$first = 1;
+			if($previous) {
+				HTML $previous;
+			}
+			@hash{@fields} = @$record;
+			$previous = $trailer_template;
+			$hash{subtotal} = $Tag->currency ({ body=> $hash{subtotal} });
+			$previous =~ s/\$(\w+)/$hash{$1}/g;
+		}
+	}
+	HTML $previous;
+
+	HTML "</TABLE>";
+%>
+[/mvasp]
+<P>
+__MENUBOTTOM__
 __COPYRIGHT__
 </BODY>
-

@@ -1,6 +1,6 @@
 # Vend/DbSearch.pm:  Search indexes with Perl
 #
-# $Id: DbSearch.pm,v 1.3 1999/08/14 07:46:06 mike Exp $
+# $Id: DbSearch.pm,v 1.4 1999/08/15 19:03:01 mike Exp mike $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::TextSearch
 #
@@ -25,27 +25,106 @@ require Vend::Search;
 
 @ISA = qw(Vend::Search);
 
-$VERSION = substr(q$Revision: 1.3 $, 10);
+$VERSION = substr(q$Revision: 1.4 $, 10);
 
 use Search::Dict;
 use strict;
 
-sub new {
-    my ($class, %options) = @_;
-	my $self = new Vend::Search;
-	my ($key,$val);
-	init($self);
-	while ( ($key,$val) = each %options) {
-		$self->{global}->{$key} = $val;
-	}
-	bless $self, $class;
+sub array {
+	my ($self, $opt) = @_;
+	$self->{global}{return_reference} = 1;
+	$self->{global}{mv_one_sql_table} = 1;
+	$self->{global}{list_only} = 1;
+	Vend::Scan::perform_search($opt, undef, $self);
+}
+
+sub hash {
+	my ($self, $opt) = @_;
+	$self->{global}{return_reference} = 'HASH';
+	$self->{global}{mv_one_sql_table} = 1;
+	$self->{global}{list_only} = 1;
+	Vend::Scan::perform_search($opt, undef, $self);
+}
+
+sub list {
+	my ($self, $opt) = @_;
+	$self->{global}{list_only} = 1;
+	$self->{global}{mv_one_sql_table} = 1;
+	Vend::Scan::perform_search($opt, undef, $self);
 }
 
 sub init {
-	my $s = shift;
-	my $g = $s->{global};
-	$s->{global}->{base_directory} = $Vend::Cfg->{ProductFiles}[0];
-	$s->{global}->{search_file} = '';
+	my ($s, $options) = @_;
+
+	$s->{global} = {
+		all_chars			=> 1,
+		base_directory		=> $Vend::Cfg->{ProductFiles}[0],
+		begin_string		=> 0,
+		#column_ops			=> undef,
+		coordinate			=> 0,
+		error_page			=> $Vend::Cfg->{Special}{badsearch},
+		error_routine		=> \&main::display_special_page,
+		exact_match			=> 0,
+		first_match			=> 0,
+		record_delim		=> $/,
+		head_skip			=> 1,
+		index_delim			=> "\t",
+		#index_file			=> '',
+		log_routine			=> \&Vend::Util::logError,
+		match_limit			=> 50,
+		max_matches			=> 2000,
+		min_string			=> 1,
+		next_pointer		=> 0,
+		negate      		=> 0,
+		or_search			=> 0,
+		return_all			=> 0,
+		#range_look			=> '',
+		#range_min			=> '',
+		#range_max			=> '',
+		#range_alpha			=> '',
+		return_delim		=> "\t",
+		#return_fields		=> undef,
+		return_file_name	=> '',
+		#save_context		=> undef,
+		save_dir			=> '',
+		search_file			=> $Vend::Cfg->{ProductFiles}[0],
+		search_mod			=> '',
+		sort_command		=> '',
+		sort_crippled		=> 0,
+		#sort_field			=> '',
+		#sort_option			=> '',
+		#session_id			=> '',
+		#session_key			=> '',
+		verbatim_columns	=> 1,
+		spelling_errors		=> 0,
+		substring_match		=> 0,
+		uneval_routine		=> \&Vend::Util::uneval_it,
+	};
+
+	for(keys %$options) {
+		$s->{global}->{$_} = $options->{$_};
+	}
+
+	$s->{specs}       = []; # The search text, raw, per field 
+							# Special case is form with only one searchspec,
+							# it searches in all columns, takes its
+							# options from first position
+
+	$s->{fields}      = [];	# The columns to search, by number
+
+	$s->{cases}       = [];	# set for NOT
+
+	$s->{negates}     = [];	# set for NOT
+
+	return;
+}
+
+sub new {
+    my ($class, %options) = @_;
+	my $self = new Vend::Search;
+	bless $self, $class;
+	$self->init(\%options);
+	return $self;
 }
 
 sub version {
@@ -178,21 +257,23 @@ sub search {
 		$g->{$key} = $val;
 	}
 
-	if(ref($g->{search_file}) =~ /^ARRAY/) {
+	if(ref($g->{search_file})) {
 		@searchfiles = @{$g->{search_file}};
 	}
 	elsif ($g->{search_file}) {
 		@searchfiles = $g->{search_file};
 	}
 	else {
-		&{$g->{error_routine}}($g->{error_page},
-			"{search_file} must be array reference or scalar.\n");
-		$g->{matches} = -1;
-		return undef; # If it makes it this far
+		@searchfiles = $g->{base_directory};
 	}
 
+	my $dbref = $s->{table} || undef;
+
 	$g->{base_directory} =~ s/\..*//;
-	my $dbref = Vend::Data::database_exists_ref($g->{base_directory});
+	if( ! $dbref ) {
+	 	$dbref = Vend::Data::database_exists_ref($g->{base_directory});
+		$dbref = $g->{dbref} = $dbref->ref();
+	}
 
 	if(! $dbref) {
 		&{$g->{error_routine}}($g->{error_page},
@@ -201,9 +282,6 @@ sub search {
 		return undef; # If it makes it this far
 	}
 
-#::logError("DbSearch: made it past ref check");
-
-	$dbref = $g->{dbref} = $dbref->ref();
 	my (@fn) = ($dbref->config('FIRST_COLUMN_NAME') || 'code', $dbref->columns());
 #::logError("DbSearch: fn=@fn");
 
@@ -246,7 +324,6 @@ sub search {
 
 	@pats = $s->spec_check($g, @specs);
 
-#::logError("DbSearch: made it past spec check");
 
 	if ($g->{coordinate}) {
 		undef $f;
@@ -300,11 +377,10 @@ sub search {
 	$g->{overflow} = 0;
 	my $qual;
 
-#::logError("DbSearch: made it past return subroutines");
+#::logError("DbSearch return subroutines: $return_sub and $delayed_return");
 
 	foreach $searchfile (@searchfiles) {
 		$searchfile =~ s/\..*//;
-#::logError("DbSearch: searching $searchfile");
 		my $db;
 		if (! $g->{mv_one_sql_table} and $db = Vend::Data::database_exists_ref($searchfile)) {
 			$dbref = $db->ref();
@@ -318,7 +394,6 @@ sub search {
 		}
 
 		if(! defined $f and defined $limit_sub) {
-#::logError("no f, limit");
 			while($_ = join "\t", $dbref->each_record($qual || undef) ) {
 				next unless &$limit_sub($_);
 				(push @out, $searchfile and last)
@@ -327,10 +402,9 @@ sub search {
 			}
 		}
 		elsif(defined $limit_sub) {
-#::logError("f and limit");
 			while($_ = join "\t", $dbref->each_record($qual || undef) ) {
 				next unless &$f();
-#::logGlobal("matched f");
+#::logError("matched f");
 				next unless &$limit_sub($_);
 				(push @out, $searchfile and last)
 					if defined $return_file_name;
@@ -338,13 +412,11 @@ sub search {
 			}
 		}
 		elsif (!defined $f) {
-#::logError("no f!!!!??!!");
 			&{$g->{error_routine}}($g->{error_page}, 'No search definition');
 			$g->{matches} = -1;
 			return undef;
 		}
 		else {
-#::logError("just f");
 			while($_ = join "\t", $dbref->each_record($qual || undef) ) {
 				next unless &$f();
 				(push @out, $searchfile and last)
@@ -356,7 +428,7 @@ sub search {
 
 	if($delayed_return) {
 		$s->sort_search_return(\@out);
-		@out = map { &{$delayed_return}($_) } @out;
+		@out = map { $delayed_return->($_) } @out;
 	}
 
 	if($g->{unique_result}) {
@@ -380,11 +452,11 @@ sub search {
 
 	return \@out unless $g->{return_reference};
 
-	if($g->{return_reference} eq 'ARRAY') {
+	if($g->{return_reference} ne 'HASH') {
 		my $col = scalar @{$g->{return_fields}};
-		@out = map { [ split /$g->{return_delim}/, $_, $col ] } @out;
+		@out = map { [ split /\t/, $_, $col ] } @out;
 	}
-	elsif($g->{return_format} eq 'HASH') {
+	else {
 		my $col = scalar @{$g->{return_fields}};
 		my @col;
 		my @names;
@@ -393,7 +465,7 @@ sub search {
 		my %hash;
 		my $key;
 		for (@out) {
-			@col = split /$g->{return_delim}/, $_, $col;
+			@col = split /\t/, $_, $col;
 			$hash{$col[0]} = {};
 			@{ $hash{$col[0]} } {@names} = @col;
 		}
@@ -402,6 +474,22 @@ sub search {
 
 	\@out;
 }
+
+# Unfortunate hack need for Safe searches
+
+*more_matches       = \&Vend::Search::more_matches;
+*get_return         = \&Vend::Search::get_return;
+*map_ops            = \&Vend::Search::map_ops;
+*get_limit          = \&Vend::Search::get_limit;
+*saved_params       = \&Vend::Search::saved_params;
+*range_check        = \&Vend::Search::range_check;
+*create_search_and  = \&Vend::Search::create_search_and;
+*create_search_or   = \&Vend::Search::create_search_or;
+*save_context       = \&Vend::Search::save_context;
+*find_sort          = \&Vend::Search::find_sort;
+*dump_options       = \&Vend::Search::dump_options;
+*save_more          = \&Vend::Search::save_more;
+*sort_search_return = \&Vend::Search::sort_search_return;
 
 1;
 __END__
