@@ -347,8 +347,8 @@ sub boa {
 		sale		 		=> 'sale',
 		return				=> 'return',
 		mauthreturn			=> 'return',
-		settle      		=> 'settle'
-		settle_prior      	=> 'settle'
+		settle      			=> 'settle',
+		settle_prior      		=> 'settle'
 	);
 
     my $transtype = $opt->{transaction} ||
