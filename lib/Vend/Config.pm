@@ -2407,12 +2407,15 @@ sub parse_array_complete {
 
 sub parse_list_wildcard {
 	my($var, $value) = @_;
+
+	$value =~ s/^\s+|\s+$//g;
 	return '' if ! $value;
 
 	if($value !~ /\|/) {
 		my @items = split /\s*,\s*/, $value;
 		my $iplist = $value =~ /^[\d.,\s]+$/;
 		for(@items) {
+			next unless $_;
 			s/\./\\./g;
 			s/\*/.*/g;
 			s/\?/./g;
