@@ -605,9 +605,20 @@ sub filter_value {
 			$value = sprintf($_, $value);
 			next;
 		}
-		if (/^(\d+)(\.?)$/) {
-			substr($value, $1) = $2 ? '...' : ''
-				if length($value) > $1;
+		if (/^(\d+)([\.\$]?)$/) {
+			my $len;
+			return $value unless ($len = length($value)) > $1;
+			my ($limit, $mod) = ($1, $2);
+			unless($mod) {
+				substr($value, $limit) = '';
+			}
+			elsif($mod eq '.') {
+				substr($value, $1) = '...';
+			}
+			elsif($mod eq '$') {
+				substr($value, 0, $len - $limit) = '...';
+			}
+			return $value;
 			next;
 		}
 		while( s/\.([^.]+)$//) {
