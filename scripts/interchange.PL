@@ -2444,6 +2444,7 @@ Contributions to Interchange have been made by:
     Bob Jordan         
     Brian Bullen       
     Bruce Albrecht     
+	Cameron Prince
     Christian Mueller
     Christopher Thompson
     Dave Adams
