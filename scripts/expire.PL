@@ -251,7 +251,8 @@ print "$Vend::Cfg->{CatalogName} expire="
   if $opt_v;
 
 
-if ($Vend::Cfg->{SessionType} eq 'File' ) {
+if ($Vend::Cfg->{SessionType} eq 'File'
+	or $Vend::Cfg->{SessionType} eq 'NFS') {
 	require File::Find;
 	my $expire = $Vend::Cfg->{SessionExpire} + 60;
 	$expire /= 86400;
