@@ -45,6 +45,7 @@ mail_order
 use Carp;
 use Vend::Util;
 use Vend::Interpolate;
+use Vend::Session;
 use Vend::Data;
 use Text::ParseWords;
 
@@ -106,8 +107,8 @@ sub order_list {
     my($body, $i, $item, $code, $quantity, $desc, $price);
 
     $body = <<'END';
-Qty     Item                 Description                     Price      Total
----  ------------  --------------------------------------  --------  ---------
+Qty     Item              Description                      Price       Total
+---  ------------    ----------------------------------   --------   ---------
 END
 
     foreach $i (0 .. $#$Vend::Items) {
@@ -117,22 +118,22 @@ END
 	$price = product_price($code);
 	$desc  = product_description($code);
 	$desc =~ s/<.*?>/ /g;
-	$body .= sprintf( "%3s  %-12s  %-38s  %8s  %9s\n",
+	$body .= sprintf( "%3s  %-14s  %-34s  %9s  %10s\n",
 			 $quantity,
 			 $code,
-			 substr($desc,0,38),
+			 substr($desc,0,34),
 			 currency($price),
 			 currency($quantity * $price) );
     }
-	$body .= sprintf "%3s  %-12s  %-38s  %8s  %9s\n",
+	$body .= sprintf "%3s  %-14s  %-34s  %9s  %10s\n",
 			'','','SUBTOTAL','', currency(subtotal());
-	$body .= sprintf "%3s  %-12s  %-38s  %8s  %9s\n",
+	$body .= sprintf "%3s  %-14s  %-34s  %9s  %10s\n",
 			'','','SALES TAX','', currency(salestax());
-	$body .= sprintf "%3s  %-12s  %-38s  %8s  %9s\n",
+	$body .= sprintf "%3s  %-14s  %-34s  %9s  %10s\n",
 			'','','SHIPPING',
 			$Vend::Session->{'values'}->{'mv_shipmode'},
 			currency(shipping());
-	$body .= sprintf "%3s  %-12s  %-38s  %8s  %9s\n",
+	$body .= sprintf "%3s  %-14s  %-34s  %9s  %10s\n",
 			'','','','TOTAL', tag_total_cost();
     $body;
 }
@@ -171,6 +172,7 @@ sub get_ignored {
 # Email the processed order.
 
 sub mail_order {
+	my $email = shift || $Vend::Cfg->{MailOrderTo};
     my($body, $i, $code, $ok, $seen, $blankline);
     my($values, $key, $value, $order_no, $pgp, $subject);
 	my(%modifiers);
@@ -187,6 +189,11 @@ sub mail_order {
 	}
 
     $values = $Vend::Session->{'values'};
+
+	if(defined $values->{'mv_order_report'}
+		and $values->{'mv_order_report'}) {
+		$new = 1;
+	}
 
     $blankline = 0;
     while (($key, $value) = each %$values) {
@@ -205,20 +212,21 @@ sub mail_order {
 		}
     }
 
-	if(defined $values->{'mv_order_report'}
-		and $values->{'mv_order_report'}) {
-		$new = 1;
-		$body = interpolate_html($body);
-	}
+	$body = interpolate_html($body) if $new;
 
     $body .= "\n" . order_list()
 		unless $new;
+
+	$subject = $CGI::values{mv_order_subject} || "ORDER %n";
+
 	$order_no = track_order($body);
+
 	if(defined $order_no) {
-	    $subject = "ORDER $order_no";
+	    $subject =~ s/%n/$order_no/;
     	$body .= "\n\nORDER NUMBER: $order_no\n";
 	}
-	else { $subject = 'ORDER'; }
+	else { $subject =~ s/\s*%n\s*//g; }
+
 	if($pgp = $Vend::Cfg->{'PGP'} ||= '') {
 		open(Vend::Order::PGP, "|$pgp > pgp$$.out 2>pgp$$.err")
 			or die "Couldn't fork: $!";
@@ -232,7 +240,7 @@ sub mail_order {
 		unlink "pgp$$.out";
 		unlink "pgp$$.err";
 	}
-    $ok = send_mail($Vend::Cfg->{'MailOrderTo'}, $subject, $body);
+    $ok = send_mail($email, $subject, $body);
     $ok;
 }
 
@@ -262,6 +270,8 @@ sub check_order {
 	my(@param) = split /\n+/, $params;
 
 	for(@param) {
+		next unless /\S/;
+		next if /^\s*#/;
 		s/^\s+//;
 		s/\s+$//;
 		$parameter = $_;
@@ -468,7 +478,7 @@ sub track_order {
 				}
 			}
 		}
-		logData ($Vend::Cfg->{'AsciiBackend'}, tabbed(@ary));
+		logData ($Vend::Cfg->{'AsciiBackend'}, @ary);
 	}
 
 	my $this_order = $order_no;

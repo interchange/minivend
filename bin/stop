@@ -2,7 +2,7 @@
 #
 # stop - stops all MiniVend sessions when in multiple server mode
 
-$VendRoot = '/usr/local/lib/minivend';
+$VendRoot = '/home/minivend';
 $ConfDir = "$VendRoot/etc";
 $PidFile = "$ConfDir/minivend.pid";
 
@@ -38,6 +38,7 @@ while( @pids = grep /^minivend.pid/, readdir CONFDIR) {
 		unless(kill 15, $PID) {
 			if($force) {
 				close PID;
+				kill 9, $PID;
 				unlink $PidFile;
 			}
 			elsif ($tried{$PidFile} > 9) {
@@ -53,6 +54,7 @@ unlink the file now, this script may loop forever.
 
 EOF
 					print "Unlink the PID file $PidFile? [yes] ";
+
 					$ans = <STDIN>;
 					(close PID, unlink $PidFile) unless $ans =~ /\s*n/i;
 				}
@@ -79,3 +81,13 @@ EOF
 else {
 	print "Apparently no MiniVend daemons were up -- no PID files.\n";
 }
+
+chdir $ConfDir
+	or die "Couldn't enter $ConfDir: $!\n";
+opendir(CONFDIR, '.')
+	or die "Couldn't open $ConfDir: $!\n";
+@rms = grep /^(socket|minivend.pid)/, readdir CONFDIR;
+closedir CONFDIR;
+
+unlink @rms;
+

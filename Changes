@@ -1,3 +1,28 @@
+MiniVend 2.02 - Multiple Shopping Carts and mSQL
+* mSQL support
+* Added [msql hash|array|html|param] SQL code [/msql] , [msql list SQL code]
+  substitution-list [/msql], [item-param n] tags
+* Added MsqlDB, MsqlProducts, CreditCardAuto, SeparateItems,
+  Locale catalog directives
+* Untrapping of Safe op codes defined in global minivend.cfg with
+  SafeUntrap directive  (249 and 148 by default)
+* Better credit-card checksum validation, with conditional
+  PGP encryption that can be embedded in order email
+* Fixed [if explicit ...] tag
+* Removed CreditCards directive
+* Greatly improved search reliability
+* Added search sorting
+* Multiple shopping carts (buy/sell)
+* Automatic installation of File::Lock module on Solaris
+* Improved PGP support 
+* Removed standard Des capability
+* Improved stop script to kill non-responders (with -f option) and
+  clean up sockets/pidfiles
+* Configuration bugs fixed (ownership and SampleUrl) 
+* Added (if_loop_field) to [loop list], make separate from [item-list]
+  still compatible with old
+* Loop lists can now be quoted values, still no embedded ]
+
 MiniVend 2.01 - Maintenance Release
 * Added modifier variables to user values
 * Encapsulated code to prevent dying on catalog config and execution

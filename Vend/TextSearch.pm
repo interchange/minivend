@@ -58,6 +58,17 @@ sub version {
 	$Vend::TextSearch::VERSION;
 }
 
+sub escape {
+    my($self, @text) = @_;
+    if($self->{'global'}->{all_chars}) {
+		@text = grep quotemeta $_, @text;
+    }
+    for(@text) {
+        s!([^\\]?)([}])!$1\\$2!g;
+    }   
+    return @text;
+}
+
 sub search {
 
 	my($s,%options) = @_;
@@ -66,11 +77,11 @@ sub search {
 #	$s->debug("Vend::TextSearch");
 
 	my($delim,$string);
-	my($max_matches,$mod,$return_delim,$spec);
+	my($max_matches,$mod,$spec);
 	my($code,$count,$matches_to_send,@out);
 	my($index_delim,$limit_sub,$return_sub);
 	my($dict_limit,$f,$key,$val,$range_op);
-	my($searchfile,@searchfiles);
+	my($return_file_name,$searchfile,@searchfiles);
 	my(@specs);
 	my(@pats);
 
@@ -78,10 +89,10 @@ sub search {
 		$g->{$key} = $val;
 	}
 
+ 	$return_file_name = $g->{return_file_name};
  	$index_delim = $g->{index_delim};
-	$return_delim = defined $g->{return_delim}
-				   ? $g->{return_delim}
-				   : $index_delim;
+	$g->{return_delim} = $index_delim
+		unless defined $g->{return_delim};
 
 	$g->{matches} = 0;
 
@@ -106,6 +117,8 @@ sub search {
 
 	@specs = '' if @specs == 0;
 
+#	$s->debug($s->dump_options());
+
   SPEC_CHECK: {
 	last SPEC_CHECK if $g->{return_all};
 	foreach $string (@specs) {
@@ -120,39 +133,21 @@ EOF
 		}
 	}
 
-	if($g->{exact_match}) {
-		for(@specs) {
-			s/"//g;
-			$_ = '"' . $_ . '"';
-		}
+	if ( ! $g->{exact_match} and ! $g->{coordinate}) {
+		@specs = $s->quoted_string( join ' ', @specs);
 	}
 
-	$spec = join ' ', @specs;
+	@specs = $s->escape(@specs);
 
-	if ($g->{all_chars} ||= 0) {
-        $spec =~ s/"/__QUOTE__/g;
-        $spec =~ s/ /__SPACE__/g;
-        $spec =~ s/,/__COMMA__/g;
-        $spec = quotemeta $spec;
-        $spec =~ s/__QUOTE__/"/g;
-        $spec =~ s/__SPACE__/ /g;
-        $spec =~ s/__COMMA__/,/g;
+#	$s->debug("spec='" . (join "','", @specs) . "'");
+
+	# untaint
+	for(@specs) {
+		/(.*)/;
+		push @pats, $1;
 	}
-	else {
-		$spec =~ s/[^"$\d\w\s*]//g;
-		unless ($g->{or_search}) {
-			$spec =~ s'\*'\S*'g
-		}
-		else {
-			$spec =~ s:(\S+)\*:$1\S*:g
-		}
-	}
+	@{$s->{'specs'}} = @specs;
 
-#	$s->debug("spec='$spec'");
-
-	$spec =~ /(.*)/;
-	$spec = $1;
-	@pats = shellwords($spec);
 #	$s->debug("pats: '", join("', '", @pats), "'");
   } # last SPEC_CHECK
 
@@ -239,16 +234,26 @@ EOF
 		$g->{matches} = -1;
 		return undef; # If it makes it this far
 	}
+	@searchfiles = grep s!^([^/])!$g->{base_directory}/$1!, @searchfiles
+			if $g->{base_directory};
+
+    my $sort_string = $s->find_sort();
+	# If the string is set, append the joined searcfiles;
+	if($sort_string) {
+		#$sort_string =~ s!\|\s*$!join ' ', @searchfiles, '|'!e;
+		@searchfiles = join ' ', 'cat', @searchfiles, '|', $sort_string;
+	}
+#	$s->debug("sort_string:  $sort_string");
 
 	local($/) = $g->{record_delim};
 
 	foreach $searchfile (@searchfiles) {
 		$searchfile = "$g->{base_directory}/$searchfile"
-			unless ($searchfile =~ m:^/: || ! $g->{base_directory});
+			unless ($sort_string || $searchfile =~ m:^/: || ! $g->{base_directory});
 		open(Vend::TextSearch::SEARCH, $searchfile)
 			or &{$g->{log_routine}}( "Couldn't open $searchfile: $!\n"), next;
 		my $line;
-		if(defined $g->{head_skip} and $g->{head_skip} > 0) {
+		if($g->{head_skip} > 0) {
 			while(<Vend::TextSearch::SEARCH>) {
 				last if $. >= $g->{head_skip};
 			}
@@ -260,39 +265,43 @@ EOF
 				$g->{dict_look}, $g->{dict_order}, $g->{dict_fold};
 		}
 
-		if(defined $limit_sub) {
+		if($g->{dict_end} && defined $limit_sub) {
+#			$s->debug("Dict search: with limit");
 			while(<Vend::TextSearch::SEARCH>) {
+				last if &$dict_limit($_);
+#				#$s->debug("Dict search: found='$_'");
 				next unless &$f();
 				next unless &$limit_sub($_);
-				if($g->{return_file_name}) {
-					push @out, $searchfile;
-					last;
-				}
+				(push @out, $searchfile and last)
+					if $return_file_name;
 				push @out, &$return_sub($_);
 			}
 		}
 		elsif($g->{dict_end}) {
+#			$s->debug("Dict search: NO limit");
 			while(<Vend::TextSearch::SEARCH>) {
 				last if &$dict_limit($_);
-#				$s->debug("Dict search: found='$_'");
+#				# #$s->debug("Dict search: found='$_'");
 				next unless &$f();
-				if(defined $limit_sub) {
-					next unless &$limit_sub($_);
-				}
-				if($g->{return_file_name}) {
-					push @out, $searchfile;
-					last;
-				}
+				(push @out, $searchfile and last)
+					if $return_file_name;
+				push @out, &$return_sub($_);
+			}
+		}
+		elsif(defined $limit_sub) {
+			while(<Vend::TextSearch::SEARCH>) {
+				next unless &$f();
+				next unless &$limit_sub($_);
+				(push @out, $searchfile and last)
+					if $return_file_name;
 				push @out, &$return_sub($_);
 			}
 		}
 		else {
 			while(<Vend::TextSearch::SEARCH>) {
 				next unless &$f();
-				if($g->{return_file_name}) {
-					push @out, $searchfile;
-					last;
-				}
+				(push @out, $searchfile and last)
+					if $return_file_name;
 				push @out, &$return_sub($_);
 			}
 		}

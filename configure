@@ -2,7 +2,7 @@
 
 cat <<EOF
 
- MiniVend Version 1.0 Configuration
+ MiniVend Version 2.0 Configuration
 
  Copyright 1996 Michael J. Heins, <mikeh@iac.net>
 
@@ -10,10 +10,10 @@ cat <<EOF
  Copyright 1995 Andrew M. Wilcox <awilcox@maine.com>
  
  Portions from Vend 0.3
- Copyright 1995 Andrew M. Wilcox <awilcox@maine.com>
+ Copyright 1995, 1996 Andrew M. Wilcox <awilcox@maine.com>
 
- Distributed under the GPL, see the file Copying for
- license information.
+ Distributed under the GNU General Public License, see
+ the file Copying for license information.
 
 EOF
 

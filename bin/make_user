@@ -18,7 +18,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-$VendRoot = '/usr/local/lib/minivend';
+$VendRoot = '/home/minivend';
 
 # Set this to '' if your system doesn't support mkdir -p
 $mkdirgood = '-p';
@@ -548,6 +548,7 @@ WRITECONFIG: {
 # Try and get the URL we will use to access the catalog
 GUESS: {
 
+	my $tempurl;
     $guessdir = $Config{samplehtml};
 
     unless($guessdir =~ s/^$Config{documentroot}//) {
@@ -570,8 +571,8 @@ EOF
     $guessdir =~ s:^/+::;
     $guessdir = "$Tilde/$guessdir" if defined $Tilde;
     $guessdir =~ s:^/+::;
-    if (defined $Config{sampleurl} and 
-    	$Config{sampleurl} ne "http://$Config{servername}/$guessdir") {
+    $tempurl = "http://$Config{servername}/$guessdir";
+    if (defined $Config{sampleurl} and $Config{sampleurl} ne $tempurl) {
 		print <<EOF;
 
 We were given a previous value for the URL that will run the catalog
@@ -582,14 +583,17 @@ We were given a previous value for the URL that will run the catalog
 This conflicts with what we guess from what you have just
 entered:
 
-   	http://$Config{servername}/$guessdir
+   	$tempurl
 
 EOF
 
-	$Config{sampleurl} = prompt ("\nPlease re-enter or confirm: ",
+	$tempurl  = prompt ("\nPlease re-enter or confirm: ",
 						"http://$Config{servername}/$guessdir");
 
 	}
+
+	$Config{sampleurl} = $tempurl;
+
 }
 
 $mvuid = getpwnam($Config{minivenduser});
@@ -766,7 +770,7 @@ sub wanted {
 		rename ("$file.new", $file)
 			or die "Couldn't rename $name.new to $name: $!\n";
 	}
-	if(defined $Mfile{$file} or $file =~ /\.gdbm/ or $file =~ /\.db/) {
+	if(defined $Mfile{$file} or $file =~ /\.(gdbm|asc|csv|db)$/) {
 		if($isroot) {
 			chown ($mvuid, $mvgid, $file)
 				or die "\nCouldn't set ownership of $name: $!\n";

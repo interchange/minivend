@@ -1,4 +1,4 @@
-# $Id: ValidCC.pm,v 1.2 1996/09/08 08:08:21 mike Exp $
+# $Id: ValidCC.pm,v 1.3 1996/10/30 04:22:28 mike Exp $
 #
 # ValidCC.pm - validate credit card numbers
 #
@@ -7,13 +7,13 @@
 # Modified by Mike to make more forgiving in the parameters.
 
 package Vend::ValidCC;
-$VERSION = substr(q$Revision: 1.2 $, 10);
+$VERSION = substr(q$Revision: 1.3 $, 10);
 require 5.000;
 require Exporter;
 use Carp;
 
 @ISA = qw(Exporter);
-@EXPORT = qw(ValidCreditCard);
+@EXPORT = qw(ValidCreditCard encrypt_cc encrypt_standard_cc);
 
 =head1 NAME
 
@@ -116,6 +116,181 @@ sub ValidCreditCard
     # return whether checksum matched.
 
     $the_sum == substr($the_card, -1);
+
+}
+
+# Encrypts a credit card number with DES or the like
+# Prefers internal Des module, if was included
+sub encrypt_cc {
+	my($enclair) = @_;
+	my($encrypted, $status, $cmd);
+	my $firstline = 0;
+	my $infile    = 0;
+
+	$cmd = $Vend::Cfg->{'EncryptProgram'};
+
+	# This is the internal function, will return the value
+	# only if it was found. Takes the IVEC from the first
+	# eight characters of the encrypted password
+	if (defined @Des::EXPORT and $cmd =~ /^internal/i ) {
+		my($password) = $Vend::Cfg->{'Password'} || return undef;
+		my($ivec) = $Vend::Cfg->{'Pw_Ivec'} || return undef;
+		my $key = string_to_key($password);
+		my $sched = set_key($key);
+		$encrypted = pcbc_encrypt($enclair,undef,$sched,$ivec);
+		return $encrypted;
+	}
+
+	#Substitute the password
+	unless ($cmd =~ /\bpgp\b/ or $cmd =~ s/%p/$password/ ) {
+		$firstline = 1;
+	}
+
+	my $tempfile = $Vend::SessionID . '.cry';
+
+	#Substitute the filename
+	if ($cmd =~ s/%f/$tempfile/) {
+		$infile = 1;
+	}
+
+	# Want the whole file
+	local($/) = undef;
+
+	# Send the CC to a tempfile if incoming
+	if($infile) {
+		open(CARD, ">$tempfile") ||
+			die "Couldn't write $tempfile: $!\n";
+		# Put the cardnumber there, and maybe password first
+		print CARD "$password\n" if $firstline;
+		print CARD $enclair;
+		close CARD;
+
+		# Encrypt the string, but key on arg line will be exposed
+		# to ps(1) for systems that allow it
+		open(CRYPT, "$cmd |") || die "Couldn't fork: $!\n";
+		chomp($encrypted = <CRYPT>);
+		close CRYPT;
+		$status = $?;
+	}
+	else {
+		open(CRYPT, "| $cmd >$tempfile ") || die "Couldn't fork: $!\n";
+		print CRYPT $enclair;
+		close CRYPT;
+		$status = $?;
+
+		open(CARD, $tempfile) || warn "open $tempfile: $!\n";
+		$encrypted = <CARD>;
+		close CARD;
+	}
+
+	unlink $tempfile;
+
+	# This means encryption failed
+	if( $status != 0 ) {
+		return undef;
+	}
+
+	$encrypted;
+}
+
+# Takes a reference to a hash (usually %CGI::values) that contains
+# the following:
+# 
+#    mv_credit_card_number      The actual credit card number
+#    mv_credit_card_exp_all     A combined expiration MM/YY
+#    mv_credit_card_exp_month   Month only, used if _all not present
+#    mv_credit_card_exp_year    Year only, used if _all not present
+#    mv_credit_card_type        A = Amex, D = Discover, etc. Attempts
+#                               to guess from number if not there
+
+sub encrypt_standard_cc {
+	my($ref) = @_;
+	my($valid, $info);
+
+	my $month	= $ref->{mv_credit_card_exp_month}	|| '';
+	my $type	= $ref->{mv_credit_card_type}		|| '';
+	my $num		= $ref->{mv_credit_card_number}		|| '';
+	my $year	= $ref->{mv_credit_card_exp_year}	|| '';
+	my $all		= $ref->{mv_credit_card_exp_all}	|| '';
+
+	for ( qw (	mv_credit_card_type		mv_credit_card_number
+				mv_credit_card_exp_year	mv_credit_card_exp_month
+				mv_credit_card_exp_all  ))
+	{
+		next unless defined $ref->{$_};
+		delete $ref->{$_};
+	}
+
+	# remove unwanted chars from card number
+	#$num =~ tr/0-9//cd;
+
+	# error will be pushed on this if present
+	@return = (
+				0,			# 0- Whether it is valid
+				'',			# 1- Encrypted credit card information
+				'',			# 2- Month
+				'',			# 3- Year
+				'',			# 4- Month/year
+				'',         # 5- type
+	);
+
+	# Get the type
+	unless ( $type ) {
+		($num =~ /^3/) and $type = 'amex';
+		($num =~ /^4/) and $type = 'visa';
+		($num =~ /^5/) and $type = 'mc';
+		($num =~ /^6/) and $type = 'discover';
+	}
+
+	if ($type) {
+		$return[5] = $type;
+	}
+	else {
+		push @return, "Can't figure out credit card type.";
+		return @return;
+	}
+
+	# Get the expiration
+	if ($all =~ m!(\d\d?)[-/](\d\d)(\d\d)?! ){
+		$month = $1;
+		$year  = "$2$3";
+	}
+	elsif ($month >= 0  and $month <= 11 and $year) 
+	{
+		$all = "$month/$year";
+	}
+	else {
+		$all = '';
+	}
+
+	if ($all) {
+		$return[2] = $month;
+		$return[3] = $year;
+		$return[4] = $all;
+	}
+	else {
+		push @return, "Can't figure out credit card expiration.";
+		return @return;
+	}
+
+	#$num =~ tr/\d//cd;
+
+	unless ($valid = ValidCreditCard ($type,$num,$all) ) {
+		push @return, "Credit card number, type, or expiration not valid.";
+		return @return;
+	}
+
+	$return[0] = $valid;
+
+	$info = encrypt_cc "$type $num $all\n";
+
+	unless (defined $info) {
+		push @return, "Credit card encryption failed.";
+		return @return;
+	}
+	$return[1] = $info;
+
+	return @return;
 
 }
 

@@ -1,6 +1,6 @@
 # Vend/Scan.pm:  Prepare searches for MiniVend
 #
-# $Id: Scan.pm,v 2.0 1996/08/30 08:26:58 mike Exp $
+# $Id: Scan.pm,v 2.3 1996/11/04 08:59:50 mike Exp $
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@ require Exporter;
 @ISA = qw(Exporter);
 @EXPORT = qw(perform_search find_search_params);
 
-$VERSION = substr(q$Revision: 2.0 $, 10);
+$VERSION = substr(q$Revision: 2.3 $, 10);
 
 use strict;
 use Vend::Util;
@@ -62,6 +62,10 @@ my @Order = ( qw(
 					mv_search_field
 					mv_search_file
 					mv_search_page
+					mv_sort_field
+					mv_sort_option
+					mv_sort_command
+					mv_sort_crippled
 					mv_searchtype
 
 ));
@@ -97,6 +101,10 @@ my %Map = ( qw(
 					mv_search_file		search_file
 					mv_search_page		search_page
 					mv_searchtype		search_type
+					mv_sort_field		sort_field
+					mv_sort_option		sort_option
+					mv_sort_command		sort_command
+					mv_sort_crippled	sort_crippled
 					mv_spelling_errors	spelling_errors
 					mv_searchspec		search_spec
 					mv_substring_match	substring_match
@@ -112,6 +120,7 @@ my %Scan = ( qw(
                     df  mv_dict_fold
                     di  mv_dict_limit
                     dl  mv_dict_look
+                    DL  mv_raw_dict_look
                     do  mv_dict_order
                     dr  mv_record_delim
                     em  mv_exact_match
@@ -133,11 +142,16 @@ my %Scan = ( qw(
                     rn  mv_return_file_name
                     rs  mv_return_spec
                     rx  mv_range_max
+                    SE  mv_raw_searchspec
                     se  mv_searchspec
                     sf  mv_search_field
                     sp  mv_search_page
                     st  mv_searchtype
                     su  mv_substring_match
+					tf	mv_sort_field
+					to	mv_sort_option
+					tc	mv_sort_command
+					ty	mv_sort_crippled
 
 				) );
 
@@ -153,18 +167,20 @@ my %Parse = (
 	exact_match			=>	\&_yes,
 	mv_profile          =>	\&parse_profile,
 	or_search           =>  \&_yes,
-	return_fields       =>	\&_array,
+	return_fields       =>	\&_column,
 	range_look	        =>	\&_column,
 	range_min	        =>	\&_array,
 	range_max	        =>	\&_array,
 	range_alpha	        =>	\&_array,
 	search_spec       	=>	\&_scalar_or_array,
-	return_fields       =>	\&_array,
 	return_file_name    =>	\&_yes,
 	all_chars		    =>	\&_yes,
 	return_all		    =>	\&_yes,
 	save_context        =>	\&_array,
 	search_field		=>	\&_column,
+	sort_field			=>	\&_column,
+	sort_option			=>	\&_array,
+	sort_crippled		=>	\&_yes,
 	search_file         => 	\&_scalar_or_array,
 	spelling_errors     => 	sub { my $n = int($_[1]); $n < 8 ? $n : 1; },
 	substring_match		=>	\&_yes,
@@ -178,6 +194,12 @@ sub find_search_params {
 	for(@args) {
 		($var,$val) = split /=/, $_, 2;
 		$val =~ s!::!/!g;
+		if ($var eq 'dl' || $var eq 'se') {
+			unless
+			(defined $c->{$Scan{uc $var}})	{ $c->{$Scan{uc $var}} =  $val		}
+			else   							{ $c->{$Scan{uc $var}} .= ".00$val" }
+			$val =~ s/\.(..)/chr(hex($1))/ge;
+		}
 		if (defined $Scan{$var}) {
 			unless
 			(defined $c->{$Scan{$var}})	{ $c->{$Scan{$var}} =  $val		}
@@ -314,13 +336,15 @@ sub perform_search {
   } # last SEARCH
 
 	$matches = $q->global('matches');
+	$v->{'mv_search_match_count'}	= $matches;
+	$v->{'mv_searchspec'}			= $c->{'mv_searchspec'} 
+						  			|| $c->{'mv_dict_look'};
+	$v->{'mv_raw_searchspec'}		= $c->{'mv_raw_searchspec'};
+	$v->{'mv_raw_dict_look'}		= $c->{'mv_raw_dict_look'};
+	$v->{'mv_dict_look'}			= $c->{'mv_dict_look'}
+									|| $q->global('dict_look');
 
 	if ( $matches > 0 ) {
-	 	$v->{'mv_search_match_count'} = $matches;
-		$v->{'mv_searchspec'} = $c->{'mv_searchspec'} 
-							  || $c->{'mv_dict_look'};
-		$v->{'mv_dict_look'} = $c->{'mv_dict_look'}
-							  || $q->global('dict_look');
 		logData($Vend::Cfg->{'LogFile'},
 			"matched", time, $Vend::SessionID, @specs)
 			if defined $Vend::Cfg->{'CollectData'}->{'matched'};

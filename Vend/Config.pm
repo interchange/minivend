@@ -1,18 +1,17 @@
-# $Id: Config.pm,v 2.1 1996/09/08 08:27:58 mike Exp mike $
+# $Id: Config.pm,v 2.5 1996/11/04 08:59:50 mike Exp $
 
 package Vend::Config;
 require Exporter;
 @ISA = qw(Exporter);
 @EXPORT		= qw( config global_config );
 
-@EXPORT_OK	= qw( get_catalog_default get_global_default parse_time );
+@EXPORT_OK	= qw( get_catalog_default get_global_default parse_time parse_database);
 
 my $C;
 
 use strict;
 use Carp;
 use Vend::Util;
-use Vend::Data 'import_database';
 
 for( qw(search refresh cancel return secure unsecure submit control checkout) ) {
 	$Global::LegalAction{$_} = 1;
@@ -32,6 +31,7 @@ sub global_directives {
 	['SendMailProgram',  'executable',       $Global::SendMailLocation],
     ['ForkSearches',	 'yesno',     	     'yes'],
     ['LogFile', 		  undef,     	     'etc/log'],
+    ['SafeUntrap',		 'array',     	     '249 148'],
 	['MailErrorTo',		  undef,			 'webmaster'],
     ['HammerLock',		  undef,     	     30],
     ['DebugMode',		  undef,     	     0],
@@ -53,6 +53,7 @@ sub catalog_directives {
 	['ErrorFile',        undef,              'error.log'],
 	['PageDir',          'relative_dir',     'pages'],
 	['ProductDir',       'relative_dir',     'products'],
+	['OfflineDir',       'relative_dir',     'offline'],
 	['DataDir',          'relative_dir',     'products'],
 	['Delimiter',        'delimiter',        'TAB'],
     ['SpecialPage',		 'special',     	 ''],
@@ -71,7 +72,10 @@ sub catalog_directives {
 	['SendMailProgram',  'executable',       $Global::SendMailLocation],
 	['PGP',              undef,       		 ''],
     ['Glimpse',          'executable',       ''],
+    ['Locale',           'locale',           ''],
     ['RequiredFields',   undef,              ''],
+    ['MsqlProducts',   	 'yesno',            'No'],
+    ['MsqlDB',   		 undef,              ''],
     ['ReceiptPage',      'valid_page',       ''],
     ['ReportIgnore',     undef, 			 'credit_card_no,credit_card_exp'],
     ['OrderCounter',	 undef,     	     ''],
@@ -84,11 +88,14 @@ sub catalog_directives {
     ['PriceDivide',	 	 undef,  	     	 1],
     ['MixMatch',		 'yesno',     	     'No'],
     ['AlwaysSecure',	 'boolean',  	     ''],
+	['Password',         undef,              ''],
     ['ExtraSecure',		 'yesno',     	     'No'],
     ['Cookies',			 'yesno',     	     'No'],
     ['TaxShipping',		 undef,     	     ''],
+	['SeparateItems',    'yesno',			 'No'],
     ['PageSelectField',  undef,     	     ''],
     ['NonTaxableField',  undef,     	     ''],
+    ['CreditCardAuto',	 'yesno',     	     'No'],
     ['CreditCards',		 'yesno',     	     'No'],
     ['EncryptProgram',	 undef,     	     ''],
     ['AsciiTrack',	 	 undef,     	     ''],
@@ -247,6 +254,62 @@ sub parse_action {
 		unless $Global::LegalAction{$action};
 	return $C->{'ActionMap'};
 }
+
+use POSIX;
+
+# Sets the special locale array. Tries to use POSIX setlocale,
+# accepts a 'custom' setting with the proper definitions of
+# decimal_point,  mon_thousands_sep, and frac_digits (the only supported at
+# the moment).  Otherwise uses US-English settings if not set.
+sub parse_locale {
+    my($item,$settings) = @_;
+	return '' unless $settings;
+	$settings = '' if "\L$settings" eq 'default';
+    my $name;
+    my $c = {};
+
+    # Try POSIX first.
+    $name = POSIX::setlocale(POSIX::LC_ALL, $settings);
+
+    if (defined $name and $name) {
+        $c = POSIX::localeconv();
+        $c->{mon_thousands_sep} = ','
+            unless $c->{mon_thousands_sep};
+        $c->{decimal_point} = '.'
+            unless $c->{decimal_point};
+        $c->{frac_digits} = 2
+            unless defined $c->{frac_digits};
+        $c->{Name} = $name;
+    }
+    # else Try to read the ones we have defined
+    elsif($settings eq 'pt') {
+        $c->{decimal_point} = ',';
+        $c->{mon_thousands_sep} = '.';
+        $c->{frac_digits} = 2;
+        $c->{Name} = 'Portugal';
+    }
+    elsif ($settings =~ /^custom\s+/) {
+
+        my(@setting) = split /\s+/, $settings;
+        $c->{Name} = shift(@setting);
+        my(%setting) = @setting;
+        for (keys %setting) {
+            $c->{$_} = $setting{$_};
+        }
+        $c->{mon_thousands_sep} = ','
+            unless $c->{mon_thousands_sep};
+        $c->{decimal_point} = '.'
+            unless $c->{decimal_point};
+        $c->{frac_digits} = 2
+            unless defined $c->{frac_digits};
+    }
+    else {
+        config_error("Bad Locale setting $settings.\n");
+    }
+
+    return $c;
+}
+
 
 # Sets the special page array
 sub parse_special {

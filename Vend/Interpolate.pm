@@ -1,6 +1,6 @@
 # Interpolate.pm - Interpret MiniVend tags
 # 
-# $Id: Interpolate.pm,v 2.2 1996/09/08 08:27:58 mike Exp mike $
+# $Id: Interpolate.pm,v 2.7 1996/11/04 09:03:34 mike Exp mike $
 #
 # Copyright 1996 by Michael J. Heins <mikeh@iac.net>
 #
@@ -22,7 +22,7 @@ package Vend::Interpolate;
 require Exporter;
 @ISA = qw(Exporter);
 
-$VERSION = substr(q$Revision: 2.2 $, 10);
+$VERSION = substr(q$Revision: 2.7 $, 10);
 
 @EXPORT = qw (
 
@@ -49,10 +49,10 @@ use Safe;
 use strict;
 use Vend::Util;
 use Vend::Data;
+use Vend::Cart;
 use Vend::Server;
 use Vend::ValidCC;
 use Vend::PageBuild;
-use Text::ParseWords;
 
 sub tag_accessories {
 	my($code) = @_;
@@ -112,12 +112,6 @@ sub tag_selected {
 	$r;
 }
 
-
-# Returns either a href to finish the ordering process (if at least
-# one item has been ordered), or an empty string.
-# If a secure order has been started (with a forms submission)
-# then it will be given the secure URL
-
 sub tag_finish_order {
 	my($page) = shift;
     my($finish_order);
@@ -144,6 +138,7 @@ sub tag_finish_order {
 	$finish_order .= '">' . $Vend::Cfg->{'FinishOrder'} . "</a><p>";
 
 }
+
 # Returns an href to place an order for the product PRODUCT_CODE.
 # If AlwaysSecure is set, goes by the page accessed, otherwise 
 # if a secure order has been started (with a call to at least
@@ -156,6 +151,9 @@ sub tag_order {
     unless(defined $page) {
         $page = 'order';
     }   
+	else {
+		$page = "order/$page";
+	}
 
     if ($Vend::Cfg->{'AlwaysSecure'}) {
         if (defined $Vend::Cfg->{'AlwaysSecure'}->{$page}) {
@@ -238,7 +236,7 @@ sub tag_scratch {
 }
 
 sub tag_lookup {
-	my($selector,$field,$key,$rest) = shellwords($_[0]);
+	my($selector,$field,$key,$rest) = quoted_string($_[0]);
 	return $rest if (defined $rest and $rest);
 	return tag_data($selector,$field,$key);
 }
@@ -259,6 +257,14 @@ sub tag_data {
 		no strict 'refs';
 		return (! defined $Vend::Cfg->{$field}
 			? 'BAD CONFIG TERM' : $Vend::Cfg->{$field}  );
+	}
+	elsif($selector eq 'cart') {
+		return (! ref $Vend::Session->{'carts'}->{$field}
+				? '' :  uneval $Vend::Session->{'carts'}->{$field} );
+	}
+	elsif($selector eq 'items') {
+		return (! ref $Vend::Session->{'carts'}->{$field}
+				? '' :  tag_item_list("'[item-code]' ", $field) );
 	}
 	elsif($selector eq 'discount') {
 		return (! defined $Vend::Session->{'discount'}->{$field}
@@ -284,13 +290,16 @@ sub tag_data {
 
 # Returns the text of a user entered field named VAR.
 sub tag_value {
-    my($var) = @_;
+    my($var,$esc) = @_;
     my($value);
 
+	local($) = 0;
     if (defined ($value = $Vend::Session->{'values'}->{$var})) {
-	return $value;
-    } else {
-	return "";
+		$value =~ s/['"]/\\$1/ if $esc;
+		return $value;
+    }
+	else {
+		return "";
     }
 }
 
@@ -321,11 +330,15 @@ sub tag_page {
 sub tag_pagetarget {
     my($page,$target) = @_;
     my($r);
-	unless ($target =~ s/__secure$//i) {
-    	$r  = '<a href="' . vendUrl($page);
+	if ($page =~ /^\w+:/) {
+		$r = '<a href="' . $page . '?' . $Vend::SessionID .
+				';;' . ++$Vend::Session->{'pageCount'};
+	}
+	elsif ($target =~ s/__secure$//i) {
+    	$r  = '<a href="' . secure_vendUrl($page);
 	}
 	else {
-    	$r  = '<a href="' . secure_vendUrl($page);
+    	$r  = '<a href="' . vendUrl($page);
 	}
     $r .= '" TARGET="' . $target
         if $Vend::Session->{'frames'};
@@ -345,10 +358,30 @@ sub tag_area {
 sub tag_areatarget {
     my($area,$target) = @_;
 	my($r);
-    $r  = vendUrl($area);
+	if ($area =~ /^\w+:/) {
+        $r = $area . '?' .
+            $Vend::SessionID . ';;' . ++$Vend::Session->{'pageCount'};
+    }
+    elsif ($target =~ s/__secure$//i) {
+        $r  = secure_vendUrl($area);
+    }
+    else {
+        $r  = vendUrl($area);
+    }
+
 	$r .= '" TARGET="' . $target
 		if $Vend::Session->{'frames'};
 	$r;
+}
+
+# Sets the default shopping cart for display
+sub tag_cart {
+	my($cart) = @_;
+	defined $cart
+		and ref $Vend::Session->{'carts'}->{$cart}
+	    and
+		$Vend::Items = $Vend::Session->{'carts'}->{$cart};
+	return '';
 }
 
 # Sets the frames feature to on, returns empty string
@@ -542,6 +575,8 @@ sub tag_perl {
 		}
 	}
 	$safe->share('%Safe');
+	$safe->untrap(@{$Global::SafeUntrap})
+		if $Global::SafeUntrap;
 
 	unless(defined $file) {
 		$result = $safe->reval($body);
@@ -564,7 +599,7 @@ sub tag_calc {
 	my $status = 0;
 	my $safe = new Safe;
 	
-	if ($body =~ s#\[else\]([\s\S]*?)\[/else\]##ige) {
+	if ($body =~ s#\[else\]([\000-\377]*?)\[/else\]##ige) {
 		$else = $1;
 	}
 	else { $else = '0' }
@@ -583,12 +618,17 @@ sub tag_if {
 	my $status = 0;
 	my $safe = new Safe;
 	
-	if ($body =~ s#\[else\]([\s\S]*?)\[/else\]##ige) {
+	if ($body =~ s#\[else\]([\000-\377]*?)\[/else\]##ige) {
 		$else = $1;
 	}
 	else { $else = '' }
 
-	($base, $term, $operator, $comp) = split /\s+/, $cond, 4;
+	unless ($cond =~ /^explicit\s+/i) {
+		($base, $term, $operator, $comp) = split /\s+/, $cond, 4;
+	}
+	else {
+		($base, $term, $operator, $comp) = quoted_string($cond);
+	}
 
 	unless(defined $operator) {
 		$operator = '';
@@ -628,10 +668,11 @@ sub tag_if {
 				if $comp;
 	}
 	elsif($base eq 'file') {
-		$op =~ s/[^rwxezfdTsB]//g;
-		$op = substr($op,0,1) || 'f';
+		#$op =~ s/[^rwxezfdTsB]//g;
+		#$op = substr($op,0,1) || 'f';
+		$op = 'f';
+		$safe->untrap(249);
 		$op = qq|-$op "$term"|;
-		$status = eval {$op};
 	}
 	elsif($base eq 'validcc') {
 		no strict 'refs';
@@ -700,14 +741,14 @@ sub tag_secure_order {
 
 sub pull_if {
 	my($string) = @_;
-	$string =~ s:\[else\]([\S\s]*?)\[/else\]::i;
+	$string =~ s:\[else\]([\000-\377\s]*?)\[/else\]::i;
 	return $string;
 }
 
 sub pull_else {
 	my($string) = @_;
 	my($r);
-	if($string =~ s:\[else\]([\S\s]*?)\[/else\]::i) {
+	if($string =~ s:\[else\]([\000-\377\s]*?)\[/else\]::i) {
 		$r = $1;
 	}
 	else {
@@ -720,29 +761,54 @@ sub pull_else {
 
 sub interpolate_html {
     my($html) = @_;
+
     my($codere) = '[\w-_#/.]+';
     my($coderex) = '[\w-_:#=/.]+';
-    my($codelist) = '[\w-_:,#=/.]+';
 
+    $html =~ s:\[\s*(\d?)\s*(\[[\000-\377]*?\])\s*\1\s*\]:interpolate_html($2):ige;
 
-    $html =~ s:\[\s*(\d?)\s*(\[[\s\S]*?\])\s*\1\s*\]:interpolate_html($2):ige;
-    $html =~ s:\[item[-_]list\]([\000-\377]*?)\[/item[-_]list\]:
-              tag_item_list($1):ige;
-    $html =~ s:\[loop\s+([^\]]+)\]([\000-\377]*?)\[/loop\]:
-              tag_loop_list($1,$2):ige;
+	$html =~ s:\[cart\s+(\w+)\]:tag_cart($1):igeo;
+    1 while $html =~ s: \[item[-_]list(\s+)?($codere)?\]		# tag
+						(?![\000-\377]*\[item[-_]list\])	# ensure innermost
+						([\000-\377]*?)
+						\[/item[-_]list\]:
+					 tag_item_list($3,$2):igex;
+
+    1 while $html =~ s:\[loop\s+
+						([^\]]+)							# all args
+							\]
+						(?![\000-\377]*\[loop\s+)			# ensure innermost
+						([\000-\377]*?)
+						\[/loop\]:
+              tag_loop_list($1,$2):igex;
     $html =~ s:\[default\s+($codere)\]:tag_default($1):igeo;
-    $html =~ s:\[value\s+($codere)\]:tag_value($1):igeo;
+    $html =~ s:\[value\s+($codere)(\s+)?($codere)?\]:tag_value($1,$3):igeo;
     $html =~ s:\[scratch\s+($codere)\]:tag_scratch($1):igeo;
-	$html =~ s:\[calc\]([\s\S]*?)\[/calc\]:tag_calc($1):ige;
-	$html =~ s#\[if\s+([^\]]+)\]([\s\S]*?)\[/if\]#
-				  tag_if($1,$2)#ige;
-	$html =~ s#\[lookup\s+([^\]]+)\]#tag_lookup($1)#ige;
-	$html =~ s#\[set\s+([A-za-z_0-9]+)\]([\s\S]*?)\[/set\]#
+
+    1 while $html =~ s:\[calc\]
+						(?![\000-\377]*\[calc\])			# ensure innermost
+						([\000-\377]*?)
+						\[/calc\]:
+              	tag_calc($1):igex;
+
+	1 while $html =~ s:\[if\s+
+						([^\]]+[^\\])           # all args
+						\]
+						(?![\000-\377]*\[if\s+)				# ensure innermost
+						([\000-\377]*?)
+						\[/if\]:
+				  tag_if($1,$2):igex;
+
+	$html =~ s#\[lookup\s+([^\]]+[^\\])\]#tag_lookup($1)#ige;
+	$html =~ s#\[set\s+([A-za-z_0-9]+)\]([\000-\377]*?)\[/set\]#
 				  set_scratch($1,$2)#ige;
     $html =~ s:\[data\s+($codere)\s+($codere)(\s+)?($codere)?\]:
 					tag_data($1,$2,$4):igeo;
+	$html =~ s#\[msql\s+($codere)([^\]]*)\]([\000-\377]*?)\[/msql\]#
+				  msql_query($1,$3,$2)#igoe;
 	$html =~ s:\[file\s+($codere)\]:readfile($1):igeo;
 
+    $html =~ s:\[check[-_]basket(\s+)?($codere)?\]:tag_check_basket($2):igeo;
     $html =~ s:\[finish[-_]order(\s+)?($codere)?\]:tag_finish_order($2):igeo;
 
     $html =~ s:\[frames[-_]on\]:tag_frames_on():ige;
@@ -761,28 +827,28 @@ sub interpolate_html {
 
     $html =~ s:\[accessories\s+($codere)\]:tag_accessories($1):igeo;
     $html =~ s:\[field\s+($codere)\s+($codere)\]:product_field($2,$1):igeo;
-	$html =~ s#\[static\s+($codere)\]([\s\S]*?)\[/static\]#
+	$html =~ s#\[static\s+($codere)\]([\000-\377]*?)\[/static\]#
 				  fake_html($2,$1)#ige;
 
-    $html =~ s:\[pagetarget\s+($coderex)\s+($codere)\]:tag_pagetarget($1,$2):igeo;
+    $html =~ s!\[pagetarget\s+($coderex)\s+($codere)\]!tag_pagetarget($1,$2)!igeo;
 
     $html =~ s:\[area\s+($coderex)\]:tag_area($1):igeo;
 
-    $html =~ s:\[areatarget\s+($coderex)\s+($codere)\]:tag_areatarget($1,$2):igeo;
+    $html =~ s!\[areatarget\s+($coderex)\s+($codere)\]!tag_areatarget($1,$2)!igeo;
 
     $html =~ s:\[page\s+($coderex)\]:tag_page($1):igeo;
     $html =~ s:\[/page(target)?\]:</a>:ig;
 
     $html =~ s:\[last[-_]page\]:tag_last_page():ige;
-	$html =~ s:\[perl(\s+)?([^\]]+)?\]([\s\S]*?)\[/perl\]:tag_perl($2,$3):ige;
+	$html =~ s:\[perl(\s+)?([^\]]+[^\\])?\]([\000-\377]*?)\[/perl\]:tag_perl($2,$3):ige;
     $html =~ s:\[/last[-_]page\]:</a>:ig;
 
     $html =~ s:\[order\s+($codere)(\s+)?($codere)?\]:tag_order($1,$3):igeo;
     $html =~ s:\[/order\]:</a>:ig;
 
 
-    $html =~ s:\[nitems\]:tag_nitems():ige;
-	$html =~ s#\[discount\s+($codere)\]([\s\S]*?)\[/discount\]#
+    $html =~ s:\[nitems(\s+)?($codere)?\]:tag_nitems($2):ige;
+	$html =~ s#\[discount\s+($codere)\]([\000-\377]*?)\[/discount\]#
 				  tag_discount($1,$2)#ige;
     $html =~ s#\[subtotal\]#currency(subtotal())#ige;
     $html =~ s#\[shipping\]#currency(shipping())#ige;
@@ -790,22 +856,21 @@ sub interpolate_html {
     $html =~ s#\[salestax\]#currency(salestax())#ige;
     $html =~ s#\[total[-_]cost\]#tag_total_cost()#ige;
     $html =~ s#\[price\s+($codere)\]#currency(product_price($1))#igoe;
+	$html =~ s:\[currency\]([\000-\377]*?)\[/currency\]:currency($1):ige;
     $html =~ s#\[description\s+($codere)\]#
                product_description($1)#igoe;
-	$html =~ s:\[row\s+(\d+)\]([\s\S]*?)\[/row\]:tag_row($1,$2):ige;
+	$html =~ s:\[row\s+(\d+)\]([\000-\377]*?)\[/row\]:tag_row($1,$2):ige;
 
     $html =~ s#\[process[-_]order\]#tag_process_order()#ige;
     $html =~ s#\[process[-_]search\]#tag_process_search()#ige;
     $html =~ s#\[process[-_]target\s+($codere)(\s+)?($codere)?\]#
 				tag_process_target($1,$3)#igoe;
+
 	$html =~ s#(<i\w+\s+[^>]*?src=")([^/])#$1 . $Vend::Cfg->{ImageDir} . $2#ige
 		if $Vend::Cfg->{ImageDir};
 
-	# Abortive try to get server to parse doc
-	#$html =~ s&(<!--#)&$Vend::Tag_SSI = 1; $1&ige
-	#	if $Vend::Cfg->{AllowSSI};
+	$html;
 
-    $html;
 }
 
 # Trims the description output for the order and search pages
@@ -817,15 +882,27 @@ sub trim_desc {
 	}
 	$desc;
 }
-	
+
+sub tag_price {
+	currency(product_price($_[0]));
+}
 
 ## ORDER PAGE
 
+my %Sort = (
+	fr	=> sub { (lc $b) cmp (lc $a)	},
+	r	=> sub { $b cmp $a				},
+	rf	=> sub { (lc $b) cmp (lc $a)	},
+	f	=> sub { (lc $a) cmp (lc $b)	},
+	''	=> sub { $a cmp $b				},
+);
+
 sub tag_search_list {
     my($text,$obj,$q) = @_;
-    my($r, $i, $item, $code, $link);
+    my($r, $i, $item, $code, $db, $link);
 	my($linkvalue, $run, $count);
     my($codere) = '[\w-_#/.]+';
+	my(@fields);
 
 	# get the number to start the increment from
 	$count = $q->global('first_match');
@@ -833,11 +910,25 @@ sub tag_search_list {
     $r = "";
 	$linkvalue = $Vend::Cfg->{'ItemLinkValue'};
 	my $linkdir = $Vend::Cfg->{'ItemLinkDir'};
+	my $delim =  $q->global('return_delim') || "\t";
+
+	if($text =~ s/\[uniq\]//i) {
+		my %seen;
+		local($ = 0);
+		@$obj = grep ((m:^([^\t]+): && ! $seen{$1}++), @$obj);
+	}
+
+	if($text =~ s!\[sort(\s+)?([rf]{0,2})\]!!i) {
+		my $option = $2;
+		@$obj = sort { &{$Sort{lc $option}} } @$obj;
+	}
 
     foreach $item (@$obj) {
 		chomp($item);
-		($code, $link) = split(/\s+/,$item, 2);
-		$link = $code if is_yes($Vend::Cfg->{'UseCode'});
+		@fields = split $delim, $item;
+		#($code, $link) = split(/\s+/,$item, 2);
+		#$link = $code if is_yes($Vend::Cfg->{'UseCode'});
+		$link = $code = $fields[0];
 
 		# Uncomment next line to ignore non-database items
 		# next unless product_code_exists($code);
@@ -845,15 +936,22 @@ sub tag_search_list {
 		$count++;
 
 	    $run = $text;
-		$run =~ s#\[if[-_]field\s+($codere)\]([\s\S]*?)\[/if[-_]field\]#
+	    $run =~ s:\[item[-_]param\s+(\d+)\]:$fields[$1]:ig;
+		$run =~ s#\[if[-_]field\s+($codere)\]([\000-\377]*?)\[/if[-_]field\]#
 				  product_field($code,$1)	?	pull_if($2)
 											:	pull_else($2)#ige;
+		$run =~ s#\[if[-_]data\s+($codere)\s+($codere)\]
+					([\000-\377]*?)
+					\[/if[-_]data\]#
+				  $db = $Vend::Database{$1};
+				  database_field($db,$code,$2)	?	pull_if($3)
+												:	pull_else($3)#xige;
 	    $run =~ s:\[item[-_]increment\]:$count:ig;
 	    $run =~ s:\[item[-_]code\]:$code:ig;
-	    $run =~ s:\[item[-_]field\s+($codere)\]:product_field($code,$1):ige;
 		$run =~ s:\[item[-_]data\s+($codere)\s+($codere)\]:
 							tag_data($1,$2,$code):igeo;
 	    $run =~ s:\[item[-_]description\]:trim_desc(product_description($code)):ige;
+	    $run =~ s:\[item[-_]field\s+($codere)\]:product_field($code,$1):ige;
 	    $run =~ s#\[item[-_]link\]#"[page $linkdir$link]"
 	  			. $linkvalue . '[/page]'#ige;
 	    $run =~ s:\[item[-_]price(\s+)?(\d+)?\]:
@@ -1006,8 +1104,6 @@ sub tag_column {
 
 	if(is_yes($spec{'wrap'}) and length($text) > $usable) {
 		@lines = wrap($text,$usable);
-		#$Text::Wrap::columns = $usable;
-		#$text = Text::Wrap::wrap("",$append,$text);
 	}
 	elsif($spec{'align'} =~ /^i/) {
 		$lines[0] = ' ' x $spec{'width'};
@@ -1039,7 +1135,7 @@ sub tag_row {
 	while( $text =~ s:	\[col(umn)?\s+
 				 		([^\]]+)
 				 		\]
-				 		([\s\S]*?)
+				 		([\000-\377]*?)
 				 		\[/col(umn)?\] ::xi    ) {
 		$spec = $2;
 		$col = $3;
@@ -1085,24 +1181,31 @@ sub tag_row {
 }
 
 sub tag_item_list {
-	my($text,$args) = @_;
-	return tag_loop_list(@_) if defined $args;
-	my($r, $i, $item, $modifier, $price, $link, $code, $quantity, $linkvalue, $run);
+	my($text,$cart) = @_;
+	my($r, $i, $item, $price, $link, $code, $db, $quantity, $linkvalue, $run);
 	my($codere) = '[\w-_#/.]+';
 	$r = "";
+
+	$cart = get_cart($cart);
+
 	$linkvalue = $Vend::Cfg->{'ItemLinkValue'};
 	my $linkdir = $Vend::Cfg->{'ItemLinkDir'};
-	foreach $i (0 .. $#$Vend::Items) {
-		$item = $Vend::Items->[$i];
+	foreach $i (0 .. $#$cart) {
+		$item = $cart->[$i];
 		$code = $item->{'code'};
 		$quantity = $item->{'quantity'};
-		$modifier = $item->{'modifier'};
 		$price = product_price($code);
 
 		$run = $text;
-		$run =~ s#\[if[-_]field\s+($codere)\]([\s\S]*?)\[/if[-_]field\]#
+		$run =~ s#\[if[-_]field\s+($codere)\]([\000-\377]*?)\[/if[-_]field\]#
 				  product_field($code,$1)	?	pull_if($2)
 											:	pull_else($2)#ige;
+		$run =~ s#\[if[-_]data\s+($codere)\s+($codere)\]
+					([\000-\377]*?)
+					\[/if[-_]data\]#
+				  $db = $Vend::Database{$1};
+				  database_field($db,$code,$2)	?	pull_if($3)
+												:	pull_else($3)#xige;
 		$run =~ s:\[item[-_]increment\]:$i + 1:ige;
 		$run =~ s:\[item[-_]accessories\]:tag_accessories($code):ige;
 		$run =~ s:\[item[-_]data\s+($codere)\s+($codere)\]:
@@ -1128,21 +1231,29 @@ sub tag_item_list {
 
 sub tag_loop_list {
 	my($list,$text) = @_;
-	my($r, $i, $link, $code, $linkvalue, $run);
+	my($r, $i, $link, $code, $db, $linkvalue, $run);
 	my($codere) = '[\w-_#/.]+';
 	my(@list);
 	$r = "";
 	$linkvalue = $Vend::Cfg->{'ItemLinkValue'};
 	my $linkdir = $Vend::Cfg->{'ItemLinkDir'};
 	$list =~ s/\s+$//;
-	@list = split /\s*[,\0]\s*/, $list;
+	@list = quoted_comma_string($list);
 	$i = 1;
 	foreach $code (@list) {
 		$run = $text;
-		$run =~ s#\[if[-_]field\s+($codere)\]([\s\S]*?)\[/if[-_]field\]#
-				  product_field($code,$1)	?	pull_if($2)
-											:	pull_else($2)#ige;
-		$run =~ s:\[loop[-_]increment\]:$i:ige;
+		$run =~ s#\[if[-_](loop[-_])?field\s+($codere)\]
+						([\000-\377]*?)
+					\[/if[-_](loop[-_])?field\]#
+				  product_field($code,$2)	?	pull_if($3)
+											:	pull_else($3)#igex;
+		$run =~ s#\[if[-_](loop[-_])?data\s+($codere)\s+($codere)\]
+					([\000-\377]*?)
+					\[/if[-_](loop[-_])?data\]#
+				  $db = $Vend::Database{$2};
+				  database_field($db,$code,$3)	?	pull_if($4)
+												:	pull_else($4)#xige;
+		$run =~ s:\[loop[-_]increment\]:$i:igex;
 		$run =~ s:\[loop[-_]accessories\]:tag_accessories($code):ige;
 		$run =~ s:\[loop[-_]data\s+($codere)\s+($codere)\]:
 							tag_data($1,$2,$code):igeo;
@@ -1197,7 +1308,7 @@ sub fly_page
 {
 	my($code) = @_;
 	$code =~ s:.*/::;
-    my($page,$selector);
+    my($page,$selector,$db);
     my($codere) = '[\w-_#/.]+';
 
     if($selector = $Vend::Cfg->{'PageSelectField'}) {
@@ -1217,9 +1328,15 @@ sub fly_page
 	}
 
     return undef unless defined $page;
-	$page =~ s#\[if[-_]field\s+($codere)\]([\s\S]*?)\[/if[-_]field\]#
+	$page =~ s#\[if[-_]field\s+($codere)\]([\000-\377]*?)\[/if[-_]field\]#
 			  product_field($code,$1)	?	pull_if($2)
 			  							:	pull_else($2)#ige;
+	$page =~ s#\[if[-_]data\s+($codere)\s+($codere)\]
+				([\000-\377]*?)
+				\[/if[-_]data\]#
+			  $db = $Vend::Database{$1};
+			  database_field($db,$code,$2)	?	pull_if($3)
+											:	pull_else($3)#xige;
     $page =~ s!\[item[-_]code\]!$code!ig;
     $page =~ s!\[item[-_]description\]!product_description($code)!ige;
     $page =~ s!\[item[-_]price\]!product_price($code)!ige;
@@ -1532,6 +1649,4 @@ sub tag_ups {
 	$cost;
 
 }
-
-
 1;

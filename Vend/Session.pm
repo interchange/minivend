@@ -1,4 +1,4 @@
-# $Id: Session.pm,v 1.5 1996/09/08 08:27:58 mike Exp mike $
+# $Id: Session.pm,v 1.6 1996/10/30 04:22:28 mike Exp $
 
 package Vend::Session;
 require Exporter;
@@ -142,6 +142,7 @@ sub close_session {
 sub write_session {
     my($s);
     $Vend::Session->{'time'} = time;
+	undef $Vend::Session->{'items'};
     $s = uneval($Vend::Session);
     $Vend::SessionDBM{$Vend::SessionName} = $s;
     die "Data was not stored in DBM file\n"
@@ -210,7 +211,9 @@ sub read_session {
     $s = $Vend::SessionDBM{$Vend::SessionName};
     $Vend::Session = eval($s);
     die "Could not eval '$s' from session dbm: $@\n" if $@;
-    $Vend::Items = $Vend::Session->{'items'};
+    $Vend::Items	= $Vend::Session->{'items'}
+					= $Vend::Session->{'carts'}->{'main'};
+    $Vend::Scratch	= $Vend::Session->{'scratch'};
 }
 
 sub expire_sessions {
@@ -280,9 +283,10 @@ sub init_session {
 	'browser' => $CGI::useragent,
 	'scratch' => {},
 	'values' => {},
-	'items' => [],
+	'carts' => {main => []},
     };
-    $Vend::Items	= $Vend::Session->{'items'};
+    $Vend::Items	= $Vend::Session->{'items'}
+					= $Vend::Session->{'carts'}->{'main'};
     $Vend::Scratch	= $Vend::Session->{'scratch'};
 	$Vend::Session->{'secure'} = $Vend::Cfg->{'AlwaysSecure'} ? 1 : 0;
 	$Vend::Session->{'values'}->{'mv_shipmode'} = $Vend::Cfg->{'DefaultShipping'};

@@ -572,6 +572,10 @@ sub new {
 		search_file			=> 'products.asc',
 		search_history		=> [],
 		search_mod			=> '',
+		sort_command		=> 'sort',
+		sort_crippled		=> 0,
+		sort_field			=> '',
+		sort_option			=> '',
 		session_id			=> '',
 		spelling_errors		=> 0,
 		substring_match		=> 0,
@@ -843,6 +847,7 @@ sub get_return {
 #		$s->debug("Got to return_fields ARRAY");
 #		$s->debug("ret: '$g->{return_delim}' ind: '$g->{index_delim}'");
 		$return_sub = sub {
+			chomp($_[0]);
 			return join $g->{return_delim},
 						(split /$g->{index_delim}/, $_[0])[@{$g->{return_fields}}];
 		};
@@ -1018,7 +1023,7 @@ EOCODE
 
     for $pat (@_) {
 	$code .= <<EOCODE;
-    return 0 unless /$bound$pat$bound/$case;
+    return 0 unless m{$bound$pat$bound}$case;
 EOCODE
     } 
 
@@ -1052,7 +1057,7 @@ EOCODE
 
     for $pat (@_) {
 	$code .= <<EOCODE;
-    return 1 if /$bound$pat$bound/$case;
+    return 1 if m{$bound$pat$bound}$case;
 EOCODE
     } 
 
@@ -1074,6 +1079,55 @@ sub save_context {
 		$return->{$_} = $s->{'global'}->{$_};
 	}
 	uneval $return;
+}
+
+# Builds a GNU sort statement for standard input piping
+# Will do AT&T sort if sort_crippled is set
+sub find_sort {
+	my($s) = @_;
+	my $g = $s->{'global'};
+	my ($crippled, $i);
+	
+	return '' unless ref $g->{sort_field};
+
+	my $sort_string = $g->{sort_command};
+	$sort_string .= " -t'$g->{index_delim}'";
+	if($g->{sort_crippled}) {
+		$sort_string .= " -$g->{sort_option}[0]"
+			if ref($g->{sort_option});
+		$crippled = 1;
+	}
+
+	$i = 0;
+	for(@{$g->{sort_field}}) {
+		$sort_string .= " +$_";
+		next unless ref $g->{sort_option};
+		$sort_string .= $g->{sort_option}[$i - 1];
+	}
+
+	$sort_string .= ' |';
+}
+
+sub dump_options {
+	my $self = shift;
+	my (@out);
+	for (sort keys %{$self->{'global'}}) {
+		push @out, "$_: $self->{'global'}->{$_}\n";
+	}
+	@out;
+}
+	
+
+sub quoted_string {
+
+my ($s, $text) = @_;
+my (@fields);
+push(@fields, $+) while $text =~ m{
+   "([^\"\\]*(?:\\.[^\"\\]*)*)"\s?  ## standard quoted string, w/ possible comma
+   | ([^\s]+)\s?                    ## anything else, w/ possible comma
+   | \s+                            ## any whitespace
+	    }gx;
+	@fields;
 }
 
 1;

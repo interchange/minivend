@@ -11,6 +11,7 @@ commify
 currency
 file_modification_time
 get_files
+international_number
 is_no
 is_yes
 logData
@@ -21,10 +22,13 @@ unlockfile
 readfile
 readin
 random_string
+quoted_string
+quoted_comma_string
 setup_escape_chars
 escape_chars
 unescape_chars
 send_mail
+set_cart
 secure_vendUrl
 tabbed
 tag_nitems
@@ -35,14 +39,14 @@ vendUrl
 wrap
 
 );
-@EXPORT_OK = qw(append_field_data append_to_file csv field_line tabbed);
+@EXPORT_OK = qw(append_field_data append_to_file csv field_line);
 
 use strict;
 use Carp;
 use Config;
 use Fcntl;
 # We now use File::Lock for Solaris and SGI systems
-use File::Lock;
+#use File::Lock;
 
 ### END CONFIGURABLE MODULES
 
@@ -106,24 +110,35 @@ sub tabbed {
                           } @_);
 }
 
+sub international_number {
+    return $_[0] unless $Vend::Cfg->{Locale};
+    local($_) = shift;
+    s/(\.\d+)$//;
+    my $dec = $1 || '';
+    $dec =~ s/\./$Vend::Cfg->{Locale}->{decimal_point}/;
+    s/,/$Vend::Cfg->{Locale}->{mon_thousands_sep}/g;
+    return $_ . $dec;
+}
 
 sub commify {
-	local($_) = shift;
-   	1 while s/^(-?\d+)(\d{3})/$1,$2/;
-	return $_;
+    local($_) = shift;
+    1 while s/^(-?\d+)(\d{3})/$1,$2/;
+    return $_;
 }
 
 # Return AMOUNT formatted as currency.
 
 sub currency {
     my($amount) = @_;
+	my $fmt = "%.2f";
+	$fmt = "%." . $Vend::Cfg->{Locale}->{frac_digits} .  "f"
+		if $Vend::Cfg->{Locale} && defined $Vend::Cfg->{Locale}->{frac_digits};
 
-    if(is_yes($Vend::Cfg->{'PriceCommas'})) {
-        commify sprintf("%.2f", $amount);
-    }
-    else {
-        sprintf("%.2f", $amount);
-    }
+    $amount = sprintf $fmt, $amount;
+    $amount = commify($amount)
+        if is_yes($Vend::Cfg->{'PriceCommas'});
+
+    return international_number($amount);
 }
 
 
@@ -277,14 +292,17 @@ sub logData {
 	my $msg = tabbed @msg;
 
     eval {
-		open(Vend::LOGDATA, "$file") or die "open\n";
-		unless($file =~ /^[|]/) {
+		unless($file =~ s/^[|]\s*//) {
+			open(Vend::LOGDATA, "$file") or die "open\n";
 			lockfile(\*Vend::LOGDATA, 1, 1) or die "lock\n";
 			seek(Vend::LOGDATA, 0, 2) or die "seek\n";
-		}
-		print(Vend::LOGDATA "$msg\n") or die "write to\n";
-		unless($file =~ /^[|]/) {
+			print(Vend::LOGDATA "$msg\n") or die "write to\n";
 			unlockfile(\*Vend::LOGDATA) or die "unlock\n";
+		}
+		else {
+            my (@args) = grep /\S/, quoted_string($file);
+			open(Vend::LOGDATA, "|-") || exec @args;
+			print(Vend::LOGDATA "$msg\n") or die "pipe to\n";
 		}
 		close(Vend::LOGDATA) or die "close\n";
     };
@@ -292,7 +310,6 @@ sub logData {
     chomp $@;
     logError "Could not $@ log file '" . $file . "':\n$!\n" .
     		"to log this data:\n" .  $msg ;
-    exit 1;
     }
 }
 
@@ -338,6 +355,32 @@ sub file_modification_time {
     my ($fn) = @_;
     my @s = stat($fn) or die "Can't stat '$fn': $!\n";
     return $s[9];
+}
+
+
+sub quoted_string {
+
+my ($text) = @_;
+my (@fields);
+push(@fields, $+) while $text =~ m{
+   "([^\"\\]*(?:\\.[^\"\\]*)*)"\s?  ## standard quoted string, w/ possible space
+   | ([^\s]+)\s?                    ## anything else, w/ possible space
+   | \s+                            ## any whitespace
+        }gx;
+    @fields;
+}
+
+
+sub quoted_comma_string {
+
+my ($text) = @_;
+my (@fields);
+push(@fields, $+) while $text =~ m{
+   "([^\"\\]*(?:\\.[^\"\\]*)*)"[\s,]?  ## std quoted string, w/possible space-comma
+   | ([^\s,]+)[\s,]?                   ## anything else, w/possible space-comma
+   | [,\s]+                            ## any comma or whitespace
+        }gx;
+    @fields;
 }
 
 
@@ -466,8 +509,9 @@ sub is_no {
 
 sub vendUrl
 {
-    my($path, $arguments) = @_;
-    my $r = $Vend::Cfg->{'VendURL'};
+    my($path, $arguments, $r) = @_;
+    $r = $Vend::Cfg->{'VendURL'}
+		unless defined $r;
 	$arguments = '' unless defined $arguments;
 
 	if(defined $Vend::Cfg->{'AlwaysSecure'}->{$path}) {
@@ -631,28 +675,47 @@ sub unlockfile {
 }
 
 # Returns the number ordered of a single item code
+# Uses the current cart if none specified.
 
 sub tag_item_quantity {
-	my($code) = @_;
-    my($i);
-    foreach $i (0 .. $#$Vend::Items) {
-		return $Vend::Items->[$i]->{'quantity'}
-			if $code eq $Vend::Items->[$i]->{'code'};
+	my($code,$ref) = @_;
+    my($i,$cart);
+	
+	if(ref $Vend::Session->{carts}->{$ref}) {
+		 $cart = $Vend::Session->{carts}->{$ref};
+	}
+	else {
+		$cart = $Vend::Items;
+	}
+
+	my $q = 0;
+    foreach $i (0 .. $#$cart) {
+		$q += $cart->[$i]->{'quantity'}
+			if $code eq $cart->[$i]->{'code'};
     }
-	0;
+	$q;
 }
 
 # Returns the total number of items ordered.
+# Uses the current cart if none specified.
 
 sub tag_nitems {
-    my($total, $i);
+	my($ref) = @_;
+    my($cart, $total, $i);
+
+	
+	if(ref $Vend::Session->{carts}->{$ref}) {
+		 $cart = $Vend::Session->{carts}->{$ref};
+	}
+	else {
+		$cart = $Vend::Items;
+	}
 
     $total = 0;
-    foreach $i (0 .. $#$Vend::Items) {
-	$total += $Vend::Items->[$i]->{'quantity'};
+    foreach $i (0 .. $#$cart) {
+		$total += $cart->[$i]->{'quantity'};
     }
     $total;
 }
-
 
 1;

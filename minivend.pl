@@ -2,7 +2,7 @@
 #
 # MiniVend version 2.00
 #
-# $Id: minivend.pl,v 2.2 1996/09/08 08:27:13 mike Exp mike $
+# $Id: minivend.pl,v 2.5 1996/11/04 09:02:50 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -30,7 +30,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 BEGIN {
-$Global::VendRoot = '/usr/local/lib/minivend';
+$Global::VendRoot = '/home/mike/mvend202';
 $Global::ConfDir = "$Global::VendRoot/etc";
 }
 $Global::ConfigFile = 'minivend.cfg';
@@ -42,10 +42,6 @@ use lib $Global::VendRoot;
 # we want to make sure the program is there. Insert the location
 # of you sendmail binary (the configure script should do this)
 $Global::SendMailLocation = '/usr/lib/sendmail';
-
-# Use the next line if you have the Des module and the
-# proper library support (the configure script should do this)
-use Des;
 
 # For the order counter, no huge deal if not there.  Included
 # with the distribution, but will go bye-bye if you only have
@@ -60,7 +56,8 @@ use Fcntl;
 #select a DBM
 
 BEGIN {
-	$Global::GDBM = $Global::DB_File = $Global::NDBM = 0;
+	$Global::GDBM = $Global::DB_File = $Global::NDBM = $Global::Msql = 0;
+	eval {require Msql and $Global::Msql = 1};
 	eval {require GDBM_File and $Global::GDBM = 1} ||
 	eval {require DB_File and $Global::DB_File = 1} ||
 	eval {require NDBM_File and $Global::NDBM = 1};
@@ -96,6 +93,8 @@ use Vend::Order;
 use Vend::Data;
 use Vend::Util;
 use Vend::Interpolate;
+use Vend::ValidCC;
+use Vend::Cart;
 use Vend::PageBuild;
 
 my $H;
@@ -108,66 +107,6 @@ $Global::ConfigFile = "$Global::VendRoot/$Global::ConfigFile"
 $Global::ErrorFile = "$Global::VendRoot/$Global::ErrorFile"
     if ($Global::ErrorFile !~ m.^/.);
 
-# Encrypts a credit card number with DES or the like
-# Prefers internal Des module, if was included
-sub encrypt_cc {
-	my($enclair) = @_;
-	my($password) = $Vend::Cfg->{'Password'} || return undef;
-	my($ivec) = $Vend::Cfg->{'Pw_Ivec'} || return undef;
-	my($encrypted, $status, $cmd);
-	my $firstline = 0;
-
-	$cmd = $Vend::Cfg->{'EncryptProgram'};
-
-	# This is the internal function, will return the value
-	# only if it was found. Takes the IVEC from the first
-	# eight characters of the encrypted password
-	if (defined @Des::EXPORT) {
-		my $key = string_to_key($password);
-		my $sched = set_key($key);
-		$encrypted = pcbc_encrypt($enclair,undef,$sched,$ivec);
-		open(CAT, ">test.out");
-		print CAT $encrypted;
-		close CAT;
-		return $encrypted;
-	}
-
-	#Substitute the password
-	unless ($cmd =~ s/%p/$password/) {
-		$firstline = 1;
-	}
-
-	my $tempfile = $Vend::SessionID . '.cry';
-
-	#Substitute the filename, else concatenate
-	unless ($cmd =~ s/%f/$tempfile/) {
-		$cmd .= " $tempfile";
-	}
-
-	# Send the CC to a tempfile
-	open(CARD, ">$tempfile") ||
-		die "Couldn't write $tempfile: $!\n";
-
-	# Put the cardnumber there, and maybe password first
-	print CARD "$password\n" if $firstline;
-	print CARD $enclair;
-	#close CARD;
-
-	# Encrypt the string, but key on arg line will be exposed
-	# to ps(1) for systems that allow it
-	open(CRYPT, "$cmd |") || die "Couldn't fork: $!\n";
-	chomp($encrypted = <CRYPT>);
-	close CRYPT;
-	$status = $?;
-
-	if($status) {
-		logError("Encryption didn't work, status $status: $!\n"
-					. "Command: $cmd\n");
-		return undef;
-	}
-
-	$encrypted;
-}
 
 ## PAGE GENERATION
 
@@ -329,8 +268,12 @@ sub do_page {
 
 sub do_order
 {
-    my($code,$page) = @_;
-    my($i, $found, $item);
+    my($code,$path) = @_;
+    my($i, $found, $item, $save, %att);
+	
+	my($cart,$page) = split m:/:, $path, 2;
+
+	$cart = get_cart $cart;
 
     if (!product_code_exists($code)) {
 		logError("Attempt to order missing product code: $code\n");
@@ -338,15 +281,31 @@ sub do_order
 		return;
     }
 
-    # Check that the item has not been already ordered.
-    $found = -1;
-    foreach $i (0 .. $#$Vend::Items) {
-		if ($Vend::Items->[$i]->{'code'} eq $code) {
-			$found = $i;
-		}
-    }
 
-    # An if not, start of with a single quantity.
+    INC: {
+
+		# Check that the item has not been already ordered.
+		$found = -1;
+
+		# Check to see if we should push an already-ordered item instead of 
+		# ignoring it 
+		my $separate =
+				$Vend::Cfg->{SeparateItems} ||
+					(
+						defined $Vend::Session->{scratch}->{mv_separate_items}
+					 && is_yes( $Vend::Session->{scratch}->{mv_separate_items} )
+					 );
+		last INC if $separate;
+
+		foreach $i (0 .. $#$cart) {
+			if ($cart->[$i]->{'code'} eq $code) {
+				$found = $i;
+			}
+		}
+
+	} # INC
+
+    # And if not found or separate, start with a single quantity.
     if ($found == -1) {
 		$item = {'code' => $code, 'quantity' => 1};
 		if($Vend::Cfg->{UseModifier}) {
@@ -354,7 +313,7 @@ sub do_order
 				$item->{$i} = '';
 			}
 		}
-		push @$Vend::Items, $item;
+		push @$cart, $item;
     }
 
     order_page($page);		# display the order page
@@ -417,20 +376,22 @@ sub do_scan {
 
 # Returns undef if interaction error
 sub update_quantity {
-	my($h, $i, $quantity, $modifier);
+	my($h, $i, $quantity, $modifier, $cart);
 
     return 1 unless defined  $CGI::values{"quantity0"};
 
+	$cart = get_cart($CGI::values{mv_cartname});
+
 	if(ref $Vend::Cfg->{UseModifier}) {
 		foreach $h (@{$Vend::Cfg->{UseModifier}}) {
-			foreach $i (0 .. $#$Vend::Items) {
+			foreach $i (0 .. $#$cart) {
 				$modifier = $CGI::values{"$h$i"};
 				if (defined($modifier)) {
 					$modifier =~ s/\0+/\0/g;
 					$modifier =~ s/\0$//;
 					$modifier =~ s/^\0//;
 					$modifier =~ s/\0/, /g;
-					$Vend::Items->[$i]->{$h} = $modifier;
+					$cart->[$i]->{$h} = $modifier;
 					$Vend::Session->{'values'}->{"$h$i"} = $modifier;
 					#delete $Vend::Session->{'values'}->{"$h$i"};
 				}
@@ -438,10 +399,10 @@ sub update_quantity {
 		}
 	}
 
-	foreach $i (0 .. $#$Vend::Items) {
+	foreach $i (0 .. $#$cart) {
     	$quantity = $CGI::values{"quantity$i"};
     	if (defined($quantity) && $quantity =~ m/^\d+$/) {
-        	$Vend::Items->[$i]->{'quantity'} = $quantity;
+        	$cart->[$i]->{'quantity'} = $quantity;
     	}
 		# This allows a multiple input of item quantity to
 		# pass -- FIRST ONE CONTROLS
@@ -450,7 +411,7 @@ sub update_quantity {
 			redo;
 		}
 		elsif (defined $quantity) {
-			my $item = $Vend::Items->[$i]->{'code'};
+			my $item = $cart->[$i]->{'code'};
         	interaction_error("'$quantity' for item $item is not numeric\n");
         	return undef;
     	}
@@ -459,17 +420,10 @@ sub update_quantity {
         	return undef;
     	}
     }
+
 	# If the user has put in "0" for any quantity, delete that item
     # from the order list.
-    DELETE: for (;;) {
-        foreach $i (0 .. $#$Vend::Items) {
-            if ($Vend::Items->[$i]->{'quantity'} == 0) {
-                splice(@$Vend::Items, $i, 1);
-                next DELETE;
-            }
-        }
-        last DELETE;
-    }
+    toss_cart($cart);
 
 	1;
 
@@ -477,43 +431,64 @@ sub update_quantity {
 
 sub add_items {
 
-	my($items) = @_;
+	my($items,$quantities) = @_;
 	my(@items);
-	my($code,$found,$item,$i,$j,$q);
+	my($code,$found,$item,$quantity,$i,$j,$q);
+	my(@quantities);
 
 	@items = split /\0/, $items;
 
+	my $cart = $CGI::values{mv_cartname};
+
+	$cart = get_cart($cart);
+
+	if($quantities ||= '') {
+		@quantities = split /\0/, $quantities;
+	}
+
+	my $separate =
+			$Vend::Cfg->{SeparateItems} ||
+				(
+					defined $Vend::Session->{scratch}->{mv_separate_items}
+				 && is_yes( $Vend::Session->{scratch}->{mv_separate_items} )
+				 );
+	$j = 0;
 	foreach $code (@items) {
 		if (!product_code_exists($code)) {
 			logError("Attempt to order missing product code: $code\n");
 			display_special_page($Vend::Cfg->{'Special'}->{'noproduct'}, $code);
 			return;
 		}
+		$quantity = $quantities[$j++] ||= 1;
 
-		# Check that the item has not been already ordered.
-		$found = -1;
-		foreach $i (0 .. $#$Vend::Items) {
-			if ($Vend::Items->[$i]->{'code'} eq $code) {
-				$found = $i;
-				# Increment quantity. This is different than
-				# the standard handling because we are ordering
-				# accessories, and may want more than 1 of each
-				$Vend::Items->[$i]->{'quantity'}++;
-				$CGI::values{"quantity$i"}++;
+
+		INCREMENT: {
+
+			# Check that the item has not been already ordered.
+			# But let us order separates if so configured
+			$found = -1;
+			last INCREMENT if $separate;
+
+			foreach $i (0 .. $#$cart) {
+				if ($cart->[$i]->{'code'} eq $code) {
+					$found = $i;
+					# Increment quantity. This is different than
+					# the standard handling because we are ordering
+					# accessories, and may want more than 1 of each
+					$cart->[$i]->{'quantity'} += $quantity;
+				}
 			}
-		}
+		} # INCREMENT
 
 		# An if not, start of with a single quantity.
 		if ($found == -1) {
-			$item = {'code' => $code, 'quantity' => 1};
+			$item = {'code' => $code, 'quantity' => $quantity};
 			if($Vend::Cfg->{UseModifier}) {
 				foreach $i (@{$Vend::Cfg->{UseModifier}}) {
 					$item->{$i} = '';
 				}
 			}
-			push @$Vend::Items, $item;
-			$q = $#{$Vend::Items};
-			$CGI::values{"quantity$q"} = 1;
+			push @$cart, $item;
 		}
 	}
 }
@@ -533,18 +508,42 @@ sub do_finish {
 sub update_user {
 	my($key,$value);
     # Update the user-entered fields.
+
+	if (defined $CGI::values{'mv_order_item'} and 
+		$value = $CGI::values{'mv_order_item'} ) {
+		my $quantities = $CGI::values{mv_order_quantity} ||= '';
+		add_items($value,$quantities);
+		delete $CGI::values{mv_order_quantity};
+		delete $CGI::values{mv_order_item};
+	}
+
+	#
+
+	if( $Vend::Cfg->{CreditCardAuto} and $CGI::values{mv_credit_card_number} ) {
+		#logGlobal join "\n",
+			#encrypt_standard_cc(\%CGI::values);
+		(
+			$Vend::Session->{'values'}->{mv_credit_card_valid},
+			$Vend::Session->{'values'}->{mv_credit_card_info},
+			$Vend::Session->{'values'}->{mv_credit_card_exp_month},
+			$Vend::Session->{'values'}->{mv_credit_card_exp_year},
+			$Vend::Session->{'values'}->{mv_credit_card_exp_all},
+			$Vend::Session->{'values'}->{mv_credit_card_type},
+			$Vend::Session->{'values'}->{mv_credit_card_error}
+		)
+			= encrypt_standard_cc(\%CGI::values);
+	}	
+
     while (($key, $value) = each %CGI::values) {
         next if ($key =~ m/^quantity\d+/);
         next if ($key =~ /^mv_(todo|nextpage|doit)/);
 
 		# We add any checkbox ordered items, but don't update -- 
 		# we don't want to order them twice
-		if ($key eq 'mv_order_item') {
-			add_items($value);
-			next;
-		}
         $Vend::Session->{'values'}->{$key} = $value;
-		next unless $key =~ /credit_card/i;
+
+		next unless $value =~ /credit_card/;
+
 		if(	defined $Vend::Cfg->{'Password'} &&
 			$Vend::Cfg->{'CreditCards'}			)
 		{
@@ -558,8 +557,8 @@ sub update_user {
 			# No writing of real credit card numbers without 
 			# encryption
         	$Vend::Session->{'values'}->{$key} = 'xxxxxxxxxxxxxxxxxxxxxx';
+			undef $CGI::values{$key};
 		}
-			
     }
 }
 
@@ -663,6 +662,10 @@ sub do_process {
 		my($missing,$next,$status,$final);
 		my($values) = $Vend::Session->{'values'};
 
+		# Set shopping cart
+		
+		$Vend::Items = get_cart $CGI::values{mv_cartname};
+
 	  CHECK_ORDER: {
 
 		if (defined $CGI::values{'mv_order_profile'}) {
@@ -692,13 +695,16 @@ sub do_process {
 			put_session();
 			return;
 		}
-			
+
 		# This function (followed down) now does the backend ordering
 		$ok = mail_order();
 
 		# Display a receipt if configured
 
-		if ($ok && $Vend::Cfg->{'ReceiptPage'}) {
+		if ($ok && $Vend::Session->{'values'}->{'mv_order_receipt'}) {
+	    	display_special_page($Vend::Session->{'values'}->{'mv_order_receipt'});
+		}
+		elsif ($ok && $Vend::Cfg->{'ReceiptPage'}) {
 	    	display_special_page($Vend::Cfg->{'ReceiptPage'});
 		}
 		elsif ($ok) {
@@ -1321,6 +1327,7 @@ sub main {
 		# This should never return unless killed or an error
 		# We set debug mode to -1 to communicate with the server
 		# that no output is desired
+		$0 = 'minivend';
 		scrub_sockets() unless $Global::MultiServer;
 		my $pipestat = $|;
 		my $save = select STDERR; 

@@ -1,0 +1,118 @@
+#!/usr/bin/perl
+
+$Script     = '/cgi/revenda';
+$ScriptPath = '/h/cgi-bin/revenda';
+#$Path = '/c/hfe/compradores';
+$Path = '';
+$Suffix = '';
+
+my %preset = (
+			mv_doit => 'refresh',
+			mv_nextpage => 'catalog',
+			mv_orderpage => 'catalog',
+			);
+
+use FileHandle;
+use URI::Escape;
+use POSIX 'tmpnam';
+use strict;
+use vars qw($ScriptPath $Script $Path $Suffix);
+
+my %env = (
+	REQUEST_METHOD	=> 'POST',
+	CONTENT_TYPE	=> 'application/x-www-form-urlencoded',
+	SCRIPT_NAME		=> $Script,
+	PATH_INFO		=> '/process',
+);
+
+my %Data;
+
+my($user,$path);
+
+my $tried = 0;
+
+sub die_page {
+	my $string = shift;
+	print <<EOF;
+Content-type: text/html
+
+<HTML>
+<HEAD><TITLE>Error: $string</TITLE></HEAD>
+<BODY BGCOLOR=WHITE>
+
+<H2>Error $string</H2>
+
+</BODY>
+</HTML>
+EOF
+	exit 0;
+}
+
+CHECK: {
+	if(defined $ENV{REMOTE_USER}) {
+		$user = $ENV{REMOTE_USER};
+	}
+	else {
+		$user = 'default';
+	}
+	$path = $Path || '.';
+	$path .= '/' . $user . $Suffix;
+
+	if(! -f $path) {
+		die_page("No account for user $user")
+			if $tried++;
+		redo CHECK;
+	}
+
+}
+
+    open(USER, $path)
+		|| die_page("Permission to use account was denied, can't read.");
+	
+
+	my ($var,$value);
+	my $out = '';
+	my @out;
+	my $join = '';
+
+	# Put in the preset values
+	for (keys %preset) {
+		push @out, "$_=" . uri_escape($preset{$_});
+	}
+
+    while(<USER>) {
+		chomp;			# zap trailing newline,
+		s/^\s*#.*//;            # comments,
+					# mh 2/10/96 changed comment behavior
+					# to avoid zapping RGB values
+					#
+		s/\s+$//;		#  trailing spaces
+		next if $_ eq '';
+		# lines read from the file become untainted
+		m/^(\w+)\s+(.*)/ or die page("Syntax error in account information.");
+		$var = $1;
+		$value = $2;
+		push @out, "$var=" . uri_escape($value);
+	}
+
+
+	$out = join '&', @out;
+
+	$env{CONTENT_LENGTH} = length $out;
+
+	for(keys %env) {
+		$ENV{$_} = $env{$_};
+	}
+
+	my $tmpfile = POSIX::tmpnam();
+
+	open(VLINK, "|$ScriptPath > $tmpfile") or die "Couldn't return data: $!\n";
+	print VLINK $out;
+	close VLINK;
+
+	open(OUTPUT, "$tmpfile") or die "Couldn't return data: $!\n";
+	while(<OUTPUT>) { print }
+	close OUTPUT;
+	unlink $tmpfile;
+	
+	exit 0;

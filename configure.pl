@@ -152,6 +152,33 @@ sub prompt {
     $ans ? $ans : $def;
 }
 
+sub install_file_lock {
+
+    mkdir('auto', 0755) or die "mkdir auto/: $!\n";
+    chdir 'src' or die "Source directory src/ not found: $!\n";
+    system "tar xf File-Lock-0.9.tar";
+    chdir 'File-Lock-0.9' or die "chdir: $!\n";
+    my $makemake = <<EOF;
+$PERL Makefile.PL INSTALLPRIVLIB=$Initial{'VendRoot'} \
+                  INSTALLARCHLIB=$Initial{'VendRoot'} \
+                  INSTALLSITELIB=$Initial{'VendRoot'} \
+                  INSTALLMAN1DIR=$Initial{'VendRoot'}/doc \
+                  INSTALLMAN3DIR=$Initial{'VendRoot'}/doc \
+                  INSTALLSITEARCH=$Initial{'VendRoot'} \
+                  INSTALLDIRS=perl
+EOF
+    for ($makemake, 'make', 'make test', 'make pure_perl_install') {
+        system $_;
+        if($?) {
+            die "File::Lock make process failed.\n";
+            return 0;
+        }
+    }
+    chdir '../..' or die "chdir: $!\n";
+    1;
+}
+
+
 sub adjustvars {
 	my ($file,%vars) = @_;
 
@@ -220,7 +247,7 @@ sub adjustvars {
 my %ModuleMessage = (
 	
 	File::Basename => sub {
-							die <<EOF;
+							$msg = <<EOF;
 
 You don't have the File::Basename module, why not?  It is included
 with every Perl 5 distribution. You should contact your system
@@ -231,20 +258,10 @@ surprised if you can't start the server.
 This is a strong warning.
 
 EOF
-					},
-	Text::ParseWords => sub {
-							die <<EOF;
-
-You don't have the Text::ParseWords module, why not?  It is included
-with every Perl 5 distribution. You should contact your system
-administrator and ask them to install Perl properly.
-
-This is fatal.
-
-EOF
+							$msg;
 					},
 	Search::Dict => sub {
-							print <<EOF;
+							my $msg = <<EOF;
 
 You don't have the Search::Dict module, why not?  It is included
 with every Perl 5 distribution. You should contact your system
@@ -255,9 +272,10 @@ fast binary search. MiniVend will crash if you do.  An outside person
 could even crash it if they knew the right URL to submit.
 
 EOF
+							$msg;
 					},
 	File::CounterFile => sub {
-							print <<EOF;
+							my $msg = <<EOF;
 
 You don't have the File::CounterFile module for some reason. It may
 be because you are installing with Perl 5.001, naughty you! You 
@@ -267,28 +285,33 @@ It won't cause a problem except you cannot use the OrderNumber
 directive.  Please comment it out of any catalog.cfg file.
 
 EOF
+							$msg;
 					},
 	File::Lock => sub {
 						if ($Config{'osname'} eq 'solaris') {
-							die <<EOF;
-You are running Solaris 2, and you don't have the File::Lock module
-installed.  This is a show-stopper -- Solaris doesn't support flock(),
-and you need this module. The good news is that it is available at
-any CPAN site, and you can download it from http://www.perl.com at
-any time.
+							warn <<EOF . "\n";
 
-See you when you get it.
+You are running Solaris 2, and you don't have the File::Lock module
+installed. This is a show-stopper -- Solaris doesn't support flock(),
+and you need this module. The good news is that it is included with
+MiniVend. It is also available at any CPAN site -- you can download it
+from http://www.perl.com at any time.
+
+MiniVend's attempt to install it apparently failed, so try and install
+it manually.  See you when you get it.
 
 EOF
 						}
+						"";
 					},
 	Des			=> sub {
-							print "You have no Des.pm module, no biggie.\n"
+							"You have no Des.pm module, no biggie.\n"
 					},
 	generic     => sub {
-							print <<EOF;
+							my $msg = <<EOF;
 You don't have the $_[0] module, this is normally not fatal.
 EOF
+							$msg;
 					},
 			
           );
@@ -316,15 +339,16 @@ sub adjustmodules {
 		}
 		$line = $_;
 		foreach $mod (@modules) {
+			$RedoModule = 0;
 			$found = 0;
 			if ($line =~ /^\s*#*use\s+$mod\s?;?/ ) {
 				eval { eval "require $mod" and $found = 1};
 				print "Found reference to module $mod in $file\n" if $DEBUG;
 				if (!$found or $@) {
 					$changed++ if $line =~ s/^(\s*)use/$1#use/;
-					warn &{$ModuleMessage{$mod}}()
+					warn &{$ModuleMessage{$mod}}() . "\n"
 							if defined $ModuleMessage{$mod};
-					warn &{$ModuleMessage{'generic'}}($mod)
+					warn &{$ModuleMessage{'generic'}}($mod) . "\n"
 							if ! defined $ModuleMessage{$mod};
 					warn $found ? 'It was found but: ' : 'It was not found: ' . 
 						"\n$@\n" if $DEBUG;
@@ -929,14 +953,26 @@ LOCK_GCC: {
 	last LOCK_GCC unless
 		$Config{'osname'} =~ /solaris/i;
 	$GCCFLAG = ' -lsocket -DSVR4';
-	print <<EOF;
+	eval {require File::Lock and last LOCK_GCC }; 
+
+		print <<EOF;
 
 Your operating system ($Config{'osname'}) doesn't fully support
 flock(), so you will need the File::Lock module in order for
-MiniVend to operate.  It can be obtained from http://www.perl.com
-in the CPAN area.  Expect a ***fatal*** error if you don't have it.
+MiniVend to operate.  It is included with MiniVend, but the
+latest version can be obtained from http://www.perl.com
+in the CPAN area.  Expect a ***fatal*** error if you don't have
+it and MiniVend is not able to install it..
+
+MiniVend will try and install the module now.
 
 EOF
+		install_file_lock() or die "\nInstall FAILED.\n";
+		print "\nInstall successful, apparently.\n";
+		system	$PERL,
+			'-npi', '-e',
+			"'s!^\s*#\s*(use\s+File::Lock)!$1!'",
+			'Vend/Util.pm';
 
 } # last LOCK_GCC
 

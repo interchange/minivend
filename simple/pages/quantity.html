@@ -3,14 +3,14 @@
 <HEAD><TITLE>[loop_description]</TITLE></HEAD>
 <CENTER>
 [body 1]
-[if_field category]Category: [loop_field category][/if_field]
+[if_loop_field category]Category: [loop_field category][/if_loop_field]
 <P>
-[if_field image]
+[if_loop_field image]
 <IMG SRC="[loop_field image]">
 <P>
 [order [loop_code]]<IMG SRC="ordernow.gif" BORDER=0>[/order]
 <P>
-[/if_field]
+[/if_loop_field]
 <H2>[loop_field title]</H2>
 <H4>[loop_field artist]</H4>
 <P>

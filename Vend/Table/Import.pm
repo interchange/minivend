@@ -1,10 +1,13 @@
 # Table/Import.pm: import a table
 #
-# $Id: Import.pm,v 1.3 1996/09/08 08:29:46 mike Exp mike $
+# $Id: Import.pm,v 1.4 1996/10/19 18:54:10 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
 # $Log: Import.pm,v $
+# Revision 1.4  1996/10/19 18:54:10  mike
+# MV 202a, interim
+#
 # Revision 1.3  1996/09/08 08:29:46  mike
 # Removed hiding scope declaration
 #
@@ -33,7 +36,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::Import;
-$VERSION = substr(q$Revision: 1.3 $, 10);
+$VERSION = substr(q$Revision: 1.4 $, 10);
 
 require Exporter;
 @ISA = qw(Exporter);
@@ -47,7 +50,9 @@ sub import_csv {
 
     die "The source file '$source' does not exist\n" unless -e $source;
 
-    open(IN, $source) or die "Can't open '$source' for reading: $!\n";
+    open(Vend::Table::Import::IN, "+<$source")
+		or die "Can't open '$source' for reading: $!\n";
+	lockfile(\*Vend::Table::Import::IN, 1, 1) or die "lock\n";
     my @columns = read_quoted_fields(\*IN);
     die "$source is empty\n" unless @columns;
     shift @columns;
@@ -57,7 +62,8 @@ sub import_csv {
     while (@fields = read_quoted_fields(\*IN)) {
         $out->set_row(@fields);
     }
-    close(IN);
+	unlockfile(\*Vend::Table::Import::IN) or die "unlock\n";
+    close(Vend::Table::Import::IN);
     $out->close_table();
 	return $out;
 }
@@ -69,8 +75,10 @@ sub import_ascii_delimited {
     my ($infile, $delimiter, $create) = @_;
     $delimiter = quotemeta($delimiter);
 
-    open(IN, $infile) or die "Couldn't open '$infile': $!\n";
-    
+    open(Vend::Table::Import::IN, "+<$infile")
+		or die "Couldn't open '$infile': $!\n";
+	lockfile(\*Vend::Table::Import::IN, 1, 1) or die "lock\n";
+
     my $field_names = <IN>;
     chomp $field_names;
     my @field_names = split(/$delimiter/, $field_names);
@@ -89,7 +97,8 @@ sub import_ascii_delimited {
 END
     die $@ if $@;
 
-    close(IN);
+	unlockfile(\*Vend::Table::Import::IN) or die "unlock\n";
+    close(Vend::Table::Import::IN);
     $out->close_table();
     return $out;
 }

@@ -1,6 +1,6 @@
 # Vend/Glimpse.pm:  Search indexes with Glimpse
 #
-# $Id: Glimpse.pm,v 2.0 1996/08/30 08:26:58 mike Exp $
+# $Id: Glimpse.pm,v 2.4 1996/11/04 09:03:34 mike Exp mike $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::Glimpse
 #
@@ -20,15 +20,15 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #
-###  vi regex to delete debugs     %s/^\(.*$s->debug\)/#\1/
-###  vi regex to restore debugs     %s/^\([^#]*\)#\(.*$s->debug\)/\1\2/
+##  vi regex to delete debugs     %s/^\(.*$s->debug\)/#\1/
+##  vi regex to restore debugs     %s/^\([^#]*\)#\(.*$s->debug\)/\1\2/
 #
 
 package Vend::Glimpse;
 require Vend::Search;
 @ISA = qw(Vend::Search);
 
-$VERSION = substr(q$Revision: 2.0 $, 10);
+$VERSION = substr(q$Revision: 2.4 $, 10);
 use Text::ParseWords;
 use strict;
 
@@ -49,7 +49,7 @@ sub init {
 	$s->{global}->{base_directory} = $Vend::Cfg->{'ProductDir'};
 	$s->{global}->{glimpse_cmd} = $Vend::Cfg->{'Glimpse'} || 'glimpse';
 	$s->{global}->{min_string} = 4;
-	$s->{global}->{search_file} = 'products\.asc';
+	$s->{global}->{search_file} = '';
 	$s->{global}->{search_server} = undef;
 	$s->{global}->{search_port} = undef;
 
@@ -57,6 +57,29 @@ sub init {
 
 sub version {
 	$Vend::Glimpse::VERSION;
+}
+
+sub quoted_string {
+
+my ($s, $text) = @_;
+my (@fields);
+push(@fields, $+) while $text =~ m{
+   "([^\"\\]*(?:\\.[^\"\\]*)*)"\s?  ## standard quoted string, w/ possible comma
+   | ([^\s]+)\s?                    ## anything else, w/ possible comma
+   | \s+                            ## any whitespace
+	    }gx;
+   return grep /\w/, @fields;
+}
+
+sub escape {
+	my($self, @text) = @_;
+	if($self->{'global'}->{all_chars}) {
+			@text = grep quotemeta $_, @text;
+	}
+	for(@text) {
+		s!([';])!.!g;
+	}
+	return @text;
 }
 
 sub search {
@@ -76,9 +99,8 @@ sub search {
 		$g->{$key} = $val;
 	}
  	$index_delim = $g->{index_delim};
-	$return_delim = defined $g->{return_delim}
-						? $g->{return_delim}
-						: $index_delim;
+    $g->{return_delim} = $index_delim
+	        unless defined $g->{return_delim};
 
 	$g->{matches} = 0;
 	$max_matches = $g->{max_matches};
@@ -150,6 +172,10 @@ sub search {
 	push(@cmd, '-w') unless $g->{substring_match};
 	push(@cmd, '-l') if $g->{return_file_name};
 	
+	# Calls and returns sort string based on
+	# sort_field and sort_options settings
+	my $sort_string = $s->find_sort();
+
 	if(! defined $g->{record_delim}) { 
 		push @cmd, "-d 'NeVAiRbE'";
 	}
@@ -170,34 +196,22 @@ sub search {
 		push @cmd, "-d '$g->{record_delim}'";
 	}
 
-	if($g->{exact_match}) {
-		for(@specs) {
-			s/"//g;
-			$_ = '"' . $_ . '"';
-		}
-	}
-
-	$spec = join ' ', @specs;
-
-		unless ($g->{or_search}) {
-		}
-		else	{
-		}
-
-	if ($g->{all_chars} ||= 0) {
-        $spec =~ s/"/__QUOTE__/g;
-        $spec = quotemeta $spec;
-        $spec =~ s/__QUOTE__/"/g;
-    }
-    else {
-		$spec =~ s/[^"$\d\w\s*]//g;
+    if (! $g->{exact_match} and ! $g->{coordinate}) {
+        @specs = $s->quoted_string( join ' ', @specs);
     }
 
-	$spec =~ /(.*)/;
-	$spec = $1;
+    @specs = $s->escape(@specs);
 
-	@pats = shellwords($spec);
-#	$s->debug("pats: '", join("', '", @pats), "'");
+#    $s->debug("spec='" . (join "','", @specs) . "'");
+
+    # untaint
+    for(@specs) {
+        /(.*)/;
+        push @pats, $1;
+    }
+	@{$s->{'specs'}} = @specs;
+
+#    $s->debug("pats: '", join("', '", @pats), "'");
 
   CREATE_LIMIT: {
   	last CREATE_LIMIT unless scalar @{$s->{'fields'}};
@@ -253,7 +267,7 @@ EOF
 
     # searches for debug
 
-    if (!open(Vend::Glimpse::SEARCH,qq!$cmd | !)) {
+    if (!open(Vend::Glimpse::SEARCH,qq!$cmd |$sort_string !)) {
 		$g->{matches} = -1;
         &{$g->{log_routine}}("Can't fork glimpse: $!\n");
         &{$g->{error_routine}}($g->{error_page},
@@ -353,4 +367,8 @@ EOF
 }
 
 1;
+__END__
+
+1;
+
 __END__
