@@ -123,7 +123,7 @@ sub setup_escape_chars {
     }
 
 	my $string = "[^$ESCAPE_CHARS::ok_in_filename]";
-	$need_escape = qr{$string};
+	$need_escape = qr{"$string="};
 
 }
 
