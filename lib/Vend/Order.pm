@@ -1373,6 +1373,8 @@ sub route_order {
 		my $pre_encrypted;
 		my $credit_card_info;
 
+		$Vend::Items = $shelf->{$c};
+
 		Vend::Interpolate::flag( 'transactions', {}, $route->{transactions})
 			if $route->{transactions};
 
@@ -1398,8 +1400,6 @@ sub route_order {
 				and $pre_encrypted = 1;
 		}
 
-		$Vend::Items = $shelf->{$c};
-
 		if ($check_only and $route->{profile}) {
 			$route_checked = 1;
 			my ($status, $final, $missing) = check_order($route->{profile});
@@ -1419,11 +1419,15 @@ sub route_order {
 		if($route->{payment_mode}) {
 			my $ok;
 			$ok = Vend::Payment::charge($route->{payment_mode});
-			unless ($ok) {
+			if (! $ok) {
 				die errmsg("Failed online charge for routing %s: %s",
 								$c,
 								$Vend::Session->{mv_payment_error}
 							);
+			}
+			else {
+				$Vend::Session->{route_payment_id} ||= {};
+				$Vend::Session->{route_payment_id}{$c} = $Vend::Session->{payment_id};
 			}
 		}
 		if(  $route->{credit_card}
