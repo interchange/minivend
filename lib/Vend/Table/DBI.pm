@@ -1134,8 +1134,7 @@ sub set_row {
 	{
 		eval {
 			$val = $s->quote($fields[$ki], $s->[$KEY]);
-			$s->[$DBI]->do("delete from $s->[$TABLE] where $s->[$KEY] = $val")
-				unless $s->[$CONFIG]{Clean_start};
+			$s->[$DBI]->do("delete from $s->[$TABLE] where $s->[$KEY] = $val");
 		};
 	}
 
