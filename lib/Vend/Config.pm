@@ -489,6 +489,7 @@ sub catalog_directives {
 	['DescriptionField', undef,              'description'],
 	['PriceDefault',	 undef,              'price'],
 	['PriceField',		 undef,              'price'],
+	['Cron',		 	 'hash',     	 	 ''],
 	['Shipping',         'locale',           ''],
 	['Accounting',	 	 'locale',     	 	 ''],
 	['Levies',		 	 'array',     	 	 ''],
