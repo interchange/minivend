@@ -2785,6 +2785,7 @@ mv_max_matches           mv_max_matches
 mv_mi                    mv_mi
 mv_min_string            mv_min_string
 mv_more_matches          mv_more_matches
+mv_more_id               mv_more_id
 mv_negate                mv_negate
 mv_nextpage              mv_nextpage
 mv_no_cache              mv_no_cache
@@ -2888,6 +2889,7 @@ mv_list_only             lo
 mv_matchlimit            ml
 mv_max_matches           mm
 mv_more_matches          MM
+mv_more_id               mi
 mv_profile               mp
 mv_min_string            ms
 mv_negate                ne
