@@ -581,7 +581,7 @@ sub add_catalog {
 		if($dynamic and ! $Windows) {
 			my $pidfile = $dynamic;
 			$pidfile =~ s:/[^/]+$::;
-			$pidfile .= '/minivend.pid';
+			$pidfile .= "/$Global::ExeName.pid";
 			my $pid;
 			PID: {
 				local ($/);
