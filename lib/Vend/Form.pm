@@ -295,6 +295,8 @@ EOF
 	my $href = $opt->{href} || $Global::Variable->{MV_PAGE};
 	$opt->{form} = "mv_action=return" unless $opt->{form};
 
+	my $no_encode = $opt->{pre_filter} eq 'decode_entities' ? 1 : 0;
+
 	my @out;
 	for(@$opts) {
 #warn "iterating links opt $_ = " . uneval_it($_) . "\n";
@@ -303,7 +305,7 @@ EOF
 		s/\*$// and $attr->{selected} = 1;
 
 		($attr->{value},$attr->{label}) = @$_;
-		encode($attr->{label}, $ESCAPE_CHARS::std);
+		encode($attr->{label}, $ESCAPE_CHARS::std) unless $no_encode;
 		if($attr->{value} =~ /^\s*\~\~(.*)\~\~\s*$/) {
 			my $lab = $1;
 			$lab =~ s/"/&quot;/g;
@@ -660,10 +662,11 @@ sub dropdown {
 	my $default = $opt->{value};
 
 	my $optgroup_one;
+	my $no_encode = $opt->{pre_filter} eq 'decode_entities' ? 1 : 0;
 	
 	for(@$opts) {
 		my ($value, $label) = @$_;
-		encode($label, $ESCAPE_CHARS::std);
+		encode($label, $ESCAPE_CHARS::std) unless $no_encode;
 		if($value =~ /^\s*\~\~(.*)\~\~\s*$/) {
 			my $label = $1;
 			if($optgroup_one++) {
@@ -828,10 +831,11 @@ sub box {
 
 	my $i = 0;
 	my $default = $opt->{value};
+	my $no_encode = $opt->{pre_filter} eq 'decode_entities' ? 1 : 0;
 
 	for(@$opts) {
 		my($value,$label) = @$_;
-		encode($label, $ESCAPE_CHARS::std);
+		encode($label, $ESCAPE_CHARS::std) unless $no_encode;
 		if($value =~ /^\s*\~\~(.*)\~\~\s*$/) {
 			my $lab = $1;
 			$lab =~ s/"/&quot;/g;
