@@ -107,7 +107,7 @@ my %Desc = (
 #                         ^^^^^^^^^^^^^^^^
 #
 # We set it to the name of the catalog by default to enable the
-# internal HTTTP server.
+# internal HTTP server.
 #
 EOF
 	basedir    =>  <<EOF,
