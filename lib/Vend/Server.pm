@@ -746,14 +746,7 @@ sub http_soap {
 	}
 
 	my $ref;
-
-	if (exists $Global::Selector{$catname}) {
-		$ref = $Global::Selector{$catname};
-	} elsif (exists $Global::SelectorAlias{$catname}) {
-		$ref = $Global::SelectorAlias{$catname};
-	}
-
-	if($ref) {
+	if($ref = $Global::Selector{$catname} || $Global::SelectorAlias{$catname}) {
 #::logDebug("found catalog $catname");
 		$$env{SCRIPT_NAME} = $catname;
 	}
