@@ -5685,15 +5685,26 @@ sub shipping {
 	}
 	else {
 #::logDebug("standard field selection");
-		unless (column_exists $field) {
+	    my $use_modifier;
+	    if (defined $::Variable->{MV_SHIP_MODIFIERS} && $field =~ /^($::Variable->{MV_SHIP_MODIFIERS})$/){
+		$use_modifier = 1;
+	    }
+	    my $col_checked;
+	    foreach my $item (@$Vend::Items){
+		my $value;
+		if ($use_modifier && defined $item->{$field}){
+		    $value = $item->{$field};
+		}else{
+		    unless ($col_checked++ || column_exists $field){
 			logError("Custom shipping field '$field' doesn't exist. Returning 0");
+			$total = 0;
 			goto SHIPFORMAT;
+		    }
+		    my $base = $item->{mv_ib} || $Vend::Cfg->{ProductFiles}[0];
+		    $value = tag_data($base, $field, $item->{code});
 		}
-    	foreach my $item (@$Vend::Items) {
-			my $base = $item->{mv_ib} || $Vend::Cfg->{ProductFiles}[0];
-			my $value = tag_data($base, $field, $item->{code});
-			$total += $value * $item->{quantity};
-		}
+		$total += ($value * $item->{quantity});
+	    }
 	}
 
 	# We will LAST this loop and go to SHIPFORMAT if a match is found
