@@ -132,7 +132,7 @@ sub column_exists {
 	
 	$s = $s->import_db() if ! defined $s->[$OBJ];
 	my ($orig_db, $orig_col) = $s->_map_field($column);
-	return defined($orig_db->[$CONFIG]{COLUMN_INDEX}{lc $orig_col});
+	return $orig_db->column_exists($orig_col);
 }
 
 sub set_slice {
