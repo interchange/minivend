@@ -319,7 +319,7 @@ sub query {
 				}
 			}
 			unless (defined $keypos) {
-				die "key not in query, cannot handle";
+				die "key $keyname not in query $opt->{query}, cannot handle";
 			}
 			# replace shadowed fields
 			my ($pos, $name, $row, $map_entry, $list, @qa, $result);
