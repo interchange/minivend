@@ -23,7 +23,7 @@
 # MA  02111-1307  USA.
 
 package Vend::Table::InMemory;
-use Vend::Table::Common;
+use Vend::Table::Common qw(!config !columns);
 @ISA = qw/Vend::Table::Common/;
 $VERSION = substr(q$Revision$, 10);
 use strict;
