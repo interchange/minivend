@@ -178,6 +178,9 @@ my %known_capability = (
 		Oracle => "CREATE SEQUENCE _SEQUENCE_NAME_",
 		Pg => "CREATE SEQUENCE _SEQUENCE_NAME_",
 	},
+	HAS_TABLE_TYPE	 => { 
+		mysql => 1,
+	},
 	SEQUENCE_QUERY	 => { 
 		Oracle => "SELECT _SEQUENCE_NAME_.nextval FROM dual",
 		Pg => "SELECT nextval('_SEQUENCE_NAME_')",
@@ -286,6 +289,9 @@ sub create_sql {
 	my $query = "create table $tablename ( \n";
 	$query .= join ",\n", @cols;
 	$query .= "\n)\n";
+	if($config->{HAS_TABLE_TYPE} and $config->{TABLE_TYPE} ) {
+		$query =~ s/\s*$/ type=$config->{TABLE_TYPE}\n/;
+	}
 	return $query;
 }
 
