@@ -183,7 +183,7 @@ sub add_catalog {
 				logGlobal("Alias %s used a second time, skipping.", $_);
 				next;
 			}
-			elsif (m![^\w-_\~:#/.]!) {
+			elsif (m![^-\w_\~:#/.]!) {
 				logGlobal( "Bad alias %s, skipping.", $_,);
 			}
 			$Global::Selector{$_} = $c;

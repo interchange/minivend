@@ -187,30 +187,30 @@ my %QR;
 
 my $All = '[\000-\377]*';
 my $Some = '[\000-\377]*?';
-my $Codere = '[\w-#/.]+';
-my $Coderex = '[\w-:#=/.%]+';
-my $Mandx = '\s+([\w-:#=/.%]+)';
-my $Mandf = '(?:%20|\s)+([\w-#/.]+)';
+my $Codere = '[-\w#/.]+';
+my $Coderex = '[-\w:#=/.%]+';
+my $Mandx = '\s+([-\w:#=/.%]+)';
+my $Mandf = '(?:%20|\s)+([-\w#/.]+)';
 my $Spacef = '(?:%20|\s)+';
 my $Spaceo = '(?:%20|\s)*';
 
-my $Optx = '(?:\s+)?([\w-:#=/.%]+)?';
-my $Mand = '\s+([\w-#/.]+)';
-my $Opt = '(?:\s+)?([\w-#/.]+)?';
+my $Optx = '(?:\s+)?([-\w:#=/.%]+)?';
+my $Mand = '\s+([-\w#/.]+)';
+my $Opt = '(?:\s+)?([-\w#/.]+)?';
 my $T    = '\]';
 my $D    = '[-_]';
 
 my $XAll = qr{[\000-\377]*};
 my $XSome = qr{[\000-\377]*?};
-my $XCodere = qr{[\w-#/.]+};
-my $XCoderex = qr{[\w-:#=/.%]+};
-my $XMandx = qr{\s+([\w-:#=/.%]+)};
-my $XMandf = qr{(?:%20|\s)+([\w-#/.]+)};
+my $XCodere = qr{[-\w#/.]+};
+my $XCoderex = qr{[-\w:#=/.%]+};
+my $XMandx = qr{\s+([-\w:#=/.%]+)};
+my $XMandf = qr{(?:%20|\s)+([-\w#/.]+)};
 my $XSpacef = qr{(?:%20|\s)+};
 my $XSpaceo = qr{(?:%20|\s)*};
-my $XOptx = qr{(?:\s+)?([\w-:#=/.%]+)?};
-my $XMand = qr{\s+([\w-#/.]+)};
-my $XOpt = qr{(?:\s+)?([\w-#/.]+)?};
+my $XOptx = qr{(?:\s+)?([-\w:#=/.%]+)?};
+my $XMand = qr{\s+([-\w#/.]+)};
+my $XOpt = qr{(?:\s+)?([-\w#/.]+)?};
 my $XD    = qr{[-_]};
 
 my %Comment_out = ( '<' => '&lt;', '[' => '&#91;', '_' => '&#95;', );
@@ -3092,8 +3092,8 @@ sub sort_cart {
 # E   End
 # D   Data
 # I   If
-my $LdD = qr{\s+([\w-:#/.]+)\]};
-my $LdI = qr{\s+([\w-:#/.]+)\]($Some)};
+my $LdD = qr{\s+([-\w:#/.]+)\]};
+my $LdI = qr{\s+([-\w:#/.]+)\]($Some)};
 my $LdB;
 my $LdIB;
 my $LdIE;

@@ -972,7 +972,7 @@ sub do_check {
 
 sub check_order {
 	my ($profile) = @_;
-    my($codere) = '[\w-_#/.]+';
+    my($codere) = '[-\w_#/.]+';
 	my $params;
 	if(defined $Vend::Cfg->{OrderProfileName}->{$profile}) {
 		$profile = $Vend::Cfg->{OrderProfileName}->{$profile};

@@ -372,7 +372,7 @@ sub catalog_directives {
     ['Pragma',		 	 'boolean',     	 ''],
     ['DynamicData', 	 'boolean',     	 ''],
     ['NoImport',	 	 'boolean',     	 ''],
-    ['NoImportExternal', 'yesno',	     	 ''],
+    ['NoImportExternal', 'yesno',	     	 'no'],
     ['CommonAdjust',	 undef,  	     	 ''],
     ['PriceAdjustment',	 'array',  	     	 ''],
     ['PriceBreaks',	 	 'array',  	     	 ''],
@@ -728,7 +728,7 @@ CONFIGLOOP:
 		$var = $1;
 		$value = $2;
 		($lvar = $var) =~ tr/A-Z/a-z/;
-		my($codere) = '[\w-_#/.:]+';
+		my($codere) = '[-\w_#/.:]+';
 
 		if ($value =~ /^(.*)<<(\w+)\s*/) {                  # "here" value
 			my $begin  = $1 || '';
@@ -1072,7 +1072,7 @@ GLOBLOOP:
 		$var = $1;
 		$value = $2;
 		($lvar = $var) =~ tr/A-Z/a-z/;
-		my($codere) = '[\w-_#/.]+';
+		my($codere) = '[-\w_#/.]+';
 
 		if ($value =~ /^(.*)<<(\w+)\s*/) {                  # "here" value
 			my $begin  = $1 || '';
