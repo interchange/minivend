@@ -1230,7 +1230,7 @@ sub tree_link {
 
 	if(! $row->{page}) {
 	}
-	elsif ($row->{page} =~ /^\w+:/) {
+	elsif ($row->{page} =~ /^\w+:/ or $row->{page} =~ m{^/}) {
 		$row->{href} = $row->{page};
 	}
 	else {
