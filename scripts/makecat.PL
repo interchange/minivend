@@ -1886,7 +1886,7 @@ proper value and ensure that the SUID bit is turned off on the link
 program ($cginame).
 
 EOF
-			chown($catuid, $catgid, $_) or die "\nchown $_: $!\n";
+			chown($catuid, $catgid, $cginame) or die "\nchown $cginame: $!\n";
 			prompt("Press <ENTER> to continue....");
 		}
 	}
