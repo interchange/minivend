@@ -1,4 +1,4 @@
-# $Id: Util.pm,v 2.9 1996/12/16 08:53:44 mike Exp $
+# $Id: Util.pm,v 1.9 1997/05/22 07:00:05 mike Exp $
 
 package Vend::Util;
 require Exporter;
@@ -19,10 +19,12 @@ blank
 currency
 check_security
 file_modification_time
+format_log_msg
 international_number
 is_no
 is_yes
 generate_key
+logtime
 logData
 logDebug
 logError
@@ -52,6 +54,7 @@ use strict;
 use Carp;
 use Config;
 use Fcntl;
+use POSIX 'strftime';
 use subs qw(logError logGlobal);
 # We now use File::Lock for Solaris and SGI systems
 #use File::Lock;
@@ -135,6 +138,57 @@ sub trim_desc {
 	my($desc) = @_;
 	$desc =~ s/$Vend::Cfg->{'DescriptionTrim'}(.*)//;
 	$desc;
+}
+
+# Finds common-log-style offset
+# Unproven, authoratative code welcome
+my $Offset;
+FINDOFFSET: {
+    my $now = time;
+    my ($gm,$gh,$gd,$gy) = (gmtime($now))[1,2,5,7];
+    my ($lm,$lh,$ld,$ly) = (localtime($now))[1,2,5,7];
+    if($gy != $ly) {
+        $gy < $ly ? $lh += 24 : $gh += 24;
+    }
+    elsif($gd != $ld) {
+        $gd < $ld ? $lh += 24 : $gh += 24;
+    }
+    $gh *= 100;
+    $lh *= 100;
+    $gh += $gm;
+    $lh += $lm;
+    $Offset = sprintf("%05d", $lh - $gh);
+    $Offset =~ s/0(\d\d\d\d)/+$1/;
+}
+
+# Returns time in HTTP common log format
+sub logtime {
+    return POSIX::strftime("[%d/%B/%Y:%H:%M:%S $Offset]", localtime());
+}
+
+sub format_log_msg {
+	my($msg) = @_;
+	my(@params);
+
+	# IP, Session, REMOTE_USER (if any) and time
+    push @params, ($CGI::host || '-');
+	push @params, ($Vend::SessionName || '-');
+	push @params, ($CGI::user || '-');
+	push @params, logtime();
+
+	# Catalog name
+	my $string = ! defined $Vend::Cfg ? '-' : $Vend::Cfg->{CatalogName};
+	push @params, $string;
+
+	# Path info and script
+	$string = $CGI::script_name || '-';
+	$string .= $CGI::path_info || '';
+	push @params, $string;
+
+	# Message, quote newlined area
+	$msg =~ s/\n/\n> /g;
+	push @params, $msg;
+	return join " ", @params;
 }
 
 # Return AMOUNT formatted as currency.
@@ -285,7 +339,7 @@ sub writefile {
 		close(Vend::LOGDATA) or die "close\n";
     };
     if ($@) {
-		logError "Could not $@ log file '" . $file . "':\n$!\n" .
+		logError "Could not $@ log file '" . $file . "': $!\n" .
     		"to log this data:\n" .  $data ;
 		return 0;
     }
@@ -305,11 +359,11 @@ sub logData {
 
     eval {
 		unless($file =~ s/^[|]\s*//) {
-			open(Vend::LOGDATA, "$file") or die "open\n";
-			lockfile(\*Vend::LOGDATA, 1, 1) or die "lock\n";
-			seek(Vend::LOGDATA, 0, 2) or die "seek\n";
-			print(Vend::LOGDATA "$msg\n") or die "write to\n";
-			unlockfile(\*Vend::LOGDATA) or die "unlock\n";
+			open(Vend::LOGDATA, "$file")	or die "open\n";
+			lockfile(\*Vend::LOGDATA, 1, 1)	or die "lock\n";
+			seek(Vend::LOGDATA, 0, 2)		or die "seek\n";
+			print(Vend::LOGDATA "$msg\n")	or die "write to\n";
+			unlockfile(\*Vend::LOGDATA)		or die "unlock\n";
 		}
 		else {
             my (@args) = grep /\S/, quoted_string($file);
@@ -319,7 +373,7 @@ sub logData {
 		close(Vend::LOGDATA) or die "close\n";
     };
     if ($@) {
-		logError "Could not $@ log file '" . $file . "':\n$!\n" .
+		logError "Could not $@ log file '" . $file . "': $!\n" .
     		"to log this data:\n" .  $msg ;
 		return 0;
     }
@@ -417,8 +471,8 @@ sub readfile {
 ##print "Got to readfile '$file'\n" if $Global::DEBUG;
 
 	if($no and ($file =~ m:^\s*/: or $file =~ m#\.\./.*\.\.#)) {
-		logError("Can't read file '$file' with NoAbsolute set.");
-		logGlobal("Can't read file '$file' with NoAbsolute set.");
+		logError("Can't read file '$file' with NoAbsolute set");
+		logGlobal("Can't read file '$file' with NoAbsolute set");
 		return undef;
 	}
 
@@ -761,10 +815,9 @@ sub send_mail {
     
     if (!$ok) {
 		logError("Unable to send mail using $Vend::Cfg->{'SendMailProgram'}\n" .
-		 	"To '$to'\n" .
-		 	"With subject '$subject'\n" .
-		 	"With reply-to '$reply'\n" .
-		 	"And body:\n$body");
+		 	"To: $to\n" .
+		 	"Subject: $subject\n" .
+		 	"Reply-to: $reply\n\n$body");
     }
 
     $ok;
@@ -828,25 +881,21 @@ sub logDebug {
 
 sub logGlobal {
     my($msg) = @_;
-    my $prefix = $Vend::Cfg->{CatalogName} || '';
-	$prefix .= ":$CGI::path_info" if $CGI::path_info;
-	$prefix .= ": " if $prefix;
-
-	my	$errorfile = $Global::ErrorFile;
+	my(@params);
+    $msg = format_log_msg($msg);
 
     eval {
-		open(Vend::ERROR, ">>$errorfile") or die "open\n";
+		open(Vend::ERROR, ">>$Global::ErrorFile") or die "open\n";
 		lockfile(\*Vend::ERROR, 1, 1) or die "lock\n";
 		seek(Vend::ERROR, 0, 2) or die "seek\n";
-		print(Vend::ERROR $prefix, `date`) or die "write to\n";
-		print(Vend::ERROR $prefix, "$msg\n") or die "write to\n";
+		print(Vend::ERROR $msg, "\n") or die "write to\n";
 		unlockfile(\*Vend::ERROR) or die "unlock\n";
 		close(Vend::ERROR) or die "close\n";
     };
     if ($@) {
 		chomp $@;
 		print "\nCould not $@ error file '";
-		print $errorfile, "':\n$!\n";
+		print $Global::Errorfile, "':\n$!\n";
 		print "to report this error:\n", $msg;
 		exit 1;
     }
@@ -857,35 +906,27 @@ sub logGlobal {
 
 sub logError {
     my($msg) = @_;
-    my $prefix = '';
-
-	my $errorfile;
-	if(defined $Vend::Cfg) {
-		$errorfile = $Vend::Cfg->{'ErrorFile'} || 'error.log';
-	}
-	else {
-		$errorfile = $Global::ErrorFile;
-	}
+	my(@params);
+	return unless defined $Vend::Cfg;
 
 	$Vend::Session->{'last_error'} = $msg;
 
+    $msg = format_log_msg($msg);
+
     eval {
-		open(Vend::ERROR, ">>$errorfile") or die "open\n";
-		lockfile(\*Vend::ERROR, 1, 1) or die "lock\n";
-		seek(Vend::ERROR, 0, 2) or die "seek\n";
-		print(Vend::ERROR $prefix, localtime() . " " . 
-			(! defined $CGI::path_info ? '' : $CGI::path_info)
-			. "\n")
-				or die "write to\n";
-		print(Vend::ERROR $prefix, "$msg\n") or die "write to\n";
-		unlockfile(\*Vend::ERROR) or die "unlock\n";
-		close(Vend::ERROR) or die "close\n";
+		open(Vend::ERROR, ">>$Vend::Cfg->{ErrorFile}")
+											or die "open\n";
+		lockfile(\*Vend::ERROR, 1, 1)		or die "lock\n";
+		seek(Vend::ERROR, 0, 2)				or die "seek\n";
+		print(Vend::ERROR $msg, "\n")		or die "write to\n";
+		unlockfile(\*Vend::ERROR)			or die "unlock\n";
+		close(Vend::ERROR)					or die "close\n";
     };
     if ($@) {
 		chomp $@;
-		my $msg = $@;
 		logGlobal <<EOF;
-Could not $msg error file $errorfile: $!
+Could not $@ error file $Vend::Cfg->{ErrorFile}: $!
+		
 to report this error:
 $msg
 EOF

@@ -1,4 +1,4 @@
-# $Id: Config.pm,v 2.14 1997/01/05 02:02:24 mike Exp $
+# $Id: Config.pm,v 1.10 1997/05/25 06:10:54 mike Exp mike $
 
 package Vend::Config;
 require Exporter;
@@ -45,6 +45,7 @@ sub global_directives {
 	['MaxServers',        undef,             2],
 	['GlobalSub',		 'subroutine',       ''],
 	['FullUrl',			 'yesno',            'No'],
+	['SafeSignals',	 	 'yesno',            'Yes'],
 	['AcrossLocks',		 'yesno',            'No'],
     ['LogFile', 		  undef,     	     'etc/log'],
     ['SafeUntrap',       'array',            do { my $r = '249 148';

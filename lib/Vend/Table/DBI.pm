@@ -1,6 +1,6 @@
 # Table/DBI.pm: access a table stored in an DBI/DBD Database
 #
-# $Id: DBI.pm,v 1.2 1997/04/22 15:32:30 mike Exp $
+# $Id: DBI.pm,v 1.3 1997/05/22 07:00:32 mike Exp $
 #
 
 # Basic schema
@@ -24,7 +24,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::DBI;
-$VERSION = substr(q$Revision: 1.2 $, 10);
+$VERSION = substr(q$Revision: 1.3 $, 10);
 
 use Carp;
 use strict;
@@ -65,7 +65,7 @@ sub opendb {
 		return $Db->connect("", "mike", "gsfrkc", $Global::DBDtype);
 	}
 	else {
-		#::logGlobal("Connected to Pg.");
+#print("Connected to Pg.\n") if $Global::DEBUG;
 		return $Db->connect($config->{Catalog}, '', '', $Global::DBDtype);
 	}
 }
@@ -111,7 +111,7 @@ sub create {
 			or croak
 			"The '$tablename' table could not be overwritten.\n$DBI::errstr\n";
 	}
-	#::logGlobal("cols: '" . (join "','", @cols) . "'\n");
+#print("cols: '" . (join "','", @cols) . "'\n") if $Global::DEBUG;
 	my $query = "create table $tablename ( \n";
 	$query .= join ",\n", @cols;
 	$query .= "\n)\n";
@@ -196,7 +196,7 @@ sub test_column {
 		carp "There is no column named '$column' in $s->[0]\n";
 		return undef;
 	}
-	#::logGlobal("test_column: returning '$col' from $s->[0]");
+#print("test_column: returning '$col' from $s->[0]") if $Global::DEBUG;
 	return $col - 1;
 
 }
@@ -374,9 +374,9 @@ sub field {
     my $ref = $s->[2]->prepare("select $column from $s->[0] where $s->[1] = '$key'");
     $ref->execute()
 		or (::logGlobal("execute error: $DBI::errstr"), return '');
-	#::logGlobal("field: col=$column key=$key err=$DBI::errstr");
+#print("field: col=$column key=$key err=$DBI::errstr") if $Global::DEBUG;
 	my $data = ($ref->fetchrow())[0];
-	#::logGlobal("field: col=$column key=$key data='$data' err=$DBI::errstr");
+#print("field: col=$column key=$key err=$DBI::errstr") if $Global::DEBUG;
 	$data;
 }
 

@@ -5,7 +5,7 @@
 
 [body 1]
 <CENTER>
-<FORM ACTION="[process-target _self]" METHOD=POST>
+<FORM ACTION="[process-target none]" METHOD=POST>
 <input type="hidden" name="mv_doit" value="refresh">
 <input type="hidden" name="mv_orderpage" value="ord/basket">
 <input type="hidden" name="mv_checkout" value="ord/checkout">
@@ -93,6 +93,7 @@ mv_nextpage=canceled
 
 [set Home]
 mv_todo=return
+mv_change_frame=_top
 mv_nextpage=catalog
 [/set]
 

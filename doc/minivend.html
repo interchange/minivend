@@ -1,4 +1,4 @@
-<!-- $Id$ -->
+<!-- $Id: minivend.html,v 1.4 1997/05/25 06:10:54 mike Exp mike $ -->
 <HTML><HEAD>
 <CENTER><TITLE>minivend</TITLE>
 </HEAD>
@@ -1033,6 +1033,9 @@ of item attributes based on entries in the product database.
                  "color".
    type          The action to be taken. The default is 'select', which
                  builds an HTML select form entry for the attribute.
+                                 Also recognized are 'multiple', which builds a multiple
+                                 select box, and 'list', which simply lists the possible
+                                 values.
    field         The database field name to be used to build the
                  entry (usually a select form field). Defaults to
                  a field named the same as the attribute.
@@ -1864,6 +1867,39 @@ mime id</A>
 <DD>
 Returns a MIME message id with the proper boundary for that
 session ID, page count, and time.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_tag_1">
+[tag scan/options]encased text[/tag]</A>
+
+</STRONG>
+<DD>
+Builds a one-click search based on the enclosed text. 
+Properly translates whitespace and non-word characters to
+be parseable by MiniVend. You can add the normal scan options,
+just the se=searchtext parameter will be affected. These two
+sequences evaluate the same:
+<p>
+<XMP>
+        [tag scan/sf=category]Renaissance[/tag]
+        [page scan/sf=category/se=Renaissance]Renaissance[/page]
+
+</XMP>
+<p>Where it is useful is in adding long strings that would otherwise
+be difficult to encode, like
+<p>
+<XMP>
+        [tag scan/sf=author/os=yes]John F. Kennedy[/tag]
+
+</XMP>
+<p>instead of:
+<p>
+<XMP>
+        [page scan/sf=author/se=John.20F..20Kennedy]John F. Kennedy[/tag]
+        
+
+</XMP>
 <p>
 <DT><STRONG>
 
@@ -3327,7 +3363,7 @@ Setting Form Security</A>
 You can ensure that a form will be submitted securely (to the base
 URL in the SecureURL directive, that is) by specifying your form
 input to be ACTION=``[process-target frame secure]''. If you are not
-using frames, just specify the special frame ``_self''.
+using frames, just specify the special frame ``_self'' or ``none''.
 <p>To submit a form to the regular non-secure server, just omit the
 <EM>secure</EM> modifier.
 <p>
@@ -3343,8 +3379,8 @@ a form like this:
 <XMP>
  <FORM METHOD=POST ACTION="[process-order]">
  <input type=checkbox name="mv_order_item" value="M3243"> Item M3243
- <input type=checkbox name="mv_order_item" value="M3243"> Item M3244
- <input type=checkbox name="mv_order_item" value="M3243"> Item M3245
+ <input type=checkbox name="mv_order_item" value="M3244"> Item M3244
+ <input type=checkbox name="mv_order_item" value="M3245"> Item M3245
  <input type=hidden name="mv_doit" value="refresh">
  <input type=submit name="mv_junk" value="Order Checked Items">
  </FORM>
@@ -3431,7 +3467,7 @@ update. It uses the [loop] tag to place default/existing values in the
 form based on the input from the first form:
 <p>
 <XMP>
-    <FORM METHOD=POST ACTION="[process-target _self]">
+    <FORM METHOD=POST ACTION="[process-target]">
     <INPUT TYPE=HIDDEN name="mv_doit" value="refresh">
     <INPUT TYPE=HIDDEN name="mv_orderpage" value="update_proj">
     Sales Order Number <INPUT TYPE=TEXT SIZE=8
@@ -3439,7 +3475,7 @@ form based on the input from the first form:
                             VALUE="[value update_code]">
     <INPUT TYPE=SUBMIT name="mv_submit"  Value="Select">
     </FORM>
-    <FORM METHOD=POST ACTION="[process-target _self]">
+    <FORM METHOD=POST ACTION="[process-target]">
     <INPUT TYPE=HIDDEN NAME="mv_data_table" VALUE="product">
     <INPUT TYPE=HIDDEN NAME="mv_data_key" VALUE="code">
     <INPUT TYPE=HIDDEN NAME="mv_data_function" VALUE="update">
@@ -4087,9 +4123,7 @@ The page size for matches that are returned.  If more matches than
 
 <A HREF="minivend.html#minivend_mv_matchlimit_0">mv_matchlimit</A>
  are found, the search paging mechanism will be
-employed if the proper 
-<A HREF="minivend.html#minivend_more_list_0">[more_list]</A>
- is present.  Can be
+employed if the proper <EM>[more_list]</EM> is present.  Can be
 implemented as a scrolling list (INPUT TYPE=SELECT) or radiobox 
 (INPUT TYPE=RADIO) field.
 <p>
@@ -4566,7 +4600,7 @@ element pair.
 <DT><STRONG>
 
 <A NAME="minivend_more_list_0">
-[more_list]</A>
+[more_list next_img* prev_img* page_img*]</A>
 
 </STRONG>
 <DD>
@@ -4579,6 +4613,28 @@ text/html between the [more_list] and [/more_list] elements is
 stripped.
 <p>Use in conjunction with the [more] element to place pointers to
 additional pages of matches.
+<p>If the optional arguments <EM>next_img</EM>, <EM>prev_img</EM>, and/or <EM>page_img</EM>
+are present, they represent image files that will be inserted instead
+of the standard 'Next', 'Previous', and page number.  If <EM>prev_img</EM>
+is <STRONG>none</STRONG>, then no previous link will be output.  If <EM>page_img</EM> is
+<STRONG>none</STRONG>, then no links to pages of matches will be output. These are
+URLs, are substituted for with 
+<A HREF="minivend.html#minivend_imagedir_0">ImageDir</A>
+, and will be encased in
+IMG tags.
+<p>In addition, if <EM>page_img</EM> is used, it will be passed an argument of
+the digit that is to be represented.  This would allow an image generator
+program to be used, generating page numbers on the fly.
+<p>As an example, if you use [more-list next.gif prev.gif page_num.cgi], the
+following will be the anchors:
+<p>
+<XMP>
+  Previous   <IMG BORDER=0 SRC="prev.gif">
+  Page 1     <IMG BORDER=0 SRC="/cgi-bin/page_num.cgi?1">
+  Page 2     <IMG BORDER=0 SRC="/cgi-bin/page_num.cgi?2">
+  Next       <IMG BORDER=0 SRC="next.gif">
+
+</XMP>
 <p>
 <DT><STRONG>
 
@@ -4657,6 +4713,32 @@ targeted to a different window than the one set by SearchFrame (which is
 <p>
 </DL>
 .
+<p>
+<H2> 
+<A NAME="minivend_updating_0">
+Updating session variables after a search</A>
+</H2>
+You may notice that if you set a scratch variable or reference a
+variable set in a search routine on the results page, the change does
+not stay in the user session.
+<p>To change this, set the 
+<A HREF="minivend.html#minivend_scratch_0">scratch</A>
+ variable <EM>mv_put_session</EM> on the page
+in question:
+<p>
+<XMP>
+        [set mv_put_session]Yes[/set]
+
+</XMP>
+<p>This setting is persistent, so it is recommended that you
+do it once at the beginning of the user session if you wish it to be the
+default.  If you don't want it to be the default, reset it to the
+empty value (or zero) on another page:
+<p>
+<XMP>
+        [set mv_put_session][/set]
+
+</XMP>
 <p>
 <H2> 
 <A NAME="minivend_using_0">
@@ -6350,6 +6432,12 @@ of a <STRONG>Search</STRONG> submission to the current default frame, but when
 <STRONG>Continue Shopping</STRONG> is selected the output will will go to the page
 <EM>browse.html</EM> with the page routed to the top level frame for the
 current browser window.
+<p>If you are setting a target with the <EM>[process_target target]</EM> tag, you
+will either have to make that target <EM>none</EM> or set the 
+<A HREF="minivend.html#minivend_scratch_0">scratch</A>
+ variable
+<EM>mv_ignore_frame</EM> on the page at time of display.  Either will prevent
+conflicting window targets from being sent.
 <p>
 <H2> 
 <A NAME="minivend_body_1">
@@ -6866,6 +6954,26 @@ socket and serve users. Not usable on SGI systems. Default is <EM>no</EM>
 <p>
 <DT><STRONG>
 
+<A NAME="minivend_safesignals_0">
+SafeSignals</A>
+
+</STRONG>
+<DD>
+If your operating system does not have a re-entrant C library that
+can guarantee that signal race conditions will not occur, then
+set this to NO.
+<p>BSDI and FreeBSD libraries are NOT safe, and SafeSignals will
+automatically be disabled for those operating systems.
+<p>In general, if MiniVend ever just ``hangs'', particularly if you
+can see a perl.core file, disable this directive.
+<p>
+<XMP>
+    SafeSignals  No
+
+</XMP>
+<p>
+<DT><STRONG>
+
 <A NAME="minivend_safeuntrap_0">
 SafeUntrap</A>
 
@@ -7236,6 +7344,8 @@ like the HTTP common log format.
   nomatch    Search strings that fail to match
   page       Pages that are accessed
   nopage     Pages that are not found
+  basket     Items placed in shopping carts
+  cache      Pages/searches added to cache
 
 </XMP>
 <p>Enter as a space or comma-separated list, i.e.
@@ -7244,6 +7354,8 @@ like the HTTP common log format.
     CollectData   matched,nomatch,page
 
 </XMP>
+<p>Orders are typically logged to other files via AsciiTrack, AsciiBackend,
+or the [tag log ...]data[/tag] construct.
 <p>
 <DT><STRONG>
 
@@ -9217,7 +9329,7 @@ will be overwritten.
 </XMP>
 <p>
 <H2> 
-<A NAME="minivend_updating_0">
+<A NAME="minivend_updating_1">
 Updating Individual Records</A>
 </H2>
 If you have a very large DBM database that takes a long time to build,

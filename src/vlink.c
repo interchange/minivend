@@ -1,7 +1,7 @@
 /* vlink.c:  runs as a cgi program and passes request to Vend server
 			 starts MiniVend or Vend server if not running
 
-   $Id: vlink.c,v 2.2 1997/01/07 01:40:44 mike Exp mike $
+   $Id: vlink.c,v 1.2 1997/05/22 07:02:03 mike Exp $
 
    Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 

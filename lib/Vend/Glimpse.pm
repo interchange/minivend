@@ -1,6 +1,6 @@
 # Vend/Glimpse.pm:  Search indexes with Glimpse
 #
-# $Id: Glimpse.pm,v 2.5 1996/12/16 08:53:44 mike Exp $
+# $Id: Glimpse.pm,v 1.5 1997/05/22 07:00:05 mike Exp $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::Glimpse
 #
@@ -28,7 +28,7 @@ package Vend::Glimpse;
 require Vend::Search;
 @ISA = qw(Vend::Search);
 
-$VERSION = substr(q$Revision: 2.5 $, 10);
+$VERSION = substr(q$Revision: 1.5 $, 10);
 use Text::ParseWords;
 use strict;
 
@@ -198,7 +198,7 @@ sub search {
 		# Should we modify it? Yes, to give indication that
 		# it was done
 		&{$g->{log_routine}}
-			("Vend::Glimpse: escaped single quote in record_delim, value changed.\n")
+			("Vend::Glimpse: escaped single quote in record_delim, value changed.")
 			if $g->{record_delim} =~ s/'/\\'/g; 
 		push @cmd, "-d '$g->{record_delim}'";
 	}
@@ -280,7 +280,7 @@ EOF
 
     if (!open(Vend::Glimpse::SEARCH,qq!$cmd |$sort_string !)) {
 		$g->{matches} = -1;
-        &{$g->{log_routine}}("Can't fork glimpse: $!\n");
+        &{$g->{log_routine}}("Can't fork glimpse: $!");
         &{$g->{error_routine}}($g->{error_page},
 								'Search command could not be run.');
         close Vend::Glimpse::SEARCH;
@@ -310,7 +310,7 @@ EOF
 	if(defined $limit_sub and $g->{return_file_name}) {
 		&{$g->{log_routine}}
 			("Vend::Glimpse.pm: non-fatal error\n" .
-			"Can't field-limit matches in return_file_name mode. Ignoring.\n");
+			"Can't field-limit matches in return_file_name mode. Ignoring.");
 		undef $limit_sub;
 	}
 
@@ -339,7 +339,7 @@ EOF
 
     if ($g->{matches} > $g->{match_limit}) {
         $s->save_more(\@out)
-            or &{$g->{log_routine}}("Error saving matches: $!\n");
+            or &{$g->{log_routine}}("Error saving matches: $!");
         $#out = $g->{match_limit} - 1;
     }
 

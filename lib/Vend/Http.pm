@@ -1,6 +1,6 @@
 # Http.pm:  interface to cgi protocol
 #
-# $Id: Http.pm,v 1.4 1997/01/05 02:02:24 mike Exp $
+# $Id: Http.pm,v 1.5 1997/05/22 07:00:05 mike Exp $
 #
 package Vend::Http;
 
@@ -237,7 +237,6 @@ sub parse_form_input {
         $aref = $values->{$key} || ($values->{$key} = []);
 	push @$aref, $value;
     }
-    #::logError("form values are ". ::uneval($values)."\n");
     $values;
 }
 

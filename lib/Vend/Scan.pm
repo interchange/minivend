@@ -1,6 +1,6 @@
 # Vend/Scan.pm:  Prepare searches for MiniVend
 #
-# $Id: Scan.pm,v 2.8 1997/01/07 01:16:56 mike Exp $
+# $Id: Scan.pm,v 1.10 1997/05/25 06:10:54 mike Exp mike $
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ require Exporter;
 			perform_search
 			);
 
-$VERSION = substr(q$Revision: 2.8 $, 10);
+$VERSION = substr(q$Revision: 1.10 $, 10);
 
 use strict;
 use Vend::Util;
@@ -378,7 +378,7 @@ sub sql_search {
 
 	my $db = Vend::Data::database_exists_ref($tables[0])
 				or do {
-					logError("Attempt to open non-existent database $tables[0].");
+					logError("non-existent database '$tables[0]'");
 					return undef;
 				};
 	my($result, $test) = $db->record_exists('NeVAIrBe');
@@ -483,17 +483,23 @@ sub finish_up {
 			$Vend::Cfg->{'SearchOverMsg'};
 	}
 
+	my $msg;
 	if ( $matches > 0 ) {
-		logData($Vend::Cfg->{'LogFile'},
-			"matched", time, $Vend::SessionID,
-				$q->specs(), $q->{global}->{dict_look} )
-			if defined $Vend::Cfg->{'CollectData'}->{'matched'};
+		if (defined $Vend::Cfg->{'CollectData'}->{'matched'}) {
+			$msg = join " ",
+						"search matched $matches: ",
+						$q->specs(),
+						$q->{global}->{dict_look};
+			logData($Vend::Cfg->{'LogFile'}, format_log_msg($msg));
+		}
 	}
 	elsif (defined $matches and $matches == 0) {
-		my $msg = join " ", $q->specs(), $q->{global}->{dict_look};
-		logData($Vend::Cfg->{'LogFile'},
-			"nomatch", time, $Vend::SessionID, $msg)
-			if defined $Vend::Cfg->{'CollectData'}->{'nomatch'};
+		if (defined $Vend::Cfg->{'CollectData'}->{'nomatch'}) {
+			$msg = join " ",
+						$q->specs(),
+						$q->{global}->{dict_look};
+			logData($Vend::Cfg->{'LogFile'}, format_log_msg('no match: ' . $msg));
+		}
 		::display_special_page($Vend::Cfg->{'Special'}->{'nomatch'}, $msg)
 			unless defined $Vend::BuildingPages;
 		return 0;
@@ -590,7 +596,7 @@ sub perform_search {
 			delete $options{'search_spec'};
 		}
 	
-		if ($options{search_type} eq 'glimpse'){
+		if (defined $options{search_type} and $options{search_type} eq 'glimpse'){
 			 		$q = new Vend::Glimpse %options;
 		}
 		else	{ 	$q = new Vend::TextSearch %options }
@@ -632,7 +638,7 @@ sub _column {
 			$_ = $col;
 		}
 		else {
-			logError("Bad search column $_ in catalog $Vend::Cfg->{CatalogName}\n");
+			logError("Bad search column '$_'");
 			return undef;
 		}
 	}

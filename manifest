@@ -2,7 +2,7 @@
 ###                        ###
 ###   DON'T edit this !!!  ###
 ###                        ###
-### $Revision: 1.2 $
+### $Revision: 1.5 $
 ##############################
 
 bin dir 0755
@@ -42,6 +42,7 @@ configure script 0755
 configure.pl script 0755 shbang
 doc/intro.html html 0644
 doc/minivend.html html 0644
+doc/tags.html html 0644
 doc/toc.html html 0644
 error.log static 0644 chown,backup
 etc/mvconf.cmt static 0644

@@ -2,7 +2,7 @@
 #
 # MiniVend version 1.04
 #
-# $Id: Order.pm,v 2.8 1997/01/07 01:16:56 mike Exp $
+# $Id: Order.pm,v 1.5 1997/05/22 07:00:05 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -30,7 +30,7 @@
 package Vend::Order;
 require Exporter;
 
-$VERSION = substr(q$Revision: 2.8 $, 10);
+$VERSION = substr(q$Revision: 1.5 $, 10);
 $DEBUG = 0;
 
 # AUTOLOAD
@@ -153,7 +153,7 @@ sub order_report {
 		$old = 1;
 		$fn = $Vend::Cfg->{'OrderReport'};
 		if (!open(Vend::IN, $fn)) {
-			logError("Could not open report file '$fn': $!\n");
+			logError("Could not open report file '$fn': $!");
 			return undef;
 		}
 		{
@@ -306,7 +306,7 @@ sub mail_order {
 		print Vend::Order::PGP $body;
 		close Vend::Order::PGP;
 		if($?) {
-			logError("PGP failed with status " . $? << 8 . ": $!\n");
+			logError("PGP failed with status " . $? << 8 . ": $!");
 			return 0;
 		}
 		$body = `cat pgp$$.out`;
@@ -361,7 +361,7 @@ sub check_order {
 		}
 		else {
 			logError("Unknown order check parameter in profile $profile:\n" .
-					 "	parameter '$var'	(args '$val')\n" );
+					 "	parameter '$var'	(args '$val')" );
 			next;
 		}
 
@@ -473,54 +473,12 @@ sub track_order {
 	my ($c,$i);
 	my (@backend);
 	
-	if($Vend::Cfg->{'Tracking'}) {
-		open_tracking();
-		my $track_no = $Vend::Tracking{'mv_next_order'};
-
-		# See if we have an order number already
-		unless (defined $track_no) {
-			$track_no = $Vend::Cfg->{'Tracking'};
-			$track_no =~ s/[^A-Za-z0-9]//g &&
-				logError("Removed non-letter/non-digit chars from Order number");
-		}
-
-		# Put the text of the order in tracking
-		$Vend::Tracking{$track_no} = $order_report;
-		$Vend::Tracking{'mv_next_order'} = $track_no + 1;
-		close_tracking();
-	}
-
 	if ($Vend::Cfg->{'AsciiTrack'}) {
 		logData ($Vend::Cfg->{'AsciiTrack'}, "ORDER $order_no\n$order_report");
 	}
 
 	@backend = split /\s*,\s*/, $Vend::Cfg->{'BackendOrder'};
 	
-	# Put in the backend order values if enabled
-	if(@backend and $Vend::Cfg->{'Tracking'}) {
-		my(@ary);
-		for(@backend) {
-			push @ary, $Vend::Session->{'values'}->{$_};
-		}
-		my $order_info = join "\0", @ary;
-		foreach $i (0 .. $#$Vend::Items) {
-			$order_info .=  "\0" . $Vend::Items->[$i]->{'code'} .
-							"\0" . $Vend::Items->[$i]->{'quantity'};
-			if ($Vend::Cfg->{UseModifier}) {
-				foreach $j (@{$Vend::Cfg->{UseModifier}}) {
-					$order_info .=  "\0" . $Vend::Items->[$i]->{$j}
-				}
-			}
-		}
-		$Vend::Tracking{"Backend$order_no"} = $order_info;
-		if($Vend::Cfg->{'CreditCards'}) {
-			$Vend::Tracking{"Cc$order_no"} = 
-				$Vend::Session->{'values'}->{'credit_card_no'};
-			$Vend::Tracking{"Exp$order_no"} = 
-				$Vend::Session->{'values'}->{'credit_card_exp'};
-		}
-	}
-
 	if(@backend and $Vend::Cfg->{'AsciiBackend'}) {
 		my(@ary);
 		push @ary, $order_no;

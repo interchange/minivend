@@ -2,7 +2,7 @@
 #
 # MiniVend version 3.00
 #
-# $Id: minivend.pl,v 2.15 1997/01/07 01:35:23 mike Exp $
+# $Id: minivend.pl,v 1.11 1997/05/25 06:10:54 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -143,7 +143,7 @@ sub interaction_error {
     my($msg) = @_;
     my($page);
 
-    logError ("Difficulty interacting with browser: $msg\n");
+    logError ("Difficulty interacting with browser: $msg");
 
     $page = readin($Vend::Cfg->{'Special'}->{'interact'});
     if (defined $page) {
@@ -151,7 +151,7 @@ sub interaction_error {
 		response('html',interpolate_html($page));
     }
 	else {
-		logError("Missing special page: interact\n");
+		logError("Missing special page: interact");
 		response('plain',"$msg\n");
     }
 }
@@ -193,6 +193,8 @@ sub display_special_page {
     my($name, $subject) = @_;
     my($page);
 	
+	$subject = $subject || 'unspecified error';
+	
     $page = readin($name);
     die "Missing special page: $name\n" unless defined $page;
     $page =~ s#\[subject\]#$subject#ig;
@@ -223,13 +225,9 @@ sub display_page {
 		response('html',interpolate_html($page));
 		return 1;
     } else {
+		logData($Vend::Cfg->{'LogFile'}, format_log_msg('page not found'))
+			if defined $Vend::Cfg->{CollectData}->{nopage};
 		display_special_page($Vend::Cfg->{'Special'}->{'missing'}, $name);
-		return 0;
-		$page = readin($Vend::Cfg->{'Special'}->{'missing'});
-		die "Special page not found: $Vend::Cfg->{'Special'}->{'missing'}\n"
-			unless defined $page;
-		$page =~ s#\[subject\]#$name#ig;
-    	response('html',interpolate_html($page));
 		return 0;
     }
 }
@@ -256,12 +254,12 @@ sub cache_page {
     if (defined $page) {
     	$page = cache_html($page);
 		if(defined $Vend::CachePage) {
-			logData($Vend::Cfg->{'LogFile'}, 'cache', time, "$arg:$name", $pagename)
+			logData($Vend::Cfg->{'LogFile'}, format_log_msg('add to page cache'))
 				if defined $Vend::Cfg->{CollectData}->{cache};
 			open PAGECACHE, ">$pagedir/$pagename.html"
 				or do {
-					logGlobal "Cache failure for $Vend::Cfg->{CatalogName}: $!\n";
-					die "Cache failure: $!\n";
+					logGlobal "Page cache failure: $!";
+					die "Page cache failure: $!\n";
 				};
 			print PAGECACHE $page;
 			close PAGECACHE;
@@ -271,12 +269,9 @@ sub cache_page {
 		return 1;
     }
 	else {
-		$page = readin($Vend::Cfg->{'Special'}->{'missing'});
-		die "Special page not found: $Vend::Cfg->{'Special'}->{'missing'}\n"
-			unless defined $page;
-		$page =~ s#\[subject\]#$name#ig;
-    	response('html',interpolate_html($page));
-		return 0;
+		logData($Vend::Cfg->{'LogFile'}, format_log_msg('page not found'))
+			if defined $Vend::Cfg->{CollectData}->{nopage};
+		return display_special_page($Vend::Cfg->{'Special'}->{'missing'}, $name);
     }
 }
 
@@ -284,6 +279,9 @@ sub cache_page {
 
 sub do_page {
     my($name, $arg) = @_;
+
+	logData($Vend::Cfg->{LogFile}, format_log_msg("$name " . $arg || undef))
+		if defined $Vend::Cfg->{CollectData}->{page};
 
 	if($Vend::Cfg->{PageCache}	and
 		$CGI::cookie			and
@@ -308,17 +306,26 @@ sub do_order
     my($i, $found, $item, $save, %att);
 	
 #warn ("do_order: '" . (join "','", @_) . "'\n") if $Global::DEBUG;
-	my($cart,$page) = split m:/:, $path || '', 2;
+	my($cartname,$page) = split m:/:, $path || '', 2;
 
-	$cart = get_cart $cart;
+	my $cart = get_cart $cartname;
 
     my $base = product_code_exists_tag($code, $catalog || undef);
 
     if (! $base ) {
-		logError("Attempt to order missing product code: $code\n");
+		logError("Attempt to order missing product code: $code");
 		display_special_page($Vend::Cfg->{'Special'}->{'noproduct'}, $code);
 		return;
     }
+
+	if(defined $Vend::Cfg->{CollectData}->{basket}) {
+		$cartname = $cartname || 'main';
+		my $string = "code=$code";
+		$string .= " cart=" . ($cartname || '');
+		$string .= " page=" . ($page 	 || '');
+		$string .= " base=$base";
+		logData $Vend::Cfg->{LogFile}, format_log_msg($string);
+	}
 
     INC: {
 
@@ -474,9 +481,9 @@ sub add_items {
 
 	@items = split /\0/, $items;
 
-	my $cart = $CGI::values{mv_cartname};
+	my $cartname = $CGI::values{mv_cartname};
 
-	$cart = get_cart($cart);
+	my $cart = get_cart($cartname);
 
 	if($quantities ||= '') {
 		@quantities = split /\0/, $quantities;
@@ -505,8 +512,15 @@ sub add_items {
 		$quantity = $quantities[$j] ||= 1;
 		$base = product_code_exists_tag($code, $bases[$j] || undef);
 		if (! $base ) {
-			logError("Attempt to order missing product code: $code\n");
+			logError("Attempt to order missing product code: $code");
 			return;
+		}
+
+		if(defined $Vend::Cfg->{CollectData}->{basket}) {
+			$cartname = $cartname || 'main';
+			logData $Vend::Cfg->{LogFile},
+				format_log_msg(
+				"FORM ORDER code=$code qty=$quantity cart=$cartname base=$base");
 		}
 
 
@@ -627,7 +641,7 @@ sub update_data {
 			$query .= join ", ", @c;
 			$query .= " WHERE $key = '$value'";
 		}
-		logGlobal("query: $query\n");
+		#logGlobal("\nquery: $query\n");
 		msql_query('set', "", $query);
 	}
 
@@ -980,7 +994,7 @@ sub config_named_catalog {
          $g = $Global::Catalog{$_};
     }
 	return undef unless defined $g;
-    logGlobal "Re-configuring catalog " . $g->{'name'} . $source;
+    logGlobal "Config '$g->{'name'}' $source";
     chdir $g->{'dir'}
             or die "Couldn't change to $g->{'dir'}: $!\n";
     $conf = $g->{'dir'} . '/etc';
@@ -990,15 +1004,15 @@ sub config_named_catalog {
     if($@) {
 		my $msg = $@;
         logGlobal <<EOF;
+$g->{'name'} config error. Aborting.
 $msg
-
-$g->{'name'}: error in configuration file. Aborting configuration.
 EOF
+		eval {
         logError <<EOF;
+Config error. Aborting.
 $msg
-		
-Error in configuration file. Aborting configuration.
 EOF
+		};
      	return undef;
     }
 
@@ -1050,15 +1064,13 @@ EOF
     if($@) {
 		my $msg = $@;
         logGlobal <<EOF;
+$g->{'name'} config error. Aborting.
 $msg
-
-$g->{'name'}: error in configuration file. Aborting configuration.
 EOF
 		eval {
         logError <<EOF;
+Config error. Aborting.
 $msg
-
-Error in configuration file. Aborting configuration.
 EOF
 		};
      	return undef;
@@ -1386,7 +1398,7 @@ sub dispatch {
 
 	unless (defined $Global::Standalone) {
 		unless (defined $Global::Selector{$CGI::script_name}) {
-			logGlobal("Call for undefined catalog from $CGI::script_name");
+			logGlobal("Undefined catalog: $CGI::script_name");
 			return '';
 		}
 		$Vend::Cfg = $Global::Selector{$CGI::script_name};
@@ -1410,23 +1422,11 @@ sub dispatch {
 	}
 
 	if (defined $CGI::reconfigure_catalog) {
-
 		my $build = $CGI::values{mv_build_static} ? 1 : '';
 		return '' unless check_security(0, 1);
-
+		my $msg = $build ? 'yes' : 'no';
 		logData("$Global::ConfDir/reconfig", $CGI::script_name, $build);
-		logGlobal <<EOF;
-Reconfiguring catalog on $CGI::script_name, INET mode:
-
-	REMOTE_ADDR  $CGI::host
-	REMOTE_USER  $CGI::user
-	USER_AGENT   $CGI::useragent
-	SCRIPT_NAME  $CGI::script_name
-	PATH_INFO    $CGI::path_info
-	BUILD        $CGI::reconfigure_catalog      
-
-EOF
-			
+		logGlobal("Reconfig '$Vend::Cfg->{CatalogName}'");
 	}
 
 	chdir $Vend::Cfg->{'VendRoot'} 
@@ -1489,7 +1489,11 @@ EOF
 	$Vend::Session->{source} = $rest if defined $rest && $rest =~ /[A-Za-z]/;
 	$Vend::Session->{user} = $CGI::user;
 
-    $path = $CGI::path_info;
+    $Vend::Session->{prev_url} = $Vend::Session->{last_url}
+		if defined $Vend::Session->{last_url};
+    $path = $Vend::Session->{last_url} = $CGI::path_info;
+    $Vend::Session->{last_search} = $path
+		if $path =~ m!^/scan!;
 
     # If the cgi-bin program was invoked with no extra path info,
     # just display the catalog page.
@@ -1789,14 +1793,16 @@ sub main {
 			}
 			
 			eval {
-			$c = config_named_catalog($g->{'script'}, " at server startup ($$)");
+			$c = config_named_catalog($g->{'script'}, "at server startup");
 			};
 
 			if ($@ or ! defined $c) {
 				my $msg = $@;
 				print "\n$msg\n\a$g->{'name'}: error in configuration. Skipping.\n";
-				logGlobal
-					"\n$msg\n\a$g->{'name'}: error in configuration. Skipping.\n";
+				logGlobal <<EOF;
+$g->{'name'}: Config error. Skipping.
+$msg
+EOF
 				undef $Global::Selector{$g->{'script'}};
 				next;
 			}
@@ -1836,8 +1842,10 @@ EOF
 				if ($@) {
 					my $msg = $@;
 					print "\n$msg\n\a$g->{'name'}: error building pages. Skipping.\n";
-					logGlobal
-						"\n$msg\n$g->{'name'}: error building pages. Skipping.\n";
+					logGlobal <<EOF;
+$g->{'name'}: Page build error. Skipping.
+$msg
+EOF
 				}
 			}
 			print "done.\n";

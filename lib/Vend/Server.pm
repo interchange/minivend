@@ -1,6 +1,6 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.8 1997/01/07 01:16:56 mike Exp $
+# $Id: Server.pm,v 1.14 1997/05/25 06:10:54 mike Exp mike $
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -45,10 +45,16 @@ sub respond {
     my ($s, $content_type, $body) = @_;
     my $fh = $s->{fh};
 
+	# Fix for SunOS, Ultrix, Digital UNIX
+	my($oldfh) = select($fh);
+	$| = 1;
+	select($oldfh);
+
 	if ($CGI::script_name =~ m:/nph-[^/]+$:) {
 		print $fh "HTTP/1.0 200 OK\r\n";
 	}
 	if ($Vend::Session->{frames} and $CGI::values{mv_change_frame}) {
+print "Changed Frame: Window-target: " . $CGI::values{mv_change_frame} . "\r\n" if $Global::DEBUG;
 		print $fh "Window-target: " . $CGI::values{mv_change_frame} . "\r\n";
     }
 
@@ -144,37 +150,19 @@ sub read_cgi_data {
     }
 }
 
+my %Base;
+my $Prefix = $Global::ConfDir . "/mvrunning";
+
 sub get_socketname {
-	my $base = shift;
-	$base =~ s:(.*)/::;
-	my $dir = $1;
-	$base =~ s/[^A-Za-z0-9]//g;
-	$base .= int rand 10;
+	my $base = $Vend::Server::Num_servers;
 	for(;;) {
-		last unless -e "$dir/$base";
+		last unless defined $Base{"$Prefix$base"};
 		$base++;
 	}
-	"$dir/$base";
+	"$Prefix$base";
 }
 
-sub unix_connection {
-    my ($socket,$debug) = @_;
-
-    my (@argv, %env, $entity);
-    read_cgi_data(\@argv, \%env, \$entity);
-
-    my $http = new Vend::Http::Server \*Vend::Server::MESSAGE, \%env, $entity;
-    my $forked;
-    eval {$forked = ::dispatch($http,$socket,$debug);};
-	if($@) {
-		::logGlobal("Error in '$Vend::Cfg->{CatalogName}': $@");
-		::logError("Error in '$Vend::Cfg->{CatalogName}': $@");
-		$forked = 0;
-	}
-    $forked;
-}
-
-sub inet_connection {
+sub connection {
     my ($handle,$debug) = @_;
 
     my (@argv, %env, $entity);
@@ -197,6 +185,7 @@ $Vend::Server::Num_servers = 0;
 # might also trap: QUIT
 
 my ($Routine_USR1, $Routine_USR2, $Routine_TERM, $Routine_INT);
+my ($Sig_inc, $Sig_dec, $Counter);
 
 $Routine_USR1 = sub { $SIG{USR1} = $Routine_USR1; $Vend::Server::Num_servers++};
 $Routine_USR2 = sub { $SIG{USR2} = $Routine_USR2; $Vend::Server::Num_servers--};
@@ -223,6 +212,19 @@ sub setup_signals {
 		$SIG{'USR1'} = sub { $Vend::Server::Num_servers++; };
 		$SIG{'USR2'} = sub { $Vend::Server::Num_servers--; };
 	}
+
+    if(! $Global::SafeSignals or $Config{'osname'} =~ /bsd/) {
+        require File::CounterFile;
+        my $filename = "$Global::ConfDir/process.counter";
+        unlink $filename;
+        $Counter = new File::CounterFile $filename;
+        $Sig_inc = sub { $Vend::Server::Num_servers = $Counter->inc(); };
+        $Sig_dec = sub { $Vend::Server::Num_servers = $Counter->dec(); };
+    }
+    else {
+        $Sig_inc = sub { kill "USR1", $Vend::MasterProcess; };
+        $Sig_dec = sub { kill "USR2", $Vend::MasterProcess; };
+    }
 
 }
 
@@ -288,21 +290,18 @@ EOF
 					next;
 				}
 				$c = ::config_named_catalog($script_name,
-									" from running server ($$)", $build);
+									"from running server ($$)", $build);
 				if (defined $c) {
 					$Global::Selector{$script_name} = $c;
 					for(sort keys %Global::SelectorAlias) {
 						next unless $Global::SelectorAlias{$_} eq $script_name;
 						$Global::Selector{$_} = $c;
 					}
-					logGlobal <<EOF;
-Reconfiguration of catalog $script_name successful.
-EOF
+					logGlobal "Reconfig of $c->{CatalogName} successful.";
 				}
 				else {
 					logGlobal <<EOF;
 Error reconfiguring catalog $script_name from running server ($$):
-
 $@
 EOF
 				}
@@ -355,7 +354,7 @@ sub server_inet {
 			|| die "setsockopt: $!";
 	bind(Vend::Server::SOCKET, sockaddr_in($port, INADDR_ANY))
 			|| die "bind: $!";
-	listen(Vend::Server::SOCKET,5)
+	listen(Vend::Server::SOCKET,SOMAXCONN)
 			|| die "listen: $!";
 
 	for (;;) {
@@ -392,35 +391,38 @@ sub server_inet {
 							my $ad = inet_ntoa($iaddr); $host=~ /\b$ad\b/o
 							} )
 			{
-				::logGlobal("ALERT: attempted connection from $name ($port)\n");
+				logGlobal("ALERT: attempted connection from $name ($port)");
 				close(Vend::Server::MESSAGE) || die "close socket: $!\n";
 				next;
 			}
 
-			my $handle = get_socketname("$Global::ConfDir/mvrunning");
+			my $handle = get_socketname();
 
 			if(! defined ($pid = fork) ) { 
-				::logGlobal ("Can't fork: $!\n");
+				logGlobal ("Can't fork: $!");
 			}
 			elsif (! $pid) {
 				#fork again
 				unless ($pid = fork) {
-					kill "USR1", $Vend::MasterProcess;
-					open(Vend::Server::PIDFILE, ">$handle")
-						or die "create pidfile $handle: $!\n";
-					print Vend::Server::PIDFILE "$$ " . time . "\n";
-					close(Vend::Server::PIDFILE)
-						or die "close pidfile $handle: $!\n";
+					eval {
+						&$Sig_inc;
+						open(Vend::Server::PIDFILE, ">$handle")
+							or die "create pidfile $handle: $!\n";
+						print Vend::Server::PIDFILE "$$ " . time . "\n";
+						close(Vend::Server::PIDFILE)
+							or die "close pidfile $handle: $!\n";
 
-					select(undef,undef,undef,0.020) until getppid == 1;
-					eval { inet_connection(undef, $debug) };
+						connection(undef, $debug);
+					 };
 					if ($@) {
 						my $msg = $@;
-						::logGlobal("Error in '$Vend::Cfg->{CatalogName}': $msg");
-						::logError("Error: $msg")
+                        logGlobal("Runtime error: $msg");
+                        logError("Runtime error: $msg")
 					}
 					unlink $handle;
-					kill "USR2", $Vend::MasterProcess;
+					undef $Base{$handle};
+					&$Sig_dec;
+					select(undef,undef,undef,0.050) until getppid == 1;
 					exit(0);
 				}
 				exit(0);
@@ -444,7 +446,7 @@ sub server_inet {
 			housekeeping($tick);
 ##print(" $Vend::Server::Num_servers") if $Global::DEBUG;
 			last if $Vend::Server::Num_servers < $max_servers;
-			select(undef,undef,undef,0.100);
+			select(undef,undef,undef,0.010);
 			last if $Signal_Terminate || $Signal_Debug;
 		}
 ##print("\n") if $Global::DEBUG;
@@ -455,7 +457,7 @@ sub server_inet {
 	restore_signals();
 
    	if ($Signal_Terminate) {
-       	::logGlobal("\nServer terminating on signal TERM\n\n");
+       	logGlobal("STOP server ($$) on signal TERM");
        	return 'terminate';
    	}
 
@@ -492,7 +494,8 @@ sub server_unix {
 	#DEBUG
 	#chmod 0666, $socket_filename; #DEBUG
 
-	listen(Vend::Server::SOCKET, 5) or die "listen: $!";
+	listen(Vend::Server::SOCKET,SOMAXCONN) or die "listen: $!";
+
     for (;;) {
 
 		#chmod $Global::FileCreationMask, $socket_filename;
@@ -521,7 +524,7 @@ sub server_unix {
             }
             else {
 				my $msg = $!;
-				logGlobal "error '$msg' from select.\n";
+				logGlobal("error '$msg' from select.");
                 die "select: $msg\n";
             }
         }
@@ -530,34 +533,36 @@ sub server_unix {
             my $ok = accept(Vend::Server::MESSAGE, Vend::Server::SOCKET);
             die "accept: $!" unless defined $ok;
 
-       		my $handle = get_socketname("$Global::ConfDir/mvrunning");
+       		my $handle = get_socketname();
 
             if(! defined ($pid = fork) ) {
-                ::logGlobal ("Can't fork: $!\n");
+                logGlobal ("Can't fork: $!");
             }
             elsif (! $pid) {
                 #fork again
                 unless ($pid = fork) {
 
-					kill "USR1", $Vend::MasterProcess;
-                    open(Vend::Server::PIDFILE, ">$handle")
-                        or die "create pidfile $handle: $!\n";
-                    print Vend::Server::PIDFILE "$$ " . time . "\n";
-                    close(Vend::Server::PIDFILE)
-                        or die "close pidfile $handle: $!\n";
+					eval { 
+						&$Sig_inc;
+						open(Vend::Server::PIDFILE, ">$handle")
+							or die "create pidfile $handle: $!\n";
+						print Vend::Server::PIDFILE "$$ " . time . "\n";
+						close(Vend::Server::PIDFILE)
+							or die "close pidfile $handle: $!\n";
 
-                    eval { inet_connection(undef, $debug) };
-                    select(undef,undef,undef,0.050) until getppid == 1;
+						connection(undef, $debug);
+					};
                     if ($@) {
 						my $msg = $@;
-                        ::logGlobal("Error in '$Vend::Cfg->{CatalogName}': $msg");
-                        ::logError("Error: $msg")
+                        logGlobal("Runtime error: $msg");
+                        logError("Runtime error: $msg")
                     }
 
                     unlink $handle;
-                    #unlink $handle, $new_socket;
+					undef $Base{$handle};
 
-					kill "USR2", $Vend::MasterProcess;
+					&$Sig_dec;
+                    select(undef,undef,undef,0.050) until getppid == 1;
                     exit(0);
                 }
                 exit(0);
@@ -591,7 +596,7 @@ sub server_unix {
     restore_signals();
 
    	if ($Signal_Terminate) {
-       	::logGlobal("\nServer terminating on signal TERM\n\n");
+       	logGlobal("STOP server ($$) on signal TERM");
        	return 'terminate';
    	}
 
@@ -735,7 +740,7 @@ sub run_server {
                 open(STDERR, ">&Vend::DEBUG");
                 select(STDERR); $| = 1; select(STDOUT);
 				my $type = $Global::Inet_Mode ? "INET" : "UNIX";
-                ::logGlobal("\nServer running on pid $$ ($type)\n\n");
+                logGlobal("START server ($$) ($type)");
                 setsid();
 
                 fcntl(Vend::Server::Pid, F_SETFD, 1)

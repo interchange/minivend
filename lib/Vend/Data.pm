@@ -1,4 +1,4 @@
-# $Id: Data.pm,v 2.11 1997/01/07 01:16:56 mike Exp $
+# $Id: Data.pm,v 1.8 1997/05/22 07:00:05 mike Exp $
 
 package Vend::Data;
 require Exporter;
@@ -271,7 +271,7 @@ sub dbi_query {
 							Vend::Table::DBI::array_query($_[1], $catalog)
 							);
 	# shouldn't reach this if proper tag
-	logError("Bad SQL query selector: '$_[0]'\n");
+	logError("Bad SQL query selector: '$_[0]'");
 	return '';
 }
 
@@ -294,7 +294,7 @@ sub msql_query {
 							Vend::Table::Msql::array_query($_[1], $catalog)
 							);
 	# shouldn't reach this if proper tag
-	logError("Bad Msql query selector: '$_[0]'\n");
+	logError("Bad Msql query selector: '$_[0]'");
 	return '';
 }
 
@@ -382,7 +382,7 @@ sub read_shipping {
 		if($Vend::Cfg->{UpsZoneFile}) {
 			my @zone = split(/\n/, readfile($Vend::Cfg->{'UpsZoneFile'}) );
 			unless (@zone) {
-				logError("Bad UPS zone file, UPS lookup disabled.\n");
+				logError("Bad UPS zone file, UPS lookup disabled.");
 				last UPSZONE;
 			}
 			if($zone[0] !~ /\t/) {

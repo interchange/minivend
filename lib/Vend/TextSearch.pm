@@ -1,6 +1,6 @@
 # Vend/TextSearch.pm:  Search indexes with Perl
 #
-# $Id: TextSearch.pm,v 1.7 1997/01/05 09:11:01 mike Exp $
+# $Id: TextSearch.pm,v 1.8 1997/05/22 07:00:05 mike Exp $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::TextSearch
 #
@@ -37,7 +37,7 @@ require Vend::Search;
 @ISA = qw(Vend::Search);
 # END NOAUTO
 
-$VERSION = substr(q$Revision: 1.7 $, 10);
+$VERSION = substr(q$Revision: 1.8 $, 10);
 
 use Text::ParseWords;
 use Search::Dict;
@@ -300,7 +300,7 @@ EOF
 		$searchfile = "$g->{base_directory}/$searchfile"
 			unless ($sort_string || $searchfile =~ m:^/: || ! $g->{base_directory});
 		open(Vend::TextSearch::SEARCH, $searchfile)
-			or &{$g->{log_routine}}( "Couldn't open $searchfile: $!\n"), next;
+			or &{$g->{log_routine}}( "Couldn't open search file '$searchfile': $!"), next;
 		my $line;
 
 		# Get field names only if no sort (will throw it off) or
@@ -381,7 +381,7 @@ EOF
 
     if ($g->{matches} > $g->{match_limit}) {
         $s->save_more(\@out)
-            or &{$g->{log_routine}}("Error saving matches: $!\n");
+            or &{$g->{log_routine}}("Error saving matches: $!");
         $#out = $g->{match_limit} - 1;
     }
 

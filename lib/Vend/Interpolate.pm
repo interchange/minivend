@@ -1,6 +1,6 @@
 # Interpolate.pm - Interpret MiniVend tags
 # 
-# $Id: Interpolate.pm,v 2.20 1997/01/07 01:33:26 mike Exp $
+# $Id: Interpolate.pm,v 1.13 1997/05/25 06:10:54 mike Exp mike $
 #
 # Copyright 1996 by Michael J. Heins <mikeh@iac.net>
 #
@@ -32,7 +32,7 @@ require Exporter;
 @ISA = qw(Exporter);
 # END NOAUTO
 
-$VERSION = substr(q$Revision: 2.20 $, 10);
+$VERSION = substr(q$Revision: 1.13 $, 10);
 
 @EXPORT = qw (
 
@@ -292,7 +292,7 @@ sub cache_html {
     # Returns, could be recursive
     if($new) {
         my $parse = new Vend::Parse;
-        $parse->parse($html) || logError "Couldn't parse page:\n$html\n";
+        $parse->parse($html) || logError "Couldn't parse page:\n$html";
         $html = $parse->{OUT};
         $html =~ s#(<i\w+\s+[^>]*?src=")(?!http:)([^/][^"]+)#
                      $1 . $Vend::Cfg->{ImageDir} . $2#ige
@@ -353,7 +353,7 @@ sub interpolate_html {
 		}
 		else {
 			$parse = new Vend::Parse;
-			$parse->parse($html) || logError "Couldn't parse page:\n$html\n";
+			$parse->parse($html) || logError "Couldn't parse page:\n$html";
 			$html = $parse->{OUT};
 			$html =~ s#(<i\w+\s+[^>]*?src=")(?!http:)([^/][^"]+)#
 						 $1 . $Vend::Cfg->{ImageDir} . $2#ige
@@ -407,7 +407,7 @@ sub cache_scan_html {
 						([\000-\377]*?)
 						$T{'/loop'}\]:
               tag_loop_list($1,$2):xgeo;
-    $html =~ s:$T{'default'}\s+($codere)\]:tag_default($1):geo
+    $html =~ s:$T{'default'}\s+([^\]]+)\]:tag_default($1):geo
 				and $CacheInvalid = 1;
     $html =~ s!$T{'value'}\s+($codere)(?:\s+)?($codere)?\]!tag_value($1,$2)!geo
 				and $CacheInvalid = 1;
@@ -554,7 +554,7 @@ sub scan_html {
 						([\000-\377]*?)
 						$T{'/loop'}\]:
               tag_loop_list($1,$2):xgeo;
-    $html =~ s:$T{'default'}\s+($codere)\]:tag_default($1):geo;
+    $html =~ s:$T{'default'}\s+([^\]]+)\]:tag_default($1):geo;
     $html =~ s!$T{'value'}\s+($codere)(?:\s+)?($codere)?\]!tag_value($1,$2)!geo;
     $html =~ s:$T{'scratch'}\s+([^\]]+)\]:tag_scratch($1):geo;
 
@@ -795,6 +795,25 @@ sub tag_if {
 		$op .=	qq%	$operator $comp%
 				if $comp;
 	}
+	elsif($base eq 'ordered') {
+		$CacheInvalid = 1;
+		$operator = 'main' unless $operator;
+		my ($attrib, $i);
+		$op = '';
+		unless ($comp) {
+			$attrib = 'quantity';
+		}
+		else {
+			($attrib,$comp) = split /\s+/, $comp;
+		}
+		foreach $i (@{$Vend::Session->{'carts'}->{$operator}}) {
+			next unless $i->{code} eq $term;
+			($op++, next) if $attrib eq 'lines';
+			$op = $i->{$attrib};
+			last;
+		}
+		$op .=	qq%	$comp% if $comp;
+	}
 	elsif($base eq 'scratch') {
 		$CacheInvalid = 1;
 		$op =	qq%"$Vend::Session->{'scratch'}->{$term}"%;
@@ -876,7 +895,7 @@ sub tag_if {
 		$status = $safe->reval($op)
 			unless ($@ or $status);
 		if ($@) {
-			logError qq%"Bad [if $cond]"] from $Vend::SessionID: $@%;
+			logError qq%Bad if: '$cond': $@%;
 			return $else;
 		}
 	}
@@ -894,7 +913,7 @@ sub tag_accessories {
 			return $Vend::Accessories{$code};
 		}
 		else {
-			return $Vend::Accessories{'default'};
+			return $Vend::Accessories{'default'} || '';
 		}
 	}
 	# Had extra if got here
@@ -1040,7 +1059,7 @@ sub tag_perl {
 		eval {@_ = eval $body};
 
 		if($@) {
-			logError("Bad args to perl sub $name for page $CGI::path_info: $@\n");
+			logError("Bad args to perl sub $name for page $CGI::path_info: $@");
 			return '';
 		}
 
@@ -1056,7 +1075,7 @@ sub tag_perl {
 			$result = &{$Global::GlobalSub->{$name}};
 		}
 		else {
-			logError("Undefined perl sub $name for page $CGI::path_info.\n");
+			logError("Undefined perl sub $name");
 			return '';
 		}
 			
@@ -1077,14 +1096,20 @@ sub do_tag {
 	my($arg, $text) = @_;
 #print("Do_tag: arg=$arg text=$text\n") if $Global::DEBUG;
 	if($arg) {
-		if($arg =~ s/^\s*flag\s+([\s\S]*)//i ) {
+		if($arg =~ s/^\s*flag\s+(.+)//si ) {
 			do_flag($1, $text);
+		}
+		elsif($arg =~ m!^\s*scan/(.*)!i ) {
+			my $string = "[page scan/$1";
+			my $se = $text;
+			$se =~ s/\W/'.' . sprintf("%02x", chr($1))/ge;
+			return $string . '/se=' . $se . "]$text";
 		}
 		elsif($arg =~ /^\s*import\s+($Codere)/i ) {
 			my $db = database_exists_ref($1) 
 				or do {
 					$arg =~ s/\s*\w+\s+//;
-					logError("tag import: unknown database '$arg'.");
+					logError("tag import: unknown database '$arg'");
 					return '';
 				};
 			$db->test_column("NeVairBE");
@@ -1094,15 +1119,16 @@ sub do_tag {
 			my $base = $1;
 			my $db = database_exists_ref($base) 
 				or do {
-					logError("tag each: unknown database '$base'.");
+					logError("tag each: unknown database '$base'");
 					return '';
 				};
 			$db->test_column("NeVairBE");
 			$db = database_exists_ref($base);
 			my $key;
 			my $out = '';
+			my $i = 0;
 			while(($key) = $db->each_record()) {
-				$out .= loop_substitute($key, $text);
+				$out .= loop_substitute($key, $text, $i++);
 			}
 			return $out;
 		}
@@ -1176,7 +1202,7 @@ EndOFmiMe
 			return export_database($1,$2,$3);
 		}
 		else {
-			logError("Unknown tag argument '$arg'.");
+			logError("Unknown tag argument '$arg'");
 		}
 		return '';
 	}
@@ -1196,10 +1222,10 @@ EndOFmiMe
 # END AUTOLOAD
 
 sub do_flag {
-	my($flag, $arg);
+	my($flag, $arg) = @_;
 
-	$flag = s/^\s+//;
-	$flag = s/\s+$//;
+	$flag =~ s/^\s+//;
+	$flag =~ s/\s+$//;
 	if($flag =~ /^write$/i) {
 		my @args = quoted_string($arg);
 		for(@args) {
@@ -1250,7 +1276,7 @@ sub do_log {
 				or return '';
 	}
 	else {
-		logError("Unknown logging operation '$op'.");
+		logError("Unknown logging operation '$op'");
 		return '';
 	}
 
@@ -1317,11 +1343,14 @@ sub tag_file {
 sub tag_default {
     my($var) = @_;
     my($value);
-
+	my $default = 'default';
+	if($var =~ /\s/) {
+		($var, $default) = split /\s+/, $var, 2;
+	}
     if (defined ($value = $Vend::Session->{'values'}->{$var}) and $value) {
 	return $value;
     } else {
-	return "default";
+	return $default;
     }
 }
 
@@ -1526,7 +1555,7 @@ sub tag_process_target {
 
 	if($frame and $Vend::Session->{'frames'}) {
     	$frametag = '" TARGET="'. $frame
-			unless ! defined $frame
+			unless ! defined $frame or $frame eq 'none'
 					    or
 					$Vend::Session->{scratch}->{mv_ignore_frame};
 	}
@@ -1726,7 +1755,7 @@ sub tag_self_contained_if {
 		$status = $safe->reval($op)
 			unless ($@ or $status);
 		if ($@) {
-			logError qq%"Bad [if @_]"] from $Vend::SessionID: $@%;
+			logError qq%Bad if '@_': $@%;
 			return $else;
 		}
 	}
@@ -1924,7 +1953,7 @@ sub tag_search_list {
 }
 
 sub tag_more_list {
-	my($r,$q,$target) = @_;
+	my($r,$q,$next_anchor, $prev_anchor, $page_anchor) = @_;
 	my($arg,$inc,$last,$m);
 	my($adder,$current,$pages);
 	my $next_tag = '';
@@ -1936,10 +1965,6 @@ sub tag_more_list {
 	my $total = $q->global('matches');
 	my $next = $q->global('next_pointer');
 
-	$target = defined $target 
-			? qq|" TARGET="$target|
-			: qq|" TARGET="_self|;
-
 	if($chunk >= $total) {
 		return '';
 	}
@@ -1950,31 +1975,56 @@ sub tag_more_list {
 
 
 	if($first) {
-		$arg = $session;
-		$arg .= ':';
-		$arg .= $first - $chunk;
-		$arg .= ':';
-		$arg .= $first - 1;
- 		$arg .= ":$chunk:$mod";
-		$list .= '<A HREF="';
-		$list .= vendUrl('search', $arg);
-		$list .= $target;
-		$list .= '">';
-		$list .= 'Previous</A>';
+		unless (defined $prev_anchor) {
+			$prev_anchor = 'Previous';
+		}
+		elsif ($prev_anchor ne 'none') {
+			$prev_anchor = qq%<IMG SRC="$prev_anchor">%;
+		}
+		unless ($prev_anchor eq 'none') {
+			$arg = $session;
+			$arg .= ':';
+			$arg .= $first - $chunk;
+			$arg .= ':';
+			$arg .= $first - 1;
+			$arg .= ":$chunk:$mod";
+			$list .= '<A HREF="';
+			$list .= vendUrl('search', $arg);
+			$list .= '">';
+			$list .= $prev_anchor;
+			$list .= '</A>';
+		}
 	}
 	
 	if($next) {
+		unless (defined $next_anchor) {
+			$next_anchor = 'Next';
+		}
+		else {
+			$next_anchor = qq%<IMG SRC="$next_anchor">%;
+		}
 		$last = $next + $chunk - 1;
 		$last = $last > ($total - 1) ? $total - 1 : $last;
 		$arg = "$session:$next:$last:$chunk:$mod";
 		$next_tag .= '<A HREF="';
 		$next_tag .= vendUrl('search', $arg);
-		$next_tag .= $target;
 		$next_tag .= '">';
-		$next_tag .= 'Next</A>';
+		$next_tag .= $next_anchor;
+		$next_tag .= '</A>';
 	}
 	
+	unless (defined $page_anchor) {
+		$page_anchor = '__PAGE__';
+	}
+	elsif ($page_anchor ne 'none') {
+		$page_anchor = qq%<IMG SRC="$page_anchor?__PAGE__">%;
+	}
+
+	my $pa;
 	foreach $inc (1..$pages) {
+		last if $page_anchor eq 'none';
+		$pa = $page_anchor;
+		$pa =~ s/__PAGE__/$inc/g;
 		$next = ($inc-1) * $chunk;
 		$last = $next + $chunk - 1;
 		$last = ($last+1) < $total ? $last : ($total - 1);
@@ -1985,9 +2035,9 @@ sub tag_more_list {
 			$arg = "$session:$next:$last:$chunk:$mod";
 			$list .= '<A HREF="';
 			$list .= vendUrl('search', $arg);
-			$list .= $target;
 			$list .= '">';
-			$list .= qq|$inc</A> |;
+			$list .= $pa;
+			$list .= '</A>';
 		}
 	}
 
@@ -2357,16 +2407,21 @@ sub search_page {
 	}
 
  	unless (defined $page) {
-		logError("Missing special page: $page\n");
-		logGlobal("Missing special page: $page in $Vend::Cfg->{CatalogName}\n");
+		logError("Missing special page: $page");
+		logGlobal("Missing special page: $page");
 		return main::response('plain', "No search page defined!");
 	}
 
 	# passing the list reference here
     $page =~ s:$T{'search-list'}\]([\000-\377]*?)$T{'/search-list'}\]:
               tag_search_list($1,$o,$q):geo;
-    $page =~ s:$T{'more-list'}\]([\000-\377]*?)$T{'/more-list'}\]:
-              tag_more_list($1,$q):geo;
+    $page =~ s!
+				$T{'more-list'}
+					(?:\s+)?($Coderex)?
+					(?:\s+)?($Coderex)?
+					(?:\s+)?($Coderex)?
+					\]([\000-\377]*?)$T{'/more-list'}\]!
+              tag_more_list($4,$q,$1,$2,$3)!xgeo;
 
 	# This is a fake search from the page builder
 	# Doesn't return response, just returns page if not dynamic
@@ -2381,7 +2436,7 @@ sub search_page {
 
 		my $ref;
 		$page = interpolate_html($page);
-		logData($Vend::Cfg->{'LogFile'}, 'scache', time, $key)
+		logData($Vend::Cfg->{'LogFile'}, format_log_msg('add to search cache'))
 			if defined $Vend::Cfg->{CollectData}->{cache};
 		open(SEARCHCACHE, ">$Vend::Cfg->{ScratchDir}/SearchCache/$key.html")
 			or die "Cache failure: $!\n";
@@ -2412,7 +2467,7 @@ sub fly_page
 			$selector = database_field($base, $code, $selector);
 		}
 		else {
-			logError("The PageSelectField column $selector doesn't exist.") ;
+			logError("PageSelectField column '$selector' doesn't exist") ;
 		}
 	}
 
@@ -2460,9 +2515,9 @@ sub order_page
 	}
 
  	unless (defined $page) {
-		logError("Missing special page: $which\n");
-		logGlobal("Missing special page: $which in $Vend::Cfg->{CatalogName}\n");
-		return main::response('plain', "No result page defined!");
+		logError("Missing special page: $which");
+		logGlobal("Missing special page: $which");
+		return main::response('plain', "No page defined!");
 	}
     main::response('html',interpolate_html($page));
 }
@@ -2503,7 +2558,7 @@ sub apply_discount {
 		$cost = $safe->reval($formula);
 		if($@) {
 			logError
-				"Discount for $item->{code} has bad formula. Not applied.";
+				"Discount for $item->{code} has bad formula. Not applied.\n$@";
 			next;
 		}
 		$subtotal = $cost;
@@ -2599,7 +2654,7 @@ sub custom_shipping {
 				}
 				$cost = $safe->reval($formula);
 				if($@) {
-					my $msg = "Shipping mode '$mode': bad formula. Returning 0.\n";
+					my $msg = "Shipping mode '$mode': bad formula. Returning 0.";
 					logError($msg);
 					$Vend::Session->{ship_message} .= $msg;
 					return 0;
@@ -2804,6 +2859,7 @@ sub salestax {
 	}
 
 	foreach $code (@code) {
+		next unless defined $code && $code;
 		# Trim the zip+4
 		$code =~ s/(\d{5})-\d+/$1/;
 		# Make it upper case for state and overseas postal
@@ -2814,7 +2870,7 @@ sub salestax {
 			last;
 		}
 		else {
-			$r = $amount * $Vend::Cfg->{SalesTaxTable}->{'default'};
+			$r = $amount * ($Vend::Cfg->{SalesTaxTable}->{'default'} || 0);
 		}
 	}
 	$Vend::Items = $save if defined $save;
@@ -2861,7 +2917,7 @@ sub subtotal {
 		$cost = $safe->reval($formula);
 		if($@) {
 			logError
-				"Discount ENTIRE_ORDER has bad formula. Returning normal subtotal.";
+				"Discount ENTIRE_ORDER has bad formula. Returning normal subtotal.\n$@";
 			$cost = $subtotal;
 		}
 		$subtotal = $cost;

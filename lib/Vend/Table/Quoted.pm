@@ -1,20 +1,9 @@
-# $Id: Quoted.pm,v 1.6 1997/05/02 05:50:23 mike Exp $
+# $Id: Quoted.pm,v 1.7 1997/05/22 07:10:45 mike Exp $
 #
 # From and presumably copyright 1996 Andrew M. Wilcox
 #
-# $Log: Quoted.pm,v $
-# Revision 1.6  1997/05/02 05:50:23  mike
-# *** empty log message ***
-#
-# Revision 1.1  1996/08/09 22:21:11  mike
-# Initial revision
-#
-# Revision 1.1  1996/04/22 05:24:17  mike
-# Initial revision
-#
-#
 package Vend::Table::Quoted;
-$VERSION = substr(q$Revision: 1.6 $, 10);
+$VERSION = substr(q$Revision: 1.7 $, 10);
 require Exporter;
 @ISA = qw(Exporter);
 @EXPORT_OK = qw(read_quoted_fields);

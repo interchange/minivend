@@ -1,25 +1,10 @@
 # Table/DB_File.pm: access a table stored in a DB file hash
 #
-# $Id: DB_File.pm,v 1.6 1997/05/02 05:50:23 mike Exp $
+# $Id: DB_File.pm,v 1.7 1997/05/22 07:10:45 mike Exp $
 #
-
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
 # Modified 1996 by Mike Heins <mikeh@iac.net>
-#
-# $Log: DB_File.pm,v $
-# Revision 1.6  1997/05/02 05:50:23  mike
-# *** empty log message ***
-#
-# Revision 1.2  1996/08/22 17:35:08  mike
-# Save solid snapshot of multiple catalog Vend
-#
-# Revision 1.1  1996/08/09 22:21:11  mike
-# Initial revision
-#
-# Revision 1.1  1996/04/22 05:06:31  mike
-# Initial revision
-#
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -36,7 +21,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::DB_File;
-$VERSION = substr(q$Revision: 1.6 $, 10);
+$VERSION = substr(q$Revision: 1.7 $, 10);
 use Carp;
 use strict;
 use Fcntl;

@@ -1,4 +1,4 @@
-# $Id: Session.pm,v 1.12 1997/01/05 02:02:24 mike Exp $
+# $Id: Session.pm,v 1.10 1997/05/25 06:10:54 mike Exp mike $
 
 package Vend::Session;
 require Exporter;
@@ -154,7 +154,7 @@ sub new_session {
     }
 	$CGI::cookie = '';
     $Vend::SessionName = $name;
-	add_session_marker();
+	#add_session_marker();
     init_session();
 	return if $File_sessions;
 	write_session();
@@ -251,13 +251,15 @@ sub lock_session {
 	$tried = 0;
 
 	LOCKLOOP: {
-		($locktime, $pid) = split /:/, $Vend::SessionDBM{$lockname}, 2;
+		if (defined $Vend::SessionDBM{$lockname}) {
+			($locktime, $pid) = split /:/, $Vend::SessionDBM{$lockname}, 2;
+		}
 		$now = time;
 		if(defined $locktime and $locktime) {
 			$left = $now - $locktime;
 			if ( $left > $Global::HammerLock ) {
 				$Vend::SessionDBM{$lockname} = "$now:$$";
-				logError("Hammered session lock $lockname left by PID $pid.");
+				logError("Hammered session lock $lockname left by PID $pid");
 				return 1;
 			}
 			elsif ($left < 0) {

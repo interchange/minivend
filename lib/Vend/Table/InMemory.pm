@@ -1,25 +1,8 @@
 # Table/InMemory.pm: store a table in memory
 #
-# $Id: InMemory.pm,v 1.6 1997/05/02 05:50:23 mike Exp $
+# $Id: InMemory.pm,v 1.8 1997/05/22 07:10:45 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
-#
-# $Log: InMemory.pm,v $
-# Revision 1.6  1997/05/02 05:50:23  mike
-# *** empty log message ***
-#
-# Revision 1.3  1997/01/07 01:34:10  mike
-# MiniVend 2.03 release version
-#
-# Revision 1.2  1996/08/22 17:35:08  mike
-# Save solid snapshot of multiple catalog Vend
-#
-# Revision 1.1  1996/08/09 22:21:11  mike
-# Initial revision
-#
-# Revision 1.3  1996/04/22 05:26:09  mike
-# Annotation of Andrew's 1.2
-#
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -36,7 +19,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::InMemory;
-$VERSION = substr(q$Revision: 1.6 $, 10);
+$VERSION = substr(q$Revision: 1.8 $, 10);
 use Carp;
 use strict;
 

@@ -1,4 +1,4 @@
-# $Id: ValidCC.pm,v 1.3 1996/10/30 04:22:28 mike Exp $
+# $Id: ValidCC.pm,v 1.3 1997/05/02 05:50:03 mike Exp $
 #
 # ValidCC.pm - validate credit card numbers
 #

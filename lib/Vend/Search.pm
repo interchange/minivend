@@ -27,7 +27,7 @@
 #
 package Vend::Search;
 
-$VERSION = substr(q$Revision: 1.6 $, 10);
+$VERSION = substr(q$Revision: 1.9 $, 10);
 $DEBUG = 0;
 
 =head1 NAME
@@ -1137,7 +1137,7 @@ sub save_more {
 			close Vend::Search::MATCHES;
 		}
 		else {
-			&{$g->{log_routine}}("search: Couldn't write $file: $!\n");
+			&{$g->{log_routine}}("search: Couldn't write $file: $!");
 		}
 	}
 	elsif(ref $g->{save_hash}) {
