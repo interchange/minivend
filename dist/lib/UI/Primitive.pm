@@ -182,6 +182,7 @@ sub ui_acl_enabled {
 		or die "Bad database record for $uid.";
 	if($ref->{table_control}) {
 		$ref->{table_control_ref} = $ui_safe->reval($ref->{table_control});
+		ref $ref->{table_control_ref} or delete $ref->{table_control_ref};
 	}
 	return $ref if $try;
 	$Vend::UI_entry = $ref;
