@@ -106,6 +106,8 @@ $ESCAPE_CHARS::ok_in_filename =
 		'-:_.$/'
 	;
 
+my $need_escape;
+
 sub setup_escape_chars {
     my($ok, $i, $a, $t);
 
@@ -119,6 +121,9 @@ sub setup_escape_chars {
         }
         $ESCAPE_CHARS::translate[$i] = $t;
     }
+
+	my $string = "[^$ESCAPE_CHARS::ok_in_filename]";
+	$need_escape = qr{$string};
 
 }
 
@@ -377,6 +382,16 @@ sub setlocale {
         @{$Vend::Cfg->{Locale}}{@Vend::Config::Locale_keys_currency} =
                 @{$curr}{@Vend::Config::Locale_keys_currency};
     }
+
+	if(my $ref = $Vend::Cfg->{CodeDef}{LocaleChange}) {
+		$ref = $ref->{Routine};
+		if($ref->{all}) {
+			$ref->{all}->($locale, $opt);
+		}
+		if($ref->{lc $locale}) {
+			$ref->{lc $locale}->($locale, $opt);
+		}
+	}
 
     $::Scratch->{mv_locale}   = $locale    if $opt->{persist} and $locale;
     $::Scratch->{mv_currency} = $currency  if $opt->{persist} and $currency;
@@ -1165,6 +1180,8 @@ sub vendUrl {
 	$ct = ++$Vend::Session->{pageCount}
 		unless $can_cache and $::Scratch->{mv_no_count};
 
+	$path = escape_chars($path)
+		if $path =~ $need_escape;
     $r .= '/' . $path;
 	$r .= '.html' if $::Scratch->{mv_add_dot_html} and $r !~ /\.html?$/;
 	push @parms, "$::VN->{mv_session_id}=$id"			 	if defined $id;
