@@ -1541,6 +1541,7 @@ sub run_in_catalog {
 										reply_to => $croncfg->{reply_to},
 										mailer => "Interchange $::VERSION",
 										extra => $croncfg->{extra_headers},
+									    log_error => 1,
 									},
 									$out,
 								);
