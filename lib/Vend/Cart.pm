@@ -91,6 +91,7 @@ sub STORE {
 	else {
 		$Vend::CurrentCart = $cart;
 	}
+	$::Levies = $Vend::Session->{levies}{$Vend::CurrentCart} ||= [];
 	return $::Carts->{$Vend::CurrentCart};
 }
 
