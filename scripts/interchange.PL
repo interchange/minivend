@@ -567,10 +567,6 @@ sub update_data {
 	}
 
 
-	if (! $Vend::Cfg->{Database}{$table}) {
-		logError("set: non-existent table %s", $table);
-		return undef;
-	}
 	$Vend::WriteDatabase{$table} = 1;
 
     my $base_db = database_exists_ref($table)
