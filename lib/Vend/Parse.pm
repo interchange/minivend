@@ -241,6 +241,7 @@ my %addAttr = (
 					assign          1
 					banner          1
 					catch           1
+					cgi				1
 					charge          1
 					checked         1
 					counter         1
