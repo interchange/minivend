@@ -150,6 +150,7 @@ if (scalar @ARGV > 1) {
 	    'cgibase'           => \$Conf{cgibase},
 	    'cgidir'            => \$Conf{cgidir},
 	    'cgiurl'            => \$Conf{cgiurl},
+	    'configfile'        => \$Global::ConfigFile,
 	    'demotype'          => \$Conf{demotype},
 	    'documentroot'      => \$Conf{documentroot},
 	    'c'                 => \$Configfile,
@@ -178,6 +179,7 @@ if (scalar @ARGV > 1) {
 	    'shareurl'          => \$Conf{shareurl},
 	    'serverconf'        => \$Conf{serverconf},
 	    'servername'        => \$Conf{servername},
+	    'linkfile'          => \$Conf{linkfile},
 	    'vendroot'          => \$Conf{vendroot},
 	    '<>'                => sub {
                             my $arg = shift;
@@ -202,6 +204,7 @@ if (scalar @ARGV > 1) {
 	    cgibase=s
 	    cgidir=s
 	    cgiurl|script=s
+	    configfile=s
 	    demotype|template=s
 	    documentroot=s
 	    c=s
@@ -210,6 +213,7 @@ if (scalar @ARGV > 1) {
 	    imageurl=s
 	    l=s
 	    linkmode=s
+	    linkfile=s
 	    linkhost=s
 	    linkport=s
 	    linkprogram=s
@@ -1272,6 +1276,12 @@ if($isroot) {
 	}
 }
 
+# Final substitution
+for(keys %Conf) {
+	next unless $Conf{$_} =~ /__MVC_/;
+	$Conf{$_} =~ s/__MVC_([A-Z]+)__/$Conf{lc $1}/g;
+}
+
 # Find the perl path
 $Conf{'perl'} = $Config{perlpath};
 
@@ -1394,6 +1404,7 @@ FINDPROG: {
 		if(! $tried_compile) {
 			my $cmd = 'bin/compile_link ';
 			$cmd .= "-$lm " if $lm;
+			$cmd .= "-s $Conf{linkfile} " if $Conf{linkfile};
 			$cmd .= "-p $lp " if $lp;
 			$cmd .= "-h $lh " if $lh;
 			if ($Conf{relocate}) { 
@@ -2093,8 +2104,14 @@ POSTCMD: {
 					or die "\nCouldn't copy $Global::ConfigFile: $!\n";
 			}	
 			else {
-				File::Copy::copy("$Global::ConfigFile.dist", $tmpfile)
-					or die "\nCouldn't copy $Global::ConfigFile.dist: $!\n";
+				my @cf = ("$Global::ConfigFile.dist", "$Global::VendRoot/interchange.cfg.dist");
+				my $cf;
+				for(@cf) {
+					$cf = $_ if -f $_;
+				}
+
+				File::Copy::copy($cf, $tmpfile)
+					or die "\nCouldn't copy $cf: $!\n";
 			}	
 		}
 
