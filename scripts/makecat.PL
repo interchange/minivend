@@ -2401,6 +2401,14 @@ The directory where template images go.
 
 The URL to prefix images with.
 
+=item --sharedir=directory
+
+The directory where shared admin images go.
+
+=item --shareurl=url
+
+The URL to prefix shared admin images with.
+
 =item --nocfg
 
 Don't add to interchange.cfg.
