@@ -715,6 +715,7 @@ eval {
 	
 	@na = @{$spec->{rf}}     if $spec->{rf};
 
+	$spec->{ml} = $opt->{ml} || '1000';
 	$spec->{fn} = [$s->columns];
 
 	my $sub;

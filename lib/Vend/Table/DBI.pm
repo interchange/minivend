@@ -1738,10 +1738,7 @@ eval {
 		map { $_ = $fh{$_} } @{$spec->{$_}};
 	}
 
-	if($update) {
-		die "DBI tables must be updated natively.\n";
-	}
-	elsif ($opt->{hashref}) {
+	if ($opt->{hashref}) {
 		$ref = $Vend::Interpolate::Tmp->{$opt->{hashref}} = $search->hash($spec);
 	}
 	else {
