@@ -22,11 +22,9 @@
 
 package Vend::Tags;
 
-require Exporter;
 require AutoLoader;
 
 use vars qw($AUTOLOAD @ISA);
-@ISA = qw(Exporter);
 
 sub new {
 	return bless {}, shift;

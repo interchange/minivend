@@ -646,6 +646,11 @@ sub list_fields {
 			}
 		};
 	}
+
+	if($config->{UPPERCASE}) {
+        @fld = map { lc $_ } @fld;
+    }
+
 	return \@fld;
 }
 
@@ -670,7 +675,7 @@ sub sort_each {
 # Now supported, including qualification
 sub each_record {
     my ($s, $qual) = @_;
-#::logDebug("qual=$qual");
+#::logDebug("each_record qual=$qual");
 	$qual = '' if ! $qual;
 	$qual .= $s->[$CONFIG]{Export_order} 
 		if $s->[$CONFIG]{Export_order};
@@ -701,7 +706,7 @@ sub each_record {
 # Now supported, including qualification
 sub each_nokey {
     my ($s, $qual) = @_;
-#::logDebug("qual=$qual");
+#::logDebug("each_nokey qual=$qual");
 	$qual = '' if ! $qual;
 	$qual .= $s->[$CONFIG]{Export_order} 
 		if $s->[$CONFIG]{Export_order};
