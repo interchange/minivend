@@ -388,7 +388,7 @@ sub display_options_simple {
 	my $q = "SELECT " . join (",", @rf) . " FROM $tname where $fsel = $rsel";
 
 	if(my $rsort = find_sort($opt)) {
-		$q .= $rsort;
+		$q .= " $rsort";
 	}
 #::logDebug("tag_options simple query: $q");
 
