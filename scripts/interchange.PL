@@ -2140,6 +2140,7 @@ EOF
 	# Do it here so we can use autoloads and such
 	Vend::Interpolate::reset_calc() if $Global::Foreground;
 	Vend::Interpolate::init_calc();
+	new Vend::Tags;
 # LEGACY
 	ROUTINES: {
 		last ROUTINES unless index($Vend::FinalPath, '/process/') == 0;
