@@ -452,6 +452,7 @@ sub charge {
 
 	if($result{$svar} !~ /^success/) {
 		$Vend::Session->{payment_error} = $result{$evar};
+		$Vend::Session->{errors}{mv_credit_card_valid} = $result{$evar};
 		$result{'invalid-order-id'} = delete $result{'order-id'}
 			if $result{'order-id'};
 	}
