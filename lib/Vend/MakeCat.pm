@@ -393,6 +393,11 @@ sub install_file {
 	if(! -d $mkdir) {
 		File::Path::mkpath($mkdir)
 			or die "Couldn't make directory $mkdir: $!\n";
+		my $perm = $opt->{Perms} || '';
+		if ( $perm =~ /^(m|g)/i ) {
+			$perms = (stat($mkdir))[2] | 060;
+			chmod $perms, $mkdir;
+		}
 	}
 
 	if (! -f $srcfile) {
@@ -457,12 +462,12 @@ sub install_file {
 }
 
 sub copy_current_to_dir {
-	my($target_dir, $exclude_pattern) = @_;
-	return copy_dir('.', $target_dir, $exclude_pattern);
+	my($target_dir, $exclude_pattern, $opt) = @_;
+	return copy_dir('.', @_);
 }
 
 sub copy_dir {
-	my($source_dir, $target_dir, $exclude_pattern) = @_;
+	my($source_dir, $target_dir, $exclude_pattern, $opt) = @_;
 	return undef unless -d $source_dir;
 	my $orig_dir;
 	if($source_dir ne '.') {
@@ -483,7 +488,7 @@ sub copy_dir {
 	@files = grep !m{$exclude_pattern}o, @files if $exclude_pattern;
 	eval {
 		for(@files) {
-			install_file('.', $target_dir, $_);
+			install_file('.', $target_dir, $_, $opt);
 		}
 	};
 	my $msg = $@;
