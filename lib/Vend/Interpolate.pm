@@ -5600,7 +5600,7 @@ sub shipping {
 		my $q = interpolate_html($lines[0][QUERY]);
 		$q =~ s/=\s+?\s*/= '$mode' /g;
 		$q =~ s/\s+like\s+?\s*/ LIKE '%$mode%' /ig;
-		my $ary = query($q);
+		my $ary = query($q, { wantarray => 1 });
 		if(ref $ary) {
 			@lines = @$ary;
 #::logDebug("shipping lines reselected with SQL: " . ::uneval(\@lines));
