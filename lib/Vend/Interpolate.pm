@@ -2593,6 +2593,13 @@ sub tag_counter {
 					or die $diemsg;
 				($val) = $sth->fetchrow_array;
 			}
+			elsif($dsn =~ /^dbi:Oracle:/i) {
+				my $sth = $dbh->prepare("select $seq.nextval from dual")
+					or die $diemsg;
+				$sth->execute()
+					or die $diemsg;
+				($val) = $sth->fetchrow_array;
+			}
 
 		};
 
