@@ -1224,6 +1224,13 @@ sub change_pass {
 
 	my(%options) = @_;
 	
+	if ($self->{OPTIONS}{ignore_case}) {
+	   $self->{USERNAME} = lc $self->{USERNAME};
+	   $self->{OLDPASS} = lc $self->{OLDPASS};
+	   $self->{PASSWORD} = lc $self->{PASSWORD};
+	   $self->{VERIFY} = lc $self->{VERIFY};
+	}
+
 	eval {
 		my $super = $Vend::superuser || (
 			$Vend::admin and
