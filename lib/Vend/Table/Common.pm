@@ -606,7 +606,7 @@ eval {
 #::logDebug("tabs='@tabs' columns='@na' vals='@vals' update=$update"); 
 
     my $search;
-    if ("\L$opt->{st}" eq 'db' ) {
+    if (! defined $opt->{st} or "\L$opt->{st}" eq 'db' ) {
 		for(@tabs) {
 			s/\..*//;
 		}
