@@ -44,6 +44,7 @@ require Exporter;
 	get_option_hash
 	is_no
 	is_yes
+	l
 	lockfile
 	logData
 	logDebug
@@ -72,6 +73,8 @@ use strict;
 use Config;
 use Fcntl;
 use Errno;
+use Text::ParseWords;
+use Safe;
 use subs qw(logError logGlobal);
 use vars qw($VERSION @EXPORT @EXPORT_OK);
 $VERSION = substr(q$Revision$, 10);
@@ -758,9 +761,10 @@ sub string_to_ref {
 		return eval $string;
 	}
 	elsif ($MVSAFE::Safe) {
-		die ::errmsg("not allowed to eval in Safe mode.");
+		die errmsg("not allowed to eval in Safe mode.");
 	}
-	return $Vend::Interpolate::safe_safe->reval($string);
+	my $safe = $Vend::Interpolate::safe_safe || new Safe;
+	return $safe->reval($string);
 }
 
 sub get_option_hash {
@@ -1519,6 +1523,8 @@ sub errmsg {
 	return sprintf $fmt, @strings;
 }
 
+*l = \&errmsg;
+
 sub show_times {
 	my $message = shift || 'time mark';
 	my @times = times();
@@ -1529,6 +1535,7 @@ sub show_times {
 }
 
 sub logGlobal {
+	return 1 if $Vend::ExternalProgram;
     my($msg) = shift;
 	my $opt;
 	if(ref $msg) {

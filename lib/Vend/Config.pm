@@ -253,6 +253,7 @@ sub global_directives {
 
 #   Directive name      Parsing function    Default value
 
+	['RunDir',			 'root_dir',     	 $Global::RunDir || 'etc'],
 	['DebugFile',		  undef,     	     ''],
 	['ConfigDir',		  undef,	         'etc/lib'],
 	['ConfigDatabase',	 'config_db',	     ''],
