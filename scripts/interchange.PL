@@ -672,7 +672,7 @@ sub do_click {
 sub do_deliver {
 	my $file = $CGI::values{mv_data_file};
 	my $mode = $CGI::values{mv_acl_mode} || '';
-	if($::Scratch->{mv_deliver} ne $file
+	if($::Scratch->{mv_deliver} !~ m{(^|\s)$file(\s|$)}
 		and 
 		! Vend::UserDB::userdb(
 							'check_file_acl',
