@@ -1749,7 +1749,7 @@ EOF
 
 	unless ($Conf{sharedir} eq 'NONE') {
 		print do_msg("Copying share/ files to $Conf{sharedir}");
-		my $oldpwd = getcwd();
+		my $oldpwd = cwd();
 		my @sharedirs;
 		eval {
 			chdir $Conf{vendroot} or die "\nchdir $Conf{vendroot}: $!\n";
