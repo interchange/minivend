@@ -1449,7 +1449,7 @@ sub start {
 	
 		if($Vend::restricted) {
 			::logError(
-				"Restricted tag ([%s) attempted during restriction '%s'",
+				"Restricted tag (%s) attempted during restriction '%s'",
 				$origtext,
 				$Vend::restricted,
 				);
