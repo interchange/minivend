@@ -2828,7 +2828,7 @@ EOF
 #::logDebug("set start_at_index to $ctl_index");
 		}
 #::logDebug("control index now=$ctl_index");
-		col_chunk $col, $display;
+		col_chunk $namecol, $display;
 	}
 
 	for(sort keys %link_row) {
