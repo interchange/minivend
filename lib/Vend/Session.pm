@@ -121,6 +121,18 @@ File => [ 1, 0, sub {
 			},
 		],
 
+
+NFS => [ 1, 0, sub {
+				tie(
+					%Vend::SessionDBM,
+					'Vend::SessionFile',
+					$Vend::Cfg->{SessionDatabase},
+					1,
+				)
+				or die "Could not tie to $Vend::Cfg->{SessionDatabase}: $!\n";
+			},
+		],
+
 );
 
 # SESSIONS implemented using DBM

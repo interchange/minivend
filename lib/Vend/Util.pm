@@ -1016,6 +1016,47 @@ sub flock_unlock {
     flock($fh, $flock_LOCK_UN) or die "Could not unlock file: $!\n";
 }
 
+sub fcntl_lock {
+    my ($fh, $excl, $wait) = @_;
+    my $flag = $excl ? F_WRLCK : F_RDLCK;
+    my $op = $wait ? F_SETLKW : F_SETLK;
+
+	my $struct = pack('sslli', $flag, 0, 0, 0, $$);
+
+    if ($wait) {
+        fcntl($fh, $op, $struct) or die "Could not fcntl_lock file: $!\n";
+        return 1;
+    }
+    else {
+        if (fcntl($fh, $op, $struct) < 0) {
+            if ($! =~ m/^Try again/
+                or $! =~ m/^Resource temporarily unavailable/
+                or $! =~ m/^Operation would block/) {
+                return 0;
+            }
+            else {
+                die "Could not lock file: $!\n";
+            }
+        }
+        return 1;
+    }
+}
+
+sub fcntl_unlock {
+    my ($fh) = @_;
+	my $struct = pack('sslli', F_UNLCK, 0, 0, 0, $$);
+	if (fcntl($fh, F_SETLK, $struct) < 0) {
+		if ($! =~ m/^Try again/
+                or $! =~ m/^Resource temporarily unavailable/
+                or $! =~ m/^Operation would block/) {
+			return 0;
+		}
+		else {
+			die "Could not un-fcntl_lock file: $!\n";
+		}
+	}
+	return 1;
+}
 
 ### Select based on os, vestigial
 

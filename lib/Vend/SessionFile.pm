@@ -48,10 +48,14 @@ my $Last;
 my @Each;
 
 sub TIEHASH {
-	my($self, $dir) = @_;
+	my($self, $dir, $nfs) = @_;
 	die "Vend::SessionFile: directory name\n"
 		unless $dir;
 	$SessionDir = $dir;
+	if($nfs) {
+		*lockfile = \*Vend::Util::fcntl_lock;
+		*unlockfile = \*Vend::Util::fcntl_unlock;
+	}
 	bless {}, $self;
 }
 
