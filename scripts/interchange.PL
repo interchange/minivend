@@ -528,7 +528,7 @@ sub update_data {
 	my($key,$value);
     # Update a database record
 	# Check to see if this is allowed
-::logDebug("mv_data_enable=$::Scratch->{mv_data_enable}");
+#::logDebug("mv_data_enable=$::Scratch->{mv_data_enable}");
 	if(! $::Scratch->{mv_data_enable}) {
 		logError(
 			 "Attempted database update without permission, table=%s key=%s.",

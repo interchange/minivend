@@ -230,7 +230,7 @@ sub _format {
 
 	my (@return);
 
-::logDebug("OrderCheck = $OrderCheck routine=$routine");
+#::logDebug("OrderCheck = $OrderCheck routine=$routine");
 	my $sub;
 	my @args;
 	if( $sub = $Parse{$routine}) {
@@ -238,7 +238,7 @@ sub _format {
 		undef $message;
 	}
 	elsif ($OrderCheck and $sub = $OrderCheck->{$routine}) {
-::logDebug("Using coderef OrderCheck = $sub");
+#::logDebug("Using coderef OrderCheck = $sub");
 		@args = ($ref,$var,$val);
 	}
 	elsif (defined &{"_$routine"}) {
