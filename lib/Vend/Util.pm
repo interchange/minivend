@@ -45,6 +45,7 @@ require Exporter;
 	generate_key
 	get_option_hash
 	hash_string
+	hexify
 	is_hash
 	is_no
 	is_yes
@@ -70,6 +71,7 @@ require Exporter;
 	uneval
 	uneval_it
 	uneval_fast
+	unhexify
 	unlockfile
 	vendUrl
 );
@@ -1281,9 +1283,9 @@ sub vendUrl {
 
 	my($id, $ct);
 	$id = $Vend::SessionID
-		unless $can_cache and $Vend::Cookie and $opt->{no_session_id};
+		unless $opt->{no_session_id} or ($can_cache and $Vend::Cookie);
 	$ct = ++$Vend::Session->{pageCount}
-		unless $can_cache and $opt->{no_count};
+		unless $opt->{no_count} or $can_cache;
 
 	if($opt->{match_security}) {
 		$opt->{secure} = $CGI::secure;
