@@ -226,8 +226,7 @@ sub parse_post {
 		# even though it's sent as non-multipart data
 		# Contributed by Bill Randle
 		my ($boundary) = $CGI::content_type =~ /boundary=\"?([^\";]+)\"?/;
-		$boundary =~ s/(\W)/\\$1/g;
-		$boundary = "--$boundary";
+		$boundary = '--' . quotemeta $boundary;
 		return parse_multipart($sref) if $$sref =~ /^\s*$boundary\s+/;
 	}
 	@pairs = split($Global::UrlSplittor, $$sref);
@@ -297,7 +296,7 @@ sub parse_post {
 sub parse_multipart {
 	my $sref = shift;
 	my ($boundary) = $CGI::content_type =~ /boundary=\"?([^\";]+)\"?/;
-	$boundary =~ s/(\W)/\\$1/g;
+	$boundary = quotemeta $boundary;
 #::logDebug("got to multipart");
 	# Stolen from CGI.pm, thanks Lincoln
 	$boundary = "--$boundary"
