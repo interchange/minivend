@@ -106,7 +106,6 @@ my %PosNumber =	( qw!
                 salestax         2
                 scratch          1
                 scratchd         1
-                search           1
 				record			 0
                 region		     0
                 selected         3
@@ -189,7 +188,6 @@ my %Order =	(
 				'salestax'		=> [qw( name noformat)],
 				scratch			=> [qw( name  )],
 				scratchd		=> [qw( name  )],
-				search			=> [qw( arg   )],
 				search_region	=> [qw( arg   )],
 				region			=> [qw( )],
 				record			=> [qw( )],
@@ -251,7 +249,6 @@ my %addAttr = (
                     record          1
                     region          1
                     search_region   1
-                    search          1
 					shipping        1
 					handling        1
                     tag             1
@@ -482,7 +479,6 @@ my %Routine = (
 				'salestax'		=> \&Vend::Interpolate::tag_salestax,
 				scratch			=> \&Vend::Interpolate::tag_scratch,
 				scratchd		=> \&Vend::Interpolate::tag_scratchd,
-				search			=> \&Vend::Interpolate::tag_search_region,
 				record			=> \&Vend::Interpolate::tag_record,
 				region			=> \&Vend::Interpolate::region,
 				search_region	=> \&Vend::Interpolate::tag_search_region,
