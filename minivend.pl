@@ -2,7 +2,7 @@
 #
 # MiniVend version 2.03b
 #
-# $Id: minivend.pl,v 2.15 1997/01/07 01:35:23 mike Exp $
+# $Id: minivend.pl,v 2.16 1997/03/17 00:59:52 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -1225,7 +1225,7 @@ EOF
     if (defined $CGI::query_string && $CGI::query_string ne '') {
 		($sessionid, $argument) = split(/;/, $CGI::query_string);
 		if ($CGI::cookie =~ /\bMV_SESSION_ID=\w{8}
-								( :
+								: ( 
 								\d{1,3}\.
 								\d{1,3}\.
 								\d{1,3}\.
@@ -1237,7 +1237,7 @@ EOF
 	# Get a cookie if we have no session id (and its there)
     unless (defined $sessionid && $sessionid ne '') {
 		if ($CGI::cookie =~ /\bMV_SESSION_ID=(\w{8})
-							(:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})?\b/x) {
+							:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})?\b/x) {
 			$sessionid = $1;
 			$CGI::cookiehost = $2;
 		}
