@@ -2842,7 +2842,7 @@ sub tag_mail {
 		push @headers, grep /^\w[-\w]*:/, split /\n/, $opt->{extra};
 	}
 
-	$body ||= $setsub->{body};
+	$body ||= $setsub->('body');
 	unless($body) {
 		return error_opt($opt, "Refuse to send email message with no body.");
 	}
