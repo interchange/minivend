@@ -180,7 +180,7 @@ sub new {
 	my ($class, @options) = 
 	my ($k, $v);
 	my $self = {};
-	while (defined ($k = shift(@options)) {
+	while (defined ($k = shift(@options))) {
 		($self->{$k} = shift(@options), next)
 			unless defined $Special{lc $k};
 		my $arg = shift @options;
@@ -188,9 +188,10 @@ sub new {
 	}
 
 	if(! $self->{Cfg}{CatRoot}) {
-		for( $ENV{INTERCHANGE_CATDIR}, 
+		for( $ENV{INTERCHANGE_CATDIR}, ) {
 		if(-f $ENV{INTERCHANGE_CATDIR}) {
 		}
+	}
 	}
 	unless (defined $self->{session}) {
 	}
@@ -347,7 +348,7 @@ sub tag_nitems {
 	
 	$opt->{cart} = ($self->{_config}{current_cart} ||= 'main')
 		unless $opt->{cart};
-
+	
 	my ($attr, $sub);
 	if($opt->{qualifier}) {
 		$attr = $opt->{qualifier};
@@ -365,7 +366,7 @@ sub tag_nitems {
 	}
 
     my $total = 0;
-    foreach my $item (@$cart) {
+    foreach my $item (@{$opt->{cart}}) {
 		next if $attr and ! $sub->($item->{$attr});
 		$total += $item->{'quantity'};
     }
