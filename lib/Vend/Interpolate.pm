@@ -5011,7 +5011,7 @@ sub fly_page {
 	# This allows access from embedded Perl
 	$Tmp->{flycode} = $code;
 # TRACK
-	$Vend::Track->view_product($code);
+	$Vend::Track->view_product($code) if $Vend::Track;
 # END TRACK
 	
 # LEGACY

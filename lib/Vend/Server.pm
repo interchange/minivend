@@ -510,7 +510,8 @@ sub respond {
 		my $save = select $fh;
 		$| = 1;
 		select $save;
-        $Vend::StatusLine .= "X-Track: " . $Vend::Track->header() . "\r\n";
+        $Vend::StatusLine .= "X-Track: " . $Vend::Track->header() . "\r\n"
+			if $Vend::Track;
 # END TRACK                            
         $Vend::StatusLine .= "Pragma: no-cache\r\n"
 			if delete $::Scratch->{mv_no_cache};

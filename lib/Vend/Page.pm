@@ -106,7 +106,7 @@ sub display_page {
 
 	$page = readin($name);
 # TRACK
-	if (defined $page) {
+	if (defined $page && $Vend::Track) {
 		$Vend::Track->view_page($name);
 	}
 # END TRACK	

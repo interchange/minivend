@@ -471,7 +471,7 @@ my %form_action = (
 					$result_hash = {} unless $result_hash;
 
 # TRACK
-                    $Vend::Track->finish_order ();
+                    $Vend::Track->finish_order () if $Vend::Track;
 # END TRACK
 					# This function (followed down) now does the rudimentary
 					# backend ordering with AsciiTrack and the order report.
@@ -1499,7 +1499,7 @@ EOF
   }
 
 # TRACK
-	$Vend::Track->filetrack();
+	$Vend::Track->filetrack() if $Vend::Track;
 # END TRACK
 
 	close_cat();
