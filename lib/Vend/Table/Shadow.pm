@@ -238,6 +238,12 @@ sub record_exists {
 	$s->[$OBJ]->record_exists($key);
 }
 
+sub delete_record {
+	my ($s, $key) = @_;
+	$s = $s->import_db() unless defined $s->[$OBJ];
+	$s->[$OBJ]->delete_record($key);
+}
+
 sub touch {
 	my ($s) = @_;
 	$s = $s->import_db() unless defined $s->[$OBJ];
@@ -282,7 +288,7 @@ sub query {
 		my $qref = $s->_parse_sql($opt->{query});
 
 		if (@{$qref->{tables}} > 1) {
-			die errmsg("Vend::Shadow::query can handle only one table");
+			die errmsg("Vend::Table::Shadow::query can handle only one table");
 		}
 
 		my $table = $qref->{tables}->[0];
@@ -295,6 +301,8 @@ sub query {
 				die errmsg("Table %s not found", $table);
 			}
 			return $db->query($opt, $text, @arg);
+		} elsif ($qref->{command} ne 'SELECT') {
+			return $s->[$OBJ]->query($opt, $text, @arg);
 		} else {
 			# check if one of the queried fields is shadowed
 			my (@map_matches, @map_entries, $colref);
