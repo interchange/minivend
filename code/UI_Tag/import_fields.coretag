@@ -236,7 +236,7 @@ EOF
 		die "Invalid key '$key' for table $table (wrong file format ?)\n";
 	}
 
-	my $multikey = $db->config('MULTIPLE_KEYS') ? 1 : 0;
+	my $multikey = $db->config('COMPOSITE_KEY') ? 1 : 0;
 
 	
 	if ($opt->{ignore_fields}) {

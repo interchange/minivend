@@ -1956,7 +1956,7 @@ sub update_data {
 	}
 #::logDebug("autonumber=$autonumber");
 
-	my $multikey = $base_db->config('MULTIPLE_KEYS');
+	my $multikey = $base_db->config('COMPOSITE_KEY');
 
  	if(@file_fields) {
 		my $Tag = new Vend::Tags;

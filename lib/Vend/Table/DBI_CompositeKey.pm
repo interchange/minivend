@@ -55,15 +55,15 @@ sub create {
     my ($class, $config, $columns, $tablename) = @_;
 #::logDebug("DBI_CompositeKey trying create table $tablename");
 
-	if(! $config->{MULTIPLE_KEYS}) {
+	if(! $config->{COMPOSITE_KEY}) {
 		die ::errmsg(
-			"Class %s: requires MULTIPLE_KEYS setting\n",
+			"Class %s: requires COMPOSITE_KEY setting\n",
 			$class,
 		  );
 	}
 
 	if(! $config->{_Key_columns}) {
-		my @keycols = grep length($_), split /[\s,\0]+/, $config->{MULTIPLE_KEYS};
+		my @keycols = grep length($_), split /[\s,\0]+/, $config->{COMPOSITE_KEY};
 		$config->{_Key_columns} = \@keycols;
 		$config->{_Key_where} = 'WHERE ';
 		my $hash = {};
@@ -92,15 +92,15 @@ sub open_table {
     my ($class, $config, $tablename) = @_;
 #::logDebug("DBI_CompositeKey trying to open table $tablename");
 
-	if(! $config->{MULTIPLE_KEYS}) {
+	if(! $config->{COMPOSITE_KEY}) {
 		die ::errmsg(
-			"Class %s: requires MULTIPLE_KEYS setting\n",
+			"Class %s: requires COMPOSITE_KEY setting\n",
 			$class,
 		  );
 	}
 
 	if(! $config->{_Key_columns}) {
-		my @keycols = grep length($_), split /[\s,\0]+/, $config->{MULTIPLE_KEYS};
+		my @keycols = grep length($_), split /[\s,\0]+/, $config->{COMPOSITE_KEY};
 		$config->{_Key_columns} = \@keycols;
 		$config->{_Key_where} = 'WHERE ';
 		my $hash = {};
