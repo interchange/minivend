@@ -33,7 +33,7 @@ require Exporter;
 				signal_reconfig
 				signal_add
 				signal_remove
-				control_minivend
+				control_interchange
 				change_catalog_directive
 				change_global_directive
 				remove_catalog
@@ -59,16 +59,16 @@ sub signal_remove {
 	$Vend::mode = 'reconfig';
 	my $cat = shift;
 	Vend::Util::writefile("$Global::ConfDir/restart", "remove catalog $cat\n");
-	control_minivend('remove', 'HUP');
+	control_interchange('remove', 'HUP');
 }
 
 sub signal_add {
 	$Vend::mode = 'reconfig';
 	Vend::Util::writefile("$Global::ConfDir/restart", <>);
-	control_minivend('add', 'HUP');
+	control_interchange('add', 'HUP');
 }
 
-sub control_minivend {
+sub control_interchange {
 	my ($mode, $sig, $restart) = @_;
 
 	unless(-f $Global::PIDfile) {
