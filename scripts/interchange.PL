@@ -254,7 +254,6 @@ use autouse 'Vend::Control' => qw/
 #											add_items
 #											check_order
 #											check_required
-#											cyber_charge
 #   										encrypt_standard_cc
 #   										mail_order
 #   										onfly

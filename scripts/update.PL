@@ -209,6 +209,8 @@ global_config();
 
 chdir $dir or die "Couldn't change directory to $dir: $!\n";
 
+$Vend::ExternalProgram = $Vend::Quiet = 1;
+
 $Vend::Cfg = config($name, $dir, "$dir/etc", ($subconfig || undef));
 $::Variable = $Vend::Cfg->{Variable};
 
