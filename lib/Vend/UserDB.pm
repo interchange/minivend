@@ -320,6 +320,7 @@ sub new {
 						PASSWORD	=> $options{pass_field} || 'password',
 						LAST		=> $options{time_field} || 'mod_time',
 						EXPIRATION	=> $options{expire_field} || 'expiration',
+						OUTBOARD_KEY=> $options{outboard_key_col},
 						SUPER		=> $options{super_field}|| 'super',
 						ACL			=> $options{acl}		|| 'acl',
 						FILE_ACL	=> $options{file_acl}	|| 'file_acl',
@@ -636,6 +637,10 @@ sub get_values {
 
 	my @needed;
 	my $row = $db->row_hash($self->{USERNAME});
+	my $outkey = $self->{LOCATION}->{OUTBOARD_KEY}
+				 ? $row->{$self->{LOCATION}->{OUTBOARD_KEY}}
+				 : $self->{USERNAME};
+
 
 	for(@fields) {
 		if($ignore{$_}) {
@@ -645,7 +650,7 @@ sub get_values {
 		my $val;
 		if ($outboard{$_}) {
 			my ($t, $c, $k) = split /:+/, $outboard{$_};
-			$val = ::tag_data($t, ($c || $_), $self->{USERNAME}, { foreign => $k });
+			$val = ::tag_data($t, ($c || $_), $outkey, { foreign => $k });
 		}
 		else {
 			$val = $row->{$_};
