@@ -1849,6 +1849,10 @@ sub tag_perl {
 			my $db = database_exists_ref($tab);
 			next unless $db;
 			$db = $db->ref();
+			if($db->config('type') == 10) {
+				my @extra_tabs = $db->_shared_databases();
+				push (@tab, @extra_tabs);
+			}
 			if($hole) {
 				$Sql{$tab} = $hole->wrap($db->dbh())
 					if $db->can('dbh');
