@@ -413,6 +413,7 @@ sub signio {
                         authorize     A
                         void          V
                         settle        D
+                        settle_prior  D
                         credit        C
                         mauthcapture  S
                         mauthonly     A
