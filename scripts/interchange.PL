@@ -1744,12 +1744,8 @@ sub url_history {
 my %action = (
     process	=> \&do_process,
 	ui_wrap => \&UI::Primitive::ui_wrap,
-    ui=> sub { 
+	ui		=> sub { 
 					&UI::Primitive::ui_acl_global();
-					&do_process(@_);
-				   },
-    minimate=> sub { 
-					&MiniMate::CfgMgr::mm_acl_global;
 					&do_process(@_);
 				   },
     scan	=> \&do_scan,
