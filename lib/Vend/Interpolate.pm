@@ -1126,6 +1126,7 @@ sub tag_data {
 $Filter{upper} = $Filter{uc};
 $Filter{lower} = $Filter{lc};
 $Filter{entities} = $Filter{encode_entities};
+$Filter{e} = $Filter{encode_entities};
 
 sub input_filter_do {
 	my($varname, $opt, $routine) = @_;
@@ -4185,7 +4186,7 @@ sub tag_object {
 
 my %Dispatch_hash = (
 	address => \&tag_address,
-	address => \&tag_object,
+	object  => \&tag_object,
 );
 
 sub find_matching_else {
