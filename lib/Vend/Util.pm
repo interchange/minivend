@@ -1090,7 +1090,8 @@ sub secure_vendUrl {
 
 sub change_url {
 	my $url = shift;
-	return $url if $url =~ m{^(?:\w+:)?/};
+	return $url if $url =~ m{^\w+:};
+	return $url if $url =~ m{^/};
 #::logDebug("changed $url");
 	my $arg;
 	my @args;
