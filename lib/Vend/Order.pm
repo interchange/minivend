@@ -157,7 +157,7 @@ sub _credit_card {
 	my $sub;
 	$params =~ s/^\s+//;
 	$params =~ s/\s+$//;
-	if($params =~ s/\s+keep$//i) {
+	if($params =~ s/\s+keep//i) {
 		my (%cgi) = %$ref;
 		$ref = \%cgi;
 	}
