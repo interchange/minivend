@@ -959,6 +959,7 @@ use File::Find;
 sub get_system_code {
 
 	return if $CodeDest;
+	return if $Vend::ControllingInterchange;
 	
 	# defined means don't go here anymore
 	$SystemCodeDone = '';
@@ -1531,6 +1532,7 @@ sub parse_require {
 	my($var, $val, $warn, $cap) = @_;
 
 	return if $Vend::ExternalProgram;
+	return if $Vend::ControllingInterchange;
 
 	my $carptype;
 	my $error_message;
@@ -3274,6 +3276,7 @@ sub parse_tag {
 				return $c;
 			}
 		}
+		local($^W) = 1;
 		my $fail;
 		{
 			local $SIG{'__WARN__'} = sub {$fail .= "@_";};
@@ -3283,7 +3286,7 @@ sub parse_tag {
 				die $@ if $@;
 			};
 		}
-		if($@ or $fail) {
+		if($@) {
 			config_warn(
 						"UserTag '%s' subroutine failed compilation:\n\n\t%s",
 						$tag,
@@ -3291,12 +3294,18 @@ sub parse_tag {
 			);
 			return $c;
 		}
-		else {
+		elsif($fail) {
 			config_warn(
-					"UserTag '%s' code is not a subroutine reference",
+						"Warning while compiling UserTag '%s':\n\n\t%s",
 					$tag,
-			) unless ref($sub) =~ /CODE/;
+						$fail,
+			);
+			return $c;
 		}
+		config_warn(
+				"UserTag '%s' code is not a subroutine reference",
+				$tag,
+		) unless ref($sub) eq 'CODE';
 
 		$c->{$p}{$tag} = $sub;
 		$c->{Order}{$tag} = []

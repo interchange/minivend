@@ -66,6 +66,7 @@ sub signal_add {
 sub control_interchange {
 	my ($mode, $sig, $restart) = @_;
 
+	$Vend::ControllingInterchange = 1;
 	unless(-f $Global::PIDfile) {
 		warn errmsg(
 			"The Interchange server was not running (%s).\n",
