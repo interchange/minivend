@@ -5901,6 +5901,8 @@ sub read_shipping {
 	my $row;
 	my %zones;
 	my %def_opts;
+	$def_opts{PriceDivide} = 1 if $Vend::Cfg->{Locale};
+
 	foreach $row (@shipping) {
 		my $cost = $row->[COST];
 		my $o = get_option_hash($row->[OPT]);
