@@ -217,7 +217,6 @@ sub ref {
 *column_index	= \&Vend::Table::Common::column_index;
 *field			= \&Vend::Table::Common::field;
 *numeric		= \&Vend::Table::Common::numeric;
-*row_hash		= \&Vend::Table::Common::row_hash;
 *set_field		= \&Vend::Table::Common::set_field;
 
 1;

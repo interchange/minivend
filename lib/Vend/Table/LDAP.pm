@@ -78,7 +78,7 @@ sub close_table {
 sub open_table {
 	my ($class, $config, $tablename) = @_;
 #::logDebug("LDAP open_table $tablename" . ::uneval($config));
-	my $tablename = $config->{name};
+	$tablename = $config->{name} || $tablename;
 	my $base = $config->{BASE_DN};
 	my $host = $config->{LDAP_HOST};
 	my $port = 389;
@@ -432,7 +432,7 @@ sub ref {
 sub query {
     my($s, $opt, $text, @arg) = @_;
 
-    if(! ref $opt) {
+    if(! CORE::ref($opt) ) {
         unshift @arg, $text;
         $text = $opt;
         $opt = {};
