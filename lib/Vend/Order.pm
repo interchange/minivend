@@ -213,10 +213,12 @@ my %Parse = (
 
 sub _fatal {
 	$Fatal = ( defined($_[1]) && ($_[1] =~ /^[yYtT1]/) ) ? 1 : 0;
+	return 1;
 }
 
 sub _final {
 	$Final = ( defined($_[1]) && ($_[1] =~ /^[yYtT1]/) ) ? 1 : 0;
+	return 1;
 }
 
 sub _return {
