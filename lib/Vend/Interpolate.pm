@@ -2326,7 +2326,7 @@ sub tag_accessories {
 		$opt->{rows} = $opt->{rows} || $1 || 1;
 		$opt->{cols} = $opt->{cols} || $2 || 16;
 		unless($opts[0] =~ /^=/) {
-			unshift @opts, ($opt->{new} || "=&lt;-- New");
+			unshift @opts, ($opt->{new} || "=&lt;-- " . errmsg('New'));
 		}
 		my $out = qq|<INPUT TYPE=text NAME="$name" SIZE=$opt->{cols} VALUE="">|;
 		$out .= build_accessory_select($name, $type, $default, $opt, @opts);
