@@ -1158,7 +1158,6 @@ sub vendUrl {
 		unless defined $r;
 
 	my $secure;
-	my $can_cache = ! $Vend::Cfg->{NoCache}{$path};
 	my @parms;
 
 	if(exists $Vend::Cfg->{AlwaysSecure}{$path}) {
@@ -1193,9 +1192,9 @@ sub vendUrl {
 	my($id, $ct);
 	$id = $Vend::SessionID
 		unless $opt->{no_session_id}
-		or     ($Vend::Cookie and $can_cache and $::Scratch->{mv_no_session_id});
+		or     ($Vend::Cookie and $::Scratch->{mv_no_session_id});
 	$ct = ++$Vend::Session->{pageCount}
-		unless $opt->{no_count} or ($can_cache && $::Scratch->{mv_no_count});
+		unless $opt->{no_count} or $::Scratch->{mv_no_count};
 
 	if($opt->{match_security}) {
 		$opt->{secure} = $CGI::secure;
