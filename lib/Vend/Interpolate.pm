@@ -2126,7 +2126,7 @@ sub mime {
 							':=' . $$
 		unless defined $::Instance->{MIME_BOUNDARY};
 
-	my $msg_type = $opt->{attach_only} ? "multipart/mixed" : "multipart/alternative";
+	my $msg_type = "multipart/mixed";
 	if($option eq 'reset') {
 		undef $::Instance->{MIME_TIMESTAMP};
 		undef $::Instance->{MIME_BOUNDARY};
@@ -2155,10 +2155,12 @@ EndOFmiMe
 		$::Instance->{MIME} = 1;
 		my $desc = $opt->{description} || $option;
 		my $type = $opt->{type} || 'TEXT/PLAIN; CHARSET=US-ASCII';
+		my $disposition = $opt->{attach_only} ? qq{attachment; filename="$desc"} : "inline";
 		$out = <<EndOFmiMe;
 --$::Instance->{MIME_BOUNDARY}
 Content-Type: $type
 Content-ID: $id
+Content-Disposition: $disposition
 Content-Description: $desc
 
 $text
