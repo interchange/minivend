@@ -1915,7 +1915,7 @@ sub query {
 	my @out;
 	my $db = $s->[$DBI];
 
-	$update = 1 if $query !~ /^\s*select\s+/i;
+	$update = 1 if $query !~ /^\W*select\s+/i;
 
 	eval {
 		if($update and $s->[$CONFIG]{Read_only}) {
