@@ -2408,7 +2408,8 @@ sub parse_array_complete {
 sub parse_list_wildcard {
 	my($var, $value) = @_;
 
-	$value =~ s/^\s+|\s+$//g;
+	$value =~ s/^\s+//;
+	$value =~ s/\s+$//;
 	return '' if ! $value;
 
 	if($value !~ /\|/) {
