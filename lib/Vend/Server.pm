@@ -314,6 +314,8 @@ sub respond {
 # TRACK
         $Vend::StatusLine .= "X-Track: " . $Vend::Track->header() . "\r\n";
 # END TRACK        
+        $Vend::StatusLine .= "Pragma: no-cache\r\n"
+			if delete $::Scratch->{mv_no_cache};
 		print Vend::Server::MESSAGE canon_status($Vend::StatusLine);
 		print Vend::Server::MESSAGE "\r\n";
 		print Vend::Server::MESSAGE $$body;
@@ -343,6 +345,8 @@ sub respond {
 		select $save;
         $Vend::StatusLine .= "X-Track: " . $Vend::Track->header() . "\r\n";
 # END TRACK                            
+        $Vend::StatusLine .= "Pragma: no-cache\r\n"
+			if delete $::Scratch->{mv_no_cache};
 		$status = '200 OK' if ! $status;
 		if(defined $Vend::StatusLine) {
 			$Vend::StatusLine = "HTTP/1.0 $status\r\n$Vend::StatusLine"
