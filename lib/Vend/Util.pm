@@ -1268,14 +1268,23 @@ sub secure_vendUrl {
 	return vendUrl($_[0], $_[1], $Vend::Cfg->{SecureURL});
 }
 
+my %strip_vars;
+my $strip_init;
+
 sub change_url {
 	my $url = shift;
 	return $url if $url =~ m{^\w+:};
 	return $url if $url =~ m{^/};
+	if(! $strip_init) {
+		for(qw/mv_session_id mv_pc/) {
+			$strip_vars{$_} = 1;
+			$strip_vars{$::IV->{$_}} = 1;
+		}
+	}
 	my $arg;
 	my @args;
 	($url, $arg) = split /[?&]/, $url, 2;
-	@args = split $Global::UrlSplittor, $arg;
+	@args = grep ! $strip_vars{$_}, split $Global::UrlSplittor, $arg;
 	return Vend::Interpolate::tag_area( $url, '', {
 											form => join "\n", @args,
 										} );

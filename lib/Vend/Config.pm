@@ -312,7 +312,7 @@ sub global_directives {
 	['Profiles',	  	 'profile',     	 ''],
 	['Catalog',			 'catalog',     	 ''],
 	['SubCatalog',		 'catalog',     	 ''],
-	['AutoVariable',	 'autovar',     	 ''],
+	['AutoVariable',	 'autovar',     	 'UrlJoiner'],
 
 	];
 	return $directives;

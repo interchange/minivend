@@ -2954,7 +2954,16 @@ sub escape_form {
 
 	$val =~ s/^\s+//mg;
 	$val =~ s/\s+$//mg;
-	my @args = split /\n+/, $val;
+	my @args;
+	if($val =~ /^\S+=\S+=\S*$/) {
+		$val = unhexify($val);
+		@args = split $Global::UrlSplittor, $val;
+	}
+	else {
+		$val =~ s/^\s+//mg;
+		$val =~ s/\s+$//mg;
+		@args = split /\n+/, $val;
+	}
 
 	for(@args) {
 		next if /^[\w=]+$/;
