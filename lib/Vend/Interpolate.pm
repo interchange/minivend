@@ -1218,6 +1218,10 @@ sub tag_data {
 					return $val;
 				},
 
+	zerofix => sub {
+					$_[0] =~ /^0*(.*)/; return $1;
+				},
+
 	);
 
 $Filter{upper} = $Filter{uc};
