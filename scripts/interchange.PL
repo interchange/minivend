@@ -1158,6 +1158,11 @@ sub adjust_cgi {
 	#
 	# end AOL fix
 
+	# Fix Cobalt/CGIwrap problem
+    if($Global::Variable->{CGIWRAP_WORKAROUND}) {
+        $CGI::path_info =~ s!^$CGI::script_name::;
+    }
+
     $CGI::host = $host || $CGI::ip;
 
     $CGI::user = $CGI::remote_user if $CGI::remote_user;
