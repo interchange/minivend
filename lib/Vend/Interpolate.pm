@@ -3875,6 +3875,28 @@ sub tag_loop_list {
 						unless defined $opt->{label};
 	my $delim;
 
+#::logDebug("list is: " . ::uneval($list) );
+
+	## Thanks to Kaare Rasmussen for this suggestion
+	## about passing embedded Perl objects to a list
+
+	# Can pass object.mv_results=$ary object.mv_field_names=$ary
+	return region($opt, $text) if $opt->{object};
+
+	# Here we can take the direct results of an op like
+	# @set = $db->query() && return \@set;
+	# Called with
+	#	[loop list=`$Scratch->{ary}`] [loop-code]
+	#	[/loop]
+	if (ref $list) {
+#::logDebug("opt->list in: " . ::uneval($list) );
+		my ($ary, $fh, $fa) = @$list;
+		$opt->{object}{mv_results} = $ary;
+		$opt->{object}{mv_field_names} = $fa if $fa;
+		$opt->{object}{mv_field_hash} = $fh if $fh;
+		return region($opt, $text);
+	}
+
   RESOLVELOOP: {
 	if($opt->{search}) {
 #::logDebug("loop resolve search");
