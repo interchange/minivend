@@ -239,6 +239,7 @@ use Vend::Server;
 use Vend::Session;
 use Vend::Config;
 use Vend::Payment;
+use Vend::Ship;
 
 # You might try commenting out these lines and uncommenting the ones
 # below to compact memory size
