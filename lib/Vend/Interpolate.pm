@@ -3205,8 +3205,8 @@ sub check_change {
 		$value = $value ? lc $1 : $1;
 	}
 	$value = substr($value, 0, $substr) if $substr;
-	my $prev = $Prev{$name} || undef;
-	$Prev{$name} = $value || '';
+	my $prev = $Prev{$name};
+	$Prev{$name} = $value;
 	if(defined $text) {
 		return pull_if($text) if ! defined $prev or $value ne $prev;
 		return pull_else($text);
