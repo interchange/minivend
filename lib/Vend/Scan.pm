@@ -896,8 +896,14 @@ sub _file_security {
 			$_ = $Vend::Cfg->{Database}{$_}{'file'}
 				if defined $Vend::Cfg->{Database}{$_}{'file'};
 		}
-		$ok &&= $_ !~ /$Vend::Cfg->{NoSearch}/
-			if $Vend::Cfg->{NoSearch};
+		if ($ok and $Vend::Cfg->{NoSearch}) {
+			if (/$Vend::Cfg->{NoSearch}/) {
+				::logError("Search of '%s' denied by NoSearch directive", $_);
+				$ok = 0;
+			} else {
+				$ok = 1;
+			}
+		}
 		push @$passed, $_ if $ok;
 	}
 	return $passed if @$passed;
