@@ -795,8 +795,9 @@ EOCODE
 
 	my $i = 0;
     for $pat (@_) {
-		$pat = "$begin$pat" if $begin;
-		$pat =~ s/(\w+)/$bound$1$bound/g if $bound;
+		$pat =~ s/(.*)/$bound$1$bound/
+			if $bound;
+		$pat =~ s/^(?:\\b)?/$begin/ if $begin;
 		$code .= <<EOCODE;
     return 0 unless $negate m{$pat}$case;
 EOCODE
@@ -838,8 +839,9 @@ EOCODE
 EOCODE
 
     for $pat (@_) {
-		$pat = "$begin$pat" if $begin;
-		$pat =~ s/(\w+)/$bound$1$bound/g if $bound;
+		$pat =~ s/(.*)/$bound$1$bound/
+			if $bound;
+		$pat =~ s/^(?:\\b)?/$begin/ if $begin;
 		$code .= <<EOCODE;
     return 1 if $negate m{$pat}$case;
 EOCODE
