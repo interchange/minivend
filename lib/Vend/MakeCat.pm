@@ -157,17 +157,15 @@ EOF
 #
 EOF
 	demotype   =>  <<EOF,
-# The type of demo catalog to use. Standard types
-# distributed are:
+# The type of demo catalog to use. The standard one distributed is:
 #
-#    simple   -- database-based catalog, not really simple 8-)
-#    barry    -- Barry's Books version of "simple"
+#    construct
 #
 # If you have defined your own custom template catalog,
-# you can enter it's name.
+# you can enter its name.
 #
 # If you are new to Interchange and not a sophisticated web designer,
-# use "barry" to start with.
+# use "construct" to start with.
 EOF
 	documentroot    =>  <<EOF,
 # The base directory for HTML for this (possibly virtual) domain.
@@ -229,14 +227,13 @@ EOF
 # directive in the catalog configuration file. This is a URL
 # fragment, not a directory or file name.
 #
-#         <IMG SRC="/simple/images/icon.gif">
-#                   ^^^^^^^^^^^^^^
+#         <IMG SRC="/construct/images/icon.gif">
+#                   ^^^^^^^^^^^^^^^^^
 #
 EOF
 	samplehtml =>  <<EOF,
-# Where the sample HTML files (not Interchange pages) should be
-# installed. There is a difference.  Usually a subdirectory of
-# your HTML directory.
+# Where the sample HTML files (not Interchange pages) should be installed.
+# There is a difference. Usually a subdirectory of your HTML directory.
 #
 EOF
 	sampleurl  =>  <<EOF,
