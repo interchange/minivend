@@ -712,8 +712,8 @@ function ${vpf}selectTab(n) {
 		var loc = ${vpf}divLocation[i]
 		// If in the selected row
 		if(loc >= firstTab && loc < (firstTab + ${vpf}tabsPerRow)) ${vpf}newLocation[i] = (loc - firstTab)
-		else if(loc < tabsPerRow) newLocation[i] = firstTab+(loc % tabsPerRow)
-		else newLocation[i] = loc
+		else if(loc < ${vpf}tabsPerRow) ${vpf}newLocation[i] = firstTab+(loc % ${vpf}tabsPerRow)
+		else ${vpf}newLocation[i] = loc
 	}
 	// Set tab positions & zIndex
 	// Update location
