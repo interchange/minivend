@@ -1196,7 +1196,7 @@ sub input_filter {
 	}
 	$opt->{routine} = $routine if $routine =~ /\S/;
 	$Vend::Session->{Filter} = {} if ! $Vend::Session->{Filter};
-	$Vend::Session->{Filter}{$varname} = $opt;
+	$Vend::Session->{Filter}{$varname} = $opt->{op} if $opt->{op};
 	return;
 }
 
