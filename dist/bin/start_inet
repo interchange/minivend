@@ -1,0 +1,136 @@
+#!/usr/local/bin/perl -w
+# start - starts MiniVend UNIX, INET, combined server mode
+#       - also handles buildtree function
+
+## No need to configure if you have Perl 5.004
+
+$VendRoot = $VendRoot || '/home/minivend';
+$PERL = $PERL || '/usr/bin/perl';
+
+## END CONFIGURABLE VARIABLES
+
+sub dontwarn { $FindBin::RealBin + $FindBin::Script; }
+
+BEGIN {
+    eval {
+        require 5.004;
+        require FindBin;
+        $VendRoot = "$FindBin::RealBin";
+        $VendRoot =~ s/.bin$//;
+		$PERL = $FindBin::Script;
+    };
+	($VendRoot = $ENV{MINIVEND_ROOT})
+		if defined $ENV{MINIVEND_ROOT};
+}
+
+use Config;
+
+$PerlFlags = '-w';
+$PERL = (-x $Config{perlpath} and $Config{perlpath}) || $PERL || 'perl';
+$VEND = "$VendRoot/bin/minivend";
+
+$ENV{'IFS'} = " ";
+$ENV{'PATH'} = "/bin:/usr/bin:$VendRoot/bin";
+
+$| = 1;
+
+if($0 =~ /_inet$/) {
+	$Inet_mode = '-i';
+}
+
+if($0 =~ /_unix$/) {
+	$Unix_mode = '-u';
+}
+
+if($0 =~ /buildtree$/) {
+	$Func_flag = '-build';
+	my @args = shift @ARGV;
+	while($_ = shift @ARGV) {
+		push @args, $_;
+		push (@args, '-build')
+			if @ARGV;
+	}
+	@ARGV = @args;
+}
+else {
+	$Func_flag = '-serve';
+}
+
+# Untaint alphanuerics, periods, slashes, and minus signs
+# for options
+my $tmp;
+for(@ARGV) {
+    m{([-./\w]+)};
+    $tmp = $1;
+    $_ = $tmp;
+}
+
+sub prompt {
+    my($pr) = shift || '? ';
+    my($def) = shift;
+    my $ans = '';
+
+    print $pr;
+    print "[$def] " if $def;
+	chop($ans = <STDIN>);
+    $ans ? $ans : $def;
+}
+
+sub get_id {
+	my $file = -f "$VendRoot/error.log"
+				? "$VendRoot/error.log" : '';
+	return '' unless $file;
+	my ($name, $group);
+
+	my($uid) = (stat($file))[4];
+	$name = (getpwuid($uid))[0];
+	return $name;
+}
+
+
+if ($< == 0) {
+	$name = get_id() || 'YOUR_MINIVEND_USER_NAME';
+    print <<EOM;
+
+The MiniVend server should not be run as root. It should run
+as a the user name you configured in when you set up the catalogs.
+	
+If you are starting the server from /etc/rc.local or another
+startup file, you can use this:
+
+su $name <<EOF
+$VendRoot/bin/start
+EOF
+
+EOM
+	if(-t) {
+		exit 2 if $name eq 'YOUR_MINIVEND_USER_NAME';
+		my $ask = prompt("Do you want me to start it as '$name' now? ", 'y');
+		exit 2 unless $ask =~ /^\s*y/i;
+		$Trysu = 1;
+	}
+	else {
+		exit 2 if $name eq 'YOUR_MINIVEND_USER_NAME';
+		$Trysu = 1;
+	}
+
+}
+
+if (defined $Trysu) {
+	exec <<EndOfExec or die "Couldn't exec: $!\n";
+su $name <<EOF
+$0
+EOF
+EndOfExec
+
+}
+
+if(defined $Inet_mode || defined $Unix_mode) {
+	system $PERL, $PerlFlags, $VEND, $Func_flag, ($Inet_mode || $Unix_mode), @ARGV;
+}
+else {
+	system $PERL, $PerlFlags, $VEND, $Func_flag, @ARGV;
+}
+
+
+sleep 1;

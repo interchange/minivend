@@ -1,4 +1,4 @@
-# MiniVend V3.00
+# MiniVend V3.02
 # 
 # Copyright 1996,1997 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -31,6 +31,26 @@ Please feel free to send them to Mike Heins, <mikeh@minivend.com>.
 -------------------------------------------------------------
 
                       W H A T ' S   N E W 
+
+MiniVend 3.02 adds full SQL support. In addition, several minor
+demo flaws have been polished, and some bugs in the new geographic
+shipping changes have been fixed.
+
+Changes include:
+
+	* Full SQL support, including for ODBC, using the powerful
+	  DBI/DBD interface. It should operate on all DBI-compliant drivers -- it
+	  has been tested with MySQL, mSQL, Solid, ODBC, and PostgreSQL.
+
+	* All database documentation greatly improved.
+
+	* Geographic qualification for shipping works.
+
+	* mv_credit_card_valid now returned as blank false value
+	  instead of 0 false value.
+
+	* =true added to order profile checks, will pass on Yes|True|1
+      and fail on anything else.
 
 MiniVend 3.00 is greatly changed from MiniVend 2.03, though catalogs
 should be almost completely compatible. The exceptions are one or two

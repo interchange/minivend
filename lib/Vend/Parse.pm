@@ -1,6 +1,6 @@
 # Parse.pm - Parse MiniVend tags
 # 
-# $Id: Parse.pm,v 1.8 1997/06/17 04:22:52 mike Exp $
+# $Id: Parse.pm,v 1.9 1997/09/05 07:30:18 mike Exp mike $
 #
 # Copyright 1997 by Michael J. Heins <mikeh@iac.net>
 #
@@ -20,12 +20,12 @@
 
 package Vend::Parse;
 
-# $Id: Parse.pm,v 1.8 1997/06/17 04:22:52 mike Exp $
+# $Id: Parse.pm,v 1.9 1997/09/05 07:30:18 mike Exp mike $
 
 require Vend::Parser;
 
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.8 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.9 $ =~ /(\d+)\.(\d+)/);
 
 use Safe;
 use Vend::Util;
@@ -46,7 +46,7 @@ require Exporter;
 @ISA = qw(Exporter Vend::Parser);
 # END NOAUTO
 
-$VERSION = substr(q$Revision: 1.8 $, 10);
+$VERSION = substr(q$Revision: 1.9 $, 10);
 @EXPORT = ();
 @EXPORT_OK = qw(find_matching_end find_end);
 
@@ -360,7 +360,7 @@ my %Routine = (
 				rotate			=> \&Vend::Interpolate::tag_rotate,
 				row				=> \&Vend::Interpolate::tag_row,
 				row				=> \&Vend::Interpolate::tag_row,
-				salestax		=> \&Vend::Interpolate::salestax,
+				salestax		=> \&Vend::Interpolate::tag_salestax,
 				scratch			=> \&Vend::Interpolate::tag_scratch,
 				selected		=> \&Vend::Interpolate::tag_selected,
 				set				=> \&Vend::Interpolate::set_scratch,

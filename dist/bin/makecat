@@ -681,7 +681,8 @@ EOF
 print "(You can use the up/down arrows to toggle).\n" if $Vend::MakeCat::Prompt_sub;
 
 sethistory("UNIX", "INET");
-$ask = prompt("INET or UNIX mode? ", "UNIX");
+$default = ($Config{osname} =~ /bsd/i and $Config{osvers} gt '3') ? 'INET' : 'UNIX';
+$ask = prompt("INET or UNIX mode? ", $default);
 
 my $prog = "$VendRoot/bin/vlink";
 

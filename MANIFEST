@@ -150,6 +150,7 @@ dist/sample/pages/srch/search.html
 dist/sample/pages/srch/sortresults.html
 dist/sample/products/accessories.asc
 dist/sample/products/arbitrary.asc
+dist/sample/products/inventory.asc
 dist/sample/products/pricing.asc
 dist/sample/products/products.asc
 dist/sample/products/salestax.asc
@@ -253,6 +254,7 @@ dist/simple/pages/special/tech5.html
 dist/simple/pages/special/violation.html
 dist/simple/pages/srchform.html
 dist/simple/products/accessories.asc
+dist/simple/products/inventory.asc
 dist/simple/products/pricing.asc
 dist/simple/products/products.asc
 dist/simple/products/salestax.asc
@@ -260,6 +262,7 @@ dist/simple/products/shipping.asc
 dist/simple/reconfig
 dist/simple/report_problem
 dist/simple/session/.empty
+dist/src/File-Lock-0.9.tar
 dist/src/config.h.in
 dist/src/configure
 dist/src/configure.in

@@ -1,4 +1,4 @@
-# $Id: Config.pm,v 1.12 1997/06/27 11:32:10 mike Exp mike $
+# $Id: Config.pm,v 1.17 1997/09/05 07:27:11 mike Exp mike $
 
 package Vend::Config;
 require Exporter;
@@ -65,6 +65,7 @@ sub global_directives {
 	['AdminHost',		  undef,			 ''],
     ['HammerLock',		  undef,     	     30],
     ['DebugMode',		  undef,     	     0],
+    ['CheckHTML',		  undef,     	     ''],
 	['Variable',	  	 'variable',     	 ''],
     ['MultiServer',		 'yesno',     	     0],  # Prevent errors on 2.02 upgrade
     ['UserBuild',		 'yesno',     	     'no'],   # UNDOCUMENTED
@@ -246,18 +247,18 @@ sub get_global_default {
 
 sub substitute_variable {
 	my($val) = @_;
-print "before=$val\n" if $Global::DEBUG;
+#print "before=$val\n" if $Global::DEBUG;
 	# Return after globals so can others can be contained
 	$val =~ s/\@\@([A-Z][A-Z_0-9]+[A-Z0-9])\@\@/$Global::Variable->{$1}/g
 		and return $val;
 	return $val unless $val =~ /([_%])\1/;
 	1 while $val =~ s/__([A-Z][A-Z_0-9]+[A-Z0-9])__/$C->{Variable}->{$1}/g;
-print " after=$val\n" if $Global::DEBUG;
+#print " after=$val\n" if $Global::DEBUG;
 	# YALOS (yet another level)
 	return $val unless $val =~ /%%[A-Z]/;
 	$val =~ s/%%([A-Z][A-Z_0-9]+[A-Z0-9])%%/$Global::Variable->{$1}/g;
 	$val =~ s/__([A-Z][A-Z_0-9]+[A-Z0-9])__/$C->{Variable}->{$1}/g;
-print "  post=$val\n" if $Global::DEBUG;
+#print "  post=$val\n" if $Global::DEBUG;
 	return $val;
 }
 
@@ -973,21 +974,112 @@ sub parse_catalog {
 	return ++$num;
 }
 
+my %Hash_ref = (  qw!
+							COLUMN_DEF   COLUMN_DEF
+					! );
+
+my %Ary_ref = (   qw!
+							NAME         NAME
+					! );
+
+
 sub parse_database {
 	my ($var, $value) = @_;
-	my $c;
+	my ($c, $new);
 	unless (defined $value && $value) { 
 		$c = {};
 		return $c;
 	}
 	$c = $C->{'Database'};
+
+	my($database,$remain) = split /[\s,]+/, $value, 2;
 	
-	my($database,$file,$type) = split /[\s,]+/, $value, 3;
+	my($reset);
 
+	if($database ne 'products') {
+		$new = 1 if ! defined $c->{$database};
+	}
+	elsif( defined $c->{$database}->{",default"} ) {
+		$new = 1 if not defined $c->{$database}->{",initialized"};
+		$c->{$database}->{",initialized"} = 1;
+	}
+	else {
+		$c->{$database}->{",default"} = 1;
+		$new = 1;
+	}
+	
 	$c->{$database}->{'name'} = $database;
-	$c->{$database}->{'file'} = $file;
-	$c->{$database}->{'type'} = $type;
+	my $d = $c->{$database};
 
+	if($new) {
+		my($file, $type) = split /[\s,]+/, $remain, 2;
+		$d->{'file'} = $file;
+		if(		$type =~ /^\d+$/	) {
+			$d->{'type'} = $type;
+		}
+		elsif(	$type =~ /^(dbi|sql)\b/i	) {
+			$d->{'type'} = 8;
+			if($type =~ /^dbi:/) {
+				$d->{DSN} = $type;
+			}
+		}
+		elsif(	$type =~ /^msql\b/i	) {
+			$d->{'type'} = 7;
+		}
+		elsif(	"\U$type" eq 'TAB'	) {
+			$d->{'type'} = 6;
+		}
+		elsif(	"\U$type" eq 'PIPE'	) {
+			$d->{'type'} = 5;
+		}
+		elsif(	"\U$type" eq 'CSV'	) {
+			$d->{'type'} = 4;
+		}
+		elsif(	"\U$type" eq 'DEFAULT'	) {
+			$d->{'type'} = 1;
+		}
+		elsif(	$type =~ /[%]{1,3}|percent/i	) {
+			$d->{'type'} = 3;
+		}
+		elsif(	$type =~ /line/i	) {
+			$d->{'type'} = 2;
+		}
+		else {
+			$d->{'type'} = 1;
+			$d->{'DELIMITER'} = $type;
+		}
+	}
+	else {
+		my($p, $val) = split /\s+/, $remain, 2;
+		$p = uc $p;
+
+		if(defined $Hash_ref{$p}) {
+			my($k, $v);
+			my(@v) = quoted_comma_string($val);
+			$d->{$p} = {} unless defined $d->{$p};
+			for(@v) {
+				($k,$v) = split /\s*=\s*/, $_;
+				$d->{$p}->{$k} = $v;
+			}
+		}
+		elsif(defined $Ary_ref{$p}) {
+			my(@v) = quoted_string($val);
+			$d->{$p} = [] unless defined $d->{$p};
+			push @{$d->{$p}}, @v;
+		}
+		else {
+			config_warn "Scalar parameter $p redefined."
+				if defined $d->{$p};
+			$d->{$p} = $val;
+		}
+	}
+	if($Global::DEBUG) {
+		print "Defining database $database\n";
+		for (keys %$d) {
+			print "$_=$d->{$_}\n";
+		}
+	}
+		
 	return $c;
 }
 

@@ -242,7 +242,7 @@ sub encrypt_standard_cc {
 
 	# error will be pushed on this if present
 	@return = (
-				0,			# 0- Whether it is valid
+				'',			# 0- Whether it is valid
 				'',			# 1- Encrypted credit card information
 				'',			# 2- Month
 				'',			# 3- Year

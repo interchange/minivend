@@ -254,6 +254,7 @@ TAGBUILD: {
 	my $tag;
 	for (@th) {
 		$tag = $_;
+		s/msql/m?sql/g;
 		s/(\w)/[\u$1\l$1]/g;
 		s/[-_]/[-_]/g;
 		$T{$tag} = "\\[$_";
@@ -481,9 +482,12 @@ sub cache_scan_html {
 				  set_scratch($1,$2)#geo and $CacheInvalid = 1;
     $html =~ s:$T{'data'}\s+([^\]]+)\]:
 					tag_data(split /\s+/, $1, 4):geo;
-	$html =~ s#\[m?sql\s+($codere)([^\]]*)\]([\000-\377]*?)\[/(m)?sql\]#
-				  $CacheInvalid = 1 if $1 eq 'set'; sql_query($1,$2,$3,$4)#geo;
-
+	$html =~ s#
+				\[m?sql \s+ ($codere) ([^\]]*) \]
+				([\000-\377]*?)
+				\[/(m)?sql(?:\s+)?($codere)?\]#
+				  $CacheInvalid = 1 if "\L$1" eq 'set';
+				  sql_query($1,$2,$3,$4,$5)#geixo;
 
 	$html =~ s!$T{'file'}\s+($codere)\]!readfile($1, $Global::NoAbsolute)!geo;
 
@@ -625,8 +629,10 @@ sub scan_html {
 				  set_scratch($1,$2)#geo;
     $html =~ s:$T{'data'}\s+([^\]]+)\]:
 					tag_data(split /\s+/, $1, 4):geo;
-	$html =~ s#\[m?sql\s+($codere)([^\]]*)\]([\000-\377]*?)\[/(m)?sql\]#
-				  sql_query($1,$2,$3,$4)#geo;
+	$html =~ s#\[ m?sql \s+ ($codere) ([^\]]*) \]
+				([\000-\377]*?)
+				\[/(m)?sql(?:\s+)?($codere)?\]#
+				  sql_query($1,$2,$3,$4,$5)#geixo;
 	$html =~ s!$T{'file'}\s+($codere)\]!readfile($1, $Global::NoAbsolute)!geo;
 
     $html =~ s!$T{'finish-order'}(?:\s+)?($codere)?\]!tag_finish_order($1)!geo;
@@ -709,9 +715,9 @@ sub scan_html {
 # variable
 sub tag_data {
 	my($selector,$field,$key,$value,$inc) = @_;
-print("Data args: @_\n") if $Global::DEBUG;
+#print("Data args: @_\n") if $Global::DEBUG;
 	if(defined $Vend::Database{$selector}) {
-print("Called database with: key=$key field=$field db=$selector\n") if $Global::DEBUG;
+#print("Called database with: key=$key field=$field db=$selector\n") if $Global::DEBUG;
 		my $db = $Vend::Database{$selector};
 		unless(defined $value) {
 			$CacheInvalid = 1
@@ -1166,7 +1172,7 @@ sub do_tag {
 		elsif($arg =~ m!^\s*scan/(.*)!i ) {
 			my $string = "[page scan/$1";
 			my $se = $text;
-			$se =~ s/\W/'.' . sprintf("%02x", chr($1))/ge;
+			$se =~ s/(\W)/'.' . sprintf("%02x", ord($1))/ge;
 			return $string . '/se=' . $se . "]$text";
 		}
 		elsif($arg =~ /^\s*import\s+($Codere)/i ) {
@@ -1317,6 +1323,9 @@ sub do_flag {
 	}
 	elsif($flag =~ /^cache$/i) {
 		$Vend::ForceCache = 1;
+	}
+	elsif($flag =~ /^checkhtml$/i) {
+		$Vend::CheckHTML = 1;
 	}
 	else {
 		logError("Unknown flag operation '$flag', ignored.");
@@ -2395,6 +2404,7 @@ sub tag_sql_list {
 
     foreach $item (@$obj) {
 		$code = $item->[0];
+		next unless $code;
 
 		# Uncomment next line to ignore non-database items
 		# next unless product_code_exists_ref($code);
@@ -2768,7 +2778,7 @@ sub custom_shipping {
 	foreach $code (sort keys %{$Vend::Cfg->{'Shipping_cost'}}) {
 		next unless $code =~ /^$mode\d*$/i;
 		if($qual) {
-			next unless $Vend::Cfg->{Shipping_criterion}->{$mode} 
+			next unless $Vend::Cfg->{Shipping_criterion}->{$code} 
 							=~ m{\b$qual\b};
 		}
 		if(	$total <= $Vend::Cfg->{'Shipping_max'}->{$code} and
@@ -3019,6 +3029,10 @@ sub salestax {
 	$Vend::Items = $save if defined $save;
 
 	$r;
+}
+
+sub tag_salestax {
+	currency(salestax(@_));
 }
 
 sub tag_subtotal {

@@ -1,4 +1,4 @@
-# $Id: Util.pm,v 1.11 1997/06/27 11:32:10 mike Exp mike $
+# $Id: Util.pm,v 1.13 1997/09/05 07:37:04 mike Exp mike $
 
 package Vend::Util;
 require Exporter;
@@ -809,14 +809,8 @@ sub send_mail {
 		$mime = Vend::Interpolate::do_tag('mime header') if defined $Vend::MIME;
 		print Vend::MAIL "To: $to\n", $reply, "Subject: $subject\n$mime\n"
 	    	or last SEND;
-		if (defined $Vend::MIME) {
-			print Vend::MAIL Vend::Interpolate::do_tag('mime Order text', $body)
+		print Vend::MAIL $body
 				or last SEND;
-		}
-		else {
-			print Vend::MAIL $body
-				or last SEND;
-		}
 		print Vend::MAIL Vend::Interpolate::do_tag('mime boundary') . '--'
 			if defined $Vend::MIME;
 		close Vend::MAIL or last SEND;

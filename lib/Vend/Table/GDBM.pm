@@ -1,6 +1,6 @@
 # Table/GDBM.pm: access a table stored in a GDBM file
 #
-# $Id: GDBM.pm,v 1.3 1997/05/02 05:50:23 mike Exp $
+# $Id: GDBM.pm,v 1.5 1997/09/05 07:32:30 mike Exp $
 #
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -20,7 +20,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::GDBM;
-$VERSION = substr(q$Revision: 1.3 $, 10);
+$VERSION = substr(q$Revision: 1.5 $, 10);
 use Carp;
 use strict;
 use GDBM_File;

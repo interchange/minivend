@@ -251,7 +251,7 @@ sub cyber_charge {
     $amount = Vend::Interpolate::tag_total_cost;
     $amount =~ s/[^.\d]//g;
     $amount = "$currency $amount";
-print "cyber_charge: amount is '$amount'\n" if $Global::DEBUG;
+#print "cyber_charge: amount is '$amount'\n" if $Global::DEBUG;
 
 	$actual{cyber_mode} = 'mauthcapture'
 		unless $actual{cyber_mode};
@@ -617,6 +617,18 @@ sub _mandatory {
 	return (1, $var, '')
 		if (defined $ref->{$var} and $ref->{$var} =~ /\S/);
 	return (undef, $var, "blank");
+}
+
+sub _true {
+	my($ref,$var,$val) = @_;
+	return (1, $var, '') if is_yes($val);
+	return (undef, $var, "false");
+}
+
+sub _false {
+	my($ref,$var,$val) = @_;
+	return (1, $var, '') if is_no($val);
+	return (undef, $var, "true");
 }
 
 sub _required {

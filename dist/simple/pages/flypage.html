@@ -4,7 +4,6 @@
 <CENTER>
 Category: [item-field category]
 <P>
-[set current][item-code][/set]
 [if_field image]
 <IMG SRC="[item_field image]">
 <P>
@@ -15,7 +14,7 @@ Category: [item-field category]
 <P>
 Catalog No.: [item-code]
 <P>
-Price: $[item-price 1] [page quantity]See quantity pricing[/page]
+Price: $[item-price 1] [page quantity [item-code]]See quantity pricing[/page]
 <P>
 [order [item-code]]<IMG BORDER=0 SRC="ordernow.gif" ALT="(ORDER NOW)">[/order]
 <P>

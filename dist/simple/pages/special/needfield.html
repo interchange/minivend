@@ -12,10 +12,10 @@ the information.
 Problem: 
 <P>
 [perl]
-	my $msg = q%[subject]%;
+	my $msg = q{[subject]};
 	sub redo_message {
 		my($param,$word) = @_;
-		if($word =~ /mv_credit/) {
+		if($param =~ /mv_credit/) {
 			"<LI>You need to validate your credit card information.\n";
 		}
 		elsif ($word =~ /not_a_state/i) {

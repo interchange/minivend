@@ -1,13 +1,8 @@
 # Table/DBI.pm: access a table stored in an DBI/DBD Database
 #
-# $Id: DBI.pm,v 1.3 1997/05/22 07:00:32 mike Exp $
+# $Id: DBI.pm,v 1.7 1997/09/07 07:15:24 mike Exp mike $
 #
-
-# Basic schema
-# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
-#
-# Coding
-# Copyright 1996 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1997 by Michael J. Heins <mikeh@minivend.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,30 +19,68 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::DBI;
-$VERSION = substr(q$Revision: 1.3 $, 10);
+$VERSION = substr(q$Revision: 1.7 $, 10);
 
 use Carp;
 use strict;
-use DBI;
 
-my $Db;
-$Db = DBI->install_driver($Global::DBDtype);
+# 0: table name
+# 1: key name
+# 2: database object
+# 3: Array of column names
+# 4: each reference (transitory)
 
-my @Hex_string;
-{
-    my $i;
-    foreach $i (0..255) {
-        $Hex_string[$i] = sprintf("%02X", $i);
-    }
+my ($TABLE, $KEY, $DBI, $NAME, $CONFIG, $EACH) = (0 .. 5);
+
+my %Cattr = ( qw(
+					PRINTERROR     	PrintError
+					AUTOCOMMIT     	AutoCommit
+				) );
+
+my %Dattr = ( qw(
+					WARN			Warn
+					CHOPBLANKS		ChopBlanks	
+					COMPATMODE		CompatMode	
+					INACTIVEDESTROY	InactiveDestroy	
+					PRINTERROR     	PrintError
+					RAISEERROR     	RaiseError
+					AUTOCOMMIT     	AutoCommit
+					LONGTRUNCOK    	LongTruncOk
+					LONGREADLEN    	LongReadLen
+				) );
+
+#my %Dattr = ( qw( AUTOCOMMIT AutoCommit	) );
+					
+sub find_dsn {
+	my ($config) = @_;
+	my($param, $value, $cattr, $dattr, @out);
+	my($user,$pass,$dsn,$driver);
+	my $i = 0;
+	foreach $param (qw! DSN USER PASS !) {
+		$out[$i++] = $config->{ $param } || undef;
+	}
+	foreach $param (keys %$config) {
+		if(defined $Dattr{$param}) {
+			$dattr = {} unless defined $dattr;
+			$dattr->{$Dattr{$param}} = $config->{$param};
+		}
+		next unless defined $Cattr{$param};
+		$cattr = {} unless defined $cattr;
+		$cattr->{$Cattr{$param}} = $config->{$param};
+	}
+	$out[3] = $cattr || undef;
+	$out[4] = $dattr || undef;
+    if ($Global::DEBUG and defined $dattr) {
+		print("connect args were: ");
+		my @dbg = @out;
+		pop @dbg;
+		for(keys %$dattr) {
+			push @dbg, "$_=$dattr->{$_}";
+		}
+		print join "|", @dbg, "\n";
+	}
+	@out;
 }
-
-# 0: filename
-# 1: column names
-# 2: column index
-# 3: tie hash
-# 4: dbm object
-
-my ($FILENAME, $COLUMN_NAMES, $COLUMN_INDEX, $TIE_HASH, $DBM) = (0 .. 4);
 
 sub create_table {
     my ($class, $config, $filename, $columns) = @_;
@@ -55,159 +88,177 @@ sub create_table {
     return $class->create($columns, $filename, $config);
 }
 
-sub opendb {
-	my ($config) = @_;
-	croak "Need a host and database!\n" unless ref $config;
-	if($Global::DBDtype eq 'mSQL') {
-		return $Db->connect($config->{Host}, $config->{Catalog});
-	}
-	elsif($Global::DBDtype eq 'Solid') {
-		return $Db->connect("", "mike", "gsfrkc", $Global::DBDtype);
-	}
-	else {
-#print("Connected to Pg.\n") if $Global::DEBUG;
-		return $Db->connect($config->{Catalog}, '', '', $Global::DBDtype);
-	}
+sub config {
+	my $s = shift;
+	return undef
+		unless defined $s->[$CONFIG]->{$_[0]};
+	$s->[$CONFIG]->{$_[0]};
 }
+	
 
 sub create {
     my ($class, $columns, $tablename, $config) = @_;
 
-	$config = { Host => 'localhost', Catalog => 'minivend' }
-		unless defined $config;
-	
-	my $db = opendb($config)
-		or croak "The '$config->{Catalog}' database is not present: $DBI::errstr\n";
-
+	my @call = find_dsn($config);
+	my $dattr = pop @call;
+	my $db = DBI->connect( @call )
+		or croak "DBI connect failed: $DBI::errstr\n";
+#print("trying to create $tablename\n") if $Global::DEBUG;
+#$db->trace(2) if $Global::DEBUG;
+#print("connected\n") if $Global::DEBUG;
     croak "columns argument $columns is not an array ref\n"
         unless ref($columns) eq 'ARRAY';
 
-    my ($i,$key);
+	if(defined $dattr) {
+		for(keys %$dattr) {
+			$db->{$_} = $dattr->{$_};
+		}
+	}
+
+#print("ChopBlanks: '" . $db->{ChopBlanks} . "'\n") if $Global::DEBUG;
+
+    my ($i, $key, $keycol, $first);
 	my(@cols);
-	unshift @$columns, 'CODE';
+
+	# Call the first column 'code' unless it is set
+	# explicitly by NAME or FIRST_COLUMN_NAME
+	if(defined $config->{NAME}) {
+		$first = $config->{NAME}->[0] || 'code';
+	}
+	else {
+		$first = $config->{FIRST_COLUMN_NAME} || 'code';
+	}
+
+	$key = $config->{KEY} || $first;
+
+	unshift @$columns, $first;
+
+	if($Global::DEBUG and defined $config->{COLUMN_DEF}) {
+		for (keys %{$config->{COLUMN_DEF}}) {
+			print "def $_=$config->{COLUMN_DEF}->{$_}\n";
+		}
+	}
+
     for ($i = 0;  $i < @$columns;  $i++) {
-        $cols[$i] .= $$columns[$i];
-        $cols[$i] .= " char(64)" unless $cols[$i] =~ / +/;
-		$key = $$columns[$i] if $cols[$i] =~ /\s+int\s+primary\s+key$/i;
+        $cols[$i] = $$columns[$i];
+		if(defined $config->{KEY}) {
+			$keycol = $i if $cols[$i] eq $key;
+		}
+        if ($cols[$i] =~ / +/) {
+			# do nothing
+		}
+		elsif(defined $config->{COLUMN_DEF}->{$cols[$i]}) {
+			$cols[$i] .= " " . $config->{COLUMN_DEF}->{$cols[$i]};
+		}
+		else {
+			$cols[$i] .= " char(128)";
+		}
+		$$columns[$i] = $cols[$i];
+		$$columns[$i] =~ s/\s+.*//;
     }
 
-	if(! $key) {
-		$cols[0] =~ s/\s+.*/ char(14) primary key/
-			if $Global::DBDtype eq 'mSQL';
-		$key = $columns->[0];
-		carp "DBI: column 0 overridden and made primary key.\n"
-			if $Global::DBDtype eq 'mSQL';
-	}
+	$keycol = 0 unless defined $keycol;
 
-	if($Global::DBDtype eq 'mSQL'
-			and grep $_ eq $tablename, $db->func('_ListTables')) {
-		$db->do("drop table $tablename") 
-			or croak
-			"The '$tablename' table could not be overwritten.\n$DBI::errstr\n";
-	}
+	$cols[$keycol] =~ s/\s+.*/ char(16)/
+			unless defined $config->{COLUMN_DEF}->{$key};
 
-	if($Global::DBDtype eq 'Solid' and table_exists($db, $tablename)) {
-		$db->do("drop table $tablename") 
-			or croak
-			"The '$tablename' table could not be overwritten.\n$DBI::errstr\n";
-	}
+	$db->do("drop table $tablename")
+		or carp "$DBI::errstr\n";
+
 #print("cols: '" . (join "','", @cols) . "'\n") if $Global::DEBUG;
 	my $query = "create table $tablename ( \n";
 	$query .= join ",\n", @cols;
 	$query .= "\n)\n";
-	::logError("table $tablename created: $query");
 	
 	$db->do($query)
-		or croak "DBI: Create table '$tablename' failed: "
-					. $DBI::errstr . "\n";
+		or croak "DBI: Create table '$tablename' failed: $DBI::errstr\n";
+	::logError("table $tablename created: $query");
+
+	$db->do("create index ${key}_idx on $tablename ($key)")
+		or ::logError("table $tablename index failed: $DBI::errstr");
 #print("Created table, I think.\n") if $Global::DEBUG;
-    my $self = [$tablename, $key, $db];
+
+    my $self = [$tablename, $key, $db, $columns];
     bless $self, $class;
 }
 
-
 sub open_table {
     my ($class, $config, $tablename) = @_;
-	$config = { Host => 'localhost', Catalog => 'minivend' }
-		unless defined $config;
-	my $db = opendb($config)
-		or croak "The '$config->{Catalog}' database is not present.\n";
+	
+    my @call = find_dsn($config);
+    my $dattr = pop @call;
+    my $db = DBI->connect( @call )
+		or croak "$DBI::errstr\n";
+#$db->trace(2) if $Global::DEBUG;
 	my $key;
-	if($Global::DBDtype eq 'mSQL') {
-		my $ref = $db->func($tablename, '_ListFields')
-			or croak "No fields in database $config->{Catalog}?\n";
-		my @keys = @{$ref->{IS_PRI_KEY}};
-		my $i = 0;
-		for (@keys) {
-			($i++, next) unless $_;
-			$key = $ref->{NAME}->[$i];
-		}
-		croak "DBI: no primary key for $tablename\n"
-			unless defined $key;
-	}
-	else {
-		my @keys = list_fields($db, $tablename);
-		$key = $keys[0];
-		croak "DBI: no primary key for $tablename\n"
-			unless defined $key;
-	}
+	my $cols;
 
-#print("Opened table, I think.\n") if $Global::DEBUG;
-	my $dbref = [$tablename, $key, $db];
+	if(defined $dattr) {
+		for(keys %$dattr) {
+			$db->{$_} = $dattr->{$_};
+		}
+	}
+#print("ChopBlanks: '" . $db->{ChopBlanks} . "'\n") if $Global::DEBUG;
+
+	$cols = $config->{NAME} || [list_fields($db, $tablename)];
+
+	croak "DBI: no column names returned for $tablename\n"
+			unless defined $$cols[1];
+
+	# Check if we have a non-first-column key
+	$key = $config->{KEY} || $$cols[0];
+	$config->{FIRST_COLUMN_NAME} = $$cols[0];
+
+	my $dbref = [$tablename, $key, $db, $cols, $config];
 	bless $dbref, $class;
 }
 
 sub close_table {
-	undef $_[0];
-	1;
+	$_[0]->[$DBI]->disconnect();
 }
-
 
 sub columns {
-    my ($s) = @_;
-	return list_fields($s->[2], $s->[0]);
+    my @cols = @{$_[0]->[$NAME]};
+	shift @cols;
+	@cols;
 }
-
-#sub columns {
-#    my ($s) = @_;
-#	my $ref = $s->[2]->func($s->[0], '_ListFields');
-#    return @{$ref->{NAME}};
-#}
-
 
 sub test_column {
     my ($s, $column) = @_;
 
-	#my $ref = $s->[2]->func($s->[0], '_ListFields');
-	my @cols = list_fields($s->[2], $s->[0]);
-	(::logGlobal("test_column: " . $DBI::errstr), return '')
-		unless @cols;
-
 	my $i = 0;
 	my $col;
 
-	for(@cols) {
-	#for(@{$ref->{NAME}}) {
-		($i++, next) unless $_ eq $column;
+	for(@{$s->[$NAME]}) {
+		($i++, next) unless "\L$_" eq "\L$column";
 		$col = $i;
 	}
+#print("test_column: returning '$col' from $s->[$TABLE]\n") if $Global::DEBUG;
+	return undef unless defined $col;
 
-#print("test_column: returning '$col' from $s->[0]") if $Global::DEBUG;
 	return $col - 1;
 
+}
+
+sub inc_field {
+    my ($s, $key, $column, $value) = @_;
+    my $sth = $s->[$DBI]->prepare("select $column from $s->[$TABLE] where $s->[$KEY] = '$key'");
+    croak "inc_field: $DBI::errstr\n" unless defined $sth;
+    $sth->execute();
+    $value += ($sth->fetchrow_array)[0];
+    undef $sth;
+	$value =~ s/\s+$//;
+    $sth = $s->[$DBI]->do("update $s->[$TABLE] SET $column='$value' where $s->[$KEY] = '$key'");
+    $value;
 }
 
 sub column_index {
     my ($s, $column) = @_;
 
-	#my $ref = $s->[2]->func($s->[0], '_ListFields');
-	my @cols = list_fields($s->[2], $s->[0]);
-
 	my $i = 0;
 	my $col;
 
-	for(@cols) {
-	#for(@{$ref->{NAME}}) {
+	for(@{$s->[$NAME]}) {
 		($i++, next) unless $_ eq $column;
 		$col = $i;
 	}
@@ -224,100 +275,69 @@ sub field_accessor {
     my ($s, $column) = @_;
     return sub {
         my ($key) = @_;
-        my $ref = $s->[2]->prepare
-			("select $column from $s->[0] where $s->[1] = '$key'");
-		(::logGlobal("field_accessor:" . $DBI::errstr), return '')
-			unless defined $ref;
-		($ref->fetchrow)[0];
+        my $sth = $s->[$DBI]->prepare
+			("select $column from $s->[$TABLE] where $s->[$KEY] = '$key'")
+				or croak $DBI::errstr;
+		($sth->fetchrow)[0];
     };
 }
 
 sub param_query {
-	my($text, $config) = @_;
-	my ($r,$ref);
-	$config = { Host => 'localhost', Catalog => 'minivend' }
-		unless ref $config;
-	my $db = opendb($config)
-		or croak "The '$config->{Catalog}' database is not present.\n";
-    eval { $ref = $db->do($text) };
-	(::logGlobal("Bad DBI query --\n$text"), return '')
-		if $@;
-	(::logError("param_query:" . $DBI::errstr), return '')
-		unless defined $ref;
+	my($s, $text, $table) = @_;
+	my $db = $s->[$DBI];
+    my $sth = $db->prepare($text)
+		or croak "$DBI::errstr\n";
 	my(@row);
 	my(@out);
-	while(@row = $ref->fetchrow()) {
+    $sth->execute() or croak $DBI::errstr;
+	while(@row = $sth->fetchrow_array()) {
 		push @out, @row;
 	}
-	$r = '"';
-	for(@out) { s/"/\\"/g }
+	my $r = '"';
+	for(@out) { s/\s+$//; s/"/\\"/g }
 	$r .= join '" "', @out;
 	$r .= '"';
 }
 
 sub array_query {
-    my($text, $config) = @_;
-    my ($r,$ref);
-    $config = { Host => 'localhost', Catalog => 'minivend' }
-        unless ref $config;
-    my $db = opendb($config)
-        or croak "The '$config->{Catalog}' database is not present.\n";
-    eval { $ref = $db->do($text) };
-    (::logGlobal("Bad DBI query --\n$text"), return '')
-        if $@;
-    (::logError("param_query:" . $DBI::errstr), return '')
-        unless defined $ref;
-	my(@row);
-	my(@out);
-	while(@row = $ref->fetchrow()) {
-		push @out, [@row];
-	}
-	return \@out;
+	my($s, $text, $table) = @_;
+#print("array_query: $text\n") if $Global::DEBUG;
+	my $db = $s->[$DBI];
+    my $sth = $db->prepare($text)
+		or croak "$DBI::errstr\n";
+    $sth->execute() or croak $DBI::errstr;
+	return $sth->fetchall_arrayref;
 }
 
 sub hash_query {
-    my($text, $config) = @_;
-    my ($i,$ref);
-    my $db = opendb();
-    $db->selectdb($config->{Catalog})
-        or croak "The '$config->{Catalog}' SQL database is not present.\n";
-    eval { $ref = $db->do($text) };
-	(::logGlobal("Bad SQL query --\n$text"), return '')
-		if $@;
-	(::logError("hash_query: $DBI::errstr"), return '')
-		unless defined $ref;
-	my(@row);
-	my(%out);
-	my(@name) = $ref->name();
-	while(@row = $ref->fetchrow()) {
-		my $o = {};
-		for($i = 0; $i < @name; $i++) {
-			$o->{$name[$i]} = $row[$i];
-		}
-		$out{$row[0]} = $o;
+	my($s, $text, $table) = @_;
+#print("hash_query: $text\n") if $Global::DEBUG;
+	my $db = $s->[$DBI];
+	my $key = $s->[$KEY];
+    my $sth = $db->prepare($text)
+		or croak "$DBI::errstr\n";
+    $sth->execute() or croak $DBI::errstr;
+	my $out = {};
+	my $ref;
+	while($ref = $sth->fetchrow_hashref()) {
+		$out->{$ref->{$key}} = $ref;
 	}
-	return \%out;
+	return $out;
 }
 
 sub html_query {
-    my($text, $config) = @_;
-    my ($r,$i,$ref);
-    my $db = opendb();
-    $db->selectdb($config->{Catalog})
-        or croak "The '$config->{Catalog}' SQL database is not present.\n";
-    eval { $ref = $db->do($text) };
-	(::logGlobal("Bad SQL query --\n$text"), return '')
-		if $@;
-	(::logError("html_query: $DBI::errstr"), return '')
-		unless defined $ref;
+	my($s, $text, $table) = @_;
+	my $db = $s->[$DBI];
+    my $sth = $db->prepare($text)
+		or croak "$DBI::errstr\n";
 	my(@row);
-	my(@name) = $ref->name();
-	$r = '<TR>';
-	for(@name) {
+    $sth->execute() or croak $DBI::errstr;
+	my $r = '<TR>';
+	for(@{$s->[$NAME]}) {
 		$r .= "<TH><B>$_</B></TH>";
 	}
 	$r .= '</TR>';
-	while(@row = $ref->fetchrow()) {
+	while(@row = $sth->fetchrow_array()) {
 		$r .= "<TR>";
 		for(@row) {
 			$r .= "<TD>$_</TD>";
@@ -328,57 +348,73 @@ sub html_query {
 }
 
 sub set_query {
-    my($text, $config) = @_;
-    my ($r,$ref,$result);
-    my $db = opendb();
-    $db->selectdb($config->{Catalog})
-        or croak "The '$config->{Catalog}' SQL database is not present.\n";
-    eval { $result = $db->do($text) };
-	(::logGlobal("Bad SQL query --\n$text"), return '')
-		if $@;
-	::logError("set_query: $DBI::errstr") unless defined $result;
+	my($s, $text, $table) = @_;
+	$s->[$DBI]->do($text)
+		or croak "$DBI::errstr\n";
 	return '';
 }
 
-# not supported
+sub touch {return ''}
+
+# Now supported
 sub each_record {
-    return undef;
+    my ($s) = @_;
+    my ($table,$key,$db,$cols,$config,$each) = @$s;
+    unless(defined $each) {
+#print("Each not defined -- listing table $table for $db\n") if $Global::DEBUG;
+        $each = $db->prepare("select * from $table")
+            or croak $DBI::errstr;
+        push @$s, $each;
+		$each->execute();
+    }
+    my @cols;
+    @cols = $each->fetchrow_array;
+#print("Cols for DBI each_record:\n--\n" . (join "|", @cols) . "\n--\n") if $Global::DEBUG;
+    pop(@$s) unless(scalar @cols);
+    return @cols;
 }
 
 sub field_settor {
     my ($s, $column) = @_;
     return sub {
         my ($key, $value) = @_;
-        $s->[2]->do("insert into $s->[0] ($column) VALUES ($value) where $s->[1] = '$key'");
+		$value = DBI::neat $value;
+		$value = DBI::neat $key;
+        $s->[$DBI]->do("update $s->[$TABLE] SET $column=$value where $s->[$KEY] = $key");
     };
 }
 
 sub set_row {
-    my ($s, $key, @fields) = @_;
+    my ($s, @fields) = @_;
+	
 	for(@fields) {
-		s/'/\\'/g;
+		$_ = $s->[$DBI]->quote($_);
 	}
-	#::logGlobal("Got to set_row");
-	my $values = "'" . (join "', '", $key, @fields) . "'";
-    $s->[2]->do("delete from $s->[0] where $s->[1] = '$key'");
-    $s->[2]->do("insert into $s->[0] VALUES ($values)")
+
+	my $values = join ',', @fields;
+#print("Got to set_row\n$values\n") if $Global::DEBUG;	
+    $s->[$DBI]->do("delete from $s->[$TABLE] where $s->[$KEY] = $fields[0]");
+    $s->[$DBI]->do("insert into $s->[$TABLE] VALUES ($values)")
 		or croak "$DBI::errstr\n";
 }
 
 sub field {
     my ($s, $key, $column) = @_;
-    my $ref = $s->[2]->prepare("select $column from $s->[0] where $s->[1] = '$key'");
-    $ref->execute()
-		or (::logGlobal("execute error: $DBI::errstr"), return '');
-#print("field: col=$column key=$key err=$DBI::errstr") if $Global::DEBUG;
-	my $data = ($ref->fetchrow())[0];
-#print("field: col=$column key=$key err=$DBI::errstr") if $Global::DEBUG;
+    my $sth = $s->[$DBI]->prepare("select $column from $s->[$TABLE] where $s->[$KEY] = '$key'");
+    $sth->execute()
+		or croak("execute error: $DBI::errstr");
+	my $data = ($sth->fetchrow_array())[0];
+#print("retrieve field: col=$column key=$key data=$data\n") if $Global::DEBUG;
+	return '' unless $data =~ /\S/;
 	$data;
 }
 
 sub set_field {
     my ($s, $key, $column, $value) = @_;
-    my $ref = $s->[2]->do("insert into $s->[0] ($column) VALUES ($value) where $s->[1] = '$key'");
+	$key = DBI::neat($key);
+	$value = DBI::neat($value);
+    $s->[$DBI]->do("update $s->[$TABLE] SET $column = $value where $s->[$KEY] = $key")
+		or croak "$DBI::errstr\n";
 	$value;
 }
 
@@ -386,33 +422,41 @@ sub ref {
 	return $_[0];
 }
 
+#sub record_exists { 1 }
+
 sub record_exists {
     my ($s, $key) = @_;
-    my $what = ($s->[2]->do("select * from $s->[0] where $s->[1] = '$key'"));
-	(::logGlobal("Bad SQL query --\n$_[0]\n$DBI::errstr" ), return undef)
-		unless defined $what;
-    return defined $what;
+#print("call object $s with arg $key -- key name is '$s->[$KEY]'\n") if $Global::DEBUG;
+	my $query = "select $s->[$KEY] from $s->[$TABLE] where $s->[$KEY] = '$key'";
+	my $sth = $s->[$DBI]->prepare($query);
+    $sth->execute() or croak $DBI::errstr;
+    $sth->fetchrow_arrayref or return undef;
+	return 1;
 }
 
 sub delete_record {
     my ($s, $key) = @_;
 
-    $s->[2]->do("delete from $s->[0] where $s-[1] = '$key'");
+    $s->[$DBI]->do("delete from $s->[$TABLE] where $s->[$KEY] = '$key'");
 }
 
 sub list_fields {
 	my($db, $name) = @_;
-	my $sth = $db->prepare("select * from $name");
-	$sth->execute();
+#print("DBI list_fields call: @_\n") if $Global::DEBUG;
+	my @fld;
 
-	# DEBUG
-	#my $msg = "names: '";
-	#$msg .= join "','", @{$sth->{NAME}};
-	#$msg .= "'";
-	#::logGlobal($msg);
+	my $sth = $db->prepare("select * from $name")
+		or croak $DBI::errstr;
 
-	my @fld = @{$sth->{NAME}};
-	return @fld;
+	# Wish we didn't have to do this, but we cache the columns
+	$sth->execute		or croak "$DBI::errstr\n";
+
+	@fld = @{$sth->{NAME}};
+
+	croak "DBI: can't find field names.\n"
+		unless @fld > 1;
+#print("DBI list_fields: @fld\n") if $Global::DEBUG;
+	@fld;
 }
 
 sub table_exists {
@@ -426,7 +470,7 @@ EOF
 
 	croak "$DBI::errstr\n" unless $sth;
 	$sth->execute() or croak "$DBI::errstr\n";
-	if(@row = $sth->fetchrow()) {
+	if(@row = $sth->fetchrow_array()) {
 		$rc = $row[0];
 	}
 	$sth->finish() or croak "$DBI::errstr\n";

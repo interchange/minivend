@@ -424,7 +424,7 @@ lines. In the supplied demo configurations, these would be <EM>sample</EM>
 and 
 <A HREF="minivend.html#minivend_simple_0">simple</A>
 .  The identifier can contain characters from the set
-[A-Za-z0-9_].
+[<STRONG>A-Za-z0-9_</STRONG>].
 <p>
 <DT><STRONG>
 
@@ -1581,7 +1581,7 @@ it forward in the process. The order of interpolation is:
 <p>
 <XMP>
   tag [[ANY TAG]] cart item-list loop default value scratch calc if lookup
-  set data msql file finish_order frames_on frames_off 
+  set data msql|sql file finish_order frames_on frames_off 
   framebase body help buttonbar random rotate checked selected
   accessories field pagetarget area areatarget page last_page
   perl order nitems discount subtotal shipping shipping_description
@@ -2142,13 +2142,15 @@ flag arg</A>
 Sets a MiniVend condition.
 <p>The following enables writes on the 
 <A HREF="minivend.html#minivend_products_0">products</A>
- and <EM>sizes</EM> databases:
+ and <EM>sizes</EM> databases
+held in MiniVend internal DBM format:
 <p>
 <XMP>
     [tag flag write]products sizes[/tag]
 
 </XMP>
-<p>mSQL and in-memory databases are always writeable.
+<p>SQL databases are always writeable if allowed by the SQL database itself --
+in-memory databases will never be written.
 <p>The [tag flag build][/tag] combination forces static build of a page, even
 if dynamic elements are contained. Similarly, the [tag flag cache][/tag]
 forces search or page caching (not usually wise).
@@ -2866,6 +2868,49 @@ mode.
 <p>
 </DL>
 .
+<p>
+<H2> 
+<A NAME="minivend_checking_0">
+Checking Page HTML</A>
+</H2>
+MiniVend, as of release 3.02, allows you to debug your page HTML with
+an external page checking program.  Because leaving this enabled on a
+production system is potentially a very bad performance degradation, the
+program is set in a the global configuration file with the 
+<A HREF="minivend.html#minivend_checkhtml_0">CheckHTML</A>
+
+directive.
+<p>To check a page for validity, set the global directive 
+<A HREF="minivend.html#minivend_checkhtml_0">CheckHTML</A>
+ 
+to the name of the program (don't do any output redirection). A good
+choice is the freely available program <EM>weblint</EM> -- it would be
+set in 
+<A HREF="minivend.html#minivend_minivend_cfg_0">minivend.cfg</A>
+ with:
+<p>
+<XMP>
+        CheckHTML  /usr/local/bin/weblint -s -
+
+</XMP>
+<p>Of course you must restart the server for it to be recognized.
+The full path to the program should be used -- if you have trouble,
+check it from the command line (as you should with all external programs
+called by MiniVend).
+<p>Insert [tag flag checkhtml][/tag] at the top or bottom
+of pages you want to check, and the output of your checker
+should be appended to the browser output as a comment, visible
+if you view the page or frame source.
+<p>To do this only at times, use a 
+<A HREF="minivend.html#minivend_variable_0">Variable</A>
+ setting:
+<p>
+<XMP>
+        Variable  CHECK_HTML    [tag flag checkhtml][/tag]
+
+</XMP>
+<p>and place __CHECK_HTML__ in your pages.  You can then set
+the Variable to the empty string if you wish to disable it.
 <p><p><hr>
 
 <H1> 
@@ -2874,28 +2919,83 @@ DATABASES</A>
 </H1>
 MiniVend, as with most powerful shopping cart programs, is all about
 databases.
-<p>This version of MiniVend implements the database in GDBM, DB_File, Msql,
+<p>This version of MiniVend implements the database in GDBM, DB_File, SQL,
 or in-memory format. If you have DBM, large catalogs can be used without
 using too much memory. The DBM files are built automatically when they
 change, from the the ASCII source file. If you don't have either GDBM
 or DB_File, or you set the environment variable MINIVEND_NODBM before
 starting the server, an in-memory product database will be used. Catalogs
 of more than, say, 1,000 items will use large amounts of memory.
-<p>Support for the mSQL database is included. Form-based
-updates and inserts allow user input and remote maintenance.
-<p>MiniVend reads the data to place in the DBM files from standard
-ASCII-delimited files. They can have ^M (carriage return) characters if
-desired, but must have a newline character to work -- Mac users
-uploading files must use ASCII mode, not binary mode!
-<p>Microsoft Excel is a widely-used tool to maintain MiniVend databases,
+<p>Support for SQL databases is included. Form-based updates and inserts
+allow user input and remote maintenance.
+<p>
+<DL COMPACT>
+<DT><STRONG>
+
+<A NAME="minivend_key_0">
+key, code</A>
+
+</STRONG>
+<DD>
+Either one is a reference to the <STRONG>key</STRONG> for the database. In MiniVend
+this is often the product 
+<A HREF="minivend.html#minivend_code_0">code</A>
+ or <STRONG>sku</STRONG>, which is the part number
+for the product.  Other key values may be used to generate relationships
+to other database tables.
+<p>It is required that the key be the first column of an ASCII source file
+for GDBM, Berkeley DB, or in-memory built-in database formats. It is also
+strongly suggested that you keep that practice for SQL databases, since
+MiniVend's import, export, and search facilities will work much better
+with that practice.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_field_1">
+field, column</A>
+
+</STRONG>
+<DD>
+This is a column of the database. One of the columns is always the key --
+MiniVend prefers that the key be the first column. Field is an interchangeable
+reference.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_table_0">
+table, database</A>
+
+</STRONG>
+<DD>
+A table in the database. Because of the evolution of MiniVend from a
+single-table database to an access method for an unlimited number of
+tables (and databases, for that matter), we will sometimes refer to a
+table as a database.  The only time <STRONG>database</STRONG> refers to something
+different is when describing that concept as it relates to SQL --
+where a database contains a series of tables.  MiniVend cannot create
+SQL databases, but given the proper permissions it may drop and create
+tables within that database.
+<p>
+</DL>
+If necessary, MiniVend reads the data to place in tables from standard.ASCII-delimited files.  All of these ASCII source files are kept in the
+products directory, normally 
+<A HREF="minivend.html#minivend_products_0">products</A>
+ in the catalog directory (where
+catalog.cfg is).
+<p><STRONG>NOTE:</STRONG> Microsoft Excel is a widely-used tool to maintain MiniVend databases,
 but has several problems with its standard TAB-delimited export, like
 encasing fields containing commas in quotes, generating extra carriage
 returns embedded in records, and not including trailing blank fields.
-To avoid problems, use a text-qualifier of <STRONG>none</STRONG>, or use the provided
-<EM>adjexcel</EM> utility to correct most of those problems.
-<p>Three delimiter schemes are provided as standard:
-<p><STRONG>IMPORTANT NOTE:</STRONG> The items must be separated by a <STRONG>single</STRONG> delimiter
-character. The items are lined up for your reading convenience.
+To avoid problems, use a text-qualifier of <STRONG>none</STRONG>.
+<p>The ASCII files can have ^M (carriage return) characters if desired, but must
+have a newline character at the <STRONG>end</STRONG> of the line to work -- Mac users
+uploading files must use ASCII mode, not binary mode!
+<p>MiniVend sets the default ASCII delimiter scheme with the 
+<A HREF="minivend.html#minivend_delimiter_1">Delimiter</A>
+
+directive, which can have one of three settings, TAB, PIPE, or CSV.
+<p><STRONG>IMPORTANT NOTE:</STRONG> The items must be separated by a <STRONG>single</STRONG> delimiter.
+The items are lined up for your reading convenience.
 <p>
 <DL COMPACT>
 <DT><STRONG>
@@ -2941,8 +3041,8 @@ Fields enclosed in quotes, separated by commas. No whitespace should be at the
 beginning of the line.
 <p>
 <XMP>
-    "code", "description", "price", "image"
-    "SH543", "Men's fine cotton shirt", "14.95", "shirts.jpg"
+    "code","description","price","image"
+    "SH543","Men's fine cotton shirt","14.95","shirts.jpg"
 
 </XMP>
 <p>
@@ -2950,19 +3050,23 @@ beginning of the line.
 <STRONG>NOTE:</STRONG> Using the default TAB delimiter is highly recommended if you.are planning on searching the ASCII source file of the database. PIPE
 works fairly well, but CSV delimiter schemes cause problems with searching.
 <p>The 
-<A HREF="minivend.html#minivend_delimiter_0">Delimiter</A>
- directive sets the scheme, and should be set
+<A HREF="minivend.html#minivend_delimiter_1">Delimiter</A>
+ directive sets the default scheme, and should be set
 to one of those three values. TAB is the default scheme.
-<p><STRONG>IMPORTANT NOTE:</STRONG> Field names are always case-sensitive. Unless
+<p><STRONG>IMPORTANT NOTE:</STRONG> Field names are usually case-sensitive. Unless
 you are consistent in the names, you will have problems. All lower
 or all upper case names are recommended.
-<p>MiniVend uses one mandatory database, the 
-<A HREF="minivend.html#minivend_products_0">products file</A>
-. It is
-kept in the file 
+<p>MiniVend uses one mandatory database, the products database. It is by
+default identified as 
+<A HREF="minivend.html#minivend_products_0">products</A>
+ and the ASCII source is kept in the
+file 
 <A HREF="minivend.html#minivend_products_asc_0">products.asc</A>
- in the products directory by default.
-<p>It also has a number of standard but optional databases, some
+ in the products directory.  This file is also the
+default file for searching with the 
+<A HREF="minivend.html#minivend_the_2">THE SEARCH ENGINE</A>
+.
+<p>MiniVend also has a number of standard but optional databases, some
 of which are in fixed special formats:
 <p>
 <DL COMPACT>
@@ -2976,8 +3080,7 @@ shipping.asc</A>
 The database of shipping options if the 
 <A HREF="minivend.html#minivend_customshipping_0">CustomShipping</A>
  directive
-is in use.
-This is a fixed-format database, and must be created as specified.
+is in use.  This is a fixed-format database, and must be created as specified.
 See 
 <A HREF="minivend.html#minivend_shipping_1">SHIPPING</A>
 .
@@ -3008,7 +3111,9 @@ is available via the [item_accessories] or [accessories code] tags.
 This is a fixed-format database, and must be created as specified.
 See 
 <A HREF="minivend.html#minivend_accessories_0">Accessories</A>
-.
+. The big advantage of this database is speed --
+it is always retained in memory. If you have a large number (many
+thousands) of items, use an <EM>Arbitrary Database</EM> instead.
 <p>
 <DT><STRONG>
 
@@ -3028,14 +3133,17 @@ Also subject to
 . In addition, this database <EM>may</EM> hold
 information about price adjustments -- see 
 <A HREF="minivend.html#minivend_priceadjustment_0">PriceAdjustment</A>
-.
+.  This is
+a database that can be in any form, including SQL/DBI if desired.  The
+only requirement is the presence of the <STRONG>price</STRONG> field in the proper
+format, and an appropriate key.
 <p>
 </DL>
 .
 <p>
 <H2> 
 <A NAME="minivend_the_1">
-The Product Files</A>
+The Product Database</A>
 </H2>
 Each product you are selling should be given a product code: A short
 code that identifies the product on the ordering page and in the
@@ -3058,12 +3166,12 @@ See <EM>MiniVend Database Capability</EM>for details on the format.
  directives to use the [item-price]
 and [item-description] tags.
 <p>The product code must be the first field in the line, and must be
-unique. Product codes can contain the characters A-Za-z0-9, along with
+unique. Product codes can contain the characters <STRONG>A-Za-z0-9</STRONG>, along with
 hyphen (<EM>-</EM>), underscore (<EM>_</EM>), pound sign/hash mark (<EM>#</EM>), slash (<EM>/</EM>),
 and period (<EM>.</EM>).
 <p>The words should be separated by one of the approved delimiting schemes
 (TAB, PIPE, or CSV, set with the 
-<A HREF="minivend.html#minivend_delimiter_0">Delimiter</A>
+<A HREF="minivend.html#minivend_delimiter_1">Delimiter</A>
  directive), and are
 case-sensitive. If you play with the case of the ``description'' or ``price''
 field, you will have to appropriately set the 
@@ -3072,34 +3180,37 @@ field, you will have to appropriately set the
 
 <A HREF="minivend.html#minivend_descriptionfield_0">DescriptionField</A>
  directives.
-<p><STRONG>NOTE:</STRONG> CSV is not recommended as the scheme for a products
-database. It is much slower than TAB- or PIPE-delimited, and dramatically
+<p><STRONG>NOTE:</STRONG> CSV is not recommended as the scheme for the products database.
+It is much slower than TAB- or PIPE-delimited, and dramatically
 reduces search engine functionality -- no field-specific searches are
-possible. Don't use it -- you will be sorry if you do. Using CSV for
-non-searchable databases is fine, however.
+possible. Don't use it unless you know <STRONG>exactly</STRONG> what you are doing --
+you will be sorry if you do. Using CSV for any small database that
+will not be searched is fine.
 <p>
 <H2> 
 <A NAME="minivend_arbitrary_0">
 Arbitrary Databases</A>
 </H2>
-MiniVend can also manage an unlimited number of arbitrary databases.
-They are in the same format as the products file by default, but
-an unlimited number of addressable schemes are available. These
-are defined by default:
+MiniVend can manage an unlimited number of arbitrary database
+tables.  They are in the same format as the products file by default,
+but an unlimited number of addressable schemes are available. These are
+defined by default:
 <p>
 <XMP>
-    Type 1      Default - same as products file (TAB, PIPE, or CSV)
-    Type 2      Each field on its own line, a blank line or lines
+    Type 1      DEFAULT - uses default delimiter set by Delimiter
+    Type 2      LINE
+                Each field on its own line, a blank line or lines
                 separates the record. Watch those carriage
                 returns!
-    Type 3      Fields separated by a \n%%\n combination, records by
+    Type 3      %%
+                Fields separated by a \n%%\n combination, records by
                 \n%%%\n (where \n is a newline). Watch those carriage
                 returns!
     Type 4      CSV
     Type 5      PIPE
     Type 6      TAB
     Type 7      mSQL
-    Type 8      DBI
+    Type 8      SQL
 
 </XMP>
 <p>The databases are specified in 
@@ -3107,16 +3218,101 @@ are defined by default:
  directives, as:
 <p>
 <XMP>
-    Database    Arbitrary arbitrary.asc 4
+    Database    Arbitrary arbitrary.csv CSV
 
 </XMP>
-<p>That specifies a type 4 database, the ASCII version of which
-is located in the file arbitrary.asc (the DBM file, if any,
-will go there as well, as arbitrary.db or arbitrary.gdbm),
-and the identifier it will be accessed under in MiniVend is ``Arbitrary''.
-<p>The identifier is case sensitive, and can only contain characters
-in the class [A-Za-z0-9_]. Fields are accessed with the
-[item_data name field] or [data name field key] elements.
+<p>That specifies a type 4 database, the ASCII version of which is located in the
+file arbitrary.csv, and the identifier it will be accessed under in MiniVend is
+``Arbitrary''.  The DBM file, if any, will be created in the <STRONG>same directory</STRONG> if
+the ASCII file is newer, or if the DBM file does not exist.  The files will be
+created as arbitrary.db or arbitrary.gdbm, depending on DBM type.
+<p>The 
+<A HREF="minivend.html#minivend_identifier_0">identifier</A>
+ is case sensitive, and can only contain characters
+in the class [<STRONG>A-Za-z0-9_</STRONG>]. Fields are accessed with the
+[item_data 
+<A HREF="minivend.html#minivend_identifier_0">identifier</A>
+ field] or [data 
+<A HREF="minivend.html#minivend_identifier_0">identifier</A>
+ field key] elements.
+<p>
+<H2> 
+<A NAME="minivend_minivend_2">
+MiniVend built-in database support</A>
+</H2>
+If you specify one of the first 6 types, the database will automatically
+be built in the default MiniVend DB style. You cannot mix the styles -- all 
+built-in databases on a single server will be the same style. They will
+coexist just fine with an unlimited number of DBI databases of different
+types.
+<p>In addition to the database, the session files will be kept in the
+default format, and are affected by the actions below.
+<p>The order of preference is:
+<p>
+<DL COMPACT>
+<DT><STRONG>
+
+<A NAME="minivend_gdbm_0">
+GDBM</A>
+
+</STRONG>
+<DD>
+This uses the Perl GDBM_File module to build a GDBM database. You can
+see if GDBM is in your perl with the command:
+<p>
+<XMP>
+        perl -e 'require GDBM_File and print "I have GDBM.\n"'
+
+</XMP>
+<p>Installing GDBM_File requires rebuilding Perl after obtaining the
+GNU GDBM package, and is beyond the scope of this forum. Linux will 
+typically have this by default -- most other operating systems will
+need to specifically build this in.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_db_file_0">
+DB_File (Berkeley DB)</A>
+
+</STRONG>
+<DD>
+This uses the DB_File module to build a Berkely DB (hash) database. You can
+see if DB_File is in your perl with the command:
+<p>
+<XMP>
+        perl -e 'require DB_File and print "I have Berkeley DB.\n"'
+
+</XMP>
+<p>Installing DB_File requires rebuilding Perl after obtaining the
+Berkeley DB package, and is beyond the scope of this document. BSDI,
+FreeBSD, and Linux will typically have it by default -- most other
+operating systems will need to specifically build this in.
+<p>If you wish to use DB_File even though you have GDBM_File in your
+Perl, you must set the environment variable MINIVEND_DBFILE to
+a true (non-zero, non-blank) value:
+<p>
+<XMP>
+        # csh or tcsh
+        setenv MINIVEND_DBFILE 1
+        # sh, bash, or ksh
+        MINIVEND_DBFILE=1 ; export MINIVEND_DBFILE
+
+</XMP>
+<p>Then re-start the server.
+<p>
+<DT><STRONG>
+<EM>In-memory</EM>
+</STRONG>
+<DD>
+This uses Perl hashes to store the data directly in memory. Every time
+you restart the MiniVend server, it will re-import all in-memory databases
+for every catalog. 
+<p>If you wish to use this despite the presence of GDBM_File or DB_File,
+set the environment variable MINIVEND_NODBM as above, then re-start
+the server.
+<p>
+</DL>
+.
 <p>
 <H2> 
 <A NAME="minivend_character_0">
@@ -3135,100 +3331,271 @@ restrictions:
     Database values                    Any (subject to field/record delimiter)
 
 </XMP>
+<p>You probably should restrict the field names to the same set of characters
+as database identifiers -- this will prevent conflict with external database
+programs, noticeably SQL databases which use the period (.) as a table.field
+separator.
 <p><p><hr>
 
 <H1> 
-<A NAME="minivend_msql_0">
-MSQL SUPPORT</A>
-</H1>
-MiniVend can use mSQL, the Minerva database facility. Minerva is
-not included with MiniVend -- it is widely available on the net.
-MiniVend uses the fine Msql.pm Perl module by Andreas Koenig, a
-very powerful mSQL access method. 
-<p>It is beyond the scope of this document to describe SQL, Minerva,
-or MsqlPerl, and we will not attempt to. Familiarity is assumed, 
-though the only familiarity with MsqlPerl should be that required
-to install the module -- MiniVend should do the rest.
-<p>MiniVend cannot create the initial mSQL database, but once the
-database is available via the mSQL server (and is writable or readable
-by the user ID running the MiniVend server) it can be created from an
-ASCII file as with any other MiniVend database.
-<p>
-<H2> 
-<A NAME="minivend_importing_0">
-Importing from an ASCII file</A>
-</H2>
-There are a couple of differences in the database definition. MiniVend
-by default uses the first column of the ASCII file as the primary key, 
-with a <EM>char(14)</EM> type, and assigns all other columns a <EM>char (128)</EM>
-definition. These definitions can be changed by placing the proper
-definitions along with the field names on the first line of the file,
-for example:
- 
-  code    description char(250)      price   image
-  SH543   Men's fine cotton shirt   14.95   shirts.jpg
-<p>This keeps the default MiniVend definitions for code (char 14 and
-primary key), price (char 128), and image (also char 128), but sets
-the description field to a size and type of <EM>char(250)</EM>. Any
-mSQL type may be used, though if setting the fields with a select
-statement you must take care of the formatting.
-<p>The field delimiter used for the ASCII file is always TAB, and the
-record delimiter is always newline. If 
-<p>If you wish to use an existing mSQL database instead of importing, just
-make sure there is no file with the same name as the database in the
-
-<A HREF="minivend.html#minivend_productdir_0">ProductDir</A>
- or 
-<A HREF="minivend.html#minivend_datadir_0">DataDir</A>
-. If you must have a file for searching, it
-is recommended that you use the 
-<A HREF="minivend.html#minivend_mv_search_file_0">mv_search_file</A>
- variable and make it
-another name. If you do have a file there, just make sure there is a
-file in the directory with the same base name and a <EM>.sql</EM> extension,
-otherwise an import will be attempted. (In MiniVend 3.0, you may also
-set the 
-<A HREF="minivend.html#minivend_noimport_0">NoImport</A>
- directive.)
-<p><STRONG>WARNING:</STRONG> If MiniVend has write permission on the products database,
-you <STRONG>must</STRONG> be careful to set the 
-<A HREF="minivend.html#minivend_noimport_0">NoImport</A>
- directive or create the
-proper .sql file. If that is not done, and the database source file
-is changed, the Minerva database could be overwritten. In any case,
-always back up your database before enabling it for use by MiniVend.
-<p>
-<H2> 
-<A NAME="minivend_dbi_0">
-DBI support</A>
-</H2>
-MiniVend provides an example module for support of SQL databases
-via the Perl DBI modules. This is in pre-alpha state, and only the
-thick-skinned and courageous should use it. It will undboubtedly
-require hacking on MiniVend to make proper use of it. It has been
-casually tested with DBD::mSQL and DBD::Solid, but many problems
-still remain. Eventually it may evolve into full ODBC support.
-<p>
-<H2> 
 <A NAME="minivend_sql_0">
-SQL Access Methods</A>
+SQL SUPPORT</A>
+</H1>
+MiniVend can use any of a number of SQL databases through the powerful
+Perl DBI/DBD access methods. No SQL database is included with MiniVend,
+but there are a number widely available on the net, and many are free
+for non-commercial use.  Some examples include mSQL, mySQL, Solid, and Qbase.
+<p>It is beyond the scope of this document to describe SQL, mSQL,
+or DBI/DBD, and we will not attempt to. Sufficient familiarity is assumed. 
+<p>In most cases, MiniVend cannot perform administrative functions like
+creating a database or setting access permissions.  This must be done
+with the tools provided with your SQL distribution.  But if given a
+blank database and the permission to read and write it, MiniVend can
+import ASCII files and bootstrap you from there.
+<p>
+<H2> 
+<A NAME="minivend_msql_0">
+Msql support</A>
 </H2>
-A MiniVend SQL database can be accessed with the same tags as any of
-the other databases can. In addition to those standard methods, direct
-SQL support is provided with the [msql function] TEXT [/msql] tag set.
-<p>(If using the experimental DBI support, substitute 'sql' for 'msql'
-in all tags below.)
+The first minimal SQL support provided by MiniVend was for the Msql.pm module.
+This is now deprecated in favor of the DBI support. In most cases, existing
+Msql users should be able to install and test DBD::mSQL, then change the
+database directive to the type of 'dbi:mSQL:minivend' and go from there.  You
+may have to set your directive to 'dbi:mSQL:minivend:localhost:1114' or some
+other value corresponding to host and TCP port.
+<p>
+<H2> 
+<A NAME="minivend_sql_1">
+SQL support via DBI</A>
+</H2>
+MiniVend now provides complete external SQL database support via the Perl
+DBI and DBD modules. This allow transparent access to any database that
+is supported by a DBD module.  The current list includes mSQL, mySQL,
+Solid, Postgres, Oracle, Sybase, Informix, Ingres, Qbase, DB2, Fulcrum,
+and others. Any ODBC (with appropriate driver) should also be supported.
+<p><STRONG>IMPORTANT NOTE:</STRONG>The DBI interface is in a beta state, and though it has
+been extensively tested by the author on mSQL (DBD::mSQL), mySQL
+(DBD::mysql), Solid (DBD::Solid), and DBD::ODBC (Solid driver), it may
+not yet transparently operate on all DBD drivers. It is strongly suggested
+that you backup your database and thoroughly test the application before
+relying on this interface.
+<p>The configuration of the DBI database is done by setting attributes in
+additional 
+<A HREF="minivend.html#minivend_database_0">Database</A>
+ directives <STRONG>after</STRONG> the initial defining line as
+described above. For example, the following defines the database <STRONG>arbitrary</STRONG>
+as a DBI database, sets the data source (DSN) to an appropriate value for an
+mSQL database named <EM>minivend</EM> on port 1114 of the local machine:
+<p>
+<XMP>
+        Database arbitrary arbitrary.asc SQL
+        Database arbitrary DSN           dbi:mSQL:minivend:localhost:1114
+
+</XMP>
+<p>As a shorthand method, you can instead include the DSN as the type:
+<p>
+<XMP>
+        Database arbitrary arbitrary.asc dbi:mSQL:minivend:localhost:1114
+
+</XMP>
+<p>Supported configuration attributes include (but are not limited to):
 <p>
 <DL COMPACT>
 <DT><STRONG>
 
-<A NAME="minivend_msql_1">
-[msql array] SQL [/msql]</A>
+<A NAME="minivend_dsn_0">
+DSN</A>
+
+</STRONG>
+<DD>
+A specification of the DBI driver and its data source. To use the
+DBD::mSQL driver for DBI, you would typically use:
+<p>
+<XMP>
+    dbi:mSQL:minivend:othermachine.my.com:1112
+
+</XMP>
+<p>where mSQL selects the driver (case IS important), <EM>minivend</EM> selects the
+database, <EM>othermachine.my.com</EM> selects the host, and 1112 is the port.
+On many systems, 'dbi:mSQL:minivend' will work just fine. (The <EM>minivend</EM>
+database must already exist, of course.)
+<p>This is the same as the <STRONG>DBI_DSN</STRONG> environment variable -- if you don't set
+the DSN parameter, then the value of <STRONG>DBI_DSN</STRONG> will be used to
+try and find the proper database to connect to.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_user_0">
+USER</A>
+
+</STRONG>
+<DD>
+The user name you log into the database with -- same as the environment
+variable <STRONG>DBI_USER</STRONG>. If you don't need a user name, just don't set
+the USER directive.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_pass_0">
+PASS</A>
+
+</STRONG>
+<DD>
+The password you log into the database with -- same as the environment
+variable <STRONG>DBI_PASS</STRONG>. If you don't need a password, just don't set
+the PASS directive.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_column_def_0">
+COLUMN_DEF</A>
+
+</STRONG>
+<DD>
+A comma-separated set of lines in the form NAME=TYPE(N), where NAME
+is the name of the field/column, TYPE is the SQL data type reference,
+and N is the length (if needed).  Most MiniVend fields should be of the
+fixed-length character type, something like char(128). In fact that is the
+default if you do not choose a type for a column.  You can have as many
+lines as needed. This is not a DBI parameter, it is specific to MiniVend.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_name_0">
+NAME</A>
+
+</STRONG>
+<DD>
+A space-separated field of column names for a table.  Normally not used --
+MiniVend should resolve the column names properly upon query.  Set this if
+your catalog errors out with ``dbi: can't find field names'' or the like.
+The first field should always be 
+<A HREF="minivend.html#minivend_code_0">code</A>
+. This is not a DBI parameter,
+it is specific to MiniVend. All columns must be listed, in order of their
+position in the table.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_delimiter_0">
+DELIMITER</A>
+
+</STRONG>
+<DD>
+A MiniVend delimiter type - one of TAB,CSV,PIPE,%<STRONG>%,</STRONG>LINE or the corresponding
+numeric type. It can also be a custom delimiter as specified with 
+<A HREF="minivend.html#minivend_fielddelimiter_0">FieldDelimiter</A>
+
+and 
+<A HREF="minivend.html#minivend_recorddelimiter_0">RecordDelimiter</A>
+. The default for SQL (and Msql) databases is TAB -- use 
+DELIMITER if you wish to import another type. This is not a DBI parameter, it
+is specific to MiniVend.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_key_1">
+KEY</A>
+
+</STRONG>
+<DD>
+You can change the keying default of 'code' in the first column of the
+database with the KEY directive. <STRONG>Don't use this unless you know exactly</STRONG>
+<STRONG>what you are doing and are prepared to alter all searches, imports, and</STRONG>
+<STRONG>exports accordingly.</STRONG>  It is best to just accept the default and 
+make the first column the key for any MiniVend database.
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_chopblanks_longreadlen_longtruncok_raiseerror_0">
+ChopBlanks,LongReadLen,LongTruncOK,RaiseError, etc.</A>
+
+</STRONG>
+<DD>
+Sets the corresponding DBI attribute. Of particular interest is ChopBlanks,
+which should be set on drivers which by default return space-padded fixed-length
+character fields (Solid is an example).
+<p>The supported list as of release of MiniVend 3.02 is:
+<p>
+<XMP>
+  ChopBlanks
+  CompatMode
+  LongReadLen
+  LongTruncOk
+  PrintError
+  RaiseError
+  Warn
+
+</XMP>
+<p>Issue the shell command 'perldoc DBI' for more information.
+<p>
+</DL>
+Here is an example of a completely set up DBI database on mySQL, using.a comma-separated value input, setting the DBI attribute LongReadLen to
+retrieve an entire field, and changing some field definitions from the
+default char(128):
+<p>
+<XMP>
+  Database   products  products.csv  dbi:mysql:minivend:localhost:3333
+  Database   products  USER          mike
+  Database   products  PASS          NeVairBE
+  Database   products  DELIMITER     CSV
+ 
+  # Set a DBI attribute
+  Database   products  LongReadLen   128
+ 
+  # change some fields from the default field type of char(128)
+  # Only applies if Minivend is importing from ASCII file
+  Database   products  COLUMN_DEF    price=char(20), code=char(20)
+  Database   products  COLUMN_DEF    author=char(40), title=char(64)
+  Database   products  COLUMN_DEF    nontaxable=char(3)
+
+</XMP>
+<p>You must have mySQL, DBI, and DBD::mysql completely installed and
+tested, and have created the database <EM>minivend</EM> for this to work.
+Permissions are difficult on mySQL -- if you have trouble, try starting
+the mySQL daemon with 'safe_mysqld --skip-grant-tables &amp;' for testing
+purposes.
+<p>To change to ODBC, the only changes required might
+be:
+<p>
+<XMP>
+        Database products  DSN         dbi:ODBC:TCP/IP localhost 1313
+        Database products  ChopBlanks  1
+
+</XMP>
+<p>The DSN setting is specific to your ODBC setup.  The <STRONG>ChopBlanks</STRONG> setting takes
+care of the space-padding in Solid and some other databases -- it is not
+specific to ODBC.  Once again, DBI, DBD::ODBC, and the and appropriate ODBC
+driver must be installed and tested.
+<p>
+<H2> 
+<A NAME="minivend_sql_2">
+SQL Access Methods</A>
+</H2>
+A MiniVend SQL database can be accessed with the same tags as any of
+the other databases can. In addition to those standard methods, direct
+SQL support is provided with the [sql function] TEXT [/sql identifier]
+tag set.  The MiniVend database identifier only needs to be set if the
+table resides in a different database than the main products database --
+if you don't use SQL for the products database you will ALWAYS need to
+set it.
+<p>
+<XMP>
+  *    optional parameter
+  SQL  Any valid SQL query (usually a select)
+
+</XMP>
+<p>
+<DL COMPACT>
+<DT><STRONG>
+
+<A NAME="minivend_sql_3">
+[sql array] SQL [/sql identifier*]</A>
 
 </STRONG>
 <DD>
 A complete array of arrays, suitable for <EM>eval</EM> by Perl, can be returned
-by this query. This tag pair encloses any valid mSQL query, and returns
+by this query. This tag pair encloses any valid SQL query, and returns
 the results (if any) as a string representing rows and columns, in Perl
 array syntax. If placed in an embedded Perl area as:
 <p>
@@ -3238,7 +3605,7 @@ array syntax. If placed in an embedded Perl area as:
 </XMP>
 <PRE>
     my <STRONG>$string</STRONG> =&lt;&lt;'EOF';
- [msql array]select * from arbitrary where code &lt;= '19'[/msql]
+ [sql array]select * from arbitrary where code &lt;= '19'[/sql arbitrary]
  EOF
     my $ary = eval $string;
     my $out = '';
@@ -3256,13 +3623,13 @@ have trailing characters. DOS users, beware of carriage returns!
 <p>
 <DT><STRONG>
 
-<A NAME="minivend_msql_2">
-[msql hash] SQL [/msql]</A>
+<A NAME="minivend_sql_4">
+[sql hash] SQL [/sql identifier*]</A>
 
 </STRONG>
 <DD>
 A complete hash of hashes, suitable for <EM>eval</EM> by Perl, can be returned
-by this query. This tag pair encloses any valid mSQL query, and returns
+by this query. This tag pair encloses any valid SQL query, and returns
 the results (if any) as a string representing rows and columns, in Perl
 associative array, or hash, syntax. If placed in an embedded Perl area as:
 <p>
@@ -3272,7 +3639,7 @@ associative array, or hash, syntax. If placed in an embedded Perl area as:
 </XMP>
 <PRE>
     my <STRONG>$string</STRONG> =&lt;&lt;'EOF';
- [msql hash]select * from arbitrary where code &lt;= '19'[/msql]
+ [sql hash]select * from arbitrary where code &lt;= '19'[/sql]
  EOF
     my $hash = eval $string;
     my $out = '';
@@ -3288,8 +3655,8 @@ associative array, or hash, syntax. If placed in an embedded Perl area as:
 <p>
 <DT><STRONG>
 
-<A NAME="minivend_msql_3">
-[msql set] SQL [/msql]</A>
+<A NAME="minivend_sql_5">
+[sql set] SQL [/sql identifier*]</A>
 
 </STRONG>
 <DD>
@@ -3299,7 +3666,7 @@ order database, perhaps on the order report or receipt page. An
 example might be:
 <p>
 <XMP>
- [msql set]
+ [sql set]
      insert into orders
      values
       ('[value mv_order_number]',
@@ -3313,7 +3680,7 @@ example might be:
          Item: [item-code] Quan: [item-quantity] Price: [item-price]
         [/item-list]'
       )
- [/msql]
+ [/sql orders]
 
 </XMP>
 <p>The values entered by the user are escaped, which prevents errors if
@@ -3321,21 +3688,21 @@ quote characters have slipped into their entry.
 <p>
 <DT><STRONG>
 
-<A NAME="minivend_msql_4">
-[msql param] SQL [/msql]</A>
+<A NAME="minivend_sql_6">
+[sql param] SQL [/sql]</A>
 
 </STRONG>
 <DD>
-A list of keys, or in fact any mSQL fields, can be returned as a set of
+A list of keys, or in fact any SQL fields, can be returned as a set of
 parameters suitable for passing to a program or list primitive. This tag pair
-encloses any valid mSQL query, and returns the results (if any) as a series of
+encloses any valid SQL query, and returns the results (if any) as a series of
 space separated fields, enclosed in quotes. This folds the entire return
 into a single row, so it may be used as a list of keys.
 <p>
 <DT><STRONG>
 
-<A NAME="minivend_msql_5">
-[msql html] SQL [/msql]</A>
+<A NAME="minivend_sql_7">
+[sql html] SQL [/sql]</A>
 
 </STRONG>
 <DD>
@@ -3346,15 +3713,15 @@ and shading options. Example:
 <p>
 <XMP>
   <TABLE BORDER=2>
-  [msql html]select * from arbitrary where code > '19' order by field2[/msql]
+  [sql html]select * from arbitrary where code > '19' order by field2[/sql]
   </TABLE>
 
 </XMP>
 <p>
 <DT><STRONG>
 
-<A NAME="minivend_msql_6">
-[msql list SQL] list [/msql]</A>
+<A NAME="minivend_sql_8">
+[sql list SQL] list [/sql]</A>
 
 </STRONG>
 <DD>
@@ -3367,38 +3734,157 @@ a three-column list in an HTML table:
 <XMP>
   <TABLE BORDER=2>
   <TR><TH><B>SKU</B></TH><TH><B>Description</B></TH><TH><B>Price</B></TH>
-  [msql list
+  [sql list
     select * from arbitrary where code > '19' order by field2 ]
   <TR>
-    <TD>[page [msql-code]][msql-code]</A></TD>
-    <TD>[msql-param 1]</TD>
-    <TD>[msql-param 2]</TD>
+    <TD>[page [sql-code]][sql-code]</A></TD>
+    <TD>[sql-param 1]</TD>
+    <TD>[sql-param 2]</TD>
   </TR>
-  [/msql]
+  [/sql]
   </TABLE>
 
 </XMP>
 <p>It uses the same tags as in the [loop_list], except prefixed
-with <EM>msql</EM>. Available are the following, in order of interpolation:
+with <EM>sql</EM>. Available are the following, in order of interpolation:
 <p>
 <XMP>
-  [msql_param n]        Field n of the returned query (in the row)
-  [if_msql_field fld]   Returns enclosed text only product field not empty
-  [/if_msql_field]      Terminator for above
-  [if_msql_data db fld] Returns enclosed text only if data field not empty
-  [/if_msql_field]      Terminator for above
-  [msql_increment]      Returns integer count of row
-  [msql_code]           The first field of each row returned
-  [msql_data db fld]    Database field for [msql_code]
-  [msql_description]    Product description for [msql_code]
-  [msql_field fld]      Product field for [msql_code]
-  [msql_link]           Same as item-link
-  [msql_price q*]       Price for [msql_code], optional quantity q
+  [sql_param n]        Field n of the returned query (in the row)
+  [if_sql_field fld]   Returns enclosed text only product field not empty
+  [/if_sql_field]      Terminator for above
+  [if_sql_data db fld] Returns enclosed text only if data field not empty
+  [/if_sql_field]      Terminator for above
+  [sql_increment]      Returns integer count of row
+  [sql_code]           The first field of each row returned
+  [sql_data db fld]    Database field for [sql_code]
+  [sql_description]    Product description for [sql_code]
+  [sql_field fld]      Product field for [sql_code]
+  [sql_link]           Same as item-link
+  [sql_price q*]       Price for [sql_code], optional quantity q
 
 </XMP>
 <p>
 </DL>
 .
+<p>
+<H2> 
+<A NAME="minivend_importing_0">
+Importing from an ASCII file</A>
+</H2>
+When importing a file for SQL, MiniVend by default uses the
+first column of the ASCII file as the primary key, with a <EM>char(16)</EM>
+type, and assigns all other columns a <EM>char (128)</EM> definition. These
+definitions can be changed by placing the proper definitions in COLUMN_DEF
+
+<A HREF="minivend.html#minivend_database_0">Database</A>
+ directive attribute:
+<p>
+<XMP>
+  Database  products  COLUMN_DEF  price=char(20), nontaxable=char(3)
+
+</XMP>
+<p>You can set this as many times as desired if it will not fit on
+the line nicely. 
+<p>
+<XMP>
+  Database  products  COLUMN_DEF  price=char(20), nontaxable=char(3)
+  Database  products  COLUMN_DEF  description=char(254)
+
+</XMP>
+<p>The field delimiter to use is TAB by default, but can be changed 
+with the Database DELIMITER directive:
+<p>
+<XMP>
+  Database  products products.csv dbi:mSQL:minivend:localhost:1114
+  Database  products  DELIMITER  CSV
+
+</XMP>
+<p>If you wish to create other secondary keys to speed sorts and
+searches, you can either use MiniVend tags in an admin menu
+page
+<p>
+<XMP>
+  [sql set]CREATE INDEX CATEGORY_IDX on products (category)[/sql]
+
+</XMP>
+<p>or use external database tools.
+<p>If you wish to use an existing SQL database instead of importing, set the
+
+<A HREF="minivend.html#minivend_noimport_0">NoImport</A>
+ directive in catalog.cfg to include any database identifiers you
+never wish to import:
+<p>
+<XMP>
+        NoImport  products inventory
+
+</XMP>
+<p><STRONG>WARNING:</STRONG> If MiniVend has write permission on the products database,
+you <STRONG>must</STRONG> be careful to set the 
+<A HREF="minivend.html#minivend_noimport_0">NoImport</A>
+ directive or create the
+proper .sql file. If that is not done, and the database source file
+is changed, the SQL database could be overwritten. In any case,
+always back up your database before enabling it for use by MiniVend.
+<p>
+<H2> 
+<A NAME="minivend_exporting_0">
+Exporting from a database</A>
+</H2>
+To export your existing database to a file suitable for searching by
+MiniVend, you can create an 
+<A HREF="minivend.html#minivend_adminpage_0">AdminPage</A>
+ (or any page, for that matter)
+that contains a [tag export ...][/tag] element. For example, the following
+UNIX shell script will create a page only accessible to the <EM>AdminUser</EM>
+which will export the products database to the MiniVend default search
+file 
+<A HREF="minivend.html#minivend_products_asc_0">products.asc</A>
+:
+<p>
+<XMP>
+        #!/bin/sh
+        # Set the catalog directory.  If you put this file in a
+        # catalog template (like simple or sample), it should be set
+        # up correctly.
+        #
+        # Example: 
+        #  
+        #  CATDIR=/home/me/catalogs/simple
+        #
+        CATDIR=__MVC_CATROOT__
+        cd $CATDIR
+        # make a directory
+        mkdir pages/admin
+        # protect it. If you have trouble with "VIOLATION", you can
+        # remove the file temporarily.
+        echo "protected" > pages/admin/.access
+
+</XMP>
+<PRE>
+        # create the page.
+        cat &lt;&lt;EOF &gt; pages/admin/export.html
+        &lt;HTML&gt;&lt;HEAD&gt;
+        &lt;TITLE&gt;Export products.asc&lt;/TITLE&gt;
+        &lt;/HEAD&gt;
+        &lt;BODY>
+        [if explicit ``[tag export products products.asc TAB][/tag]'']
+        Exported OK!
+        [else]
+        &lt;FONT COLOR=RED&gt;Error on export:&lt;/FONT&gt; [data session last_error]
+        [/else]
+        [/if]
+        &lt;/BODY>&lt;/HTML&gt;
+        EOF
+        # Voila! Access with something like:
+        #
+        #     http://yourcatalog.com/cgi-bin/simple/admin/export
+
+</PRE>
+<p>Perhaps a better method is to define the same sort of tags in an
+
+<A HREF="minivend.html#minivend_orderprofile_0">OrderProfile</A>
+, and then use forms and buttons to access the 
+profile.
 <p><p><hr>
 
 <H1> 
@@ -3861,9 +4347,16 @@ The return value for the subroutine is available in the fixed .session variable 
   }
   return $out || 'No message like that';
   [/set]
-        
-And a results page secret.html (remember, set the destination for the I<return>
-action with I<mv_nextpage>):
+
+</XMP>
+<p>And a results page secret.html (remember, set the destination for the 
+<A HREF="minivend.html#minivend_return_0">return</A>
+
+action with 
+<A HREF="minivend.html#minivend_mv_nextpage_0">mv_nextpage</A>
+):
+<p>
+<XMP>
     <HTML>
     <HEAD>
     <TITLE>Secret?</TITLE>
@@ -3874,6 +4367,9 @@ action with I<mv_nextpage>):
     </HTML>
 
 </XMP>
+<p>
+</DL>
+.
 <p>
 <H2> 
 <A NAME="minivend_checks_0">
@@ -3989,9 +4485,9 @@ which ones can be stacked -- or experiment on your own.
 <p>
 <H2> 
 <A NAME="minivend_setting_3">
-Setting mSQL tables with a form</A>
+Setting SQL tables with a form</A>
 </H2>
-You may insert or update records in any mSQL database with the [msql set]
+You may insert or update records in any SQL database with the [sql set]
 tag, but if you wish to do form-based updates or inserts you can create
 a special form to do so. Four special MiniVend variables are used to
 select the database parameters:
@@ -4004,8 +4500,7 @@ mv_data_table</A>
 
 </STRONG>
 <DD>
-The table to update. If using mSQL for the products database, the
-table is <STRONG>product</STRONG>.
+The table to update.
 <p>
 <DT><STRONG>
 
@@ -4105,7 +4600,7 @@ one of the above.
 <p>The default, a text based search, sequentially scans the lines in
 the target file. By default it returns the first field (delineated by
 the standard 
-<A HREF="minivend.html#minivend_delimiter_0">Delimiter</A>
+<A HREF="minivend.html#minivend_delimiter_1">Delimiter</A>
 ), for every line matching the search
 specification. This corresponds to the product code, which is then
 used to key specific accesses to the database.
@@ -4244,7 +4739,7 @@ variables.
 production of which is left as an exercise for the user.
 <p><STRONG>Hint:</STRONG> the field to search is the first field in the file, then the
 product code should be in the second field, delimited by 
-<A HREF="minivend.html#minivend_delimiter_0">Delimiter</A>
+<A HREF="minivend.html#minivend_delimiter_1">Delimiter</A>
 .
 You will also have to set mv_return_fields=1 to return the product code
 in the search.
@@ -4692,7 +5187,7 @@ mv_index_delim</A>
 <DD>
 Sets the delimiter for counting fields in a search index. The default
 is the same as the 
-<A HREF="minivend.html#minivend_delimiter_0">Delimiter</A>
+<A HREF="minivend.html#minivend_delimiter_1">Delimiter</A>
  directive.
 <p>
 <DT><STRONG>
@@ -4972,7 +5467,7 @@ mv_sort_field</A>
 The file field(s) the search is to be sorted on, specified in one of two
 ways. If the file(s) to be searched have a header line (the first line)
 that contains 
-<A HREF="minivend.html#minivend_delimiter_0">Delimiter</A>
+<A HREF="minivend.html#minivend_delimiter_1">Delimiter</A>
 -separated field names, it can be specified
 by field name. If can also be specified by column number (the code or key
 is specified with a value of 0, for both types). These can be stacked,
@@ -5378,35 +5873,20 @@ order pages for items which have many accessories.
 <p>The name of the page to display can be configured in several
 ways:
 <p>
-<DT><STRONG>
-<EM>1.</EM>
-</STRONG>
-<DD>
-Set the SpecialPage 'order' to the page to display
+<OL>
+<LI>Set the SpecialPage 'order' to the page to display
 when an item is ordered.
 <p>
-<DT><STRONG>
-<EM>2.</EM>
-</STRONG>
-<DD>
-Set the FrameOrderPage directive to the page to use
+<LI>Set the FrameOrderPage directive to the page to use
 when frames are enabled. This overrides option 1.
 <p>
-<DT><STRONG>
-<EM>3.</EM>
-</STRONG>
-<DD>
-Use the [order item cart/page] Order it! [/order] form of
+<LI>Use the [order item cart/page] Order it! [/order] form of
 order tag to specify an arbitrary order page for an item.
 <p>
-<DT><STRONG>
-<EM>4.</EM>
-</STRONG>
-<DD>
-If already on an order page, set the mv_checkout, mv_orderpage,
+<LI>If already on an order page, set the mv_checkout, mv_orderpage,
 mv_nextpage, mv_successpage, or mv_failpage variables.
 <p>
-</DL>
+</OL>
 The variables mentioned above modify the page display in the.following ways:
 <p>
 <DL COMPACT>
@@ -5947,6 +6427,24 @@ Must have US phone number formatting, with area code
 <p>
 <DT><STRONG>
 
+<A NAME="minivend_true_0">
+true</A>
+
+</STRONG>
+<DD>
+Field begins with <STRONG>y</STRONG>, <STRONG>1</STRONG>, or <STRONG>t</STRONG> (Yes, 1, or True) - not case sensitive
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_false_0">
+false</A>
+
+</STRONG>
+<DD>
+Field begins with <STRONG>n</STRONG>, <STRONG>0</STRONG>, or <STRONG>f</STRONG> (No, 0, or False) - not case sensitive
+<p>
+<DT><STRONG>
+
 <A NAME="minivend_email_0">
 email</A>
 
@@ -5977,9 +6475,11 @@ cause the order to be placed.
 <EM>&amp;set</EM>
 </STRONG>
 <DD>
-Set a minivend variable to a value, i.e. &amp;set=mv_email [value email].
+Set a user session variable to a value, i.e. &amp;set=mv_email [value email].
 This is usually placed at the end after a &amp;fatal pragma would have
-caused the process to stop if there was an error.
+caused the process to stop if there was an error -- can also be used
+to determine pass/fail based on a derived value, as it will cause
+failure if it evaluates to zero or a blank value.
 <p>
 </DL>
 As an added measure of control, the specification is evaluated for the.special MiniVend tags to provide conditional setting of order
@@ -7108,8 +7608,8 @@ MiniVend allows the entry of orders into a system via one of several
 methods. The 
 <A HREF="minivend.html#minivend_asciibackend_0">AsciiBackend</A>
  capability allows submittal of
-parameters to an external order entry script. Support for mSQL
-allows entry of orders directly into an mSQL database. Orders
+parameters to an external order entry script. Support for SQL
+allows entry of orders directly into an SQL database. Orders
 can be written to an ASCII file. They can be formatted precisely
 for email-based systems. The orders can be placed in a DBM file.
 Finally, embedded Perl allows completely flexible order entry, 
@@ -7133,11 +7633,11 @@ a program will be run and the output ``piped'' to that program. This
 allows easy backend entry of orders with an external program.
 <p>
 <H2> 
-<A NAME="minivend_msql_7">
-mSQL Tracking</A>
+<A NAME="minivend_sql_9">
+SQL Tracking</A>
 </H2>
-See the <EM>[msql set]</EM> tag for an example of entering orders in
-an mSQL database.
+See the <EM>[sql set]</EM> tag for an example of entering orders in
+an SQL database.
 <p><p><hr>
 
 <H1> 
@@ -7486,7 +7986,7 @@ it will not be built statically.
   [discount]           [lookup ..]            [shipping]
   [frames_on|off]      [loop-data ...]*       [shipping_desc]
   [if data ...]*       [loop-field ...]*      [sql set]
-  [if discount ...]    [msql set]             [subtotal]
+  [if discount ...]    [sql set]              [subtotal]
   [if items ...]       [nitems]               [total_cost]
   [if scratch ...]     [nitems]               [value ...]
   [if session ...]     [perl]
@@ -7580,7 +8080,7 @@ off line.
 <p><p><hr>
 
 <H1> 
-<A NAME="minivend_minivend_2">
+<A NAME="minivend_minivend_3">
 MINIVEND CONFIGURATION FILES</A>
 </H1>
 MiniVend can and usually does run multiple catalogs on the
@@ -8024,7 +8524,7 @@ Variable</A>
 <DD>
 Defines a global variable that will be available in <STRONG>all</STRONG> catalogs
 with the notation <STRONG>@@</STRONG>Variable@@. Variable identifiers must begin with a
-capital letter, and can contain only word characters (A-Z,a-z,0-9 and
+capital letter, and can contain only word characters (<STRONG>A-Z,a-z,0-9</STRONG> and
 underscore) -- they are case-sensitive. If using the
 
 <A HREF="minivend.html#minivend_parsevariables_0">ParseVariables</A>
@@ -8269,6 +8769,24 @@ suffix).
     ButtonBars  bars/button0 bars/button1 bars/button2 bars/button3
 
 </XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="minivend_checkhtml_0">
+CheckHTML</A>
+
+</STRONG>
+<DD>
+The name and arguments of an external program for 
+<A HREF="minivend.html#minivend_checking_0">Checking Page HTML</A>
+.
+<p>
+<XMP>
+        CheckHTML  /usr/local/bin/weblint -s -
+
+</XMP>
+<p>Do not use redirection of I/O in this call. You will always receive
+stderr output.
 <p>
 <DT><STRONG>
 
@@ -8595,7 +9113,7 @@ This sets the default shipping mode by initializing the variable
 <p>
 <DT><STRONG>
 
-<A NAME="minivend_delimiter_0">
+<A NAME="minivend_delimiter_1">
 Delimiter</A>
 
 </STRONG>
@@ -9217,8 +9735,8 @@ NoImport</A>
 </STRONG>
 <DD>
 When set to one or more MiniVend database identifiers, 
-those database(s) will never be subject to import. Useful for mSQL
-or DBI databases, or databases that will *never* change.
+those database(s) will never be subject to import. Useful for SQL
+databases, or databases that will *never* change.
 <p>
 <XMP>
     NoImport   inventory
@@ -10401,7 +10919,7 @@ Variable</A>
 <DD>
 Defines a catalog variable that will be available in the current catalog
 with the notation __Variable__. Variable identifiers must begin with
-a capital letter, and can contain only word characters (A-Z,a-z,0-9 and
+a capital letter, and can contain only word characters (<STRONG>A-Z,a-z,0-9</STRONG> and
 underscore).  These are substituted second (right after global Variables)
 in any MiniVend page, and can contain any valid MiniVend tags except
 global variables.
@@ -10529,7 +11047,7 @@ server used for encryption.
 </XMP>
 <p>
 <H2> 
-<A NAME="minivend_user_0">
+<A NAME="minivend_user_1">
 User reconfiguration</A>
 </H2>
 The individual catalogs can be reconfigured by the user by running

@@ -1,6 +1,6 @@
 # Table/DummyDB.pm: Autoloader for MiniVend Databases
 #
-# $Id: DummyDB.pm,v 1.7 1997/05/22 07:10:45 mike Exp $
+# $Id: DummyDB.pm,v 1.8 1997/08/18 18:39:47 mike Exp $
 #
 #
 # Copyright 1996, 1997 by Mike Heins <mikeh@iac.net>

@@ -1,5 +1,9 @@
+[tag flag write]inventory[/tag]
+[tag touch inventory][/tag]
+[tag mime type TEXT/PLAIN; CHARSET=US-ASCII][/tag]
+[tag mime Order Text]
 
-      ORDER DATE: [tag time][/tag]
+      ORDER DATE: [calc]localtime[/calc]
     ORDER NUMBER: [value mv_order_number]
 
             Name: [value name]
@@ -22,15 +26,15 @@ Shipping Address: [value s_address]
 City, State, Zip: [value s_city][/if][if value s_state], [value s_state]  [value s_zip][/if]
 [if value s_country]Shipping Country: [value s_country][/if]
 
-[if value mv_credit_card_info]
-Credit Card Information
-[value mv_credit_card_info]
-[/if]
+[item-list]
+[/item-list]
 
-Quan  Item No.    Description                           Price      Extension
----- ----------- ------------------------------- ------------- --------------- 
-[item-list][row 80]
-[column width=5 gutter=1 align=right]  [item-quantity] [/column]
+
+   Quan  Item No.    Description                           Price      Extension
+------- ----------- ------------------------------- ------------- --------------- 
+[item-list][row 82]
+[column width=8 gutter=1 align=right] [item-quantity]
+([data inventory qty [item-code] -[item-quantity] decrement])[/column]
 [column width=12 gutter=1]  [item-code] [/column]
 [column width=32 gutter=1 align=left wrap=1]
 [item-description]
@@ -44,30 +48,30 @@ COLOR: [item-modifier color][/if]
 [/row]
 
 [/item-list]
-[row 80]
-[column width=5 align=right][/column]
+[row 82]
+[column width=8 align=right][/column]
 [column width=12 gutter=1][/column]
 [column width=32 align=R wrap=1][/column]
 [column width=14 gutter=1]SUBTOTAL[/column]
 [column width=15 gutter=0 align=r][subtotal][/column]
 [/row]
-[row 80]
-[column width=5 align=right][/column]
+[row 82]
+[column width=8 align=right][/column]
 [column width=12 gutter=1][/column]
 [column width=32 align=R wrap=1][/column]
 [column width=14 gutter=1]SALES TAX[/column]
 [column width=15 align=right gutter=0][salestax][/column]
 [/row]
-[row 80]
-	[column width=5 align=right][/column]
+[row 82]
+	[column width=8 align=right][/column]
 	[column width=12 gutter=1][/column]
 	[column width=32 align=R wrap=1][/column]
 	[column width=14 gutter=1]SHIPPING[/column]
 	[column width=15 align=right gutter=0][shipping][/column]
 [/row]
 
-[row 80]
-[column width=5 align=right][/column]
+[row 82]
+[column width=8 align=right][/column]
 [column width=12 gutter=1][/column]
 [column width=32 align=R wrap=1][/column]
 [column width=14 gutter=1]ORDER TOTAL[/column]
@@ -79,4 +83,12 @@ Gift Note:
 ---------------------------------------------------
 [value gift_note]
 [/if]
+[/tag]
 
+[if value mv_credit_card_info]
+[tag mime type application/pgp-encrypted][/tag]
+[tag mime Credit Card Information]
+Credit Card Information
+[value mv_credit_card_info]
+[/tag]
+[/if]

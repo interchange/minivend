@@ -1,8 +1,8 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 #
 # MiniVend version 3.00
 #
-# $Id: minivend,v 1.7 1997/08/18 06:02:50 mike Exp $
+# $Id: minivend,v 1.8 1997/09/03 05:55:05 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -69,7 +69,7 @@ $Global::SendMailLocation = '/usr/lib/sendmail';
 use lib "$Global::VendRoot/lib";
 use vars qw($VERSION);
 
-$VERSION = '3.01';
+$VERSION = '3.02';
 use strict;
 use Fcntl;
 use Config;
@@ -89,9 +89,8 @@ BEGIN {
 	chdir $Global::VendRoot
 		or die "Couldn't change directory to $Global::VendRoot: $!\n";
 	$Global::GDBM = $Global::DB_File = $Global::Msql = $Global::DBI = 0;
-	$Global::DBDtype = $ENV{MINIVEND_DBD} || 'mSQL';
 	eval {require Msql and $Global::Msql = 1};
-	#eval {require DBI and $Global::DBI = 1};
+	eval {require DBI and $Global::DBI = 1};
 
 	AUTO: {
 		last AUTO if 
@@ -151,9 +150,29 @@ $Global::ConfigFile = "$Global::VendRoot/$Global::ConfigFile"
 $Global::ErrorFile = "$Global::VendRoot/$Global::ErrorFile"
     if ($Global::ErrorFile !~ m.^/.);
 
+sub check_html {
+	my($out) = @_;
+
+	unless($Global::CheckHTML) {
+		logError("Can't check HTML: No global CheckHTML defined. Contact admin.");
+	}
+
+	my $file = POSIX::tmpnam();
+	open(CHECK, "|$Global::CheckHTML > $file 2>&1")	or die "Couldn't fork: $!\n";
+	print CHECK $$out;
+	close CHECK;
+	my $begin = "<!-- HTML Check via '$Global::CheckHTML'\n";
+	my $end   = "\n-->";
+	my $check = readfile($file);
+	unlink $file					or die "Couldn't unlink temp file $file: $!\n";
+	$$out .= $begin . $check . $end;
+	return;
+}
+	
 sub response {
 	my ($type,$output,$debug) = @_;
 	#$Vend::content_type = $type;
+	check_html(\$output) if defined $Vend::CheckHTML;
 	my $content = $Vend::ContentType || "text/$type";
 	http()->respond($content,$output,$debug);
 }
@@ -612,16 +631,25 @@ sub update_data {
 	my $function	= $CGI::values{'mv_data_function'};
 	my $table		= $CGI::values{'mv_data_table'};
 	my $prikey		= $CGI::values{'mv_data_key'};
-	my ($ref, $type, $db);
+	my ($ref, $type, $db, $msql, $database);
+
 	$ref = $Vend::Cfg->{Database}->{$table} || '';
 
 	$Vend::WriteDatabase{$table} = 1;
 
-	if( ! $ref or $ref->{'type'} eq '7' or  $ref->{'type'} eq '8') {
+	if( $ref->{'type'} eq '7') {
 		$type = 'sql';
+		$msql = 'm';
+		$database = $Vend::Cfg->{MsqlDB};
 	}
-	elsif ($function =~ /sql/i) {
+	elsif($ref->{'type'} eq '8') {
 		$type = 'sql';
+		$database = $table;
+	}
+	elsif ($function =~ /(m)?sql/i) {
+		$type = 'sql';
+		$msql = $1 || '';
+		$database = $Vend::Cfg->{MsqlDB} if $msql;
 	}
 	elsif ($db = database_exists_ref($table)) {
 		$type = 'dbm';
@@ -658,15 +686,19 @@ sub update_data {
 	my (@v);
 	my (@c);
 
+	my $select_key;
 	for($i = 0; $i < @{$data{$prikey}}; $i++) {
 		@k = (); @v = ();
 		for(keys %data) {
 			next unless (($value = $data{$_}->[$i]) || $CGI::values{mv_update_empty});
 			push(@k, $_);
 			$value =~ s/'/\\'/g;
+			$select_key = $value if $_ eq $prikey;
 			push(@v, $value);
 		}
 		if($type eq 'sql' and $function eq 'insert') {
+			sql_query('set', "", "delete from $table where code = '$select_key'",
+						$msql || undef, $database);
 			$query = "insert into $table (";
 			$query .= join ",", @k;
 			$query .= ") VALUES ('";
@@ -697,7 +729,7 @@ sub update_data {
 		}
 				
 		#logGlobal("\nquery: $query\n");
-		msql_query('set', "", $query)
+		sql_query('set', "", $query, $msql || undef, $database)
 			if $type eq 'sql';
 	}
 
@@ -1151,7 +1183,7 @@ sub config_named_catalog {
 	return $c if defined $g->{'base'};
 
 	eval {
-		if ($c->{StaticAll}) {
+		if ($c->{StaticPath}) {
 			print "loading static page names...";
 			my $basedir = $c->{PageDir};
 			open STATICPAGE, "$basedir/.static"
@@ -1300,7 +1332,7 @@ sub build_all {
 	my($catalog,$outdir) = @_;
 	my ($framedir, $g, $sub, $p, $spec, $key, $val);
 	my(@files);
-print "Supposed to be building pages...\n" if $Global::DEBUG;
+#print "Supposed to be building pages...\n" if $Global::DEBUG;
 	for(keys %Global::Catalog) {
 		next unless $Global::Catalog{$_}->{'name'} eq $catalog;
 		$g = $Global::Catalog{$_}->{'script'};
@@ -1425,7 +1457,6 @@ print "Really building pages...\n" if $Global::DEBUG;
 	chdir $Vend::Cfg->{'VendRoot'} 
 		or die "Couldn't change to $Vend::Cfg{'VendRoot'}: $!\n";
 
-	$p = database_ref();
 	$Vend::Session->{'pageCount'} = -1;
 	my $save = $;
 	$ = 0;
@@ -1447,6 +1478,8 @@ print "Really building pages...\n" if $Global::DEBUG;
 	FLYCHECK: {
 		last FLYCHECK unless $Vend::Cfg->{StaticFly};
 		my $save = $Vend::Session->{frames};
+	  for (@Vend::Productbase) {
+		$p = database_ref($_);
 		while( ($key,$val) = $p->each_record() ) {
 			next if $build_list && ! defined $build{$key};
 			next unless $key =~ m{^$spec}o;
@@ -1466,6 +1499,7 @@ print "Really building pages...\n" if $Global::DEBUG;
 				or (delete($Vend::Cfg->{StaticPage}->{$key}), next);
 			print "done.\n";
 		}
+	  }
 		$Vend::Session->{frames} = $save;
 	}
 
@@ -1479,8 +1513,10 @@ print "Really building pages...\n" if $Global::DEBUG;
 	}
 
 	FLY: {
-		last FLY unless $Vend::Cfg->{StaticFly};
-		my $save = $Vend::Session->{frames};
+	  last FLY unless $Vend::Cfg->{StaticFly};
+	  my $save = $Vend::Session->{frames};
+	  for (@Vend::Productbase) {
+		$p = database_ref($_);
 		while( ($key,$val) = $p->each_record() ) {
 			FRAMES:
             if($Vend::Cfg->{FrameFlyPage}) {
@@ -1500,7 +1536,8 @@ print "Really building pages...\n" if $Global::DEBUG;
 			$Vend::Session->{'pageCount'} = -1;
 			print "done.\n";
 		}
-		$Vend::Session->{frames} = $save;
+	  }
+	  $Vend::Session->{frames} = $save;
 	}
 	open STATICPAGE, ">$basedir/.static"
 		or die "Couldn't write static page file: $!\n";
@@ -1601,10 +1638,6 @@ sub dispatch {
     my($sessionid, $argument, $path, $rest);
 	my(@path);
 	my($g, $action);
-
-	undef %Vend::Database;
-	undef %Vend::WriteDatabase;
-	undef %Vend::Basefinder;
 
 	unless (defined $Global::Standalone) {
 		unless (defined $Global::Selector{$CGI::script_name}) {
@@ -1755,8 +1788,8 @@ sub dispatch {
 ## DEBUG
 
 sub dontwarn {
-	$Global::DBDtype +
 	$Global::IpHead +
+	$Vend::CheckHTML +
 	$Global::DomainTail +
 	$Global::FullUrl +
 	$Global::UserBuild +

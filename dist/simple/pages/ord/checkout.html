@@ -213,7 +213,7 @@ be saved, but no checkout will happen until you order something!</I>
 
 [if value mv_credit_card_info]
   <P>
-  <I>(A valid <B>[help [value mv_credit_card_type]]</B> number is on file.<BR>
+  <I>(A valid <B>[help [default mv_credit_card_type]]</B> number is on file.<BR>
   If you need to change it, re-enter the number. Otherwise, leave it blank and<BR>
   press <B>Next Screen</B></I>.)
   <P>
@@ -287,6 +287,13 @@ Card Number<BR>
 [set Place Order!]
 mv_todo=submit
 [/set]
+<I><INPUT TYPE=checkbox NAME=mv_save_session VALUE=1> I plan on returning, save
+my information
+	[if config EncryptProgram =~ /pgp/]
+	(credit card is encrypted with PGP!)
+	[else]
+	(OOPS! credit card not encrypted with PGP)
+	[/else][/if]<BR>
 <CENTER>
 <B><INPUT TYPE=submit NAME=mv_todo VALUE="Place Order!"></B></BR>
 <INPUT TYPE=submit VALUE="(update without placing)">

@@ -1,6 +1,6 @@
 # Table/InMemory.pm: store a table in memory
 #
-# $Id: InMemory.pm,v 1.8 1997/05/22 07:10:45 mike Exp $
+# $Id: InMemory.pm,v 1.10 1997/09/05 07:32:30 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -19,7 +19,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::InMemory;
-$VERSION = substr(q$Revision: 1.8 $, 10);
+$VERSION = substr(q$Revision: 1.10 $, 10);
 use Carp;
 use strict;
 

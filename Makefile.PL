@@ -134,7 +134,14 @@ or obtain the File::Lock module from CPAN. "make test" will fail if
 you don't have one of the above.
 
 If you have the CPAN module installed, MiniVend will try to get and
-install File::Lock for you.
+install File::Lock for you. If that succeeds, quit and re-run the
+install.
+
+If that fails, expect to fail the test. Try a 'make install' anyway. We
+will then make one more attempt to install the module from a local copy.
+
+If the last-ditch try  fails, you will have to get File::Lock and install
+it before you can go further.
 
 EOF
 		}

@@ -1,0 +1,44 @@
+#!/usr/local/bin/perl
+# restart - restarts MiniVend in server mode
+# 
+# Modded to just stop and start
+# Support may come for multi-server
+#
+$VendRoot = $VendRoot || '/home/minivend';
+## END CONFIGURABLE VARIABLES
+
+BEGIN {
+    eval {
+        require 5.004;
+        require FindBin;
+        $VendRoot = $FindBin::RealBin;
+        $VendRoot =~ s/.bin$//;
+    };
+	($VendRoot = $ENV{MINIVEND_ROOT})
+		if defined $ENV{MINIVEND_ROOT};
+}
+
+sub dontwarn { $FindBin::RealBin; }
+
+$0 =~ /(_inet|_unix)$/;
+$appendage = $1 || '';
+
+unshift @ARGV, $appendage;
+
+$ENV{PATH} = "/bin:/usr/bin:$VendRoot/bin";
+$ENV{IFS}  = " ";
+
+# Untaint alphanuerics, periods, slashes, and minus signs
+# for options
+my $tmp;
+for(@ARGV) {
+	m{([-./\w]+)};
+	$tmp = $1;
+	$_ = $tmp;
+}
+
+system("$VendRoot/bin/stop");
+
+#sleep 1;
+
+system("$VendRoot/bin/start@ARGV");

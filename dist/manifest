@@ -19,6 +19,6 @@ bin/start script 0755 shbang,vars:VendRoot:PERL
 bin/stop script 0755 shbang,vars:VendRoot
 bin/update script 0755 shbang,vars:VendRoot
 configure.pl script 0755 shbang
-bin/minivend script 0644 shbang,vars:VendRoot:SendMailLocation
+bin/minivend script 0755 shbang,vars:VendRoot:SendMailLocation
 src/config.h.in csrc 0644 defs:LINK_FILE
 src/vlink.pl script 0755 vars:LINK_FILE

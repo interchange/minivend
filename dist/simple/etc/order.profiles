@@ -93,7 +93,6 @@ email=email
 &fatal = yes
 [if value fax_order]
 &set = mv_payment Call Us
-&set = mv_credit_card_info Will call
 [else]
 &set = mv_payment Credit Card ([help [value mv_credit_card_type]])
 mv_credit_card_valid=required

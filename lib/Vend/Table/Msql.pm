@@ -1,6 +1,6 @@
 # Table/Msql.pm: access a table stored in an Msql Database
 #
-# $Id: Msql.pm,v 1.4 1997/04/22 15:32:30 mike Exp $
+# $Id: Msql.pm,v 1.7 1997/09/05 07:35:54 mike Exp mike $
 #
 
 # Basic schema
@@ -24,11 +24,13 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::Msql;
-$VERSION = substr(q$Revision: 1.4 $, 10);
+$VERSION = substr(q$Revision: 1.7 $, 10);
 
 use Carp;
 use strict;
 use Msql;
+
+$Msql::QUIET = 1;
 
 my @Hex_string;
 {
@@ -70,6 +72,38 @@ sub opendb {
 	Msql->connect();
 }
 
+sub drop_table {
+	my ($db, $table) = @_;
+    if(grep $_ eq $table, $db->list_tables) {
+        $db->query("drop table $table")
+            or croak "The '$table' table could not be overwritten.\n";
+    }
+}
+
+sub test_version {
+	my ($db) = @_;
+
+    drop_table($db, 'mv_test_version');
+
+    my $query = <<EOF;
+create table mv_test_version ( code char(14) primary key, testdata char(4) )
+EOF
+    my ($status, $rc);
+    eval { $status = $db->query($query) };
+
+    if(! $status or $@) {
+		$rc = 2;
+	}
+	else {
+		$rc = 1;
+	}
+    drop_table($db, 'mv_test_version');
+	return $rc;
+}
+
+
+sub config { return undef }
+
 sub ref {
 	return $_[0];
 }
@@ -89,28 +123,30 @@ sub create {
         unless ref($columns) eq 'ARRAY';
 
     my $column_index = {};
-    my ($i,$key);
+    my ($i,$key,$query,$version);
 	my(@cols);
 	unshift @$columns, 'code';
+
+	# See if we are Msql 1 or 2;
+
+	$version = test_version($db)
+				or croak ("Couldn't check mSQL version.\n");
 
     for ($i = 0;  $i < @$columns;  ++$i) {
         $cols[$i] .= $columns->[$i];
         $cols[$i] .= " char(128)" unless $cols[$i] =~ / +/;
-		$key = $columns->[$i] if $cols[$i] =~ /\s+int\s+primary\s+key$/i;
+		$key = $columns->[$i] if $cols[$i] =~ s/\s+primary\s+key$//i;
     }
 
 	if(! $key) {
-		$cols[0] =~ s/\s+.*/ char(14) primary key/;
+		$cols[0] .= ' primary key' if $version == 1;
 		$key = $columns->[0];
 		carp "Msql: column 0 overridden and made primary key.\n";
 	}
 
-	if(grep $_ eq $tablename, $db->listtables) {
-		$db->query("drop table $tablename") 
-			or croak "The '$tablename' table could not be overwritten.\n";
-	}
+	drop_table($db, $tablename);
 
-	my $query = "create table $tablename ( \n";
+	$query = "create table $tablename ( \n";
 	$query .= join ",\n", @cols;
 	$query .= "\n)\n";
 	::logError("table $tablename created: $query");
@@ -118,11 +154,23 @@ sub create {
 	$db->query($query)
 		or croak "Msql: Create table '$tablename' failed: "
 					. $db->errmsg() . "\n";
+
+	if($version > 1) {
+		$query = "create index ${key}_idx on $tablename ($key)";
+	
+		$db->query($query)
+			or croak $db->errmsg();
+	}
+
 	
     my $self = [$tablename, $key, $db];
     bless $self, $class;
 }
 
+sub get_msql {
+	my $class = shift;
+	bless [@_], $class;
+}
 
 sub open_table {
     my ($class, $config, $tablename) = @_;
@@ -134,7 +182,10 @@ sub open_table {
 		or croak $db->errmsg();
 	my $sth_listf = $db->listfields($tablename)
 		or croak $db->errmsg();
- 	for (0..$sth_query->numfields -1) {
+
+	$key = $sth_listf->name()->[0];
+
+ 	for (1..$sth_query->numfields -1) {
 		# whatever we do to the one statementhandle, the other one has
 		# to behave exactly the same way
 		if ($sth_listf->is_pri_key()->[$_]) {
@@ -142,8 +193,6 @@ sub open_table {
 			last;
 		} 
     }
-	croak "Msql: no primary key for $tablename\n"
-		unless defined $key;
 
 	my $dbref = [$tablename, $key, $db];
 	bless $dbref, $class;
@@ -155,15 +204,30 @@ sub close_table {
 	1;
 }
 
-# Not supported
+sub touch {return ''}
+
+# Now supported
 sub each_record {
-    return undef;
+    my ($s) = @_;
+	my ($table,$key,$db, $each) = @$s;
+	unless(defined $each) {
+#print("Each not defined -- listing table $table for $db\n") if $Global::DEBUG;
+		$each = $db->query("select * from $table")
+			or croak $db->errmsg();
+		push @$s, $each;
+	}
+	my @cols = $each->fetchrow;
+#print("Cols for Msql each_record:\n--\n@cols\n--\n") if $Global::DEBUG;
+	pop(@$s) unless(scalar @cols);
+	return @cols;
 }
 
 sub columns {
     my ($s) = @_;
 	my $sth = $s->[2]->listfields($s->[0]);
-    return $sth->name();
+    my @cols = $sth->name();
+	shift @cols;
+	return @cols;
 }
 
 
@@ -184,6 +248,7 @@ sub test_column {
 		$col = $i;
 	}
 
+	return undef unless defined $col;
 	return $col - 1;
 
 }
@@ -222,11 +287,12 @@ sub field_accessor {
 }
 
 sub param_query {
-	my($text, $config) = @_;
+	my($s, $text, $config) = @_;
 	my ($r,$sth);
+	$config = $Vend::Cfg->{MsqlDB} if $config eq 'products';
 	my $db = opendb();
-	$db->selectdb($config->{Catalog})
-		or croak "The '$config->{Catalog}' Msql database is not present.\n";
+	$db->selectdb($config)
+		or croak "The '$config' Msql database is not present.\n";
     eval { $sth = $db->query($text) };
 	(::logGlobal("Bad mSQL query --\n$text"), return '')
 		if $@;
@@ -244,11 +310,13 @@ sub param_query {
 }
 
 sub array_query {
-    my($text, $config) = @_;
+    my($s, $text, $config) = @_;
     my ($sth);
+    $config = $Vend::Cfg->{MsqlDB} if $config eq 'products';
     my $db = opendb();
-    $db->selectdb($config->{Catalog})
-        or croak "The '$config->{Catalog}' Msql database is not present.\n";
+    $db->selectdb($config)
+        or croak "The '$config' Msql database is not present.\n";
+
     eval { $sth = $db->query($text) };
 	(::logGlobal("Bad mSQL query --\n$text"), return '')
 		if $@;
@@ -263,11 +331,13 @@ sub array_query {
 }
 
 sub hash_query {
-    my($text, $config) = @_;
+    my($s, $text, $config) = @_;
     my ($i,$sth);
+    $config = $Vend::Cfg->{MsqlDB} if $config eq 'products';
     my $db = opendb();
-    $db->selectdb($config->{Catalog})
-        or croak "The '$config->{Catalog}' Msql database is not present.\n";
+    $db->selectdb($config)
+        or croak "The '$config' Msql database is not present.\n";
+
     eval { $sth = $db->query($text) };
 	(::logGlobal("Bad mSQL query --\n$text"), return '')
 		if $@;
@@ -287,11 +357,12 @@ sub hash_query {
 }
 
 sub html_query {
-    my($text, $config) = @_;
+    my($s, $text, $config) = @_;
     my ($r,$i,$sth);
+    $config = $Vend::Cfg->{MsqlDB} if $config eq 'products';
     my $db = opendb();
-    $db->selectdb($config->{Catalog})
-        or croak "The '$config->{Catalog}' Msql database is not present.\n";
+    $db->selectdb($config)
+        or croak "The '$config' Msql database is not present.\n";
     eval { $sth = $db->query($text) };
 	(::logGlobal("Bad mSQL query --\n$text"), return '')
 		if $@;
@@ -315,11 +386,12 @@ sub html_query {
 }
 
 sub set_query {
-    my($text, $config) = @_;
+    my($s, $text, $config) = @_;
     my ($r,$sth,$result);
+    $config = $Vend::Cfg->{MsqlDB} if $config eq 'products';
     my $db = opendb();
-    $db->selectdb($config->{Catalog})
-        or croak "The '$config->{Catalog}' Msql database is not present.\n";
+    $db->selectdb($config)
+        or croak "The '$config' Msql database is not present.\n";
     eval { $result = $db->query($text) };
 	(::logGlobal("Bad mSQL query --\n$text"), return '')
 		if $@;
@@ -331,7 +403,7 @@ sub field_settor {
     my ($s, $column) = @_;
     return sub {
         my ($key, $value) = @_;
-        $s->[2]->query("update $s->[0] $column='$value' where $s->[1] = '$key'");
+        $s->[2]->query("update $s->[0] SET $column='$value' where $s->[1] = '$key'");
     };
 }
 
@@ -360,21 +432,24 @@ sub set_row {
 sub field {
     my ($s, $key, $column) = @_;
     my $sth = $s->[2]->query("select $column from $s->[0] where $s->[1] = '$key'");
+	croak $s->[2]->errmsg . ": $!\n" unless defined $sth;
 	($sth->fetchrow)[0];
 }
 
 sub set_field {
     my ($s, $key, $column, $value) = @_;
-    my $sth = $s->[2]->query("update $s->[0] $column='$value' where $s->[1] = '$key'");
+    my $sth = $s->[2]->query("update $s->[0] SET $column='$value' where $s->[1] = '$key'");
 	$value;
 }
 
 sub inc_field {
     my ($s, $key, $column, $value) = @_;
-    my $sth = $s->[2]->query("select $s->[0] $column where $s->[1] = '$key'");
+    my $sth = $s->[2]->query("select $column from $s->[0] where $s->[1] = '$key'");
+	(::logError("inc_field: " . $s->[2]->errmsg()), return '')
+		unless defined $sth;
 	$value += ($sth->fetchrow)[0];
 	undef $sth;
-    $sth = $s->[2]->query("update $s->[0] $column='$value' where $s->[1] = '$key'");
+    $sth = $s->[2]->query("update $s->[0] SET $column='$value' where $s->[1] = '$key'");
 	$value;
 }
 

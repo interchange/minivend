@@ -85,6 +85,19 @@
 # GlobalSub
 
 
+## Default: blank
+#
+# The name and arguments of an external program for checking page HTML.
+#
+#    CheckHTML  /usr/local/bin/weblint -s -
+#
+# Do not use redirection of I/O in this call. You will always receive
+# stderr output. Activate on the page with [tag flag checkhtml][/tag]
+# at the very top or very bottom.
+#
+# CheckHTML
+
+
 ## Default: No
 #
 # Implements the domain/ip session qualifiers so that only the

@@ -233,7 +233,7 @@ sub restore_signals {
     @SIG{@trapped_signals} = @orig_signal{@trapped_signals};
 }
 
-my $Last_housekeeping;
+my $Last_housekeeping = 0;
 
 # Reconfigure any catalogs that have requested it, and 
 # check to make sure we haven't too many running servers
@@ -244,7 +244,7 @@ sub housekeeping {
 
 	# Always do it if called without argument, otherwise
 	# only after $tick seconds
-	unless (!defined $tick) {
+	if (defined $tick) {
 		return if ($now - $Last_housekeeping < $tick);
 	}
 

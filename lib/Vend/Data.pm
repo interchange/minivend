@@ -1,4 +1,4 @@
-# $Id: Data.pm,v 1.10 1997/06/27 11:32:10 mike Exp mike $
+# $Id: Data.pm,v 1.17 1997/08/28 08:11:48 mike Exp mike $
 
 package Vend::Data;
 require Exporter;
@@ -46,7 +46,7 @@ use Vend::Table::Import qw(import_ascii_delimited import_quoted);
 
 
 BEGIN {
-	if(defined $Msql::Version or $Global::Msql) {
+	if(defined $Msql::VERSION or $Global::Msql) {
 		require Vend::Table::Msql;
 	}
 	if($Global::DBI) {
@@ -65,6 +65,7 @@ BEGIN {
 
 my $New_database_dbm; 
 my $New_table_sql; 
+my $New_name_sql; 
 my ($Products, $Item_price);
 
 sub database_exists_ref {
@@ -129,8 +130,14 @@ sub tie_database {
 sub dummy_database {
 	my ($name, $data);
     while (($name,$data) = each %{$Vend::Cfg->{Database}}) {
-#print("Calling dummy_database $name $data->{name}, $data->{file}, $data->{type}\n" ) if $Global::DEBUG;
-		$Vend::Database{$name} = new Vend::Table::DummyDB $data;
+#print("dummy_database $name, $data\n" ) if $Global::DEBUG;
+		if($data->{type} eq '8' and ! $data->{NAME}) {
+			$Vend::Database{$name} = 
+				import_database($data->{file},$data->{type},$data->{name});
+		}
+		else {
+			$Vend::Database{$name} = new Vend::Table::DummyDB $data;
+		}
 	}
 	update_productbase();
 }
@@ -219,15 +226,13 @@ sub call_method {
 sub set_field {
     my ($db, $key, $field_name, $value) = @_;
 
-
-	my ($real, $ref) = $db->record_exists($key);
-
-	$db = $ref if defined $ref;
+	$db = $db->ref;
 
 	# Create it if it doesn't exist
-	unless ($real) {
+	unless ($db->record_exists($key)) {
+#print("Creating empty record $key\n") if $Global::DEBUG;
 		my @fields;
-		my $count = $db->columns();
+		my $count = scalar $db->columns();
 		@fields = ('') x $count;
 		$db->set_row($key, @fields);
 	}
@@ -247,52 +252,35 @@ sub product_field {
 }
 
 sub sql_query {
-	defined $_[3] and return msql_query(@_);
-	return dbi_query(@_);
-};
-
-sub dbi_query {
-	my $catalog = { Catalog => $Vend::Cfg->{SqlDB} };
-	"\L$_[0]" eq 'array' and
-		return uneval Vend::Table::DBI::array_query($_[2], $catalog);
-	"\L$_[0]" eq 'hash' and
-		return uneval Vend::Table::DBI::hash_query($_[2], $catalog);
-	"\L$_[0]" eq 'param' and
-		return Vend::Table::DBI::param_query($_[2], $catalog);
-	"\L$_[0]" eq 'set' and
-		return Vend::Table::DBI::set_query($_[2], $catalog);
-	"\L$_[0]" eq 'html' and
-		return Vend::Table::DBI::html_query($_[2], $catalog);
-	"\L$_[0]" eq 'list' and
+	my($type, $query, $list, $msql, $table) = @_;
+	my $db;
+	if($msql) {
+		$table = $table || $Vend::Cfg->{MsqlDB};
+		$db = Vend::Table::Msql::get_msql('Vend::Table::Msql', $table);
+	}
+	else {
+		$table = 'products' unless defined $table;
+		$db = $Vend::Database{$table}
+			or croak "dbi_query: unknown base table $table.\n";
+		$db = $db->ref();
+	}
+	"\L$type" eq 'array' and
+		return uneval $db->array_query($list, $table);
+	"\L$type" eq 'hash' and
+		return uneval $db->hash_query($list, $table);
+	"\L$type" eq 'param' and
+		return $db->param_query($list, $table);
+	"\L$type" eq 'set' and
+		return $db->set_query($list, $table);
+	"\L$type" eq 'html' and
+		return $db->html_query($list, $table);
+	"\L$type" eq 'list' and
 		return Vend::Interpolate::tag_sql_list(
-							$_[2],
-							Vend::Table::DBI::array_query($_[1], $catalog)
+							$list,
+							$db->array_query($query, $table)
 							);
 	# shouldn't reach this if proper tag
-	logError("Bad SQL query selector: '$_[0]'");
-	return '';
-}
-
-
-sub msql_query {
-	my $catalog = { Catalog => $Vend::Cfg->{MsqlDB} };
-	"\L$_[0]" eq 'array' and
-		return uneval Vend::Table::Msql::array_query($_[2], $catalog);
-	"\L$_[0]" eq 'hash' and
-		return uneval Vend::Table::Msql::hash_query($_[2], $catalog);
-	"\L$_[0]" eq 'param' and
-		return Vend::Table::Msql::param_query($_[2], $catalog);
-	"\L$_[0]" eq 'set' and
-		return Vend::Table::Msql::set_query($_[2], $catalog);
-	"\L$_[0]" eq 'html' and
-		return Vend::Table::Msql::html_query($_[2], $catalog);
-	"\L$_[0]" eq 'list' and
-		return Vend::Interpolate::tag_sql_list(
-							$_[2],
-							Vend::Table::Msql::array_query($_[1], $catalog)
-							);
-	# shouldn't reach this if proper tag
-	logError("Bad Msql query selector: '$_[0]'");
+	logError("Bad SQL query selector: '$type' for $table");
 	return '';
 }
 
@@ -328,10 +316,21 @@ sub create_database_msql {
 
 sub create_database_sql {
     my (@columns) = @_;
-    return Vend::Table::DBI->create_table({ Host => $Vend::Cfg->{SqlHost},
-											Catalog => $Vend::Cfg->{SqlDB} },
-                                           $New_table_sql,
-                                           [@columns]);
+	my $def;
+
+	my $obj = $Vend::Cfg->{Database}->{$New_name_sql};
+
+	# HACK
+	if(defined $Vend::FIRST_COLUMN_NAME) {
+		$obj->{FIRST_COLUMN_NAME} = $Vend::FIRST_COLUMN_NAME;
+		undef $Vend::FIRST_COLUMN_NAME;
+	}
+
+    return Vend::Table::DBI->create_table(
+											$Vend::Cfg->{Database}->{$New_name_sql},
+											$New_table_sql,
+											[@columns],
+										);
 }
 
 sub create_database_gdbm {
@@ -344,11 +343,13 @@ sub create_database_gdbm {
 sub close_database {
 	my($db, $name);
 	while( ($name, $db)	= each %{$Vend::Database} ) {
+#print("closing table $name\n") if $Global::DEBUG;
 		next if defined $Vend::Cfg->{SaveDatabase}->{$name};
     	$db->close_table()
 			or die "Could not untie database: $!\n";
 	}
-	undef $Vend::Database;
+	undef %Vend::WriteDatabase;
+	undef %Vend::Basefinder;
 }
 
 sub database_ref {
@@ -462,12 +463,10 @@ sub read_salestax {
 # Read in the pricing file, if it exists
 sub read_pricing {
     my($code, @breaks);
-
 	if($Vend::Cfg->{PriceBreaks} || $Vend::Cfg->{PriceAdjustment}) {
 			die "No pricing database defined.\n"
 				 unless $Vend::Cfg->{Database}->{pricing};
 	}
-
 	return ( build_item_price(), build_quantity_price() );
 }
 
@@ -504,23 +503,41 @@ my %Delimiter = (
 	6 => ["\t", "\n"],
 	7 => ["\t", "\n"],
 	8 => ["\t", "\n"],
+	LINE => ["\n", "\n\n"],
+	'%%%' => ["\n%%\n", "\n%%%\n"],
+	'%%' => ["\n%%\n", "\n%%%\n"],
+	CSV => ["CSV","\n"],
+	PIPE => ['\|', "\n"],
+	TAB => ["\t", "\n"],
+
 	);
 
 sub find_delimiter {
 	my ($type) = @_;
 	$type = $type || 1;
 	return ($Vend::Cfg->{Delimiter}, "\n")
-		if $type == 1;
+		if $type eq '1' || $type eq 'DEFAULT';
 
-    if ($type > 1 and $type < 9) {
-		return @{$Delimiter{$type}};
-	}
+	return @{$Delimiter{$type}}
+		if defined $Delimiter{$type}; 
 	return ($Vend::Cfg->{FieldDelimiter}->{$type}, 
 			$Vend::Cfg->{RecordDelimiter}->{$type});
 }
 
 sub import_database {
     my ($database,$type,$name) = @_;
+
+	my $obj;
+
+	if(ref $database) {
+		$obj = $database;
+		$database = $obj->{'file'};
+		$type     = $obj->{'type'};
+		$name     = $obj->{'name'};
+	}
+	else {
+		$obj = $Vend::Cfg->{Database}->{$name};
+	}
 
 	if($Vend::Cfg->{AdminDatabase}->{$name} and ! check_security ($database, 2)) {
 		croak  "Attempt to access protected database by $CGI::host\n";
@@ -532,8 +549,10 @@ sub import_database {
 	return $Vend::Cfg->{SaveDatabase}->{$name}
 		if defined $Vend::Cfg->{SaveDatabase}->{$name};
 #print("Import database $name $database $type\n" ) if $Global::DEBUG;
-	my $delimiter = $Vend::Cfg->{Delimiter};
-	my ($record_delim, $cacheable);
+
+	my ($delimiter, $record_delim, $change_delimiter, $cacheable);
+
+	$delimiter = $Vend::Cfg->{Delimiter};
 
 	croak "import_database: No database name!\n"
 		unless $database;
@@ -558,29 +577,14 @@ sub import_database {
 	my $database_dbm;
 	my $db;
 	my $create_sub;
-	my $no_import = 0;
+	my $no_import = defined $Vend::Cfg->{NoImport}->{$name};
 
-	if($Global::Msql and $type == 7) {
+	if($type == 8) {
 		$New_table_sql = $base;
+		$New_name_sql = $name;
     	$database_dbm = "$data/$base.sql";
     	$New_database_dbm = "$data/new.$base.sql";
-		my $now = time;
-		if (-f $database_dbm or ! -f $database_txt) {
-			$no_import = 1;
-		}
-		else {
-			open(Vend::Data::TMP, ">$New_database_dbm");
-			print Vend::Data::TMP "\n";
-			close(Vend::Data::TMP);
-		}
-    	$create_sub = \&create_database_msql;
-	}
-	elsif($Global::DBI and $type == 8) {
-		$New_table_sql = $base;
-    	$database_dbm = "$data/$base.sql";
-    	$New_database_dbm = "$data/new.$base.sql";
-		my $now = time;
-		if (-f $database_dbm or ! -f $database_txt) {
+		if ($no_import or -f $database_dbm or ! -f $database_txt) {
 			$no_import = 1;
 		}
 		else {
@@ -589,6 +593,23 @@ sub import_database {
 			close(Vend::Data::TMP);
 		}
     	$create_sub = \&create_database_sql;
+		$change_delimiter = $obj->{DELIMITER} if defined $obj->{DELIMITER};
+	}
+	elsif($type == 7) {
+		$New_table_sql = $base;
+		$New_name_sql = $name;
+    	$database_dbm = "$data/$base.sql";
+    	$New_database_dbm = "$data/new.$base.sql";
+		if ($no_import or -f $database_dbm or ! -f $database_txt) {
+			$no_import = 1;
+		}
+		else {
+			open(Vend::Data::TMP, ">$New_database_dbm");
+			print Vend::Data::TMP "\n";
+			close(Vend::Data::TMP);
+		}
+    	$create_sub = \&create_database_msql;
+		$change_delimiter = $obj->{DELIMITER} if defined $obj->{DELIMITER};
 	}
     elsif($Global::GDBM) {
 		$New_database_dbm = "$data/new.$base.gdbm";
@@ -622,7 +643,7 @@ sub import_database {
         warn "Importing $base table from $database_txt\n";
 
 		$type = 1 unless $type;
-		($delimiter, $record_delim) = find_delimiter($type);
+		($delimiter, $record_delim) = find_delimiter($change_delimiter || $type);
 #print("Type: $type delimiter: '$delimiter'\n") if $Global::DEBUG;
 		my $save = $/;
 		$/ = $record_delim if defined $record_delim;
@@ -630,6 +651,7 @@ sub import_database {
 			unless $delimiter eq 'CSV';
         $db = import_quoted($database_txt, $create_sub)
 			if $delimiter eq 'CSV';
+
 		$/ = $save;
 		if(defined $database_dbm) {
         	rename($New_database_dbm, $database_dbm)
@@ -640,24 +662,34 @@ sub import_database {
 
 
 	my $read_only = ! defined $Vend::WriteDatabase{$name};
-	if($Global::Msql and $type == 7) {
+	if($type == 8) {
+		my $cols = $obj->{NAME} || undef;
+#print("columns from config: @$cols \n") if $cols and $Global::DEBUG;
+		$db->close_table() if defined $db;
+    	$db = Vend::Table::DBI->open_table(
+					$obj,
+					$base);
+
+		unless (defined $cols) {
+			$obj->{NAME} = $db->[3];
+		}
+			
+#print("Opening DBI: object '$db'\n") if $Global::DEBUG;
+	}
+	elsif($type == 7) {
+		$db->close_table() if defined $db;
     	$db = Vend::Table::Msql->open_table(
 				{Catalog => $Vend::Cfg->{MsqlDB}}, $base);
 	}
-	elsif($Global::DBI and $type == 8) {
-    	$db = Vend::Table::DBI->open_table(
-				{Host => $Vend::Cfg->{SqlHost}, Catalog => $Vend::Cfg->{SqlDB}}, $base);
-#print("Opening DBI: object '$db'\n") if $Global::DEBUG;
-	}
     elsif($Global::GDBM) {
-		close_database($db) if defined $db;
+		$db->close_table if defined $db;
 		undef $db;
 #print("Opening GDBM: RO=$read_only\n") if $Global::DEBUG;
     	$db = Vend::Table::GDBM->open_table({Read_only => $read_only},
                                               "$data/$base.gdbm");
 	}
     elsif($Global::DB_File) {
-		close_database($db) if defined $db;
+		$db->close_table() if defined $db;
 		undef $db;
     	$db = Vend::Table::DB_File->open_table({Read_only => $read_only},
                                               "$data/$base.db");
@@ -677,19 +709,24 @@ sub export_database {
 	my(@data);
 	return undef unless defined $db;
 
-	# Not supported for SQL types
-	if (defined $type and ($type == 7 or $type == 8) ) {
-		$Vend::Session->{errmsg} = "export_database: ASCII file export not supported for SQL types.";
-		return undef;
-	}
-
-	$db = database_exists_ref($db) || return undef;
+	$db = database_exists_ref($db)
+		or do {
+			logError("Vend::Data export: non-existent database $db");
+			return undef;
+		};
 
 	my $ref;
-	$ref = $Vend::Cfg->{Database}->{$Vend::Basefinder{$db}};
-	croak "Bad database '$ref', name $Vend::Basefinder{$db}.\n" unless $ref;
+	$ref = $Vend::Cfg->{Database}->{$Vend::Basefinder{$db}}
+		or croak "Bad database '$db'.\n";
 
 	$db = $db->ref();
+
+	my $sql = 0;
+	# Some things not supported for SQL types -- can 
+	# usually do with [msql set] or [msql list] and [tag log ...]
+	if ($ref->{'type'} == 7 or $ref->{'type'} == 8) {
+		$sql = 1;
+	}
 
 	my ($delim, $record_delim) = find_delimiter($type || $ref->{'type'});
 
@@ -701,8 +738,18 @@ sub export_database {
 
 	my @cols = $db->columns();
 
+	my $first_name = 'code';
+
 	my ($notouch, $nuke);
-	if ($field and ! $delete) {
+	if($sql) {
+		# do nothing about delete and add
+		# not supported for those types
+
+		# But put the proper first column name if there
+		$first_name = $ref->{FIRST_COLUMN_NAME} 
+									if defined $ref->{FIRST_COLUMN_NAME};
+	}
+	elsif ($field and ! $delete) {
 		logError("Adding field $_");
 		push @cols, $_;
 		$notouch = 1;
@@ -735,7 +782,7 @@ sub export_database {
 	   	croak "Couldn't write $file: $!\n";
 	if($delim eq 'CSV') {
 		$delim = '","';
-		print Vend::Data::EXPORT '"key","';
+		print Vend::Data::EXPORT qq%"$first_name","%;
 		print Vend::Data::EXPORT join $delim, @cols;
 		print Vend::Data::EXPORT qq%"\n%;
 		while( (@data) = $db->each_record() ) {
@@ -748,7 +795,7 @@ sub export_database {
 		}
 	}
 	else {
-		print Vend::Data::EXPORT join $delim, 'key', @cols;
+		print Vend::Data::EXPORT join $delim, $first_name, @cols;
 		print Vend::Data::EXPORT $record_delim;
 		while( (@data) = $db->each_record() ) {
 			splice(@data, $nuke, 1) if defined $nuke;
@@ -769,7 +816,6 @@ sub export_database {
 }
 
 sub build_quantity_price {
-
 	my $code = <<'EOF';
 sub {
 my ($code,$one,$quan) = @_;
@@ -848,7 +894,7 @@ EOF
 		if($Vend::Cfg->{CommonAdjust}) {
 			croak "Must have price adjustment database '" .
 						$Vend::Cfg->{CommonAdjust} . "' defined.\n"
-				unless $Vend::Database{$Vend::Cfg->{CommonAdjust}};
+				unless defined $Vend::Database{$Vend::Cfg->{CommonAdjust}};
 ###
 $code .= <<'EOF';
 	$price += database_field($Vend::Database{$Vend::Cfg->{CommonAdjust}},

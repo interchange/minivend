@@ -47,7 +47,6 @@ foreach $item (reverse @{$Safe{items}}) {
 [/if]
 	<TD BGCOLOR="#FFFFFF" VALIGN=TOP ALIGN=CENTER>
 	<input type="text"
-		onChange="document.forms[0].submit()"
 		name=[quantity-name] value="[item-quantity]" size=3>
 
 	</TD>
@@ -69,7 +68,9 @@ foreach $item (reverse @{$Safe{items}}) {
 [/if]
 <TR>
 <TD BGCOLOR="#00F0F0" COLSPAN=3 ALIGN=RIGHT VALIGN=CENTER>
-<input type="submit" name="mv_submit" value="Recalculate">
+<input type="submit"
+	onClick="document.forms[0].action='[process-target]'"
+	name="mv_submit" value="Recalculate">
 <IMG BORDER=0 WIDTH=50 HEIGHT=2 SRC="bg.gif" ALT=" . . ">
 <IMG BORDER=0 WIDTH=50 HEIGHT=2 SRC="bg.gif" ALT=" . . ">
 	<B>Subtotal</B>
@@ -78,10 +79,18 @@ foreach $item (reverse @{$Safe{items}}) {
 <TR>
 <TD BGCOLOR="#00F0F0" COLSPAN=4 ALIGN=CENTER>
 <input type="submit" name="mv_todo" value="Check out">
-<input type="submit" name="mv_click" value="Search">
-<input type="submit" name="mv_click" value="Browse">
-<input type="submit" name="mv_click" value="Home">
-<input type="submit" name="mv_click" value="Stop shopping">
+<input type="submit"
+	onClick="document.forms[0].action='[process-target]'"
+	name="mv_click" value="Search">
+<input type="submit"
+	onClick="document.forms[0].action='[process-target]'"
+	name="mv_click" value="Browse">
+<input type="submit"
+	onClick="document.forms[0].action='[process-target]'"
+	name="mv_click" value="Home">
+<input type="submit"
+	onClick="document.forms[0].action='[process-target]'"
+	name="mv_click" value="Stop shopping">
 </TD>
 </TR>
 </TABLE>

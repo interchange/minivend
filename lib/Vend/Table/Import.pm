@@ -1,6 +1,6 @@
 # Table/Import.pm: import a table
 #
-# $Id: Import.pm,v 1.7 1997/05/22 07:10:45 mike Exp $
+# $Id: Import.pm,v 1.9 1997/09/07 07:15:24 mike Exp mike $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -19,7 +19,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::Import;
-$VERSION = substr(q$Revision: 1.7 $, 10);
+$VERSION = substr(q$Revision: 1.9 $, 10);
 
 require Exporter;
 @ISA = qw(Exporter);
@@ -38,7 +38,7 @@ sub import_csv {
 	lockfile(\*Vend::Table::Import::IN, 1, 1) or die "lock\n";
     my @columns = read_quoted_fields(\*IN);
     die "$source is empty\n" unless @columns;
-    shift @columns;
+    $Vend::FIRST_COLUMN_NAME = shift @columns;
 
     my $out = &$create(@columns);
     my (@fields,$key);
@@ -47,7 +47,6 @@ sub import_csv {
     }
 	unlockfile(\*Vend::Table::Import::IN) or die "unlock\n";
     close(Vend::Table::Import::IN);
-    $out->close_table();
 	return $out;
 }
 
@@ -65,15 +64,19 @@ sub import_ascii_delimited {
     my $field_names = <IN>;
     chomp $field_names;
     my @field_names = split(/$delimiter/, $field_names);
-    shift @field_names;
+	my $field_count = scalar @field_names;
+
+	# HACK!
+    $Vend::FIRST_COLUMN_NAME = shift @field_names;
 
     my $out = &$create(@field_names);
-
+	my $fields;
     my (@fields, $key);
     eval <<"END";
         while (<IN>) {
             chomp;
-            \@fields = split(/$delimiter/, \$_, 99999);
+            \$fields = \@fields = split(/$delimiter/, \$_, 99999);
+			push (\@fields, '') until \$fields++ >= $field_count;
             \$key = shift \@fields;
             \$out->set_row(\$key, \@fields);
         }
@@ -82,7 +85,6 @@ END
 
 	unlockfile(\*Vend::Table::Import::IN) or die "unlock\n";
     close(Vend::Table::Import::IN);
-    $out->close_table();
     return $out;
 }
 
