@@ -927,7 +927,7 @@ sub get_option_hash {
 		}
 		return $string;
 	}
-	return {} unless $string =~ /\S/;
+	return {} unless $string and $string =~ /\S/;
 	$string =~ s/^\s+//;
 	$string =~ s/\s+$//;
 	if($string =~ /^{/ and $string =~ /}/) {
