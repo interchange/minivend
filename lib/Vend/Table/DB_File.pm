@@ -2,7 +2,7 @@
 #
 # $Id$
 #
-# Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
+# Copyright (C) 1996-2000 Akopia, Inc. <info@akopia.com>
 #
 # This program was originally based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>

@@ -95,7 +95,7 @@ sub action_map {
   if ($Action eq "") {
     # if we have not set $Action by this time, there is no match in the
     # given set of shapes.  Just return undef and let the default in
-    # MiniVend do the work;
+    # Interchange do the work;
     return undef;
   } else {
   	return $Action;

@@ -46,7 +46,7 @@ BEGIN {
 my $query;
 
 $USAGE = <<EOF;
-Expire all listed MiniVend catalogs. Will read information from
+Expire all listed Interchange catalogs. Will read information from
 either the file passed with -f or:
 
 	$VendRoot/minivend.cfg
@@ -102,7 +102,7 @@ for(@cats) {
 
 =head1 NAME
 
-expireall -- Run Minivend expire on all catalogs
+expireall -- Run Interchange expire on all catalogs
 
 =head1 VERSION
 

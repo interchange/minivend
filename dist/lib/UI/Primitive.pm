@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 
-# Copyright (C) 1998 Michael J. Heins <mikeh@minivend.com>
+# Copyright (C) 1998-2000 Akopia, Inc. <info@akopia.com>
 
-# Author: Michael J. Heins <mikeh@minivend.com>
+# Author: Michael J. Heins <heins@akopia.com>
 # Maintainer: Stefan Hornburg <racke@linuxia.de>
 
 # This file is free software; you can redistribute it and/or modify it
@@ -52,7 +52,7 @@ display_directive %options;
 
 =head1 DESCRIPTION
 
-The Minivend UI is an interface to configure and administer Minivend catalogs.
+The Interchange UI is an interface to configure and administer Interchange catalogs.
 
 =cut
 

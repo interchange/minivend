@@ -1,8 +1,8 @@
-# Vend/Scan.pm:  Prepare searches for MiniVend
+# Vend/Scan.pm:  Prepare searches for Interchange
 #
 # $Id$
 #
-# Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
+# Copyright (C) 1996-2000 Akopia, Inc. <info@akopia.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -563,7 +563,7 @@ sub sql_statement {
 # END GLIMPSE
 	}
 
-	die "SQL is not enabled for MiniVend. Get the SQL::Statement module.\n"
+	die "SQL is not enabled for Interchange. Get the SQL::Statement module.\n"
 		unless $INC{'SQL/Statement.pm'};
 
 	my $parser = SQL::Parser->new('Ansi');

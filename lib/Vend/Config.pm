@@ -1,8 +1,8 @@
-# Config.pm - Configure Minivend
+# Config.pm - Configure Interchange
 #
 # $Id$
 #
-# Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
+# Copyright (C) 1996-2000 Akopia, Inc. <info@akopia.com>
 #
 # This program was originally based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -1809,7 +1809,7 @@ sub parse_valid_group {
     config_error("$var: Group name '$value' is not a valid group\n")
 		unless defined $gid;
 	$name = getpwuid($<);
-    config_error("$var: MiniVend user '$name' not in group '$value'\n")
+    config_error("$var: Interchange user '$name' not in group '$value'\n")
 		unless $members =~ /\b$name\b/;
     $gid;
 }

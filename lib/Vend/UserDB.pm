@@ -2,7 +2,7 @@
 #
 # $Id$
 #
-# Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
+# Copyright (C) 1996-2000 Akopia, Inc. <info@akopia.com>
 #
 # **** ALL RIGHTS RESERVED ****
 
@@ -21,7 +21,7 @@ my $ready = new Safe;
 
 =head1 NAME
 
-UserDB.pm -- MiniVend User Database Functions
+UserDB.pm -- Interchange User Database Functions
 
 =head1 SYNOPSIS
 
@@ -29,13 +29,13 @@ userdb $function, %options
 
 =head1 DESCRIPTION
 
-The MiniVend user database saves information for users, including shipping,
+The Interchange user database saves information for users, including shipping,
 billing, and preference information.  It allows the user to return to a
 previous session without the requirement for a "cookie" or other persistent
 session information.
 
 It is object-oriented and called via Perl subroutine. The main software 
-is contained in a module, and is called from MiniVend with a GlobalSub.
+is contained in a module, and is called from Interchange with a GlobalSub.
 The GlobalSub would take the form:
 
 	GlobalSub <<EOF

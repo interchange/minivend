@@ -1,4 +1,4 @@
-# Track.pm - MiniVend User Tracking
+# Track.pm - Interchange User Tracking
 #
 # $Id$
 #

@@ -1,9 +1,9 @@
 /* minivend.c:  runs as a command line or cgi program and starts up
-			    MiniVend in various modes
+			    Interchange in various modes
 
    $Id$
 
-   Copyright 1997 by Mike Heins <mikeh@minivend.com>
+   Copyright (C) 1997-2000 Akopia, Inc. <info@akopia.com>
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by

@@ -4,7 +4,7 @@
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::TextSearch
 #
-# Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
+# Copyright (C) 1996-2000 Akopia, Inc. <info@akopia.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
