@@ -269,7 +269,7 @@ NOTE: This will be the name of 'vlink' or 'tlink', the link CGI
 program. Depending on your CGI setup, it may also have the 
 extension .cgi added.
 
-If you are doing the demo for the first time, you might use "barry".
+If you are doing the demo for the first time, you might use "construct".
 
 EOF
    $catalog_name = prompt ("Catalog name? ");
@@ -541,7 +541,8 @@ my %History = (
     demotype =>  sub {
 						my @dir; 
 						@dir = sort map { s:(.*)/.*:$1:; $_ } glob("*/catalog.cfg");
-						@dir = grep $_ ne 'barry', @dir;
+						@dir = grep $_ ne 'construct', @dir;
+						unshift(@dir, 'construct') if -f 'construct/catalog.cfg';
 						unshift(@dir, 'barry') if -f 'barry/catalog.cfg';
 						unshift(@dir, 'simple') if $catalog_name =~ /simp/;
 						return @dir;
@@ -2380,6 +2381,26 @@ General information and documentation for Interchange is at:
 __END__
 
 # Sample catalog definition
+[catalog construct]
+basedir         =
+catroot         =
+catuser         =
+cgibase         =
+cgibin          =
+cgidir          =
+cgiurl          =
+demotype        = construct
+documentroot    =
+imagedir        =
+imageurl        =
+mailorderto     =
+interchangegroup=
+interchangeuser =
+samplehtml      =
+sampleurl       =
+servername      =
+vendroot        =
+
 [catalog barry]
 basedir         =
 catroot         =
