@@ -165,6 +165,11 @@ sub parse_post {
 #::logDebug("found session stuff: $CGI::values{mv_session_id} --> $CGI::values{mv_arg}  --> $CGI::values{mv_pc} ");
 		shift @pairs;
 	}
+	elsif ($#pairs == 1 and $pairs[0] !~ /=/) {	# Must be an isindex
+		$CGI::values{ISINDEX} = $pairs[0];
+		$CGI::values_array{ISINDEX} =  [ split /\+/, $pairs[0] ];
+		@pairs = ();
+	}
 	my $redo;
   CGIVAL: {
   	# This loop semi-duplicated in store_cgi_kv
