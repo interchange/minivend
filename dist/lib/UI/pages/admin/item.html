@@ -5,6 +5,9 @@
 	return;
 [/calc]
 [/if]
+[if cgi mv_data_table eq 'mv_metadata']
+	[cgi name=mv_data_table set=__ProductFiles_0__ hide=1]
+[/if]
 [set ui_class]Items[/set]
 [tmp page_title][L]Item editor[/L][/tmp]
 [if-mm super]
