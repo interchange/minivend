@@ -964,6 +964,8 @@ sub find_locale_bit {
 sub parse_locale {
 	my ($input) = @_;
 
+	return if $::Pragma->{no_locale_parse};
+
 	# avoid copying big strings
 	my $r = ref($input) ? $input : \$input;
 	
