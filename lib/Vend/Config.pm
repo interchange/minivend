@@ -376,6 +376,7 @@ sub catalog_directives {
 	['SessionDatabase',  'relative_dir',     'session'],
 	['SessionLockFile',  undef,     		 'etc/session.lock'],
 	['DatabaseDefault',  'hash',	     	 ''],
+	['DatabaseAuto',	 'dbauto',	     	 ''],
 	['Database',  		 'database',     	 ''],
 	['Autoload',		 undef,		     	 ''],
 	['AutoEnd',			 undef,		     	 ''],
@@ -2907,6 +2908,19 @@ sub parse_config_db {
 
 	return $d;
 	
+}
+
+sub parse_dbauto {
+	my ($var, $value) = @_;
+	return '' unless $value;
+	my @inc = Vend::Table::DBI::auto_config($value);
+	my %noed;
+	for(@inc) {
+		my ($t, $thing) = @$_;
+		parse_boolean('NoImport', $t) unless $noed{$t}++;
+		parse_database('Database', "$t $thing");
+	}
+	return 1;
 }
 
 sub parse_database {

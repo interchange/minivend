@@ -1852,6 +1852,50 @@ eval {
 	return wantarray ? ($ref, \%nh, \@na) : $ref;
 }
 
+sub auto_config {
+	my $string = shift;
+	my ($dsn, $user, $pass) = Text::ParseWords::shellwords($string);
+	my $handle = DBI->connect($dsn, $user, $pass)
+		or ::logDebug(errmsg("DatabaseAuto DSN '%s' does not connect.", $dsn));
+	my $schema;
+	my @tabs;
+	my @out;
+	eval {
+		require DBIx::DBSchema;
+		$schema = new_native DBIx::DBSchema $handle;
+	};
+
+	my $sth;
+	eval {
+		$sth = $handle->table_info()
+			or die "Table info not enabled for this driver.\n";
+		while(my $ref = $sth->fetchrow_arrayref) {
+			next unless $ref->[3] eq 'TABLE';
+			push @tabs, $ref->[2];
+		}
+	};
+
+	my %found;
+	return undef unless @tabs;
+	for my $t (@tabs) {
+		$found{$t} = 1;
+		push @out, [$t, "$t.txt $dsn"];
+		push @out, [$t, "USER $user"] if $user;
+		push @out, [$t, "PASS $pass"] if $pass;
+	}
+
+	if($schema) {
+		for my $create ($schema->sql($handle)) {
+			$create =~ /^CREATE\s+TABLE\s+(\w+)\s+/
+				or next;
+			my $t = $1;
+			next unless $found{$t};
+			push @out, [ $t, "CREATE_SQL $create"];
+		}
+	}
+	return @out;
+}
+
 *reset = \&Vend::Table::Common::reset;
 *autonumber = \&Vend::Table::Common::autonumber;
 
