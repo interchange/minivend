@@ -3336,7 +3336,6 @@ mv_range_look            mv_range_look
 mv_range_max             mv_range_max
 mv_range_min             mv_range_min
 mv_raw_dict_look         mv_raw_dict_look
-mv_raw_searchspec        mv_raw_searchspec
 mv_record_delim          mv_record_delim
 mv_return_all            mv_return_all
 mv_return_delim          mv_return_delim
