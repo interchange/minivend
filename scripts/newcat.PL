@@ -25,8 +25,6 @@ if(! $MV::Self ) {
 
 eval 'exec $Config{perlpath} -S \$0 \${1+"\$@"}'
     if 0; # not running under some shell
-    [catalogname] must contain alphanumerics and hyphens only.
-
 EOF
 	$Special{perlpath} =~ s/\s+$//;
 }
