@@ -3284,7 +3284,6 @@ sub labeled_list {
 		$r = iterate_hash_list($i, $end, $count, $text, $ary, $opt_select);
 	}
 	else {
-		my $fa;
 		my $fa = $obj->{mv_return_fields} || undef;
 		my $fh = $obj->{mv_field_hash}    || undef;
 		my $fn = $obj->{mv_field_names}   || undef;
@@ -4562,7 +4561,7 @@ sub tag_column {
 	my(@out)	= ();
 	my(@lines)	= ();
 	
-	$spec =~ s/\n/\s/g;
+	$spec =~ s/\n/ /g;
 	$spec =~ s/^\s+//;
 	$spec =~ s/\s+$//;
 	$spec = lc $spec;
