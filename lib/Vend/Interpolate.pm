@@ -5903,7 +5903,7 @@ sub timed_build {
 	}
 
     $file = Vend::Util::escape_chars($file);
-    if($Global::NoAbsolute and (file_name_is_absolute($file) or $file =~ m#\.\./.*\.\.#)) {
+    if(!$opt->{auto} and $Global::NoAbsolute and (file_name_is_absolute($file) or $file =~ m#\.\./.*\.\.#)) {
 	::logError("Can't use file '%s' with NoAbsolute set", $file);
 	::logGlobal({ level => 'auth'}, "Can't use file '%s' with NoAbsolute set", $file);
 	return '';
