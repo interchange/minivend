@@ -3784,7 +3784,7 @@ sub parse_subroutine {
 	}
 
 #::logDebug("Parsing subroutine/variable (C=$C) $var=$name");
-	config_error("Bad $var '$name'") if $@;
+	config_error("Bad $var '$name': $@") if $@;
 #::logDebug("Parsed subroutine/variable $var=$name code=$c->{$name}") unless $C;
 	return $c;
 }
