@@ -144,6 +144,9 @@ $Global::SendMailLocation = ($Global::Windows and $Global::SendMailLocation) ||
 
 BEGIN {
 	$Global::GDBM = $Global::DB_File =
+# LDAP
+	$Global::LDAP =
+# END LDAP
 # SQL
 	$Global::DBI =
 # END SQL
@@ -156,6 +159,12 @@ BEGIN {
 			require DBI and $Global::DBI = 1
 	};
 # END SQL
+# LDAP
+	eval {
+		die if $ENV{MINIVEND_NOLDAP};
+		require Net::LDAP and $Global::LDAP = 1
+	};
+# END LDAP
 
 	# Now can use any type of database
 	AUTO: {
