@@ -258,10 +258,10 @@ sub round_to_frac_digits {
 		$digits = 2;
 	}
 	my @frac;
-	$num =~ /^(\d*)\.(\d+)$/
+	$num =~ /^(\d*)(?:\.(\d+))*$/
 		or return $num;
 	my $int = $1;
-	@frac = split //, $2;
+	@frac = split(//, ($2 || 0));
 	local($^W) = 0;
 	my $frac = join "", @frac[0 .. $digits - 1];
 	if($frac[$digits] > 4) {
