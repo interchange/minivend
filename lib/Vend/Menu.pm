@@ -474,6 +474,10 @@ sub old_simple {
 		Vend::Tags->loop(undef,$opt,'');
 		reset_transforms();
 		my $list = $opt->{object}{mv_results};
+		if(@$list and my $fn = $opt->{object}{mv_field_names}) {
+			push @$fn, 'mv_last_row';
+			$list->[-1][$#$fn] = 1;
+		}
 		$main = '';
 		for(@$list) {
 			$main .= menu_link($template, $_, $opt);
@@ -584,6 +588,8 @@ EOF
 		}
 		$rows = \@o;
 	}
+
+	$rows->[-1]{mv_last_row} = 1 if @$rows;
 
 	# Prevent possibility of memory leak, reset last_line/first_line
 	reset_transforms();
@@ -925,6 +931,8 @@ EOF
 		}
 		$rows = \@o;
 	}
+
+	$rows->[-1]{mv_last_row} = 1 if @$rows;
 
 	my $openvar = $opt->{open_variable} || 'open';
 
