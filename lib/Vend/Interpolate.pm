@@ -1135,6 +1135,12 @@ sub tag_data {
 					$val =~ s/\0/\\0/g;
 					return $val;
 				},
+
+	loc => sub {
+					my $val = shift;
+					return ::errmsg($val);
+				},
+	
 	);
 
 $Filter{upper} = $Filter{uc};
