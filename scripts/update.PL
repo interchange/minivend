@@ -198,7 +198,7 @@ elsif (!defined $Inputfile and ! @Fields and !@Values) {
 
 my($name,$dir,$param,$subcat,$subconfig);
 chdir $Global::VendRoot;
-open(GLOBAL, $Global::ConfigFile) or
+open(GLOBAL, "< $Global::ConfigFile") or
     die "No global configuration file? Aborting.\n";
 while(<GLOBAL>) {
     next unless /^\s*(sub)?catalog\s+$Catalog\s+/i;
@@ -265,7 +265,7 @@ print "setting ${Name}::${field}::$Key=$val\n";
 	}
 }
 else {
-	open INPUT, $Inputfile or die "Couldn't open input file $Inputfile: $!\n";
+	open (INPUT, "< $Inputfile") or die "Couldn't open input file $Inputfile: $!\n";
 	while(<INPUT>) {
 		chomp;
 		s/[\r\cZ]+//;

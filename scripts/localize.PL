@@ -140,7 +140,7 @@ Vend::Config::setcat($C);
 if(! $opt_m) {
 	# do nothing
 }
-elsif ( open(CONFIG, $opt_m) ) {
+elsif ( open(CONFIG, "< $opt_m") ) {
 	my $value;
 	while (<CONFIG>) {
 		chomp;

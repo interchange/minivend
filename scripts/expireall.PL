@@ -82,7 +82,7 @@ PARSECFG: {
 	my $file;
 	my @cfglines;
 
-	open(MVCFG, $Configfile) or die "Couldn't read $Configfile: $!\n";
+	open(MVCFG, "< $Configfile") or die "Couldn't read $Configfile: $!\n";
 	while(<MVCFG>) { push(@cfglines, $_) if /^\s*catalog\s+/i }
 	close MVCFG;
 

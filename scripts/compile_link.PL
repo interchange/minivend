@@ -206,7 +206,7 @@ foreach my $targ (@edit_files) {
 	my $src = "$targ.tmp";
 	rename $targ, $src
 		or die "Couldn't rename $targ to $src: $!\n";
-	open (IN, $src)
+	open (IN, "< $src")
 		or die "Couldn't read $src: $!\n";
 	open (OUT, ">$targ")
 		or die "Couldn't write $targ: $!\n";

@@ -87,7 +87,7 @@ sub get_id {
 	@files = ("$Global::VendRoot/.uid", "$Global::VendRoot/_uid"); 
 	my $uid;
 	for(@files) {
-		open(UID, $_) or next;
+		open(UID, "< $_") or next;
 		$uid = <UID>;
 		chomp($uid);
 		last;
