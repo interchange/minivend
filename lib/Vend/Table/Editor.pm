@@ -1718,6 +1718,7 @@ show_times("begin table editor call item_id=$key") if $Global::ShowTimes;
 	my $data;
 	my $exists;
 	my $db;
+	my $multikey;
 
 	## Try and sneak a peek at the data so we can determine views and
 	## maybe some other stuff -- we definitely need table/key or a 
@@ -1729,7 +1730,8 @@ show_times("begin table editor call item_id=$key") if $Global::ShowTimes;
 		$db = database_exists_ref($tab);
 
 		if($db) {
-			if($db->config('COMPOSITE_KEY') and $key !~ /\0/) {
+			$multikey = $db->config('COMPOSITE_KEY');
+			if($multikey and $key !~ /\0/) {
 				$key =~ s/-_NULL_-/\0/g;
 			}
 			if($opt->{ui_clone_id} and $db->record_exists($opt->{ui_clone_id})) {
@@ -1738,6 +1740,16 @@ show_times("begin table editor call item_id=$key") if $Global::ShowTimes;
 			elsif ($key and $db->record_exists($key)) {
 				$data = $db->row_hash($key);
 				$exists = 1;
+			}
+			
+			if(! $exists and $multikey) {
+				$data = {};
+				eval { 
+					my @inits = split /\0/, $key;
+					for(@{$db->config('_Key_columns')}) {
+						$data->{$_} = shift @inits;
+					}
+				};
 			}
 		}
 	}
@@ -2043,7 +2055,7 @@ EOF
 
 	my $key_message;
 	if($opt->{ui_new_item} and ! $opt->{notable}) {
-		if( ! $db->config('_Auto_number') and ! $db->config('AUTO_SEQUENCE') ) {
+		if( ! $db->config('_Auto_number') and ! $db->config('AUTO_SEQUENCE')) {
 			$db->config('AUTO_NUMBER', '000001');
 			$key = $db->autonumber($key);
 		}
