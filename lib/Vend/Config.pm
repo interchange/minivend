@@ -127,7 +127,6 @@ qw/
         PriceField
 		SalesTax
         SpecialPageDir
-		StaticPath
 		TaxShipping
 
 /   );
@@ -499,7 +498,7 @@ sub catalog_directives {
 	['NonTaxableField',  undef,     	     ''],
 	['CyberCash',	 	 'warn',     	     ''],
 	['CreditCardAuto',	 'yesno',     	     'No'],
-	['NoCache',	     	 'boolean',    	     ''],
+	['NoCache',	     	 'warn',    	     ''],
 	['ClearCache',	     'yesno',     	     'No'],
 	['FormIgnore',	     'boolean',    	     ''],
 	['EncryptProgram',	 undef,     	     $Global::EncryptProgram || ''],
@@ -509,16 +508,13 @@ sub catalog_directives {
 	['TrackPageParam',	 'hash',     	     ''],
 	['SalesTax',		 undef,     	     ''],
 	['SalesTaxFunction', undef,     	     ''],
-	['StaticDBM',  	 	 undef,     	     ''],
-	['Static',   	 	 'yesno',     	     'No'],
-	['StaticAll',		 'yesno',     	     'No'],
-	['StaticDepth',		 undef,     	     '1'],
-	['StaticFly',		 'yesno',     	     'No'],
-	['StaticLogged',	 'yesno',     	     'No'],
+	['StaticDBM',  	 	 'warn',     	     ''],
+	['Static',   	 	 'warn',     	     ''],
+	['StaticAll',		 'warn',     	     ''],
+	['StaticDepth',		 'warn',     	     ''],
+	['StaticFly',		 'warn',     	     ''],
+	['StaticLogged',	 'warn',     	     ''],
 	['StaticDir',		 undef,     	     ''],
-	['StaticIndex',		 undef,     	     ''], 					  
-	['StaticSessionDefault',	 'hash',     ''],
-	['StaticTrack',		 undef,     	     ''],
 	['SOAP',			 'yesno',			 'No'],
 	['SOAP_Enable',		 'hash',			 ''],
 	['SOAP_Action',		 'action',			 ''],				   
@@ -527,10 +523,10 @@ sub catalog_directives {
 	['UserDatabase',	 undef,		     	 ''],  #undocumented
 	['RobotLimit',		 'integer',		      0],
 	['OrderLineLimit',	 'integer',		      0],
-	['StaticPage',		 'boolean',     	     ''],
-	['StaticPath',		 undef,     	     '/'],
-	['StaticPattern',	 'regex',     	     ''],
-	['StaticSuffix',	 undef,     	     '.html'],
+	['StaticPage',		 'warn',     	     ''],
+	['StaticPath',		 'warn',     	     ''],
+	['StaticPattern',	 'warn',     	     ''],
+	['StaticSuffix',	 'warn',     	     ''],
 	['HTMLsuffix',	     undef,     	     '.html'],
 	['CustomShipping',	 undef,     	     ''],
 	['DefaultShipping',	 undef,     	     'default'],
