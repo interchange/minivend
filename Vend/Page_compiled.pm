@@ -1,6 +1,6 @@
 # Page_compiled.pm:  compiles and processes pages and placeholders
 #
-# $Id: Page_compiled.pm,v 1.13 1996/02/26 21:39:21 amw Exp $
+# $Id: Page_compiled.pm,v 1.14 1996/03/12 16:15:36 amw Exp $
 #
 package Vend::Page_compiled;
 
@@ -40,43 +40,20 @@ use Vend::Uneval;
 
 my $Maximum_variable_name_length = 80;
 
-
-## Safe filenames
-
-my $Ok_in_filename = 
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789:-_.$';
 my $Ok_in_varname =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 my $Ok_first_letter =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
-my (@Translate_to_filename, @Translate_to_varname);
+my (@Translate_to_varname);
 
-sub setup {
+{
     my ($i, $h);
 
     foreach $i (0..255) {
         $h = sprintf("%02X", $i);
-        $Translate_to_filename[$i] = '%' . $h;
         $Translate_to_varname[$i] = '_' . $h;
     }
-}
-setup();
-
-sub escape_to_filename {
-    my ($str) = @_;
-
-    $str =~ s/([^\Q$Ok_in_filename\E])/$Translate_to_filename[ord($1)]/geo;
-    # untaint since safe now
-    $str =~ m/(.*)/;
-    $1;
-}
-
-sub unescape_from_filename {
-    my ($filename) = @_;
-
-    $filename =~ s/%(..)/chr(hex($1))/ge;
-    $filename;
 }
 
 sub escape_to_varname {
@@ -99,63 +76,6 @@ sub unescape_from_varname {
 
 
 my %Page_subname;
-my %Page_changed_date;
-
-# Map a page name to a filename.  Handle .. by dropping the previous
-# element of the pathname.  (A .. that would reference something outside
-# the page directory is silently ignored.)  Dangerous characters in the
-# page name are escaped.
-
-sub name_to_filename {
-    my ($name) = @_;
-
-    my ($elem, @nelem);
-    foreach $elem (split(/\//, $name)) {
-        if ($elem eq '..') {
-            pop @nelem;
-        }
-        elsif ($elem eq '') {}
-        else {
-            push @nelem, escape_to_filename($elem);
-        }
-    }
-
-    return undef unless @nelem;
-    return Page_directory . "/" . join('/', @nelem) . Html_extension;
-}
-
-
-# Map from a filename back to the page name.
-
-sub filename_to_name {
-    my ($name) = @_;
-
-    my $html = Html_extension;
-    ($name =~ s/\Q$html\E$//o) or return undef;
-    return join('/', map(unescape_from_filename($_), split(/\//, $name)));
-}
-
-
-# Reads in a page from the page directory.  Returns the entire
-# contents of the page, or undef if the file could not be read.
-
-sub readin_page {
-    my ($name) = @_;
-    local($/, $.);
-
-    my $fn = name_to_filename($name);
-    my $contents;
-    if (open(Vend::Page::IN, $fn)) {
-        $Page_changed_date{$name} = (stat(Vend::Page::IN))[9];
-	undef $/;
-	$contents = <Vend::Page::IN>;
-	close(Vend::Page::IN);
-    } else {
-	$contents = undef;
-    }
-    ($fn, $contents);
-}
-
 
 # Returns the sub name for the page, or undef if this
 # page does not exist.
@@ -195,59 +115,6 @@ sub page_code {
     return \&{$subname};
 }
 
-sub page_changed_date {
-    my ($pagename) = @_;
-    $Page_changed_date{$pagename};
-}
-
-sub file_type {
-    my ($original_fn) = @_;
-    my $fn = $original_fn;
-    my ($m, $link, $i);
-
-    my $i;
-    while (-l $fn) {
-        die "Too many symbolic links for '$original_fn'\n" if ++$i > 20;
-        $link = readlink($fn);
-        if (not defined $link) {
-            $m = "Could not read symbolic link '$fn'";
-            $m .= " (pointed to by '$original_fn')" if $fn ne $original_fn;
-            die "$m: $!\n";
-        }
-        $fn = $link;
-    }
-
-    if    (-d _) { return 'd'; }
-    elsif (-f _) { return 'f'; }
-    else         { return ''; }
-}
-
-
-## For testing, load in all pages.
-
-sub recurse_pages {
-    my ($base, $callback, $dir) = @_;
-    my ($fn, $name, $t);
-    local (*Vend::Page::DIR);
-
-    my $d = (defined $dir ? "$base/$dir" : $base);
-    opendir(Vend::Page::DIR, $d) or die "Could not read directory '$d': $!\n";
-    while ($fn = readdir(Vend::Page::DIR)) {
-        next if $fn =~ m/^\./;
-        $t = file_type("$d/$fn");
-        if ($t eq 'd') {
-            recurse_pages($base, $callback, (defined $dir ? "$dir/$fn" : $fn));
-        }
-        elsif ($t eq 'f') {
-            $name = filename_to_name(defined $dir ? "$dir/$fn" : $fn);
-            next unless defined $name;
-            &$callback("$d/$fn", $name) if defined $name;
-            # (defined $dir ? "$base/$dir/$fn" : "$base/$fn")
-        }
-    }
-    closedir(Vend::Page::DIR);
-}
-
 sub test_page {
     my ($fn, $name) = @_;
 
@@ -258,7 +125,7 @@ sub test_page {
 
 sub test_pages {
     print "Testing pages:\n";
-    recurse_pages(Page_directory, \&test_page);
+    page_iterate(\&test_page);
 }
 
 

@@ -1,6 +1,6 @@
 # Dispatch.pm: dispatch URL to page or handler
 #
-# $Id: Dispatch.pm,v 1.11 1996/02/26 21:28:31 amw Exp $
+# $Id: Dispatch.pm,v 1.12 1996/03/12 16:08:13 amw Exp $
 #
 package Vend::Dispatch;
 
@@ -31,12 +31,15 @@ require Vend::Http;
 use Vend::Page;
 use Vend::Session;
 use Vend::Uneval;
+use Vend::Util qw(append_field_data);
 
 my $Config;
 
-sub Display_errors { $Config->{'Display_errors'} }
-sub Dump_request   { $Config->{'Dump_request'} }
-sub Page_URL       { $Config->{'Page_URL'} }
+sub Display_errors         { $Config->{'Display_errors'} }
+sub Dump_request           { $Config->{'Dump_request'} }
+sub New_session_log_file   { $Config->{'New_session_log_file'} }
+sub New_session_log_format { $Config->{'New_session_log_format'} }
+sub Page_URL               { $Config->{'Page_URL'} }
 
 sub configure {
     my ($class, $config) = @_;
@@ -164,10 +167,20 @@ sub dispatch {
     $request_path = '' unless defined $request_path;
     my $request_session_id = $sessionid = $args->{se};
 
+    my $host = cgi_host();
+    my $user = cgi_user();
+
     if (defined $sessionid && $sessionid ne '') {
-        open_session($sessionid, cgi_host(), cgi_user());
+        open_session($sessionid, $host, $user);
     } else {
-        new_session(cgi_host(), cgi_user());
+        new_session($host, $user);
+        if (New_session_log_file) {
+            append_field_data(New_session_log_file,
+                              New_session_log_format,
+                              scalar localtime(),
+                              $host,
+                              $user);
+        }
     }
 
     my $initial_session = Session;
@@ -208,8 +221,7 @@ sub dispatch {
 
     my $report = '';
     if ($problem or Dump_request) {
-        $report = show_date() . show_initial_session($initial_session)
-                  . show_request($request_path, $request_session_id);
+        $report = show_date();
     }
 
     if ($problem) {
@@ -224,6 +236,11 @@ sub dispatch {
 
         $report .= $abort_message if $abort_message;
         print $abort_message if $debug and $abort_message;
+    }
+
+    if ($problem or Dump_request) {
+        $report .= show_initial_session($initial_session)
+                   . show_request($request_path, $request_session_id);
     }
 
     if (Dump_request and not $eval_error) {
@@ -421,7 +438,7 @@ sub _display_page {
 
     $name =~ s,^/?,/,;
     $Current_page = $name;
-    http()->respond("text/html", read_page($name));
+    http()->respond("text/html", imprint_page($name));
 }
 
 sub display_special_page {

@@ -1,6 +1,6 @@
 # setup: sets up a Vend storefront.
 #
-# $Id: setup,v 1.25 1996/02/26 22:22:34 amw Exp $
+# $Id: setup,v 1.27 1996/03/12 16:46:08 amw Exp $
 #
 # Copyright 1996 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -18,12 +18,21 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-my $Version = "0.3.6";
+my $Version = "0.3.7";
 
 use Getopt::Long;
 use strict;
 
-my $vend_lib = $ENV{'VENDLIB'} || '/usr/local/lib/vend';
+my $vend_lib;
+
+if (defined $ENV{'VENDLIB'}) {
+    $vend_lib = $ENV{'VENDLIB'};
+}
+else {
+    $vend_lib = $0;
+    $vend_lib =~ s,/[^/]+$,, or undef $vend_lib;
+}
+
 my $config = $ENV{'VENDCFG'} || 'vend.cfg';
 
 unless (GetOptions qw(help config=s vend=s version)) {
@@ -44,11 +53,26 @@ if ($main::opt_help) {
 $vend_lib = $main::opt_vend if defined $main::opt_vend;
 $config = $main::opt_config if defined $main::opt_config;
 
+if (defined $vend_lib and ! -e "$vend_lib/Vend/Setup.pm") {
+    print <<"END";
+'$vend_lib' doesn't appear to be the location of the Vend library
+(since I don't see $vend_lib/Vend/Setup.pm, for example).
+END
+    undef $vend_lib;
+}
+
+unless (defined $vend_lib) {
+    print <<'END';
+Please specify the location of the Vend library with the --vend option,
+like this:  setup --vend=/usr/local/lib/vend
+END
+}
+
 push @INC, $vend_lib;
 require Vend::Setup;
 Vend::Setup->import();
 
-print "reading $config\n";
+print "Reading $config\n";
 require $config;
 
 setup_modules();

@@ -1,6 +1,6 @@
 # Page_simple.pm: simple substitution of placeholders in pages
 #
-# $Id: Page_simple.pm,v 1.1 1996/02/26 21:41:18 amw Exp $
+# $Id: Page_simple.pm,v 1.2 1996/03/12 16:13:24 amw Exp $
 #
 package Vend::Page;
 
@@ -43,89 +43,16 @@ sub really_configure {
     $Config = $config;
 }
 
-my $Ok_in_filename = 
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789:-_.$';
-my (@Translate_to_filename);
 
-{
-    my ($i);
-    foreach $i (0..255) {
-        $Translate_to_filename[$i] = '%' . sprintf("%02X", $i);
-    }
-}
-
-sub escape_to_filename {
-    my ($str) = @_;
-
-    $str =~ s/([^\Q$Ok_in_filename\E])/$Translate_to_filename[ord($1)]/geo;
-    # untaint since safe now
-    $str =~ m/(.*)/;
-    $1;
-}
-
-sub unescape_from_filename {
-    my ($filename) = @_;
-
-    $filename =~ s/%(..)/chr(hex($1))/ge;
-    $filename;
-}
-
-# Map a page name to a filename.  Handle '..' by dropping the previous
-# element of the pathname.  (A '..' that would reference something outside
-# the page directory is silently ignored.)  Dangerous characters in the
-# page name are escaped.
-
-sub name_to_filename {
-    my ($name) = @_;
-
-    my ($elem, @nelem);
-    foreach $elem (split(/\//, $name)) {
-        if ($elem eq '..') {
-            pop @nelem;
-        }
-        elsif ($elem eq '') {}
-        else {
-            push @nelem, escape_to_filename($elem);
-        }
-    }
-
-    # return undef unless @nelem;
-
-    my $base = Page_directory . "/" . join('/', @nelem);
-    $base .= '/' . Welcome_pagename if -d $base;
-    return $base . Html_extension;
-}
-
-
-# Reads in a page from the page directory.  Returns the entire
-# contents of the page, or undef if the file could not be read.
-
-sub readin_page {
-    my ($name) = @_;
-    local($/, $.);
-
-    my $fn = name_to_filename($name);
-    my $contents;
-    if (open(IN, $fn)) {
-        # $Page_changed_date{$name} = (stat(Vend::Page::IN))[9];
-	undef $/;
-	$contents = <IN>;
-	close(IN);
-    } else {
-	$contents = undef;
-    }
-    ($fn, $contents);
-}
-
-
-my %Placeholders;
+my (%Placeholders, %N_args);
 
 sub define_placeholder {
     my ($template, $coderef) = @_;
-    my ($ph_name) = ($template =~ m#^ \[ ([/\w\-]+) #x);
+    my ($ph_name, @args) = ($template =~ m,([/\w\-]+),g);
     die "Couldn't parse placeholder name out of '$template'"
         unless defined $ph_name;
     $Placeholders{$ph_name} = $coderef;
+    $N_args{$ph_name} = @args;
 }
 
 sub page_exists {
@@ -139,6 +66,7 @@ sub page_code {
     return undef unless -f name_to_filename($pagename);
     return sub { read_page($pagename) };
 }
+
 
 
 # sub read_page {
@@ -157,11 +85,29 @@ sub page_code {
 
 my ($Filename, $Text);
 
-sub read_page {
+sub imprint_page {
     my ($page_name) = @_;
 
+    return substitute_placeholders($page_name, \&fill_in_placeholder);
+}
+
+
+sub strip_page {
+    my ($page_name) = @_;
+
+    return substitute_placeholders($page_name, \&empty_string);
+}
+
+sub empty_string {
+    return '';
+}
+
+
+sub substitute_placeholders {
+    my ($page_name, $process_placeholder) = @_;
+
     ($Filename, $Text) = readin_page($page_name);
-    die "Couldn't read page '$page_name'\n" unless defined $Filename;
+    die "Couldn't read page '$page_name'\n" unless defined $Text;
 
     my $p;
     my $value = '';
@@ -176,7 +122,7 @@ sub read_page {
 
         pos($Text) = $p;         # reset search, since last match failed
         # is it a "\" ?
-        if ($Text =~ m/\G (\\[.\n]?) /gmx) {
+        if ($Text =~ m/\G \\ ([\000-\377]?) /gmx) {
             $value .= $1;
             next;
         }
@@ -189,7 +135,7 @@ sub read_page {
             $p = pos($Text);
             if ($Text =~ m!\G [ \t]* (/?[\w\.\-\_]+) [ \t]* ([^\n\]]*) \] !gmx) {
                 # whew
-                $value .= ph($1, $2, $p - 1);
+                $value .= &$process_placeholder($1, $2, $p - 1);
                 next;
             }
             else {
@@ -203,14 +149,20 @@ sub read_page {
 }
 
 
-sub ph {
+sub fill_in_placeholder {
     my ($name, $arguments, $pos) = @_;
 
     my $coderef = $Placeholders{$name};
     parse_error("Undefined placeholder '$name'", $pos)
         unless defined $coderef;
 
-    return &$coderef(split(/\s+/, $arguments));
+    my $n = $N_args{$name};
+    my @args = split(/\s+/, $arguments);
+    parse_error("The '$name' placeholder takes $n argument" .
+                  ($n == 1 ? '' : 's'),
+                $pos)
+        unless @args == $n;
+    return &$coderef(@args);
 }
 
 

@@ -1,6 +1,6 @@
 # Table/GDBM.pm: access a table stored in a GDBM file
 #
-# $Id: GDBM.pm,v 1.6 1996/02/26 22:06:01 amw Exp $
+# $Id: GDBM.pm,v 1.7 1996/03/12 16:16:49 amw Exp $
 #
 package Vend::Table::GDBM;
 
@@ -55,10 +55,20 @@ sub unstuff {
 my ($FILENAME, $COLUMN_NAMES, $COLUMN_INDEX, $TIE_HASH, $DBM) = (0 .. 4);
 
 sub create_table {
-    my ($class, $config, $filename, $columns, ) = @_;
+    my ($class, $config, $filename, $columns) = @_;
+
+    return $class->create($columns, $filename, $config);
+}
+
+sub create {
+    my ($class, $columns, $filename, $config) = @_;
+
+    $config = {} unless defined $config;
     my ($File_permission_mode, $Fast_write)
         = @$config{'File_permission_mode', 'Fast_write'};
     $File_permission_mode = 0666 unless defined $File_permission_mode;
+    $Fast_write = 1 unless defined $Fast_write;
+
     croak "columns argument $columns is not an array ref\n"
         unless ref($columns) eq 'ARRAY';
 

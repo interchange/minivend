@@ -1,6 +1,6 @@
 # Table/Import.pm: import a table
 #
-# $Id: Import.pm,v 1.3 1996/01/30 23:30:10 amw Exp $
+# $Id: Import.pm,v 1.4 1996/03/12 16:18:52 amw Exp $
 #
 package Vend::Table::Import;
 
@@ -22,9 +22,44 @@ package Vend::Table::Import;
 
 require Exporter;
 @ISA = qw(Exporter);
-@EXPORT = qw(import_ascii_delimited);
+@EXPORT_OK = qw(import_csv import_quoted import_ascii_delimited);
 
 use strict;
+use Vend::Table::Quoted qw(read_quoted_fields);
+use Vend::Util;
+
+sub import_csv {
+    my ($source, $table_class, $table_file, $force, @options) = @_;
+
+    die "The source file '$source' does not exist\n" unless -e $source;
+
+    my $import = $force;
+    $import = 1 unless $import or -e $table_file;
+    $import = 1 unless $import or file_modification_time($source) <=
+                                  file_modification_time($table_file);
+    return unless $import;
+
+    print "Importing product table '$source'\n";
+    open(IN, $source) or die "Can't open '$source' for reading: $!\n";
+    my @columns = read_quoted_fields(\*IN);
+    die "$source is empty\n" unless @columns;
+    shift @columns;
+
+    my $new_table_file = "$table_file.new";
+    my $db = $table_class->create([@columns], $new_table_file, @options);
+    my @fields;
+    while (@fields = read_quoted_fields(\*IN)) {
+        $db->set_row(@fields);
+    }
+    close(IN);
+    $db->close_table();
+
+    rename($new_table_file, $table_file)
+        or die "Can't move '$new_table_file' to '$table_file': $!\n";
+}
+
+sub import_quoted { return import_csv(@_) }
+
 
 sub import_ascii_delimited {
     my ($infile, $delimiter, $create) = @_;

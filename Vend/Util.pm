@@ -1,10 +1,11 @@
-# $Id: Util.pm,v 1.7 1996/02/26 22:06:51 amw Exp $
+# $Id: Util.pm,v 1.8 1996/03/12 16:19:34 amw Exp $
 
 package Vend::Util;
 require Exporter;
 @ISA = qw(Exporter);
 @EXPORT = qw(combine blank wrap fill_table file_modification_time);
-@EXPORT_OK = qw(random_string);
+@EXPORT_OK = qw(append_field_data append_to_file csv field_line random_string
+                tabbed);
 
 use strict;
 
@@ -171,4 +172,65 @@ sub file_modification_time {
     return $s[9];
 }
 
+
+# Returns its arguments as a string of tab-separated fields.  Tabs in the
+# argument values are converted to spaces.
+
+sub tabbed {        
+    return join("\t", map { $_ = '' unless defined $_;
+                            s/\t/ /g;
+                            $_;
+                          } @_);
+}
+
+
+# Returns its arguments as a string of comma separated and quoted
+# fields.  Double quotes in the argument values are converted to
+# two double quotes.
+
+sub csv {
+    return join(',', map { $_ = '' unless defined $_;
+                           s/\"/\"\"/g;
+                           '"'. $_ .'"';
+                         } @_);
+}
+
+
+# Appends the string $value to the end of $filename.  The file is opened
+# in append mode, and the string is written in a single system write
+# operation, so this function is safe in a multiuser environment even
+# without locking.
+
+sub append_to_file {
+    my ($filename, $value) = @_;
+
+    open(OUT, ">>$filename") or die "Can't append to '$filename': $!\n";
+    syswrite(OUT, $value, length($value))
+        == length($value) or die "Can't write to '$filename': $!\n";
+    close(OUT);
+}
+
+# Converts the passed field values into a single line in Ascii delimited
+# format.  Two formats are available, selected by $format:
+# "comma_separated_values" and "tab_separated".
+
+sub field_line {
+    my $format = shift;
+
+    return csv(@_) . "\n"    if $format eq 'comma_separated_values';
+    return tabbed(@_) . "\n" if $format eq 'tab_separated';
+
+    die "Unknown format: $format\n";
+}
+
+# Appends the passed field values onto the end of $filename in a single
+# system operation.
+
+sub append_field_data {
+    my $filename = shift;
+    my $format = shift;
+
+    append_to_file($filename, field_line($format, @_));
+}
+    
 1;

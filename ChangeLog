@@ -1,3 +1,50 @@
+Tue Mar 12 16:46:13 1996  Andrew Wilcox  <awilcox@world.std.com>
+
+    * Vend/Startup.pm, setup: Version 0.3.7.
+
+    * setup: Look in program path for the Vend library.
+
+    * Vend/Swish_search.pm, Vend/Strip.pm, Vend/Attribute.pm: Initial revision
+
+    * Vend/Util.pm:
+    (tabbed, csv, append_to_file, field_line, append_field_data):
+      new functions.
+
+    * Vend/Table/Import.pm (import_csv): new function.
+
+    * Vend/Table/GDBM.pm (create):
+    New static method has arguments in same order as InMemory.
+
+    * Vend/Page_compiled.pm:
+    Move escape_to_filename(), unescape_from_filename(),
+      name_to_filename(), filename_to_name(), readin_page(),
+      page_changed_date(), file_type(), recurse_pages() to Page.pm.
+    (test_pages): Use page_iterate().
+
+    * Vend/Page_simple.pm:
+    (escape_to_filename, unescape_from_filename, name_to_filename,
+     readin_page):
+      Moved to Page.pm.
+    (define_placeholder): remember number of arguments to placeholder
+    Rename read_page() to imprint_page().
+    (strip_page): new function.
+    (substitute_placeholder): fix backslash handling.
+    (fill_in_placeholder): check for number of arguments.
+
+    * Vend/Page.pm:
+    (escape_to_filename, unescape_from_filename, name_to_filename,
+     filename_to_name, readin_page, page_changed_date,
+     follow_symbolic_links, page_iterate, recurse_pages):
+      Moved here from Page_simple.pm and Page_compiled.pm.
+
+    * Vend/Dispatch.pm: (dispatch):
+      Log new sessions to New_session_log_file if defined.
+      Show error messages before dump of initial session and request.
+
+    * Vend/Shopcart.pm:
+    (configure_fields, All_fields, Required_fields, Required_desc):
+      new functions.
+
 Mon Feb 26 22:29:18 1996  Andrew Wilcox  <awilcox@world.std.com>
 
     * setup: Version 0.3.6.

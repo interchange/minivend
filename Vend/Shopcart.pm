@@ -1,6 +1,6 @@
 # Shopcart.pm: utility functions for the shopping cart
 #
-# $Id: Shopcart.pm,v 1.3 1996/02/26 22:01:39 amw Exp $
+# $Id: Shopcart.pm,v 1.4 1996/03/12 16:06:26 amw Exp $
 #
 package Vend::Shopcart;
 
@@ -22,10 +22,16 @@ package Vend::Shopcart;
 
 require Exporter;
 @ISA = qw(Exporter);
-@EXPORT_OK = qw(Shoplist cent_round currency create_table_placeholders
-                order_number option_list option_list_selected
-                add_url_ph shoplist_index_of
-                save_field_values);
+@EXPORT_OK =
+    qw(All_fields
+       configure_fields
+       Required_desc
+       Required_fields
+       Shoplist cent_round currency create_table_placeholders
+       order_number option_list option_list_selected
+       add_url_ph shoplist_index_of
+       save_field_values
+       );
 
 use strict;
 use Vend::Application;
@@ -35,6 +41,33 @@ use Vend::Form;
 use Vend::lock;
 use Vend::Page;
 use Vend::Session;
+
+# These are the fields on the checkout page.  The %Required_desc contains
+# the description to give the customer if they don't fill in that required
+# field.
+my @All_fields;       sub All_fields      { @All_fields }
+my @Required_fields;  sub Required_fields { @Required_fields }
+my $Required_desc;    sub Required_desc   { $Required_desc }
+
+
+sub configure_fields {
+    my ($config) = @_;
+
+    # iterate through the checkout page fields, saving their descriptions
+    my @fields = @{$config->{'Fields'}};
+    $Required_desc = {};
+    my ($name, $required);
+    while (@fields) {
+        $name = shift @fields;
+        $required = shift @fields;
+        push @All_fields, $name;
+        if (defined $required) {
+            push @Required_fields, $name;
+            $Required_desc->{$name} = $required;
+        }
+    }
+}
+
 
 =head2 C<Shoplist()>
 
