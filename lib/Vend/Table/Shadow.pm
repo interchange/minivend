@@ -238,8 +238,12 @@ sub each_record {
 
 sub each_nokey {
 	my ($s, $qual) = @_;
+	my $record;
+	
 	$s = $s->import_db() unless defined $s->[$OBJ];
-	return $s->[$OBJ]->each_nokey($qual);
+	if ($record = $s->[$OBJ]->each_nokey($qual)) {
+		return $s->_map_array ($record);
+	}
 }
 
 sub reset {
@@ -281,6 +285,18 @@ sub _map_hash {
 	}
 
 	$href;
+}
+
+sub _map_array {
+	my ($s, $aref) = @_;
+	my (@cols) = $s->columns();
+	my $key = $aref->[0];
+	
+	for (my $i = 1; $i < @cols; $i++) {
+		$aref->[$i] = $s->_map_column ($key, $cols[$i], 1, $aref->[$i]);
+	}
+
+	$aref;
 }
 
 sub _map_column {
