@@ -30,11 +30,6 @@ use Vend::Util;
 use vars qw($VERSION);
 $VERSION = substr(q$Revision$, 10);
 
-my $SessionDB;
-my $SessionLock;
-my $Last;
-my @Each;
-
 sub TIEHASH {
 	my($self, $db) = @_;
 	$db = Vend::Data::database_exists_ref($db);
