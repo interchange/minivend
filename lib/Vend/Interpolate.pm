@@ -490,6 +490,10 @@ sub cache_html {
 	my ($name, @post);
 	my ($bit, %post);
 
+	# static page building should be independent from secure mode
+	my $secure = $CGI::secure;
+	$CGI::secure = 0;
+	
 	$CacheInvalid = 0;
 
 	vars_and_comments(\$html);
@@ -511,6 +515,10 @@ sub cache_html {
 	$CacheInvalid++ if $parse->{INVALID};
 	$Vend::CachePage = $CacheInvalid ? undef : 1;
 	$complete = \$full if $full;
+
+	# restore secure mode
+	$CGI::secure = $secure;
+	
 	if (defined $Vend::BuildingPages) {
 		return $full if $full;
 		return $parse->{OUT};
