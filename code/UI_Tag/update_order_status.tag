@@ -243,6 +243,11 @@ sub {
 					? "Email copy sent to $::Scratch->{ship_notice_email}."
 					: "No email copy sent as per user preference.";
 
+	my $dotime = $odb->config('DSN');
+	my $update_date;
+	$dotime = $dotime =~ /dbi:mysql:/ ? 0 : 1;
+	$update_date = POSIX::strftime('%Y-%m-%d %H:%M:%S %z', localtime());
+	
 	# Actually update the orderline database
 	for(@$lines_ary) {
 		my $code = $_->[$odb_keypos];
@@ -255,6 +260,13 @@ sub {
 				$::Scratch->{ui_message} = "Orderline $code ship status update failed.";
 				return;
 			};
+		if($dotime) {
+			$odb->set_field($code, 'update_date', $update_date)
+				or do {
+					$::Scratch->{ui_message} = "Orderline $code ship date update failed.";
+					return;
+				};
+		}
 
 	}
 
