@@ -757,7 +757,13 @@ sub readin {
 			else {
 				$level = '';
 			}
-			$gate = check_gate($file,$dir);
+			if(-f "$dir/.autoload") {
+				my $status = ::interpolate_html( readfile("$dir/.autoload") );
+				$status =~ s/\s+//g;
+				undef $level if $status;
+			}
+			$gate = check_gate($file,$dir)
+				if defined $level;
 		}
 
 		if( defined $level and ! check_security($file, $level, $gate) ){
