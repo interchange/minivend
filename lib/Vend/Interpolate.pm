@@ -3638,8 +3638,9 @@ sub tag_more_list {
 		$border =~ s/\D//g;
 	}
 
-	$r =~ s:\[link[-_]template\]($All)\[/link[-_]template\]::i;
-	$link_template = $1 || '<A HREF="$URL$">$ANCHOR$</A>';
+	$r =~ s:\[link[-_]template\]($All)\[/link[-_]template\]::i
+		and $link_template = $1;
+	$link_template ||= q{<A HREF="$URL$">$ANCHOR$</A>};
 
 	if(! $chunk or $chunk >= $total) {
 		return '';
