@@ -542,6 +542,15 @@ sub unhexify {
     return $s;
 }
 
+*unescape_chars = \&unhexify;
+
+sub unescape_full {
+    my $url = shift;
+    $url =~ tr/+/ /;
+    $url =~ s/<!--.*?-->//sg;
+    return unhexify($url);
+}
+
 ## UNEVAL
 
 # Returns a string representation of an anonymous array, hash, or scaler
@@ -1641,15 +1650,6 @@ EOF
 
 	# Authorized if got here
 	return 1;
-}
-
-# Replace the escape notation %HH with the actual characters.
-#
-sub unescape_chars {
-    my($in) = @_;
-
-    $in =~ s/%(..)/chr(hex($1))/ge;
-    $in;
 }
 
 
