@@ -705,6 +705,9 @@ sub run_in_catalog {
 
 	my @out;
 
+	# remove bogus session created by logError
+	undef $Vend::Session;
+	
 	if(@itl) {
 		# Run once at beginning
 		run_macro($jobscfg->{initialize});
