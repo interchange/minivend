@@ -1646,8 +1646,7 @@ sub userdb {
 			{
 				$Vend::admin = 1;
 			}
-			undef $Vend::Cookie
-				unless $Vend::Cfg->{StaticLogged};
+			undef $Vend::Cookie;
 			::update_user();
 		}
 	}
@@ -1661,8 +1660,7 @@ sub userdb {
 		if($status and ! $options{no_login}) {
 			$Vend::Session->{logged_in} = 1;
 			$Vend::Session->{username} = $user->{USERNAME};
-			undef $Vend::Cookie
-				unless $Vend::Cfg->{StaticLogged};
+			undef $Vend::Cookie;
 		}
 	}
 	elsif($function eq 'logout') {

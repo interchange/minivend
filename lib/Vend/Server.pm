@@ -412,7 +412,6 @@ sub create_cookie {
 				$Vend::Expire || undef,
 			]
 		unless $Vend::CookieID;
-	push @jar, ['MV_STATIC', 1] if $Vend::Cfg->{Static};
 	push @jar, @{$::Instance->{Cookies}}
 		if defined $::Instance->{Cookies};
 	$out = '';

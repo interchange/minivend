@@ -1003,9 +1003,6 @@ EOF
 		or die "Couldn't change to $Vend::Cfg->{VendRoot}: $!\n";
 	POSIX::setlocale(POSIX::LC_ALL, $Vend::Cfg->{ExecutionLocale});
 	set_file_permissions();
-# STATICPAGE
-	tie_static_dbm() if $Vend::Cfg->{StaticDBM};
-# END STATICPAGE
 	umask $Vend::Cfg->{Umask};
 
 #show_times("end cgi and config mapping") if $Global::ShowTimes;
@@ -1273,8 +1270,7 @@ EOF
 
 	$Vend::Session->{'user'} = $CGI::user;
 
-	undef $Vend::Cookie if 
-		$Vend::Session->{logged_in} && ! $Vend::Cfg->{StaticLogged};
+	undef $Vend::Cookie if 	$Vend::Session->{logged_in};
 
 	$CGI::pragma = 'no-cache'
 		if delete $::Scratch->{mv_no_cache};
