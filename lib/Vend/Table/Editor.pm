@@ -1283,6 +1283,7 @@ sub resolve_options {
 		ui_new_item
 		ui_nextpage
 		ui_no_meta_display
+		ui_profile
 		view_from
 		widget_cell_class
 		widget_cell_style
@@ -1847,6 +1848,7 @@ EOF
 					  . $name
 					  . "}; return 1\n"
 					  . $prof;
+				## Un-confuse vi }
 				$opt->{ui_profile_success} = "&set=step_$name 1";
 			}
 		}
