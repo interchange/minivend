@@ -313,6 +313,7 @@ if($Output) {
 			or die "Couldn't make $Output SUID: $!\n";
 	}
 	else {
+		chmod 0755, $Output
 			or die "Couldn't chmod 755 $Output: $!\n";
 	}
 }
