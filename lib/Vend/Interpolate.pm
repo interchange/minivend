@@ -2949,7 +2949,7 @@ sub tag_more_list {
 	if($first) {
 		$first = 0 if $first < 0;
 		unless ($prev_anchor) {
-			if($r =~ s:\[prev[-_]anchor\]($All)\[/prev-anchor\]::i) {
+			if($r =~ s:\[prev[-_]anchor\]($All)\[/prev[-_]anchor\]::i) {
 				$prev_anchor = $1;
 			}
 			else {
