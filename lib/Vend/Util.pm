@@ -1245,6 +1245,12 @@ sub vendUrl {
 		if $path =~ $need_escape;
     $r .= '/' . $path;
 	$r .= '.html' if $::Scratch->{mv_add_dot_html} and $r !~ /\.html?$/;
+
+	if($::Scratch->{mv_add_source} and $Vend::Session->{source}) {
+		my $sn = hexify($Vend::Session->{source});
+		push @parms, "$::VN->{mv_source}=$sn";
+	}
+
 	push @parms, "$::VN->{mv_session_id}=$id"			 	if defined $id;
 	push @parms, "$::VN->{mv_arg}=" . hexify($arguments)	if defined $arguments;
 	push @parms, "$::VN->{mv_pc}=$ct"                 	if defined $ct;

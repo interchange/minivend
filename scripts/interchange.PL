@@ -2228,11 +2228,14 @@ EOF
 	}
 
 	$Vend::Session->{'arg'} = $Vend::Argument = ($CGI::values{mv_arg} || undef);
-#::logDebug("arg is $Vend::Session->{arg}");
+
 	if ($CGI::values{mv_pc} =~ /\D/) {
-		$Vend::Session->{'source'} =	$CGI::values{mv_pc} eq 'RESET'
+		$Vend::Session->{source} =	$CGI::values{mv_pc} eq 'RESET'
 										? ''
 										: $CGI::values{mv_pc};
+	}
+	elsif($CGI::values{mv_source}) {
+		$Vend::Session->{source} =	$CGI::values{mv_source};
 	}
 
 	$Vend::Session->{'user'} = $CGI::user;
