@@ -3648,6 +3648,7 @@ sub parse_tag {
 			eval {
 				package Vend::Interpolate;
 				$sub = eval $val;
+				warn $@ if $@;
 			};
 		}
 		if($@) {
