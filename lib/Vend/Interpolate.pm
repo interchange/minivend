@@ -5362,7 +5362,12 @@ sub fly_page {
 #::logDebug("fly_page: selector=$selector");
 
 	unless (defined $page) {
-	    $page = readin($selector);
+		if($Global::NoAbsolute and (file_name_is_absolute($selector) or $selector =~ m#\.\./.*\.\.#)) {
+			::logError("Can't use file '%s' with NoAbsolute set", $selector);
+			::logGlobal({ level => 'auth'}, "Can't use file '%s' with NoAbsolute set", $selector);
+			return '';
+		}
+		$page = readin($selector);
 		if (defined $page) {
 			vars_and_comments(\$page);
 		} else {
