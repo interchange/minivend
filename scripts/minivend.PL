@@ -124,7 +124,7 @@ use vars qw($VERSION);
 require Exporter;
 
 BEGIN {
-	$VERSION = '4.04';
+	$VERSION = '4.04a';
 }
 
 
@@ -1033,6 +1033,7 @@ sub is_retired {
 
 sub retire_id {
 	my $id = shift;
+	return unless $id =~ /^\w+$/;
 	mkdir "$Vend::Cfg->{ScratchDir}/retired", 0777
 		unless -d "$Vend::Cfg->{ScratchDir}/retired";
 	my $fn = Vend::Util::get_filename($id, 2, 1, "$Vend::Cfg->{ScratchDir}/retired");
@@ -1321,6 +1322,20 @@ EOF
 		if (! $sessionid and $Vend::Cfg->{FallbackIP}) {
 			$sessionid = generate_key($CGI::remote_addr . $CGI::useragent);
 		}
+	}
+	elsif ($sessionid !~ /^\w+$/) {
+		my $msg = get_locale_message(
+						403,
+						"Unauthorized for that session %s. Logged.",
+						$sessionid,
+						);
+		$Vend::StatusLine = <<EOF;
+Status: 403 Unauthorized
+Content-Type: text/plain
+EOF
+		::response($msg);
+		logGlobal($msg);
+		return;
 	}
 
 # DEBUG

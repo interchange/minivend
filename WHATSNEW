@@ -1,3 +1,14 @@
+Minivend-4.04a changes:
+* Util.pm: Added test for existence of file before opening. Thanks to
+  Alexander Lazic.
+* Util.pm: Added test for existence of file before opening. Thanks to
+  Lluis Mora.
+* Scan.pm: Added _dir_security routine for preventing problems in mv_base_directory.
+  Thanks again to Lluis Mora.
+* bin/minivend: Added check routine for session_id preventing security problems
+  in retire_id routine. Also tightened retire_id itself. Thanks yet again
+  to Lluis Mora!
+
 Minivend-4.04 changes:
 * Demo: Fixed COLSPAN=0 in logo bars -- it was killing Gecko rendering.
 * Demo: fixed email password function

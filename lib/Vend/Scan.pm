@@ -213,7 +213,7 @@ my %Parse = (
 								find_search_params($ref, $p);
 								return $val;
 							},
-	#base_directory      => 	\&_file_security_scalar,
+	base_directory      	=> 	\&_dir_security_scalar,
 	mv_field_file          => 	\&_file_security_scalar,
 	mv_search_file         => 	\&_file_security,
 
@@ -888,6 +888,11 @@ sub _file_security {
 sub _file_security_scalar {
     my $result = _file_security(@_);
 	return $result->[0];
+}
+
+sub _dir_security_scalar {
+    return undef if ! -d $_->[0];
+	return $_->[0];
 }
 
 sub _scalar_or_array {

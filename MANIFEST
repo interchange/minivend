@@ -322,7 +322,6 @@ dist/simple/pages/special/feedback.html
 dist/simple/pages/special/needfield.html
 dist/simple/pages/splash.html
 dist/simple/pages/srchform.html
-dist/simple/pages/view_page.html
 dist/simple/pgsql/area.pgsql
 dist/simple/pgsql/cat.pgsql
 dist/simple/pgsql/country.pgsql

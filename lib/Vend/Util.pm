@@ -450,7 +450,7 @@ sub uneval_it_file {
 sub eval_it_file {
 	my ($fn) = @_;
 	local($/) = undef;
-	open(UNEV, $fn) or return undef;
+	open(UNEV, "< $fn") or return undef;
 	my $ref = evalr(<UNEV>);
 	close UNEV;
 	return $ref;
@@ -807,6 +807,7 @@ sub readfile {
 		return undef;
 	}
 
+    return undef if ! -f $file;
     return undef if ! open(READIN, $file);
 
 	binmode(READIN) if $Global::Windows;
