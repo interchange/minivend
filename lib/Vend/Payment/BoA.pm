@@ -443,14 +443,14 @@ sub boa {
     $opt->{extra_headers} = { Referer => $referer };
 
     my $call_gateway = sub {
-	my ($opt,$query,$trans) = @_;
+	my ($opt,$query) = @_;
 	my $thing    = post_data($opt, $query);
 	my $page     = $thing->{result_page};
 	my $response = $thing->{status_line};
 #::logDebug("BoA post_data response: " . ::uneval($thing) );
 	
 	my %result;
-	if ($trans eq 'auth') {
+ 	if ($opt->{script} =~ /payment/) {
 		$page =~ s/^.*?A HREF=\?m=$user&//si;
 		$page =~ s/>.*$//s;
 	
