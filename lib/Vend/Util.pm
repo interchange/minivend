@@ -841,7 +841,7 @@ sub is_hash {
 }
 
 sub dotted_hash {
-	my($hash, $key, $value) = @_;
+	my($hash, $key, $value, $delete_empty) = @_;
 	$hash = get_option_hash($hash) unless is_hash($hash);
 	unless (is_hash($hash)) {
 		return undef unless defined $value;
@@ -870,7 +870,13 @@ sub dotted_hash {
 		$ref = $ref->{$_};
 	}
 
-	$ref->{$final} = $value;
+	if($delete_empty and ! length($value)) {
+		delete $ref->{$final};
+	}
+	else {
+		$ref->{$final} = $value;
+	}
+
 	$hash = uneval_it($hash);
 	return $hash;
 }
