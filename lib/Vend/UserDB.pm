@@ -475,7 +475,7 @@ sub _check_acl {
 	$options{mode} = 'r' if ! defined $options{mode};
 	my $acl = $self->{DB}->field( $self->{USERNAME}, $loc);
 	my $f = $ready->reval($acl);
-	return 0 unless exists $f->{$options{location}};
+	return undef unless exists $f->{$options{location}};
 	return 1 if ! $options{mode};
 	if($options{mode} =~ /^\s*expire\b/i) {
 		my $cmp = $f->{$options{location}};
