@@ -1,0 +1,24 @@
+# [db-count table]
+#
+# This tag returns the number of records in a database table,
+# 'products' by default.
+#
+UserTag  db-count  Order table
+UserTag  db-count  PosNumber 1
+UserTag  db-count  Routine <<EOF
+sub {
+    my ($db) = @_;
+
+    $db = 'products' unless $db;
+
+    my $ref = Vend::Data::database_exists_ref($db)
+        or return "Bad table $db";
+    $ref = $ref->ref();
+    my $count;
+    while ($ref->each_record()) {
+        $count++;
+    }
+    return $count;
+}
+EOF
+

@@ -1,6 +1,6 @@
 # Util.pm - Minivend utility functions
 #
-# $Id: Util.pm,v 1.52 1999/08/05 03:51:52 mike Exp $
+# $Id: Util.pm,v 1.53 1999/08/10 09:21:24 mike Exp $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
@@ -69,7 +69,7 @@ use Config;
 use Fcntl;
 use subs qw(logError logGlobal);
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.52 $, 10);
+$VERSION = substr(q$Revision: 1.53 $, 10);
 
 BEGIN {
 	eval {
@@ -829,8 +829,15 @@ sub is_no {
 sub vendUrl
 {
     my($path, $arguments, $r) = @_;
-    $r = $Vend::Cfg->{VendURL}
-		unless defined $r;
+	my $ct;
+	my $id;
+	if(! $r) {
+		$r = $Vend::Cfg->{VendURL};
+		$ct = $::Scratch->{mv_no_count}	
+			 ? '' : ++$Vend::Session->{pageCount};
+		$id = $CGI::cookie && $::Scratch->{mv_no_session_id}
+			 ? '' : $Vend::SessionID;
+	}
 
 	$arguments =~ s!([^\w-_:#=/.%])! '%' . sprintf("%02x", ord($1))!eg
 		if defined $arguments && $Vend::Cfg->{NewEscape};
@@ -839,10 +846,6 @@ sub vendUrl
 		$r = $Vend::Cfg->{SecureURL};
 	}
 
-	my $id = $CGI::cookie && $::Scratch->{mv_no_session_id}
-			 ? '' : $Vend::SessionID;
-	my $ct = $::Scratch->{mv_no_count}	
-			 ? '' : ++$Vend::Session->{pageCount};
     $r .= '/' . $path;
 	return $r unless ($id || $arguments || $ct);
 	$r .= '?' . $id .  ';' . ($arguments || '');
@@ -1087,8 +1090,10 @@ sub check_security {
 				return 1 if $access =~ m{(^|\s)$item(\s|$)};
 			}
 		}
-		my $besthost = $CGI::remote_host || $CGI::remote_addr;
-        logGlobal qq{auth error host=$besthost ip=$CGI::remote_addr script=$CGI::script_name page=$CGI::path_info};
+		if($Vend::Cfg->{UserDB}{log_failed}) {
+			my $besthost = $CGI::remote_host || $CGI::remote_addr;
+			::logError(qq{auth error host=$besthost ip=$CGI::remote_addr script=$CGI::script_name page=$CGI::path_info});
+		}
         return '';  
 	}
 	elsif($reconfig eq '1') {

@@ -287,146 +287,12 @@ Variable TEST_VARIABLE Test of global variable OK.
 # Custom tag for every catalog served by this MiniVend.
 #
 # UserTag
-
-# [loc locale*] message [/loc]
-#
-# This tag is the equivalent of [L] ... [/L] localization, except
-# it works with contained tags
-#
-UserTag loc hasEndTag   1
-UserTag loc Interpolate 1
-UserTag loc Order locale
-UserTag loc Routine <<EOF
-sub {
-    my ($locale, $message) = @_;
-    return $message unless $Vend::Cfg->{Locale};
-    my $ref;
-    if($locale) {
-        return $message
-            unless defined $Vend::Cfg->{Locale_repository}{$locale};
-        $ref = $Vend::Cfg->{Locale_repository}{$locale}
-    }
-    else {
-        $ref = $Vend::Cfg->{Locale};
-    }
-    return defined $ref->{$message} ? $ref->{$message} : $message;
-}
-EOF
-
-# [var name=variablename global=1]
-#
-# This tag is the equivalent of __VARIABLE__ except that it will
-# works in other variables
-#
-UserTag var Interpolate 1
-UserTag var PosNumber 2
-UserTag var Order name global
-UserTag var Routine <<EOF
-sub {
-    $_[1] and return $Global::Variable->{shift @_};
-    return $Vend::Cfg->{Variable}{shift @_};
-}
-EOF
-
-# [summary  amount=n.nn
-#           name=label*
-#           hide=1*
-#           total=1*
-#           reset=1*
-#           format="%.2f"*
-#           currency=1* ]
-#
-# Calculates column totals (if used properly. 8-\)
 # 
-#
-UserTag summary Order amount name currency format total reset hide
-UserTag summary PosNumber 6
-UserTag summary Routine <<EOF
-use vars qw/%summary_hash/;
-sub {
-    my ($amount, $name, $currency, $format, $total, $reset, $hide) = @_;
-	unless ($name) {
-		$name = 'ONLY0000';
-		%summary_hash = () if Vend::Util::is_yes($reset);
-	}
-	else {
-		$summary_hash{$name} = 0 if Vend::Util::is_yes($reset);
-	}
-	$summary_hash{$name} += $amount if length $amount;
-	$amount = $summary_hash{$name} if Vend::Util::is_yes($total);
-	return '' if defined $hide && Vend::Util::is_yes($hide);
-	return sprintf $format, $amount if $format;
-    return Vend::Util::currency($amount) if $currency;
-    return $amount;
-}
-EOF
+# See the documentation or look in the directory "usertag"
 
+#### Now including individual usertag files
 
-
-
-# [db-date table format]
-#
-# This tag returns the last-modified time of a database table,
-# 'products' by default. Accepts a POSIX strftime value for
-# date format; uses '%A %d %b %Y' by default.
-#
-UserTag  db-date  Order table format
-UserTag  db-date  PosNumber 2
-UserTag  db-date  Routine <<EOF
-sub {
-    my ($format, $db) = @_;
-    $format = '%A %d %b %Y';
-
-	$db = 'products' unless $db;
-
-    my $mtime = (stat($Vend::Cfg->{Database}{'file'}))[9];
-    return POSIX::strftime($format, localtime($mtime));
-
-}
-EOF
-
-# [db-count table]
-#
-# This tag returns the number of records in a database table,
-# 'products' by default.
-#
-UserTag  db-count  Order table
-UserTag  db-count  PosNumber 1
-UserTag  db-count  Routine <<EOF
-sub {
-    my ($db) = @_;
-
-    $db = 'products' unless $db;
-
-    my $ref = Vend::Data::database_exists_ref($db)
-        or return "Bad table $db";
-    $ref = $ref->ref();
-    my $count;
-    while ($ref->each_record()) {
-        $count++;
-    }
-    return $count;
-}
-EOF
-
-UserTag bar-button Order page current
-UserTag bar-button PosNumber 2
-UserTag bar-button HasEndTag 1
-UserTag bar-button Routine   <<EOR
-sub {
-	use strict;
-	my ($page, $current, $html) = @_;
-	$current = $Global::Variable->{MV_PAGE}
-		if ! $current;
-	$html =~ s:\[selected\]([\000-\377]*)\[/selected]::i;
-	my $alt = $1;
-	return $html if $page ne $current;
-	return $alt;
-}
-EOR
-
-### The old user database stuff
-### DON'T ### include userdb.cfg
+#include usertag/*
 
 ### The minivend administration stuff
 #include admin/mv_admin.cfg
@@ -436,5 +302,3 @@ EOR
 
 #include flycat.cfg
 #include form_mail.cfg
-
-

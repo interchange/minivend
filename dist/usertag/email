@@ -1,26 +1,30 @@
-GlobalSub <<EndOfSub
-sub form_mail {
-    my($to, $subject, $reply, $body) = @_;
+UserTag email Order to subject reply from extra
+UserTag email hasEndTag
+UserTag email Interpolate
+UserTag email Routine <<EOR
+sub {
+    my($to, $subject, $reply, $from, $extra, $body) = @_;
     my($ok);
 
     $subject = '<no subject>' unless defined $subject && $subject;
 
     $reply = '' unless defined $reply;
     $reply = "Reply-to: $reply\n" if $reply;
-	if ($reply !~ /^from:/mi) {
-		my $from = $Vend::Cfg->{MailOrderTo};
+	if (! $from) {
+		$from = $Vend::Cfg->{MailOrderTo};
 		$from =~ s/,.*//;
-		$reply = "From: $from\n$reply";
 	}
 
+	$extra =~ s/\s*$/\n/ if $extra;
     $ok = 0;
     SEND: {
         open(Vend::MAIL,"|$Vend::Cfg->{'SendMailProgram'} -t") or last SEND;
         print Vend::MAIL
 			"To: $to\n",
+			"From: $from\n",
 			$reply,
-			"Subject: $subject\n",
-			"Errors-To: $Vend::Cfg->{MailOrderTo}\n\n",
+			$extra || '',
+			"Subject: $subject\n\n",
 			$body
             or last SEND;
         close Vend::MAIL or last SEND;
@@ -30,11 +34,12 @@ sub form_mail {
     if (!$ok) {
         logError("Unable to send mail using $Vend::Cfg->{'SendMailProgram'}\n" .
             "To '$to'\n" .
-            "With subject '$subject'\n" .
+            "From '$from'\n" .
+            "With extra headers '$extra'\n" .
             "With reply-to '$reply'\n" .
+            "With subject '$subject'\n" .
             "And body:\n$body");
     }
     $ok;
 }
-EndOfSub
-
+EOR

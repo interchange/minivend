@@ -105,14 +105,11 @@ Quan  Item No.    Description                             Price        Extension
 [include pages/buttonbar.html]
 </CENTER>
 </body> </html>
+<!-- Send a copy to [value email]:
 [if value email_copy]
-[set name=email_copy_sent interpolate=1][perl arg=sub interpolate=1]
-	form_mail(
-            q{[value email]},
-            q{Thank you for your order [value mv_order_number]!},
-            q{__COMPANY__ Customer Service <__ORDERS_TO__>},
-            <<'EndOfMail')
-
+[email	to="[value email]"
+		subject="Thank you for your order [value mv_order_number]!"
+        from=|__COMPANY__ Customer Service <__ORDERS_TO__>| ]
 Dear __COMPANY__ customer,
 
 Thank you for your order #[value mv_order_number], it is being electronically
@@ -206,6 +203,5 @@ __CITY__
 __PHONE__
 __TOLLFREE__
 FAX: __FAX__
-
-EndOfMail
-[/perl][/set][/if]
+[/email]
+[/if] -->

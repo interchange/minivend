@@ -356,7 +356,7 @@ sub unfix {
 	}
 	my($var,$split,$index) = split /:/, $def->{attribute};
 	my $join = $split;
-::logError("ECML unfix: attribute=$def->{attribute}, join=|$join|, split=$split, index=$index var=$var");
+#::logError("ECML unfix: attribute=$def->{attribute}, join=|$join|, split=$split, index=$index var=$var");
 	if ($join eq '<CRLF>') {
 		($join, $split) = ("\r", '[\r\n]+');
 	}
@@ -379,7 +379,7 @@ sub unfix {
 		$pos = 0;
 	}
 	$pre = '' if index($var, $pre) == 0;
-::logError("ECML unfix: join=|$join|, split=$split, index=$index var=$var");
+#::logError("ECML unfix: join=|$join|, split=$split, index=$index var=$var");
 	my @value;
 	@value = split /$split/, $::Values->{"$pre$var"};
 	$value[$pos] = $CGI::values{$ecml};
@@ -407,14 +407,14 @@ sub fieldfix {
 	}
 	my($var,$split,$index) = split /:/, $def->{attribute};
 	my $join = $split;
-::logError("ECML fieldfix: attribute=$def->{attribute}, join=|$join|, split=$split, index=$index var=$var");
+#::logError("ECML fieldfix: attribute=$def->{attribute}, join=|$join|, split=$split, index=$index var=$var");
 	if ($join eq '<CRLF>') {
 		($join, $split) = ('', '[\r\n]+');
 	}
 	$join = '' if $join =~ /^[[\\]/;
 	my (@index) = map {$_ - 1} split /\s*,\s*/, $index;
 	$pre = '' if index($var, $pre) == 0;
-::logError("ECML fieldfix: join=|$join|, split=$split, index=$index var=$var");
+#::logError("ECML fieldfix: join=|$join|, split=$split, index=$index var=$var");
 	$value = join $join, (split /$split/, $::Values->{"$pre$var"})[@index]; 
 }
 

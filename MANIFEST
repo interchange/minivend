@@ -278,7 +278,14 @@ dist/src/tlink.c
 dist/src/tlink.pl
 dist/src/vlink.c
 dist/src/vlink.pl
-dist/userdb.cfg
+dist/usertag/bar_button
+dist/usertag/db_count
+dist/usertag/db_date
+dist/usertag/email
+dist/usertag/loc
+dist/usertag/summary
+dist/usertag/var
+doc/Tagref.pm
 doc/bullet.gif
 doc/frtoc.html
 doc/intro.html

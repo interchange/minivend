@@ -1,0 +1,33 @@
+# [summary  amount=n.nn
+#           name=label*
+#           hide=1*
+#           total=1*
+#           reset=1*
+#           format="%.2f"*
+#           currency=1* ]
+#
+# Calculates column totals (if used properly. 8-\)
+# 
+#
+UserTag summary Order amount name currency format total reset hide
+UserTag summary PosNumber 6
+UserTag summary Routine <<EOF
+use vars qw/%summary_hash/;
+sub {
+    my ($amount, $name, $currency, $format, $total, $reset, $hide) = @_;
+	unless ($name) {
+		$name = 'ONLY0000';
+		%summary_hash = () if Vend::Util::is_yes($reset);
+	}
+	else {
+		$summary_hash{$name} = 0 if Vend::Util::is_yes($reset);
+	}
+	$summary_hash{$name} += $amount if length $amount;
+	$amount = $summary_hash{$name} if Vend::Util::is_yes($total);
+	return '' if defined $hide && Vend::Util::is_yes($hide);
+	return sprintf $format, $amount if $format;
+    return Vend::Util::currency($amount) if $currency;
+    return $amount;
+}
+EOF
+

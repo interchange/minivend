@@ -93,7 +93,7 @@ __LEFTSIDE__
                                 __HEADERBG__
                                 TEXT="__HEADERTEXT__">
                                 <FONT SIZE="+1"><B>Quick-order</B></FONT><BR>
-								[loop arg="1 2 5 10 25"]
+								[loop arg="1 5 10 25 100"]
 									[if cgi prospective_price == [loop-code]]
 									<B>[loop-code]</B>
 									[elsif !value prospective_price]

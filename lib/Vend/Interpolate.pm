@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # Interpolate.pm - Interpret MiniVend tags
 # 
-# $Id: Interpolate.pm,v 1.88 1999/08/09 02:30:31 mike Exp mike $
+# $Id: Interpolate.pm,v 1.90 1999/08/10 10:23:41 mike Exp mike $
 #
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
 #
@@ -24,7 +24,7 @@ package Vend::Interpolate;
 require Exporter;
 @ISA = qw(Exporter);
 
-$VERSION = substr(q$Revision: 1.88 $, 10);
+$VERSION = substr(q$Revision: 1.90 $, 10);
 
 @EXPORT = qw (
 
@@ -352,7 +352,10 @@ sub cache_html {
 
 	# Substitute defines from configuration file
 	$html =~ s#\@\@([A-Za-z0-9]\w+[A-Za-z0-9])\@\@#$Global::Variable->{$1}#ge;
-	$html =~ s#__([A-Za-z0-9]\w*?[A-Za-z0-9])__#$Vend::Cfg->{Variable}->{$1}#ge;
+	$html =~ s#__([A-Za-z0-9]\w*?[A-Za-z0-9])__#
+			$Vend::Cfg->{Member}->{$1} || $Vend::Cfg->{Variable}->{$1}#ge
+		if $Vend::Session->{logged_in};
+	$html =~ s#__([A-Za-z0-9]\w*?[A-Za-z0-9])__#$Vend::Cfg->{Variable}->{$1}#g;
 
 	# Uncomment to use parallel MV and HTML tags
 	#$html =~ s#<!--\s*$T{'alt'}\]\s*-->$Some<!--\s*$T{'/alt'}\]\s*-->##o;
@@ -378,6 +381,10 @@ sub cache_html {
 		$CacheInvalid++ if $parse->{INVALID};
 		$Vend::CachePage = $CacheInvalid ? undef : 1;
 		$complete = \$full if $full;
+		if (defined $Vend::BuildingPages) {
+			return $full if $full;
+			return $parse->{OUT};
+		}
         return (\$parse->{OUT}, $complete || undef) if defined $wantref;
         return ($parse->{OUT});
     }
@@ -943,9 +950,9 @@ use vars qw/%Filters/;
 
 sub input_filter_do {
 	my($varname, $opt, $routine) = @_;
-::logGlobal("filter var=$varname opt=" . Vend::Util::uneval($opt));
+#::logGlobal("filter var=$varname opt=" . Vend::Util::uneval($opt));
 	return undef unless defined $CGI::values{$varname};
-::logGlobal("before filter=$CGI::values{$varname}");
+#::logGlobal("before filter=$CGI::values{$varname}");
 	$routine = $opt->{routine} || ''
 		if ! $routine;
 	if($routine =~ /\S/) {
@@ -957,20 +964,20 @@ sub input_filter_do {
 	if ($opt->{op}) {
 		my @ops = grep /\S/, split /\s+/, $opt->{op};
 		for(@ops) {
-::logGlobal("filter op=$_ found");
+#::logGlobal("filter op=$_ found");
 			if(/^\d+$/) {
 				$CGI::values{$varname} = substr($CGI::values{$varname} , 0, $_);
 				next;
 			}
 			next unless defined $Filters{$_};
-::logGlobal("filter op=$_ exists");
+#::logGlobal("filter op=$_ exists");
 			$CGI::values{$varname} = &{$Filters{$_}}(
 										$CGI::values{$varname},
 										$varname,
 										);
 		}
 	}
-::logGlobal("after filter=$CGI::values{$varname}");
+#::logGlobal("after filter=$CGI::values{$varname}");
 	return;
 }
 
@@ -2373,14 +2380,22 @@ sub tag_page {
 
 	my $urlroutine = $secure ? \&secure_vendUrl : \&vendUrl;
 
-	if($Vend::Cookie and defined $Vend::Cfg->{StaticPage}{$page} and !$arg) {
-	  $page = $Vend::Cfg->{StaticPage}{$page}
-	  			if $Vend::Cfg->{StaticPage}{$page};
-	  $page .= $Vend::Cfg->{StaticSuffix};
-	  return '<a href="' . $urlroutine->($page,$arg,$Vend::Cfg->{StaticPath}) . '">';
+	while($Vend::Cookie and ! $arg) {
+		if(defined $Vend::StaticDBM{$page}) {
+		  $page = $Vend::StaticDBM{$page} || $page;
+		}
+		elsif (defined $Vend::Cfg->{StaticPage}{$page}) {
+		  $page = $Vend::Cfg->{StaticPage}{$page}
+					if $Vend::Cfg->{StaticPage}{$page};
+		}
+		else {
+			last;
+		}
+		$page .= $Vend::Cfg->{StaticSuffix};
+		return '<a href="' . $urlroutine->($page,undef,$Vend::Cfg->{StaticPath}) . '">';
 	}
 	
-    '<a href="' . $urlroutine->($page,$arg || undef) . '">';
+    return '<a href="' . $urlroutine->($page,$arg || undef) . '">';
 }
 
 # Returns an href which will call up the specified PAGE with TARGET reference.
@@ -2427,13 +2442,21 @@ sub tag_area {
 
 	my $urlroutine = $secure ? \&secure_vendUrl : \&vendUrl;
 
-	if($Vend::Cookie and defined $Vend::Cfg->{StaticPage}{$page} and ! $arg) {
-		$page = $Vend::Cfg->{StaticPage}{$page}
-			 if $Vend::Cfg->{StaticPage}{$page};
+	while($Vend::Cookie and ! $arg) {
+		if(defined $Vend::StaticDBM{$page}) {
+		  $page = $Vend::StaticDBM{$page} || $page;
+		}
+		elsif (defined $Vend::Cfg->{StaticPage}{$page}) {
+		  $page = $Vend::Cfg->{StaticPage}{$page}
+					if $Vend::Cfg->{StaticPage}{$page};
+		}
+		else {
+			last;
+		}
 		$page .= $Vend::Cfg->{StaticSuffix};
-    	return $urlroutine->($page,'',$Vend::Cfg->{StaticPath});
+		return $urlroutine->($page,undef,$Vend::Cfg->{StaticPath});
 	}
-    $urlroutine->($page, $arg);
+    return $urlroutine->($page, $arg);
 }
 
 # Returns an href which will call up the specified PAGE with TARGET reference.
@@ -4994,40 +5017,44 @@ sub timed_build {
     my $file = shift;
     my $opt = shift;
 	my $abort;
-	if($file eq 'scan') {
-		$file = $Vend::Session->{last_search};
-		unless ($file =~ m:MM=:) {
-			$file =~ s/(\W)/sprintf("%02x", ord($1))/eg;
-		}
-		else { $abort = 1 }
+
+	my $saved_file;
+	if($opt->{scan}) {
+		$saved_file = $Vend::Session->{last_search};
+		$abort = 1 if $file =~ m:MM=:;
 	}
 
     if($abort or ! $CGI::cookie or ! $opt->{login} && $Vend::Session->{logged_in}) {
         return Vend::Interpolate::interpolate_html(shift);
     }
 
-	my $secs;
-	CHECKDIR: {
-		if (! $file) {
-			my $dir = $Vend::Cfg->{StaticDir};
-			$dir = 'timed' if ! -d $dir || ! -w _;
-			$dir .= "/$1"
-				if $file =~ s:(.*)/::;
-			if(! -d $dir) {
-				require File::Path;
-				File::Path::mkpath($dir);
-			}
-			$file = $Global::Variable->{MV_PAGE} . $Vend::Cfg->{StaticSuffix};
-			$file = Vend::Util::catfile($dir, $file);
-		}
-	}
-    if($opt->{noframes} and $::Scratch->{frames}) {
+    if($opt->{noframes} and $::Session->{frames}) {
         return '';
     }
 
-    if(! $CGI::cookie or ! $opt->{login} && $Vend::Session->{logged_in}) {
-        return Vend::Interpolate::interpolate_html(shift);
-    }
+	my $secs;
+	my $static;
+	CHECKDIR: {
+		last CHECKDIR if $file;
+		my $dir = $Vend::Cfg->{StaticDir};
+		$dir = ! -d $dir || ! -w _ ? 'timed' : do { $static = 1; $dir };
+		$file = $saved_file || $Global::Variable->{MV_PAGE};
+		if($saved_file) {
+			$file = $saved_file;
+			$file =~ s/(\W)/sprintf("%02x", ord($1))/eg;
+		}
+		else {
+		 	$saved_file = $file = $Global::Variable->{MV_PAGE};
+		}
+		$file .= $Vend::Cfg->{StaticSuffix};
+		$dir .= "/$1" 
+			if $file =~ s:(.*)/::;
+		if(! -d $dir) {
+			require File::Path;
+			File::Path::mkpath($dir);
+		}
+		$file = Vend::Util::catfile($dir, $file);
+	}
 
 	if($opt->{minutes}) {
         $secs = int($opt->{minutes} * 60);
@@ -5039,6 +5066,17 @@ sub timed_build {
     if( ! -f $file or $secs && (stat(_))[9] < (time() - $secs) ) {
         my $out = Vend::Interpolate::interpolate_html(shift);
         Vend::Util::writefile(">$file", $out);
+		if ($Vend::Cfg->{StaticDBM}) {
+			 
+			chmod($Vend::Cfg->{FileCreationMask} | 0444, $file);
+			if ($opt->{scan}) {
+				$file =~ s:.*/::;
+				$Vend::StaticDBM{$saved_file} = $file;
+			}
+			else {
+				$Vend::StaticDBM{$saved_file} = '';
+			}
+		}
         return $out;
     }
     else {        return Vend::Util::readfile($file);    }
@@ -5122,7 +5160,6 @@ sub replace {
 
 sub write {
 	shift;
-::logError("writing @_");
 	push @Vend::Tags::Out, @_;
 	return if ! $Hot;
 	Vend::Tags::Document::send( undef, join("", splice(@Vend::Tags::Out, 0)) );

@@ -1,6 +1,6 @@
 # Config.pm - Configure Minivend
 #
-# $Id: Config.pm,v 1.64 1999/08/05 03:51:17 mike Exp $
+# $Id: Config.pm,v 1.65 1999/08/10 09:20:04 mike Exp $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
@@ -40,7 +40,7 @@ use Fcntl;
 use Vend::Parse;
 use Vend::Util;
 
-$VERSION = substr(q$Revision: 1.64 $, 10);
+$VERSION = substr(q$Revision: 1.65 $, 10);
 
 for( qw(search refresh cancel return secure unsecure submit control checkout) ) {
 	$Global::LegalAction{$_} = 1;
@@ -236,6 +236,7 @@ sub catalog_directives {
 	['SubArgs',			 'variable',     	 ''],
 	['Replace',			 'replace',     	 ''],
 	['Variable',	  	 'variable',     	 ''],
+	['Member',		  	 'variable',     	 ''],
 	['WritePermission',  'permission',       'user'],
 	['ReadPermission',   'permission',       'user'],
 	['SessionExpire',    'time',             '1 day'],
@@ -310,6 +311,7 @@ sub catalog_directives {
     ['BackendOrder',	 undef,     	     ''],
     ['SalesTax',		 undef,     	     ''],
     ['NewReport',     	 'yesno', 			 'Yes'],
+    ['StaticDBM',  	 	 undef,     	     ''],
     ['Static',   	 	 'yesno',     	     'No'],
     ['StaticAll',		 'yesno',     	     'No'],
     ['StaticDepth',		 undef,     	     '1'],
@@ -595,7 +597,7 @@ CONFIGLOOP: {
     while(<Vend::CONFIG>) {
 		chomp;			# zap trailing newline,
 		if(/^\s*#include\s+(.+)/) {
-			push @include, glob($1);
+			push @include, grep -f $_, glob($1);
 			next;
 		}
 		s/^\s*#.*//;    # comments,
@@ -901,7 +903,7 @@ sub global_config {
     while(<Vend::GLOBAL>) {
 		chomp;			# zap trailing newline,
 		if(/^\s*#include\s+(.+)/) {
-			push @include, glob($1);
+			push @include, grep -f $_, glob($1);
             next;
         }
 		s/^\s*#.*//;            # comments,
@@ -1838,7 +1840,7 @@ sub save_variable {
         $c = ${"Global::$var"};
     }
 
-	if ($var eq 'Variable') {
+	if ($var eq 'Variable' || $var eq 'Member') {
 		$value =~ s/^\s*(\w+)\s*//;
 		$name = $1;
 		return 1 if defined $c->{'save'}->{$name};

@@ -2,7 +2,7 @@
 #
 # MiniVend version 3.15
 #
-# $Id: minivend,v 1.46 1999/08/09 02:32:31 mike Exp mike $
+# $Id: minivend,v 1.48 1999/08/10 10:24:35 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -43,7 +43,7 @@ BEGIN {
 ($Global::VendRoot = $ENV{MINIVEND_ROOT})
 	if defined $ENV{MINIVEND_ROOT};
 	
-$Global::VendRoot = $Global::VendRoot || '/home/minivend';
+$Global::VendRoot = $Global::VendRoot || '/home/mike/mvend';
 $Global::ConfigFile = 'minivend.cfg';
 
 die "MiniVend not configured, no $Global::ConfigFile.\n"
@@ -151,7 +151,7 @@ sub debug {
 }
 
 BEGIN {
-	$VERSION = '3.15beta2';
+	$VERSION = '3.15beta3';
 }
 use strict;
 use Fcntl;
@@ -669,12 +669,11 @@ sub do_scan {
 }
 
 sub fake_scan {
-
-	my($argument,$path) = @_;
+	my($path) = @_;
 	my ($key,$page);
 	my $c = {};
 	find_search_params($c,$path);
-	return perform_search($c,$argument);
+	return perform_search($c);
 }
 
 # Returns undef if interaction error
@@ -1562,9 +1561,10 @@ $Global::DEBUG = $Global::DebugMode || 0;
 # STATICPAGE
 	READSTATIC: {
 			my $basedir = $c->{PageDir};
-			last READSTATIC unless -f "$basedir/.build";
+			last READSTATIC if ! -f "$basedir/.static";
 			if ($c->{Static}) {
 				print "loading static page names...";
+				last READSTATIC if $c->{StaticDBM};
 				open STATICPAGE, "$basedir/.static"
 					or warn <<EOF;
 Couldn't read static page status file $basedir/.static: $!
@@ -1730,7 +1730,6 @@ sub build_page {
 	my $status = 1;
 
 	Vend::Interpolate::reset_calc();
-
   eval {
 	unless($scan) {
 		$page = readin($name);
@@ -1768,7 +1767,7 @@ sub build_page {
 			my $count = 0;
 			my($search, $file, $newpage);
 			my $string = $Vend::Cfg->{VendURL} . "/scan/" ;
-			while($page =~ s!$string([^?]+)[^"]+!"__POST_" . $count++ . "__"!e) {
+			while($page =~ s!$string([^?"]+)[^"]*"!"__POST_" . $count++ . "__" . '"'!e) {
 				undef $Vend::CachePage;
 				undef $Vend::ForceBuild;
 				$search = $1;
@@ -1779,7 +1778,7 @@ sub build_page {
 					push @post, $Vend::Found_scan{$search};
 					print "cached.";
 				}
-				elsif ($newpage = fake_scan('', $search) ) {
+				elsif ($newpage = fake_scan($search) ) {
 					$file = "scan" . ++$Vend::ScanCount .
 									$Vend::Cfg->{StaticSuffix};
 					pop @post;
@@ -1834,9 +1833,39 @@ sub build_page {
 		$status = 0;
 	}
   };
-	$status = 0 if $@;
+	if($@) {
+		$status = 0;
+		::logError("build_page died: $@");
+	}
 	return $status;
 
+}
+
+sub tie_static_dbm {
+	if($Global::GDBM) {
+		tie(%Vend::StaticDBM,
+			'GDBM_File',
+			"$Vend::Cfg->{StaticDBM}.gdbm",
+			&GDBM_WRCREAT,
+			$Vend::Cfg->{'FileCreationMask'},
+		)
+		or undef $Vend::Cfg->{StaticDBM};
+	}
+	elsif ($Global::DB_File) {
+		tie(%Vend::StaticDBM,
+			'DB_File',
+			"$Vend::Cfg->{StaticDBM}.db",
+			&O_RDWR | &O_CREAT,
+			$Vend::Cfg->{'FileCreationMask'},
+			)
+		or undef $Vend::Cfg->{StaticDBM};
+	}
+	else {
+		undef $Vend::Cfg->{StaticDBM};
+	}
+	::logError("Failed to create StaticDBM $Vend::Cfg->{StaticDBM}")
+		unless $Vend::Cfg->{StaticDBM} || shift;
+	return $Vend::Cfg->{StaticDBM} ? '1' : undef;
 }
 
 
@@ -1961,6 +1990,12 @@ sub build_all {
 	$Vend::SessionID = '';
 	$Vend::SessionName = '';
 	init_session();
+	if($Vend::Cfg->{StaticDBM}) {
+		for(glob("$Vend::Cfg->{StaticDBM}.gdbm $Vend::Cfg->{StaticDBM}.db")) {
+			unlink $_;
+		}
+	}
+	unlink "$basedir/.static" if $Vend::Cfg->{StaticDBM};
     $CGI::cookie = $Vend::Cookie = "MV_SESSION_ID=building:local.host";
 	$Vend::Session->{'frames'} = $Vend::Cfg->{FramesDefault};
 	require File::Find or die "No standard Perl library File::Find!\n";
@@ -2032,8 +2067,8 @@ sub build_all {
 		last FLYCHECK unless $Vend::Cfg->{StaticFly};
 		last FLYCHECK if @build_file;
 		my $save = $Vend::Session->{frames};
-	  for (@Vend::Productbase) {
-		$p = database_ref($_);
+	  foreach $p (@Vend::Productbase) {
+		$p = database_ref($p);
 		while( ($key,$val) = $p->each_record() ) {
 			next if $build_list && ! defined $build{$key};
 			next unless $key =~ m{^$spec}o;
@@ -2071,8 +2106,8 @@ sub build_all {
 	  last FLY unless $Vend::Cfg->{StaticFly};
 	  last FLY if @build_file;
 	  my $save = $Vend::Session->{frames};
-	  for (@Vend::Productbase) {
-		$p = database_ref($_);
+	  foreach $p (@Vend::Productbase) {
+		$p = database_ref($p);
 		while( ($key,$val) = $p->each_record() ) {
 			FRAMES:
             if($Vend::Cfg->{FrameFlyPage}) {
@@ -2088,7 +2123,7 @@ sub build_all {
 			next unless defined $Vend::Cfg->{StaticPage}->{$key};
 			print do_msg("Building part number $key");
 			build_page($key,$outdir)
-				or (delete($Vend::Cfg->{StaticPage}->{$key}), next);
+				or ( print "skipped.\n" and delete($Vend::Cfg->{StaticPage}->{$key}), next);
 			$Vend::Session->{'pageCount'} = -1;
 			print "done.\n";
 		}
@@ -2097,8 +2132,11 @@ sub build_all {
 	}
 	open STATICPAGE, ">$basedir/.static"
 		or die "Couldn't write static page file: $!\n";
+	tie_static_dbm if $Vend::Cfg->{StaticDBM};
 	for(sort keys %{$Vend::Cfg->{StaticPage}}) {
 		print STATICPAGE "$_\t$Vend::Cfg->{StaticPage}{$_}\n";
+		$Vend::StaticDBM{$_} = $Vend::Cfg->{StaticPage}{$_}
+			 if defined %Vend::StaticDBM;
 	}
 	close STATICPAGE;
 
@@ -2109,6 +2147,7 @@ sub build_all {
 	}
 	close UNBUILT;
 	unlink "$basedir/.build" if @build_file;
+	unlink "$basedir/.static" if $Vend::Cfg->{StaticDBM};
 
 	# Second level of search, no more than 1 is recommended, but
 	# can be set by StaticDepth
@@ -2311,13 +2350,19 @@ sub dispatch {
 		$Global::DEBUG |= $Vend::Cfg->{DebugMode};
 	}
 	if ($Vend::Cfg->{SetGroup}) {
-		eval {$) = "$Vend::Cfg->{SetGroup} $Vend::Cfg->{SetGroup}"};
+		eval {
+			$) = "$Vend::Cfg->{SetGroup} $Vend::Cfg->{SetGroup}";
+		};
 		if ($@) {
 			my $msg = $@;
-#			logGlobal("Can't set group to GID $Vend::Cfg->{SetGroup}: $msg");
-			logGlobal( errmsg('bin/minivend:16', "Can't set group to GID %s: %s" , $Vend::Cfg->{SetGroup}, $msg) );
-#			logError("Can't set group to GID $Vend::Cfg->{SetGroup}: $msg");
-			logError( errmsg('bin/minivend:17', "Can't set group to GID %s: %s" , $Vend::Cfg->{SetGroup}, $msg) );
+			logGlobal( errmsg('bin/minivend:16',
+								"Can't set group to GID %s: %s" ,
+								$Vend::Cfg->{SetGroup},
+								$msg ) );
+			logError( errmsg('bin/minivend:17',
+								"Can't set group to GID %s: %s",
+								$Vend::Cfg->{SetGroup},
+								$msg ) );
 		}
 	}
 
@@ -2349,6 +2394,7 @@ EOF
 	chdir $Vend::Cfg->{'VendRoot'} 
 		or die "Couldn't change to $Vend::Cfg{'VendRoot'}: $!\n";
 	set_file_permissions();
+	tie_static_dbm('nolog') if $Vend::Cfg->{StaticDBM};
 	umask $Vend::Cfg->{'Umask'};
 	open_database();
 

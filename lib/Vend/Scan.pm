@@ -1,6 +1,6 @@
 # Vend/Scan.pm:  Prepare searches for MiniVend
 #
-# $Id: Scan.pm,v 1.52 1999/07/16 11:05:19 mike Exp $
+# $Id: Scan.pm,v 1.53 1999/08/10 09:21:18 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
@@ -29,7 +29,7 @@ require Exporter;
 			perform_search
 			);
 
-$VERSION = substr(q$Revision: 1.52 $, 10);
+$VERSION = substr(q$Revision: 1.53 $, 10);
 
 use strict;
 use Vend::Util;
@@ -812,7 +812,7 @@ sub perform_search {
 	# We will come back with the above when [search-region] is called
 	elsif ($c->{mv_delay_page}) {
 		$Vend::Session->{search_params} = [$c, $more_matches];
-		return main::cache_page($c->{mv_delay_page}, 1);
+		return ::cache_page($c->{mv_delay_page}, 1);
 	}
 
 	my($v) = $::Values;

@@ -1,6 +1,6 @@
 # Parse.pm - Parse MiniVend tags
 # 
-# $Id: Parse.pm,v 1.54 1999/08/09 02:31:17 mike Exp mike $
+# $Id: Parse.pm,v 1.54 1999/08/09 02:31:17 mike Exp $
 #
 # Copyright 1997-1999 by Michael J. Heins <mikeh@iac.net>
 #
@@ -20,7 +20,7 @@
 
 package Vend::Parse;
 
-# $Id: Parse.pm,v 1.54 1999/08/09 02:31:17 mike Exp mike $
+# $Id: Parse.pm,v 1.54 1999/08/09 02:31:17 mike Exp $
 
 require Vend::Parser;
 
