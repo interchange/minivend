@@ -133,6 +133,18 @@ sub inc_field {
 	return $s->[$OBJ]->inc_field($key, $column, $value);
 }
 
+sub commit {
+	my ($s) = @_;
+	$s = $s->import_db() unless defined $s->[$OBJ];
+	return $s->[$OBJ]->commit();
+}
+
+sub rollback {
+	my ($s) = @_;
+	$s = $s->import_db() unless defined $s->[$OBJ];
+	return $s->[$OBJ]->rollback();
+}
+
 sub column_index {
 	my ($s, $column) = @_;
 	$s = $s->import_db() unless defined $s->[$OBJ];
