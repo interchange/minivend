@@ -189,8 +189,6 @@ the C<Payment Settings> heading in the Interchange documentation for use.
 The payment gateway host to use. Default is C<payflow.verisign.com>, and
 C<test-payflow.verisign.com> when in test mode.
 
-=back
-
 =item check_sub
 
 Name of a Sub or GlobalSub to be called after the result hash has been
