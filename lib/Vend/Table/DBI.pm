@@ -1457,10 +1457,6 @@ sub list_fields {
 	return \@fld;
 }
 
-# OLDSQL
-
-# END OLDSQL
-
 sub touch {
 	return ''
 }
@@ -1586,7 +1582,6 @@ sub query {
 
 #::logDebug("\$db->query=$opt->{query}");
 	if(defined $opt->{values}) {
-		# do nothing
 		@arg = $opt->{values} =~ /['"]/
 				? ( Text::ParseWords::shellwords($opt->{values})  )
 				: (grep /\S/, split /\s+/, $opt->{values});
@@ -1760,10 +1755,11 @@ eval {
 } # MVSEARCH
 #::logDebug("finished query, rc=$rc ref=$ref arrayref=$opt->{arrayref} Tmp=$Vend::Interpolate::Tmp->{$opt->{arrayref}}");
 
+	if ($rc < 1 and CORE::ref($ref) and scalar(@$ref) ) {
+		$rc = scalar(@$ref);
+		$::Values->{mv_search_match_count} = $rc;
+	}
 	if ($opt->{row_count}) {
-		if($rc < 1 and CORE::ref($ref) and scalar(@$ref) ) {
-			$rc = scalar(@$ref);
-		}
 		return $rc unless $opt->{list};
 		$ref = [ [ $rc ] ];
 		@na = [ 'row_count' ];
