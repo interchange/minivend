@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # setup:  read configuration file and install application
 #
-# $Id: setup,v 1.17 1995/11/28 19:08:47 amw Exp $
+# $Id: setup,v 1.18 1995/12/04 21:16:31 amw Exp $
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-my $Version = "0.3.0";
+my $Version = "0.3.1";
 
 use Getopt::Long;
 # use strict;
@@ -51,43 +51,52 @@ if ($main::opt_help) {
     exit 0;
 }
 
-die "Please specify the Vend library directory with the -vend option\n"
-    unless $main::opt_vend;
-my $Vend_lib = $main::opt_vend;
+my $Vend_lib;
+if ($main::opt_vend) {
+    $Vend_lib = $main::opt_vend;
+    $Vend_lib =~ s,/$,,;
+    -f "$Vend_lib/Vend/Dispatch.pm" or die <<"END";
+I'm sorry, but I don't see the Vend sources in '$Vend_lib'.
+END
+}
+else {
+    my $novend = <<'END';
+I'm sorry, I wasn't able to find the Vend directory.  Please
+use the -vend option to give the location of the Vend library
+directory.
+END
+    my $dir = $0;
+    $dir =~ s,/[^/]+$,, or die $novend;
+    die $novend unless -f "$dir/Vend/Dispatch.pm";
+    $Vend_lib = $dir;
+}
 
 unshift @INC, $Vend_lib;
 
-my $App = shift @ARGV;
-unless (defined $App) {
-    print STDERR "Please specify the application name.\n";
-    usage();
-    exit 1;
-}
-
 require Vend::ConfigReader;
-
 $C = new Vend::ConfigReader;
 my @Modules = ();
 
+my $App = shift @ARGV;
+$App = 'vend' unless defined $App;
 configuration();
 
-if ($main::opt_config) {
-    $C->load($main::opt_config);
-}
+
+if ($main::opt_config) { $C->load($main::opt_config) }
+elsif (-f "$App.conf") { $C->load("$App.conf") }
+elsif (-f "$App.cfg")  { $C->load("$App.cfg") }
+elsif (-f "vend.conf") { $C->load("vend.conf") }
+elsif (-f "vend.cfg")  { $C->load("vend.cfg") }
 else {
-    $C->load("$App.conf");
+    die <<'END';
+I'm sorry, but I couldn't find the Vend configuration file
+in the current directory.
+END
 }
 
 my $Data_dir = $C->value("Data_directory");
 makedir($Data_dir);
 chdir($Data_dir) or die "Can't chdir to '$Data_dir': $!\n";
-
-# open(CONFIG, ">config") or die "Can't create '$config': $!\n";
-# my ($d, $x);
-# foreach $d ($C->directives()) {
-#     print CONFIG "$d=", '"', $C->value($d), '"', "\n";
-# }
-# close(CONFIG);
 
 cmd("$Vend_lib/template/configure");
 

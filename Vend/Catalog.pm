@@ -1,6 +1,6 @@
 # Catalog.pm: on-line ordering abstract class
 #
-# $Id: Catalog.pm,v 1.16 1995/11/28 18:32:25 amw Exp $
+# $Id: Catalog.pm,v 1.17 1995/12/04 20:23:38 amw Exp $
 #
 package Vend::Catalog;
 
@@ -155,19 +155,25 @@ sub nitems {
 }
 
 
+# Returns the total cost of the items ordered, without shipping or tax.
+
+sub total_item_cost {
+    my ($class) = @_;
+    my $total = 0;
+    my ($item, $price);
+    foreach $item (@{Item()}) {
+        $price = $class->item_price($item->{code});
+        $total += $item->{quantity} * $price;
+    }
+    return $total;
+}
+
+
 # Returns the total cost of items ordered.
 
 sub total_cost {
     my ($class) = @_;
-    my ($total, $i, $item, $price);
-
-    $total = 0;
-    foreach $item (@{Item()}) {
-        $price = $class->item_price($item->{code});
-	$total += $item->{quantity} * $price;
-    }
-    $total += $class->shipping_cost();
-    return $total;
+    return $class->total_item_cost();
 }
 
 

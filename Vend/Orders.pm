@@ -1,6 +1,6 @@
 # Orders.pm:  process a completed order
 #
-# $Id: Orders.pm,v 1.12 1995/11/28 19:02:37 amw Exp $
+# $Id: Orders.pm,v 1.13 1995/12/04 20:24:43 amw Exp $
 #
 package Vend::Orders;
 
@@ -172,6 +172,7 @@ sub order_total {
     my $s = $catalog->currency($catalog->shipping_cost());
     $t .= "Shipping: " . $s . "\n" if $s != 0;
     $t .= "   Total: " . $catalog->total_cost() . "\n";
+    return $t;
 }
 
 
