@@ -978,20 +978,19 @@ sub get_system_code {
 	}
 
 	my @files;
-
 	my $wanted = sub {
-		return unless -f $_;
-		push @files, $File::Find::name;
+		return if (m{^\.} || ! -f $_);
+		return unless m{^[^.]+\.(\w+)$};
+		my $ext = $extmap{lc $1} or return;
+		push @files, [ $File::Find::name, $ext ];
 	};
 	File::Find::find($wanted, @$Global::TagDir);
-	for(@files) {
-		next if m{^\.};
-		next if m{/\.};
-		next unless m{/[^.]+\.(\w+)$};
 
-		$CodeDest = $extmap{lc $1} or next;
-		open SYSTAG, "< $_"
-			or config_error("read system tag file %s: %s", $_, $!);
+	for(@files) {
+		$CodeDest = $_->[1];
+
+		open SYSTAG, "< $_->[0]"
+			or config_error("read system tag file %s: %s", $_->[0], $!);
 		while(<SYSTAG>) {
 			my($lvar, $value) = read_config_value($_, \*SYSTAG);
 			next unless $lvar;
