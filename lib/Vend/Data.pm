@@ -616,8 +616,6 @@ use vars '%db_config';
 # END SQL
 		'SHADOW' => {
 				qw/
-					Extension			 shadow
-					RestrictedImport	 1
 					Class                Vend::Table::Shadow
 				/
 				},
@@ -784,7 +782,14 @@ sub import_database {
 	$base = $obj->{'name'};
 	$dir = $obj->{DIR} if defined $obj->{DIR};
 
-	$class_config = $db_config{$obj->{Class} || $Global::Default_database};
+	if ($obj->{OrigClass}) {
+		my $ref = $db_config{$obj->{OrigClass} || $Global::Default_database};
+		$class_config = {%$ref};
+		$class_config->{Class} = $db_config{$obj->{Class}}->{Class};
+		$class_config->{OrigClass} = $obj->{OrigClass};
+	} else {
+		$class_config = $db_config{$obj->{Class} || $Global::Default_database};
+	}
 
 #::logDebug ("params=$database_txt path='$path' base='$base' tail='$tail' dir='$dir'") if $type == 9;
 	$table_name     = $name;
