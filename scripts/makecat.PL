@@ -1385,6 +1385,17 @@ ADDITIONAL: {
 		s/\s+$//;
 		s/__MVC_([A-Z0-9]+)(__)?/substitute($1,$2)/eg;
 		my ($var, $prompt, $default) = split /\n/, $_, 3;
+		if($var =~ s/{\s*([A-Z0-9]+)(\s*\S.*?)?\s*}\s*//) {
+			my $param = $1;
+			my $test = $2;
+			my $v = $Conf{lc $param};
+			$v = "q{$v}";
+			my $true;
+			eval {
+				$true = eval "$v$test";
+			};
+			next unless $true;
+		}
 		$var =~ s/\s+//g;
 		$var = lc $var;
 		my $ucvar = uc $var;
