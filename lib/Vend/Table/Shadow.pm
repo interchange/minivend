@@ -180,28 +180,9 @@ sub row_hash {
 	my ($ref, $map, $column, $locale, $db, $value);
 	
 	$s = $s->import_db() unless defined $s->[$OBJ];
-	$locale = $::Scratch->{mv_locale} || 'default';
 	$ref = $s->[$OBJ]->row_hash($key);
 	if ($ref) {
-		my @cols = $s->columns();
-		for (my $i = 0; $i < @cols; $i++) {
-			$column = $cols[$i];
-			if (exists $s->[$CONFIG]->{MAP}->{$column}->{$locale}) {
-				$map = $s->[$CONFIG]->{MAP}->{$column}->{$locale};
-				if (exists $map->{table}) {
-					$db = Vend::Data::database_exists_ref($map->{table})
-						or die "unknown table $map->{table} in mapping for column $column of $s->[$TABLE] for locale $locale";
-					if ($db->record_exists($key)) {
-					    $value = $db->field($key, $map->{column});
-					} else {
-						$value = '';
-					}
-				} else {
-					$value = $s->field($key, $map->{column});
-				}
-				$ref->{$cols[$i]} = $value;
-			}
-		}
+		$s->_map_hash($key, $ref);
 	}
 	return $ref;
 }
@@ -251,6 +232,39 @@ sub reset {
 	my ($s, $key) = @_;
 	$s = $s->import_db() unless defined $s->[$OBJ];
 	$s->[$OBJ]->reset();
+}
+
+sub _map_hash {
+	my ($s, $key, $href) = @_;
+
+    for (keys %$href) {
+		$href->{$_} = $s->_map_column($key, $_);
+	}
+
+	$href;
+}
+
+sub _map_column {
+	my ($s, $key, $column) = @_;
+	my ($map, $db, $value);
+
+	my $locale = $::Scratch->{mv_locale} || 'default';
+
+	if (exists $s->[$CONFIG]->{MAP}->{$column}->{$locale}) {
+		$map = $s->[$CONFIG]->{MAP}->{$column}->{$locale};
+		if (exists $map->{table}) {
+			$db = Vend::Data::database_exists_ref($map->{table})
+					   or die "unknown table $map->{table} in mapping for column $column of $s->[$TABLE] for locale $locale";
+			if ($db->record_exists($key)) {
+			    $value = $db->field($key, $map->{column});
+			} else {
+				$value = '';
+			}
+		} else {
+			$value = $s->field($key, $map->{column});
+		}
+		$value;
+	}
 }
 
 1;
