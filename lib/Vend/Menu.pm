@@ -396,10 +396,13 @@ sub old_tree {
 		$opt->{collapse_url} .= 'collapse=1';
 	}
 
+	my $explode_label = errmsg($opt->{explode_label} || 'Explode tree');
+	my $collapse_label = errmsg($opt->{collapse_label} || 'Collapse tree');
+
 	$opt->{header_template} ||= <<EOF;
 <P>
-<a href="{EXPLODE_URL}" {LINK_STYLE?} style="{LINK_STYLE}"{/LINK_STYLE?} {LINK_CLASS?} class="{LINK_CLASS}"{/LINK_CLASS?}>Explode tree</A><br>
-<a href="{COLLAPSE_URL}" {LINK_STYLE?} style="{LINK_STYLE}"{/LINK_STYLE?} {LINK_CLASS?} class="{LINK_CLASS}"{/LINK_CLASS?}>Collapse tree</A>
+<a href="{EXPLODE_URL}" {LINK_STYLE?} style="{LINK_STYLE}"{/LINK_STYLE?} {LINK_CLASS?} class="{LINK_CLASS}"{/LINK_CLASS?}>$explode_label</A><br>
+<a href="{COLLAPSE_URL}" {LINK_STYLE?} style="{LINK_STYLE}"{/LINK_STYLE?} {LINK_CLASS?} class="{LINK_CLASS}"{/LINK_CLASS?}>$collapse_label</A>
 </P>
 EOF
 
@@ -855,10 +858,12 @@ sub dhtml_tree {
 	$opt->{toggle_class} ||= '';
 	$opt->{explode_url} ||= "javascript:${vpf}do_explode(); void(0)";
 	$opt->{collapse_url} ||= "javascript:${vpf}do_collapse(); void(0)";
+	my $explode_label = errmsg($opt->{explode_label} || 'Explode tree');
+	my $collapse_label = errmsg($opt->{collapse_label} || 'Collapse tree');
 	$opt->{header_template} ||= <<EOF;
 <P>
-<a href="{EXPLODE_URL}" {LINK_STYLE?} style="{LINK_STYLE}"{/LINK_STYLE?} {LINK_CLASS?} class="{LINK_CLASS}"{/LINK_CLASS?}>Explode tree</A><br>
-<a href="{COLLAPSE_URL}" {LINK_STYLE?} style="{LINK_STYLE}"{/LINK_STYLE?} {LINK_CLASS?} class="{LINK_CLASS}"{/LINK_CLASS?}>Collapse tree</A>
+<a href="{EXPLODE_URL}" {LINK_STYLE?} style="{LINK_STYLE}"{/LINK_STYLE?} {LINK_CLASS?} class="{LINK_CLASS}"{/LINK_CLASS?}>$explode_label</A><br>
+<a href="{COLLAPSE_URL}" {LINK_STYLE?} style="{LINK_STYLE}"{/LINK_STYLE?} {LINK_CLASS?} class="{LINK_CLASS}"{/LINK_CLASS?}>$collapse_label</A>
 </P>
 EOF
 
