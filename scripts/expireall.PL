@@ -155,6 +155,7 @@ unless ($opt_n) {
 }
 
 # Parse the interchange.cfg file to look for script/catalog info
+chdir $Global::VendRoot or die "Couldn't change to $Global::VendRoot: $!\n";
 global_config();
 
 while( my($name, $cat) = each %Global::Catalog ) {
