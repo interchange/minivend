@@ -1546,8 +1546,13 @@ sub tag_if {
 	}
 	elsif ($elsif) {
 		$else = '[else]' . $else . '[/else]' if length $else;
-		$elsif =~ s#(.*?)$QR{'/elsif'}(.*)#$1${2}[/elsif]#s;
-		$out = '[if ' . $elsif . $else . '[/if]';
+		my $pertinent = Vend::Parse::find_matching_end('elsif', \$elsif);
+		unless(defined $pertinent) {
+			$pertinent = $elsif;
+			$elsif = '';
+		}
+		$elsif .= '[/elsif]' if $elsif =~ /\S/;
+		$out = '[if ' . $pertinent . $elsif . $else . '[/if]';
 	}
 	elsif (length $else) {
 		$out = $else;
