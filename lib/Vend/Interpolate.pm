@@ -837,15 +837,16 @@ sub tag_data {
 		return undef unless $db->record_exists($key);
 		return $db->row_hash($key);
 	}
+	elsif ($opt->{filter}) {
+		return filter_value(
+			$opt->{filter},
+			ed(database_field($selector,$key,$field,$opt->{foreign})),
+			$field,
+		);
+	}
 
 	#The most common , don't enter a block, no accoutrements
-	my $value = ed(database_field($selector,$key,$field,$opt->{foreign}));
-
-	if ($opt->{filter}) {
-		$value = filter_value($opt->{filter}, $value, $field);
-	}
-	return $value;
-
+	return ed(database_field($selector,$key,$field,$opt->{foreign}));
 }
 
 %Filter = (
