@@ -57,13 +57,18 @@ use lib '/usr/local/interchange/lib';
 use lib '/usr/local/interchange';
 #use lib '~_~INSTALLARCHLIB~_~';
 
-BEGIN {
+use strict;
+use Fcntl;
+use Vend::Session;
+use Vend::Util;
+use Vend::Config;
 
+BEGIN {
 	($Global::VendRoot = $ENV{MINIVEND_ROOT})
 		if defined $ENV{MINIVEND_ROOT};
 
-$Global::VendRoot = $Global::VendRoot || '/usr/local/interchange';
-#$Global::VendRoot = $Global::VendRoot || '~_~INSTALLARCHLIB~_~';
+	$Global::VendRoot = $Global::VendRoot || '/usr/local/interchange';
+#	$Global::VendRoot = $Global::VendRoot || '~_~INSTALLARCHLIB~_~';
 	$Global::ErrorFile = "$Global::VendRoot/error.log";
 	$ENV{MINIVEND_STORABLE} = 1
 		if -f "$Global::VendRoot/_session_storable";
@@ -84,7 +89,7 @@ $Global::VendRoot = $Global::VendRoot || '/usr/local/interchange';
 	}
 }
 
-### END CONFIGURABLE VARIABLES
+### END CONFIGURATION VARIABLES
 
 sub debug { return undef }
 
@@ -92,9 +97,6 @@ $Global::HammerLock = 20;
 $Vend::ExternalProgram = 1;
 
 $Vend::SessionID = 'dumpprog';
-
-use strict;
-use Fcntl;
 
 #select a DBM
 
@@ -125,10 +127,6 @@ BEGIN {
 		die "No DBM defined! (File sessions can be viewed without this program.)\n";
 	}
 }
-
-use Vend::Session;
-use Vend::Util;
-use Vend::Config;
 
 my $USAGE = <<EOF;
 usage: dump -c catalog [-n session_id]
