@@ -732,7 +732,7 @@ unless (-f $Configfile) {
 	$Reconfigure = 1;
 }
 
-$Cfg = new IniConf -file => $Configfile, -nocase => 1;
+$Cfg = new IniConf -file => $Configfile;
 
 die "Can't read config file $Configfile: $!\n" unless defined $Cfg;
 my @parms;
@@ -762,7 +762,7 @@ EOF
 			printf CFGFILE "%-19s =\n", $_;
 		}
 		close(CFGFILE)					or die "Can't close $Configfile: $!\n";
-		$Cfg = new IniConf -file => $Configfile, -nocase => 1;
+		$Cfg = new IniConf -file => $Configfile;
 		die "Can't read config file $Configfile: $!\n" unless defined $Cfg;
 		redo CHECKEXIST;
 	}
