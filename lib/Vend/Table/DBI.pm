@@ -586,7 +586,8 @@ sub close_table {
 sub columns {
 	my ($s) = shift;
 	$s = $s->import_db() if ! defined $s->[$DBI];
-    return @{$s->[$NAME]};
+	return unless ref $s->[$NAME] eq 'ARRAY';
+	return @{$s->[$NAME]};
 }
 
 sub test_column {
