@@ -1243,7 +1243,7 @@ CHAIN:
 		if ($price =~ s/^;//) {
 			next if $final;
 		}
-		$chain = $price =~ s/,$// ? 1 : 0 unless $chain;
+		$price =~ s/,$// and $chain = 1;
 		if ($price =~ /^ \(  \s*  (.*)  \s* \) \s* $/x) {
 			$price = $1;
 			$want_key = 1;
@@ -1328,7 +1328,8 @@ CHAIN:
 				my ($attribute, $table, $field, $key) = split /:/, $2;
 				$item->{$attribute} and
 					do {
-						$key = $field ? $item->{$attribute} : $item->{'code'};
+						$key = $field ? $item->{$attribute} : $item->{'code'}
+							unless $key;
 						$price = database_field( ( $table ||
 													$item->{mv_ib} ||
 													$Vend::Cfg->{ProductFiles}[0]),
