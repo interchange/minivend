@@ -136,6 +136,13 @@ sub column_exists {
 	return defined($orig_db->[$CONFIG]{COLUMN_INDEX}{lc $orig_col});
 }
 
+sub set_slice {
+	my ($s, $key, $fary, $vary) = @_;
+
+	$s = $s->import_db() if ! defined $s->[$OBJ];
+	$s->[$OBJ]->set_slice($key, $fary, $vary);
+}
+	
 sub set_row {
 	my ($s, @fields) = @_;
 
@@ -210,6 +217,18 @@ sub record_exists {
 	my ($s, $key) = @_;
 	$s = $s->import_db() unless defined $s->[$OBJ];
 	$s->[$OBJ]->record_exists($key);
+}
+
+sub touch {
+	my ($s) = @_;
+	$s = $s->import_db() unless defined $s->[$OBJ];
+	$s->[$OBJ]->touch();
+}
+
+sub each_record {
+	my ($s, $qual) = @_;
+	$s = $s->import_db() unless defined $s->[$OBJ];
+	return $s->[$OBJ]->each_record($qual);
 }
 
 sub each_nokey {
