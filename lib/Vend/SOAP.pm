@@ -151,7 +151,7 @@ sub tag_soap {
 		}
 	};
 	if($@) {
-		::logGlobal("error on SOAP call: %s", $@);
+		::logError("error on SOAP call: %s", $@);
 	}
 #::logDebug("after method call, uri=$uri proxy=$proxy call=$method result=$result");
 
