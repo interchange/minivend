@@ -543,10 +543,12 @@ EOF
 
 	my %o = (
 			start       => $opt->{tree_selector} || $opt->{name},
+			file		=> $opt->{file},
 			table       => $opt->{table} || $::Variable->{MV_TREE_TABLE} || 'tree',
 			master      => 'parent_fld',
 			subordinate => 'code',
 			autodetect  => '1',
+			no_open		=> 1,
 			js_prefix	=> $vpf,
 			sort        => $opt->{sort} || 'code',
 			full        => '1',
@@ -896,6 +898,7 @@ EOF
 			start       => $opt->{tree_selector} || 'Products',
 			table       => $opt->{table} || $::Variable->{MV_TREE_TABLE} || 'tree',
 			master      => 'parent_fld',
+			file		=> $opt->{file},
 			subordinate => 'code',
 			autodetect  => '1',
 			sort        => $opt->{sort} || 'code',
@@ -1355,11 +1358,13 @@ sub tree_line {
 								no_session_id => $opt->{timed}
 							});
 
-		if($row->{page} =~ m{\?.+=}) {
-			$row->{page} .= $Global::UrlJoiner . 'open=';
-		}
-		else {
-			$row->{page} .= '?open=';
+		unless($opt->{no_open}) {
+			if($row->{page} =~ m{\?.+=}) {
+				$row->{page} .= $Global::UrlJoiner . 'open=';
+			}
+			else {
+				$row->{page} .= '?open=';
+			}
 		}
 	}
 
@@ -1567,6 +1572,16 @@ sub menu {
 							});
 		}
 
+		if($opt->{use_file}) {
+			$opt->{file} = $::Variable->{MV_MENU_DIRECTORY} || 'include/menus';
+			if(! $opt->{name}) {
+				logError("No file or name specified for menu.");
+			}
+			my $nm = escape_chars($opt->{name});
+			$opt->{file} .= "/$nm.txt";
+			undef $opt->{file} unless -f $opt->{file};
+		}
+
 		return old_tree($name,$opt,$template) unless $opt->{dhtml_browser};
 		return dhtml_tree($name,$opt,$template);
 	}
@@ -1601,6 +1616,15 @@ sub menu {
 							border => 0,
 							extra => $opt->{img_clear_extra},
 							});
+		}
+		if($opt->{use_file}) {
+			$opt->{file} = $::Variable->{MV_MENU_DIRECTORY} || 'include/menus';
+			if(! $opt->{name}) {
+				logError("No file or name specified for menu.");
+			}
+			my $nm = escape_chars($opt->{name});
+			$opt->{file} .= "/$nm.txt";
+			undef $opt->{file} unless -f $opt->{file};
 		}
 
 		return old_flyout($name,$opt,$template) unless $opt->{dhtml_browser};
