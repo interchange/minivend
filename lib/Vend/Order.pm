@@ -767,7 +767,7 @@ sub mail_order {
 	$body = readin($::Values->{mv_order_report})
 		if $::Values->{mv_order_report};
 # END LEGACY
-	$body = readfile($Vend::Cfg->{OrderReport})
+	$body = readfile($Vend::Cfg->{OrderReport}, $Global::NoAbsolute)
 		if ! $body;
 	unless (defined $body) {
 		::logError(
@@ -1610,7 +1610,7 @@ sub route_order {
 		}
 		else {
 			$pagefile = $route->{'report'} || $main->{'report'};
-			$page = readfile($pagefile);
+			$page = readfile($pagefile, $Global::NoAbsolute);
 		}
 		die errmsg(
 			"No order report %s or %s found.",

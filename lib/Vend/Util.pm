@@ -1020,7 +1020,12 @@ sub readin {
 	$Global::Variable->{MV_PAGE} = $file;
 
 	$file =~ s#\.html?$##;
-	if($file =~ m{\.\.} and $file =~ /\.\..*\.\./) {
+	$file =~ s/^\s+//;
+	if($Global::NoAbsolute and $file =~ m:^/:) {
+		::logError("Cannot specify full path '%s' while NoAbsolute is in use.", $file);
+		$file = find_special_page('violation');
+	}
+	elsif($file =~ m{\.\.} and $file =~ /\.\..*\.\./) {
 		::logError( "Too many .. in file path '%s' for security.", $file );
 		$file = find_special_page('violation');
 	}
