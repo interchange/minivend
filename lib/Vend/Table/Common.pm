@@ -1325,7 +1325,10 @@ EndOfRoutine
 			File::Copy::copy(@{$_});
 		}
 	}
-	$out->commit() if $out->config('HAS_TRANSACTIONS');
+
+	unless($options->{no_commit}) {
+		$out->commit() if $out->config('HAS_TRANSACTIONS');
+	}
 	delete $out->[$CONFIG]{Clean_start};
 	delete $out->[$CONFIG]{_Dirty};
 	unlockfile(\*IN) or die "unlock\n";
