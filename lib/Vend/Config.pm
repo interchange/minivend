@@ -736,13 +736,17 @@ sub config {
 	# Create closure that reads and sets config values
 	my $read = sub {
 		my ($lvar, $value, $tie) = @_;
-		$parse = $parse{$lvar};
-		# call the parsing function for this directive
+
+		# parse variables in the value if necessary
 		if($C->{ParseVariables} and $value =~ /(?:__|\@\@)/) {
 			save_variable($CDname{$lvar}, $value);
 			$value = substitute_variable($value);
 		}
+
+		# call the parsing function for this directive
+		$parse = $parse{$lvar};
 		$value = &$parse($CDname{$lvar}, $value) if defined $parse and ! $tie;
+
 		# and set the $C->directive variable
 		if($tie) {
 			watch ( $CDname{$lvar}, $value );
@@ -1100,15 +1104,15 @@ sub global_config {
 			return;
 		}
 
-		$parse = $parse{$lvar};
-					# call the parsing function for this directive
-
 		if (defined $DumpSource{$name{$directive}}) {
 			$Global::Structure->{ $name{$directive} } = $value;
 		}
 
+		# call the parsing function for this directive
+		$parse = $parse{$lvar};
 		$value = &$parse($name{$lvar}, $value) if defined $parse;
-					# and set the Global::directive variable
+
+		# and set the Global::directive variable
 		${'Global::' . $name{$lvar}} = $value;
 		$Global::Structure->{ $name{$lvar} } = $value
 			unless defined $DontDump{ $name{$lvar} };
