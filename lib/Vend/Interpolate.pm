@@ -1262,12 +1262,23 @@ sub build_accessory_select {
 
 	my $select;
 	my $run = qq|<SELECT NAME="$name"|;
-
+	my ($multi, $re_b, $re_e, $regex);
+	
 	if($type =~ /multiple/i) {
 		$run .= " $type ";
+		$multi = 1;
+		$re_b = '(?:[\0,\s]|^)';
+		$re_e = '(?:[\0,\s]|$)';
 	}
 	elsif ($type  =~ /^multi/i ) {
-			$run .= ' MULTIPLE';
+		$run .= ' MULTIPLE';
+		$multi = 1;
+		$re_b = '(?:\0|^)';
+		$re_e = '(?:\0|$)';
+	}
+	else {
+		$re_b = '(?:\0|^)';
+		$re_e = '(?:\0|$)';
 	}
 
 	$run .= '>';
@@ -1285,8 +1296,8 @@ sub build_accessory_select {
 			$run .= qq| VALUE="$value"|;
 		}
 		if ($default) {
-			my $regex = quotemeta $value;
-			$default =~ /(?:\0|^)$regex(?:\0|$)/ and $select = 1;
+			$regex	= qr/$re_b\Q$value\E$re_e/;
+			$default =~ $regex and $select = 1;
 		}
 		$run .= ' SELECTED' if $select;
 		$run .= '>';
