@@ -1,0 +1,9 @@
+code	description	title	artist	comment	display	image	price	category	nontaxable	weight
+00-0011	MONA LISA, Da Vinci	Mona Lisa	Leonardo Da Vinci	What was she smiling about?	The Louvre	00-0011.jpg	50000000	Renaissance	no	8
+00-0011a	Gilded Frame signed by Da Vinci	Frame	Gilded				1000	Accessory	1	20
+19-202	VERTIGO, MAGIC STAIRCASE, Leon Spilliaert	Vertigo, Magic Staircase	Leon Spilliaert	Where does the staircase go? It's a mystery.	Musee des Beaux-Arts, Ostend	staircase.jpg	400000	Symbolism	no	30
+00-341	SUNFLOWERS, by Van Gogh	Sunflowers	Vincent Van Gogh	An exquisite painting showing Van Gogh at the height of his pointillist powers.	The Louvre	00-341.jpg	40000000	Impressionists	no	40
+00-342	THE STARRY NIGHT, Van Gogh	The Starry Night	Vincent Van Gogh	Breathtaking example of Van Gogh's work.	MOMA	00-342.jpg	20000000	Impressionists	no	10
+00-343	PERSISTENCE OF MEMORY, Dali	Persistence of Memory	Salvador Dali	How does he do that? 	MOMA	00-343.jpg	20000000	Surrealists	no	10
+21-221	AMERICAN GOTHIC, by Wood	American Gothic	Grant Wood	The quintessential piece of Americana.	Smithsonian		10000000	Americana	no	10
+34-101	FAMILY PORTRAIT, by Langan	Family Portrait	Jean Langan	Haunting view of Grandma's Parlor	Krannert		1000000	Americana	no	10

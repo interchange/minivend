@@ -1,24 +1,78 @@
 #!/usr/bin/perl -w
-# stop - stops Vend when in server mode
-$VendRoot = '/usr/local/lib/minivend';
-$ConfDir = '/usr/local/lib/minivend/etc';
+# stop - stops all MiniVend sessions when in multiple server mode
+$VendRoot = '/c/t';
+$ConfDir = '/c/t/etc';
 $PidFile = "$ConfDir/minivend.pid";
 ## END CONFIGURABLE VARIABLES
 
+$force = 0;
+while (@ARGV) {
+	$_ = shift @ARGV;
+	$_ eq '-f'
+		or die <<EOF;
+usage: stop [-f]
 
-open(PID, $PidFile)
-	|| die "Couldn't open $PidFile. Vend apparently not up.\n";
-chomp($PID = <PID>);
+Stops all MiniVend daemons. The -f flag forces unlink of
+non-active PID files.
+EOF
+	$force = 1;
+}
 
-kill 15, $PID
-	or die "Couldn't terminate Vend: $!\n";
+chdir $ConfDir
+	or die "Couldn't enter $ConfDir: $!\n";
+opendir(CONFDIR, '.')
+	or die "Couldn't open $ConfDir: $!\n";
 
-print <<EOF ;
-Termination signal sent to Vend daemon.
+while( @pids = grep /^minivend.pid/, readdir CONFDIR) {
 
-Check the error log (probably $VendRoot/error.log) to see if
-the daemon has stopped.
+	foreach $PidFile (@pids) {
+		$tried{$PidFile} = 1
+			unless defined $tried{$PidFile};
+		open(PID, $PidFile)
+			or die "Couldn't open $PidFile. This shouldn't happen, tell somebody.\n";
+		chomp($PID = <PID>);
+
+		unless(kill 15, $PID) {
+			if($force) {
+				close PID;
+				unlink $PidFile;
+			}
+			elsif ($tried{$PidFile} > 9) {
+				die "MiniVend stop: There is a pid file that will not go away: $!\n";
+			}
+			else {
+				$tried{$PidFile}++;
+				if(-t) {
+					warn <<EOF;
+Couldn't terminate MiniVend server on PID $PID. The
+server may have been stopped by an error.  If we don't
+unlink the file now, this script may loop forever.
 
 EOF
+					print "Unlink the PID file $PidFile? [yes] ";
+					$ans = <STDIN>;
+					(close PID, unlink $PidFile) unless $ans =~ /\s*n/i;
+				}
+			}
+		}
+		else { print "Sent TERM to server on PID $PID.\n"; }
+	}
+	sleep 1;
+	rewinddir CONFDIR;
+}
 
-sleep 2;
+closedir CONFDIR;
+
+if(defined %tried) {
+print <<EOF ;
+Termination signal sent to Vend daemons.
+
+Check the error log (probably $VendRoot/error.log) to see if
+the daemons have stopped.  (Don't worry, they may not stop
+in order, and may have to be killed multiple times).
+
+EOF
+}
+else {
+	print "Apparently no MiniVend daemons were up -- no PID files.\n";
+}

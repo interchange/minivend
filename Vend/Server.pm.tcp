@@ -55,7 +55,7 @@ require Exporter;
 use Fcntl;
 use Socket;
 use strict;
-use Vend::lock;
+use Vend::Util;
 
 my $LINK_PORT = 2345;
 

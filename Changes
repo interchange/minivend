@@ -1,3 +1,31 @@
+MiniVend 1.03 - Multiple servers and disconnected searching
+* Multiple servers can be run for the same catalog
+* Searches are forked so single-server installations will
+  not see delays while searching
+* Cookie support
+* Quantity price breaks
+* Revamped demo yet again
+* Order lists can be displayed anywhere
+* Nameable order and search pages
+* Accessories feature
+* Added TaxShipping, NonTaxableField, PriceField, DescriptionField,
+  AlwaysSecure, ExtraSecure, HammerLock, MultiServer, PageCheck,
+  PriceBreaks, MixMatch, Cookies, Specialpage, Database directives
+* Searches are now independent on database field
+* Fixed bugs in match paging
+* Arbitrary table-like text formatting with [row] [column] elements
+* Vend variables available with [if][else][/else][/if]
+* Configuration script now handles multiple installs, and
+  GCC is recognized
+* Code somewhat modularized
+* Pages are checked for fatal errors before server starts???
+* Static mode will be almost unusable unless the Apache
+  Perl_fast mode is used (not supported or explained)
+* MAT now displays error logs???
+* Unlimited databases
+* Special pages are mapped
+* [data database field key] tag added
+
 MiniVend 1.02 - SSL Security
 * Revamped demo to have fewer frames
 * Added CreditCards, EncryptProgram, FrameOrderPage, SecureOrderMsg,

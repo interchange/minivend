@@ -1,0 +1,60 @@
+
+      ORDER DATE: $date
+
+            Name: $name
+         Company: $company
+   Email address: $email
+
+ Billing address: $address
+City, State, Zip: $city, $state  $zip
+         Country: $country
+
+   Daytime Phone: $phone_day
+   Evening Phone: $phone_night
+
+Shipping Address: $s_address
+City, State, Zip: $s_city, $s_state  $s_zip
+Shipping Country: $s_country
+
+Quan  Code        Description                          Price       Extension
+---- -------- --------------------------------- ------------- --------------- 
+[item-list][row 80]
+[column width=5 gutter=1 align=right]  [item-quantity] [/column]
+[column width=9 gutter=1]  [item-code] [/column]
+[column width=34 gutter=1 align=left wrap=1]
+[item-field title], [item-field artist] -- [item-field comment]
+[/column]
+[column width=14 gutter=1 align=r]  [item-price] [/column]
+[column width=15 gutter=0 align=r] [item-subtotal] [/column]
+[/row]
+
+[/item-list]
+[row 80]
+[column width=5 align=right][/column]
+[column width=9 gutter=1][/column]
+[column width=34 align=R wrap=1]SUBTOTAL[/column]
+[column width=14 gutter=1][/column]
+[column width=15 gutter=0 align=r][subtotal][/column]
+[/row]
+[row 80]
+[column width=5 align=right][/column]
+[column width=9 gutter=1][/column]
+[column width=34 align=R wrap=1]SALES TAX[/column]
+[column width=14 gutter=1][/column]
+[column width=15 align=right gutter=0][salestax][/column]
+[/row]
+[row 80]
+	[column width=5 align=right][/column]
+	[column width=9 gutter=1][/column]
+	[column width=34 align=R wrap=1]SHIPPING[/column]
+	[column width=14 gutter=1][/column]
+	[column width=15 align=right gutter=0][shipping][/column]
+[/row]
+
+[row 80]
+[column width=5 align=right][/column]
+[column width=9 gutter=1][/column]
+[column width=34 align=R wrap=1]ORDER TOTAL[/column]
+[column width=14 gutter=1][/column]
+[column width=15 align = right gutter=0][total-cost][/column]
+[/row]

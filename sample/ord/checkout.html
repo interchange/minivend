@@ -1,0 +1,248 @@
+<HTML>
+<HEAD>
+[framebase _self]
+<TITLE>Art Store Check Out Kiosk</TITLE>
+</HEAD>
+
+[body 1]
+<CENTER>
+<H1>Check Out</H1>
+<FORM ACTION="[process-target _self]" METHOD="POST">
+<input type="hidden" name="mv_doit" value="refresh">
+<input type="hidden" name="mv_orderpage" value="ord/checkout">
+
+<P>
+<H5>[pagetarget help/security _top]
+	<I>How do I know it is secure?</I></H5>
+		[/pagetarget]
+
+<P>
+<A NAME="billing">
+<H2>Shipping and Billing Information</H2>
+</A>
+
+Go to:
+<FONT COLOR=RED>
+&nbsp;&nbsp;
+Billing
+</FONT>
+&nbsp;&nbsp;|&nbsp;&nbsp;
+<A HREF="#shipping">
+Shipping</A>
+&nbsp;&nbsp;|&nbsp;&nbsp;
+<A HREF="#total">
+Total</A>
+</CENTER>
+
+<PRE>
+<IMG  WIDTH=14 HEIGHT=14 SRC="/sample/images/redball.gif"> Name            <input type="text" name="name" value="[value name]" size=40>
+<IMG  WIDTH=14 HEIGHT=14 SRC="/sample/images/bg.gif"> Company Name    <input type="text" name="company" value="[value company]" size=40>
+<IMG  WIDTH=14 HEIGHT=14 SRC="/sample/images/redball.gif"> Billing address <input type="text" name="address" value="[value address]" size=40>
+<IMG  WIDTH=14 HEIGHT=14 SRC="/sample/images/redball.gif"> City            <input type="text" name="city" value="[value city]" size=20>
+<IMG  WIDTH=14 HEIGHT=14 SRC="/sample/images/redball.gif"> State/Province  <input type="text" name="state" value="[value state]" size=10>
+<IMG  WIDTH=14 HEIGHT=14 SRC="/sample/images/redball.gif"> Zip/Postal Code <input type="text" name="zip" value="[value zip]" size=10>
+<IMG  WIDTH=14 HEIGHT=14 SRC="/sample/images/redball.gif"> Country         [if values country]<input type="text" name="country" value="[value country]" size=20>[else][help country_select][/else][/if]
+<IMG  WIDTH=14 HEIGHT=14 SRC="/sample/images/bg.gif"> Email Address   <input type="text" name="email" value="[value email]" size=40>
+
+</PRE>
+[if validcc [value cc_no] [value cc_exp] [value cc_type]]
+  <B>Credit Card Info</B> <BR>
+  <I>(A valid <B>[value cc_type]</B> number was stored, and won't be shown again.<BR>
+  If you need to change it, press CANCEL and start over.)</I>
+  <BR>
+[else]
+  <B>Credit Card:</B>
+
+ 	<input type="radio" name="cc_type"
+	 value="visa" [checked cc_type visa]>
+	 Visa
+	
+    <input type="radio" name="cc_type"
+	 value="mastercard" [checked cc_type mastercard]>
+	 Mastercard
+
+    <input type="radio" name="cc_type"
+	 value="amex" [checked cc_type amex]>
+	 American Express
+
+<BR>  
+
+  [[if value cc_no !~ /^$|NOT_VALID/]
+  	<P>
+  	<BLINK><FONT COLOR=RED>
+  	Credit card information not valid<BR>
+	</FONT></BLINK>
+  	<P>
+	Please check the information you entered and see that the correct
+	card type, expiration date, and number are entered.<P>
+  [/if]]
+  Card Number <input type="text" name="cc_no" value="[value cc_no]" size=19>
+
+  Expires (mm/yy) <input type="text" name="cc_exp" value="[value cc_exp]" size=5>
+[/else]
+[/if]
+
+<PRE>
+  Daytime Phone   <input type="text" name="phone_day" value="[value phone_day]" size=16>
+  Evening Phone   <input type="text" name="phone_night" value="[value phone_night]" size=16>
+</PRE>
+<P>
+<IMG  WIDTH=14 HEIGHT=14 SRC="/sample/images/redball.gif"> <I>We need this field to process your order</I>
+<P>
+<CENTER>
+<input type="submit" name="mv_todo" value="Place Order">
+<input type="submit" name="mv_todo" value="Refresh">
+<input type="submit" name="mv_todo" value="Cancel">
+</CENTER>
+<P>
+<HR>
+<CENTER>
+<A NAME="shipping">
+<H2>Shipping</H2>
+</A>
+
+Go to:
+&nbsp;&nbsp;
+<A HREF="#billing">
+Billing
+</A>
+&nbsp;&nbsp;|&nbsp;&nbsp;
+<FONT COLOR=GREEN>
+Shipping
+</FONT>
+&nbsp;&nbsp;|&nbsp;&nbsp;
+<A HREF="#total">
+Total
+</A>
+</CENTER>
+
+<B>Shipping via</B>
+	<INPUT TYPE=RADIO NAME=mv_shipmode
+		VALUE=UPSG [checked mv_shipmode UPSG]> UPS Ground
+	<INPUT TYPE=RADIO NAME=mv_shipmode
+		VALUE=UPSB [checked mv_shipmode UPSB]> UPS Blue
+	<INPUT TYPE=RADIO NAME=mv_shipmode
+		VALUE=UPSR [checked mv_shipmode UPSR]> UPS Red
+<P>
+	<I>(enter shipping info if different)</I>
+</CENTER>
+<PRE>
+  Address          <input type="text" name="s_address" value="[value s_address]" size=40>
+  City             <input type="text" name="s_city" value="[value s_city]" size=20>
+  State/Province   <input type="text" name="s_state" value="[value s_state]" size=10>
+  Zip/Postal Code  <input type="text" name="s_zip" value="[value s_zip]" size=10>
+  Country          <input type="text" name="s_country" value="[value s_country]" size=20><p>
+
+</PRE>
+<P>
+<CENTER>
+<input type="submit" name="mv_todo" value="Place Order">
+<input type="submit" name="mv_todo" value="Refresh">
+<input type="submit" name="mv_todo" value="Cancel">
+
+<A NAME="total">
+<H2>Items on your list</H2>
+</A>
+
+Go to:
+&nbsp;&nbsp;
+<A HREF="#billing">
+Billing
+</A>
+&nbsp;&nbsp;|&nbsp;&nbsp;
+<A HREF="#shipping">
+Shipping
+</A>
+&nbsp;&nbsp;|&nbsp;&nbsp;
+<FONT COLOR=GREEN>
+Total
+</FONT>
+
+</CENTER>
+
+<PRE>
+[row 80]
+	[col 10]
+		Order Code
+	[/col]
+	[col align=l width=7 gutter=1]
+		Quan
+	[/col]
+	[col 30]
+		Description
+	[/col]
+	[col 16 align=r]
+		Price
+	[/col]
+[/row]
+[item-list]
+[row 80]
+	[col 10]
+		[item-code]
+	[/col]
+	[col align=i width=7 gutter=1]
+		<input type="text" name=[quantity-name] value="[item-quantity]" size=4>
+	[/col]
+	[col 30]
+		[item-description]
+	[/col]
+	[col 16 align=r]
+		$[item-price]
+	[/col]
+[/row]
+[/item-list]
+[row 80]
+	[col 10][/col]
+	[col 7][/col]
+	[column width=30 align=r wrap=no]
+SUBTOTAL
+	[/column]
+	[column width=16 align=r]
+[subtotal]
+	[/column]
+[/row]
+[row 80]
+    [col 10][/col]
+    [col 7][/col]
+    [column width=30 align=r wrap=no]
+Sales Tax
+	[/column]
+	[column width=16 align=r]
+[salestax]
+	[/column]
+[/row]
+[row 80]
+    [col 10][/col]
+    [col 7][/col]
+    [column width=30 align=r wrap=no]
+Shipping
+	[/column]
+	[column width=16 align=r]
+[shipping]
+	[/column]
+[/row]
+[row 80]
+    [col 10][/col]
+    [col 7][/col]
+    [column width=30 align=r wrap=no]
+TOTAL
+	[/column]
+	[column width=16 align=r]
+[total-cost]
+	[/column]
+[/row]
+</PRE>
+
+<CENTER>
+<input type="hidden" name="mv_order_report" value="ord/report">
+<input type="submit" name="mv_todo" value="Place Order">
+<input type="submit" name="mv_todo" value="Refresh">
+<input type="submit" name="mv_todo" value="Cancel">
+</CENTER>
+</form>
+
+<P ALIGN=CENTER>
+
+[[buttonbar 0]]
+[help header][help checkout][help footer]
+</body> </html>

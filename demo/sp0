@@ -1,0 +1,6 @@
+mv_search_field=0
+mv_search_page=srch/mvhelp
+mv_case=yes
+mv_substring_match=yes
+mv_search_file=minivend.asc
+mv_last=1

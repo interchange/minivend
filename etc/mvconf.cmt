@@ -1,3 +1,109 @@
+ActionMap	BLANK_DEFAULT
+Allows setting of button actions for particular names.  The
+predefined names are listed in the documentation, and would be
+overwritten if re-defined.
+
+AlwaysSecure	BLANK_DEFAULT
+Determines whether checkout page operations should always be
+secure.  Set it to the name of pages that should always be secure,
+separated by spaces and/or tabs.
+
+AsciiBackend	BLANK_DEFAULT
+A file name to log order fields in (set by BackendOrder).
+Unless preceded by a leading '/', will be placed relative to VendRoot.
+If the first character is a '|', it is the name of a program to send the
+fields to.
+
+AsciiTrack		BLANK_DEFAULT
+A file name to log formatted orders in. Unless preceded by a leading '/',
+will be placed relative to VendRoot.
+
+BackendOrder	BLANK_DEFAULT
+Controls the fields that are prepended to the item codes and quantities
+for the backend ordering capability.  These are the values from the
+user form in 'order.html'.  You can access any value in that 
+hash. If blank, no backend ordering is in force.
+
+BadLocking      0
+This must be set to a non-zero value if your operating system does
+not fully support FCNTL close-on-exec (SGI and Solaris 2). This means
+that no forked searching is possible.
+
+ButtonBars		BLANK_DEFAULT
+Button bars 0 to 15, specified with a Vend-style filename, i.e. no
+.html suffix, (even though the file will have one), relative
+to the MiniVend page directory. Called by the [buttonbar n] tag,
+numbers start from 0.
+
+CGIUSER		65534
+This is the user ID that the HTTP server will run under. It is
+important only for the svend and mat dispatch programs.
+The presented value is a guess based on your system information.
+
+CgiBin		/usr/local/etc/httpd/cgi-bin
+This is the place where the vlink and/or svend dispatch programs
+reside -- it needs to be in a script-aliased CGI directory.
+
+CheckoutPage order
+The name of the default page to send the user to when the [finish-order]
+tag is used.
+
+CheckoutFrame	_top
+The frame name where the checkout page will go, if frames are
+enabled.
+
+ConfDir			/usr/local/lib/minivend/etc
+The directory which holds various MiniVend configuration files,
+the pid file which tells you what process MiniVend is running on,
+and the data socket file.  No need to change this.
+
+ConfigFile	minivend.cfg
+This is where the current MiniVend configuration is stored,
+relative to the VendRoot.
+
+Cookies			No
+Determines whether we will send (and read back) a cookie to
+get the session ID for links that go outside the catalog.
+
+CreditCards		No
+Enter 'Yes' if you wish to enable MiniVend's encrypted credit card
+handling. This uses Des (or EncryptCommand) to encrypt the form fields
+credit_card_no and credit_card_exp and store them to disk when an order
+is made.
+
+CustomShipping	BLANK_DEFAULT
+The FIELD NAME which is the key to the custom shipping calculation.  This
+is defined in ProductDir/shipping.asc, and is most commonly the value of
+a radio button field selecting shipping mode -- one of the fields on the
+order report. If left blank, no custom shipping calculation is done.  If
+an entry for that field name (and quantity) is not found, it uses the
+field 'default', which must be defined in the file.  The default can be
+0. This overrides the Shipping entry.  If neither are defined,
+nothing will be added for shipping.
+
+DataDir			products
+The location of the extra database files.
+
+Database		BLANK_DEFAULT
+Definition of an arbitrary database, in the form
+"Database database file", where "file" is the name of an
+ASCII file in the same format as the products database.  The
+file is relative to VendRoot, and is put in DataDir if no
+path is provided.  Records can be accessed with the
+[data database field key] tag.
+
+DefaultShipping	default
+Sets the initial shipping mode.
+
+Delimiter		TAB
+One of TAB, PIPE, CSV, or your own custom delimiter. (It is not
+suggested that you use a custom delimiter). TAB means a tab-delimited
+database by default, PIPE a pipe-delimited one, and CSV a quote-comma
+format.
+
+DescriptionField	description
+The field that will be accessed with the [item-description] element.
+
 DescriptionTrim	BLANK_DEFAULT
 This sets the text string after which no more of the product
 description will be displayed in the search list.
@@ -6,13 +112,71 @@ DisplayErrors	Yes
 Controls whether program errors will be appended to the
 browser display.
 
+EncryptProgram	BLANK_DEFAULT
+The fully-qualified path name of a program which will encrypt 
+a credit card number for storage in the session database. The parameters
+%p and %f are substituted with the password and temporary file name
+to use, respectively.
+
+ErrorFile	error.log
+This is where MiniVend will write its runtime errors. If you
+make it root-based, be careful that you have permission to
+write the file, or bad things will happen.
+
+ExtraSecure		BLANK_DEFAULT
+Enforces extra checking of data.
+
 FinishOrder		Finish Incomplete Order
 The value that will be used as the anchor text for the
 [finish-order] tag. Can be text or an image -- any legal
 HTML.
 
+FrameOrderPage	BLANK_DEFAULT
+The special page to use instead of 'order.html' for the order
+page.  This allows you to put the item-list in a separate window/frame
+from the name/address/account information. 
+
+FrameSearchPage	BLANK_DEFAULT
+The special page to use instead of 'search.html' for the search
+page.  This allows you to define separate windows for frame and
+non-frame browsers.
+
 Glimpse			glimpse
-Controls the location of the external glimpse search engine.
+Controls the location of the external glimpse search engine,
+and whether Glimpse will be used.  Set to the path of your
+Glimpse program.  If you want special options, see the
+documentaton on the search engine.
+
+HammerLock		30
+The number of seconds after which a locked session could be
+considered to be lost due to malfunction. This will kill the
+lock on the session. Only here for monitoring of session
+handoff, if this error shows up in the error log the system
+setup should be examined.
+
+Help			BLANK_DEFAULT
+Files with help items, specified with a Vend-style filename,
+i.e. no .html suffix, (even though the file will have one),
+relative to the MiniVend page directory. Help items are
+keyed by name.  Called by the [help item] tag.
+
+HelpFile	etc/mvconf.cmt
+The file that holds these messages and the variable definitions.
+
+HostName	localhost
+This is your host name, the one which will be used to activate
+the system. The value presented may be a guess by the configure
+program, but use the real fully-qualified host name. Often has a
+'www' prepended.
+
+HtmlDir		/usr/local/etc/httpd/htdocs
+This is your main HTML document directory (aka DocumentRoot). It
+is important if you plan on using mat(8) or running the
+sample configuration.
+
+ImageDir	/images
+Where the images are relative to HTTP server DocumentRoot. This
+is mainly needed for vendpage(1).
 
 ItemLinkDir		BLANK_DEFAULT
 The directory where the [item-link] tag will base all of its
@@ -20,33 +184,143 @@ hot links in.
 
 ItemLinkValue	More Details
 The value that will be used as the anchor text for the
-[item-link] tag. Can be text or an image -- any legal HTML.
+[item-link] tag. Can be text or an image -- any legal HTML or
+MiniVend tag.
+
+LINK_FILE		/usr/local/lib/minivend/etc/socket
+The location of the UNIX-domain socket that will allow the
+MiniVend server and the vlink program to communicate.  DON'T
+CHANGE THIS UNLESS YOU WANT HEARTACHE!
+
+LINK_TIMEOUT	10
+The number of seconds the link program will wait before 
+returning an error message that the MiniVend Server is not 
+running.
+
+MAT			bin/mat
+This is the mat(8) program location. It shouldn't need to be
+changed from this. It is used to compile mat.c for proper
+dispatch.
 
 MailOrderTo		UNDEFINED
 The address where orders will be mailed. This must be defined.
+
+MixMatch		No
+Sets whether quantity price breaks will be on TOTAL quantity or
+per-item quantity. Default is no mix and match, pricing is on
+a per-item basis.
+
+MultiServer		0
+If defined to be non-zero, then multiple servers can share the
+socket and serve users. Not usable on SGI or Sun/Solaris 2 systems.
+
+Mv_Background	BLANK_DEFAULT
+Background patterns, 1 through 15.  Start with a BEGIN tag,
+then define up to 15 backgrounds for the 15 schemes.
+
+Mv_BgColor		BLANK_DEFAULT
+Background colors, 1 through 15.  Start with a BEGIN tag,
+then define up to 15 colors for the 15 schemes.  Enter
+'none' for the default.
+
+Mv_LinkColor	BLANK_DEFAULT
+Link colors, 1 through 15.  Start with a BEGIN tag, then
+define up to 15 colors for the 15 schemes.  Enter 'none' for
+the default.
+
+Mv_TextColor	BLANK_DEFAULT
+Text colors, 1 through 15.  Start with a BEGIN tag, then
+define up to 15 colors for the 15 schemes.  Enter 'none' for
+the default.
+
+Mv_VlinkColor	BLANK_DEFAULT
+Visited link colors, 1 through 15.  Start with a BEGIN tag, then
+define up to 15 colors for the 15 schemes.  Enter 'none' for
+the default.
+
+NET_START        -notify
+Determines the behavior of the vlink program if the MiniVend server is
+not running.  Set to -notify (the default) to send mail to the
+MailOrderTo address, to -netstart to automatically start the MiniVend
+server, or to -test to send a message saying "we are probably doing
+development" and take no action.
+   
+NOTE: If you are running with the I<CreditCards> directive enabled, you
+will not be able to enter the password. The CreditCards directive is
+disabled by default if -netstart is used to start up MiniVend.
+
+NonTaxableField	BLANK_DEFAULT
+The name of the field in the products database that is set (to 1 or yes)
+if an item is not to be taxed. Will log an error and tax it anyway
+if the field doesn't exist in the database.
+
+OrderCounter 	BLANK_DEFAULT
+The name of the file (relative to VendRoot if no leading /) that
+maintains the order number. A good value might be "etc/order.number".
 
 OrderFrame		_top
 The frame name where the order page will go, if frames are
 enabled.
 
 OrderReport		report
-The name of the file containing the order report template.
+The name of the file containing the simple order report template.
+
+PERL		/usr/bin/perl
+This is where Perl 5 is located. It is mandatory to know
+this.  If a suggestion has been made, and you are running
+the configure, it is probably correct. You can change it if
+you have a later version of Perl.
+
+PageCheck		no
+If set to a yes value, the MiniVend server will check the
+pages in the defined PageDir for syntactic correctness before
+starting.
 
 PageDir			pages
 The subdirectory of VendRoot where the actual MiniVend pages
 reside.
 
+PriceBreaks		BLANK_DEFAULT
+The quantities where price breaks should be placed.  Used to set
+up the pricing.asc entries to match actual pricing. Unlimited number
+of breaks -- only enter the lowest quantity it applies to.
+
 PriceCommas		yes
 Whether commas will be inserted in prices displayed by
 MiniVend.
 
+PriceDivide		1
+The number the price should be divided by to get the price
+in units (dollars or such).
+
+PriceField		price
+The field in the product database that will be accessed with
+the [item-price] element.
+
 ProductDir		products
 The location of the product database files.
+
+ProtBin		/usr/local/etc/httpd/prot-bin
+This is the location where the mat dispatch program will
+reside. It must be PASSWORD-PROTECTED by your HTTP server.
+Sorry, it won't work on the CERN server.
+
+Random			BLANK_DEFAULT
+Random messages 0 to 15, specified with a Vend-style filename, i.e. no
+.html suffix, (even though the file will have one), relative
+to the MiniVend page directory. Called by the [random] tag.
 
 ReadPermission	user
 Controls the permissions of the session database, and
 error.log file.  This only takes effect if the program is
 creating a new file.
+  
+Though it is highly discouraged, if you can't run vlink SUID
+you can set this to 'world' and have MiniVend work.
+
+ReceiptPage 	BLANK_DEFAULT
+The page to be displayed as a receipt after the user has submitted
+an order. Replaces the standard 'confirmation' page.
 
 ReportIgnore	BLANK_DEFAULT
 Fields to ignore for the purposes of mailing an order. A
@@ -57,6 +331,26 @@ RequiredFields	BLANK_DEFAULT
 Fields that the user MUST fill at least something in before
 their order can be processed. A COMMA-SEPARATED list.
 
+RunType		server
+This determines your initial run state. It is easily reversible
+except for the demo, which will be configured according to your
+selection.  Server mode requires starting minivend.pl as a
+daemon, then having references to the VendURL call that daemon.
+Running in server mode is MUCH faster.  If you want to run in
+static mode, type 'static'.
+
+SalesTax		BLANK_DEFAULT
+The FIELD NAMES which are the keys to the sales tax calculation. This
+is defined in ProductDir/salestax.asc, and is most commonly
+zipcode or state, one of the fields on the order report. If
+left blank, no sales tax calculation is done.  If an entry
+for that field name is not found, it uses the field 'default',
+which must be defined in the file.  The default can be 0.
+
+ScratchDir		etc
+The directory where scratch files will be written, notably cached
+searches.
+
 SearchFrame		_self
 The frame name where search results will go, if frames are
 enabled.
@@ -66,8 +360,30 @@ The default message that will be displayed if the search
 function finds more than the number of matches it is limited
 to.
 
+SearchProfile	BLANK_DEFAULT
+An unlimited number of search profiles, specified with a Vend-style
+filename, i.e. no .html suffix, (even though the file will have one),
+relative to the MiniVend page directory. Called by the mv_profile
+selector on a search form, numbers start from 0.
+  
+The search profiles themselves are a set of variables defining
+the search parameters, and can be conditional based on the 
+MiniVend [if ...][/if] tagging.
+
+SecureOrderMsg	Use Order Security
+The message which will be displayed for the [secure-order] tag. This
+turns on order security, after which all order operations for that
+session will be submitted through the SecureURL instead of VendURL.
+
+SecureURL		BLANK_DEFAULT
+If you are using an SSL or Secure HTTP server, this is the URL
+which will be used for processing orders securely.  For SSL, it
+is usually the same URL as normal, except that it uses
+'https' instead of 'http'.
+
 SendMailProgram	/usr/lib/sendmail
 The location of the sendmail binary, needed for mailing orders.
+Must be found at startup.
 
 SessionDatabase	session
 The base name of the session database. DON'T CHANGE THIS!
@@ -79,9 +395,35 @@ Shipping		0
 A flat shipping charge that will be added to any order. A
 zero value disables it.
 
+SpecialPage		BLANK_DEFAULT
+Sets a special page to other than its default value.
+
+TaxShipping		BLANK_DEFAULT
+A comma or space separated list of states or jurisdictions that
+tax shipping cost, i.e. UT.
+
+Tracking		BLANK_DEFAULT
+The name of the statistics tracking database, if tracking is desired.
+Defaults to no tracking.  Suggested value is 'tracking', which will
+create a DBM file in the ProductDir with statistics on how many times
+pages are served, and track any orders placed (with the full text of
+the order report).  Somewhat superseded by the improved AsciiTrack
+and AsciiBackend functions.
+
 UseCode			yes
 Determines whether the product code will be used as the base
 for the [item-link] file name.
+
+VEND		minivend.pl
+This is the main MiniVend program location. It shouldn't need to
+be changed from this.
+
+VendRoot	/usr/local/lib/minivend
+The first thing we need to know is where you want MiniVend
+to be installed. This will serve as 'VendRoot', the place
+where all operations will be based from, and all relative
+directory paths will start from. You can enter just a .
+if you want the current directory.
 
 VendURL			UNDEFINED
 The URL that calls the main MiniVend dispatch program. Must
@@ -94,214 +436,14 @@ WritePermission	user
 Controls the permissions of the session database, and
 error.log file.  This only takes effect if the program is
 creating a new file.
+  
+Though it is highly discouraged, if you can't run vlink SUID
+you can set this to 'world' and have MiniVend work.
 
-VendRoot	/usr/local/lib/minivend
-The first thing we need to know is where you want MiniVend
-to be installed. This will serve as 'VendRoot', the place
-where all operations will be based from, and all relative
-directory paths will start from.
-
-DBMtype		gdbm
-This is the style of DBM file you will be using.
-    
-It is STRONGLY SUGGESTED that the value you see presented be
-accepted.  Change only if you know what you are doing.
-
-ErrorFile	error.log
-This is where MiniVend will write its runtime errors. If you
-make it root-based, be careful that you have permission to
-write the file, or bad things will happen.
-
-ConfigFile	minivend.cfg
-This is where the current MiniVend configuration is stored,
-relative to the VendRoot.
-
-HtmlDir		/usr/local/etc/httpd/htdocs
-This is your main HTML document directory (aka DocumentRoot). It
-is important if you plan on using mat(8) or running the
-sample configuration.
-
-PERL		/usr/bin/perl
-This is where Perl 5 is located. It is mandatory to know this.
-If a suggestion has been made, and you are running this
-configure, it is probably correct. You can change it if you have
-a later version of Perl.
-
-HelpFile	etc/mvconf.cmt
-The file that holds these messages and the variable definitions.
-
-CGIUSER		65534
-This is the user ID that the HTTP server will run under. It is
-very important, and is needed to compile the dispatch programs.
-The presented value is a guess based on your system information.
-
-VEND		minivend.pl
-This is the main MiniVend program location. It shouldn't need to
-be changed from this.
-
-MAT			bin/mat
-This is the mat(8) program location. It shouldn't need to be
-changed from this. It is used to compile mat.c for proper
-dispatch.
-
-CgiBin		/usr/local/etc/httpd/cgi-bin
-This is the place where the vlink and/or svend dispatch programs
-reside -- it needs to be in a script-aliased CGI directory.
-
-ProtBin		/usr/local/etc/httpd/prot-bin
-This is the location where the mat dispatch program will
-reside. It should be PASSWORD-PROTECTED by your HTTP server.
-
-ImageDir	/images
-Where the images are relative to HTTP server DocumentRoot. This
-is mainly needed for vendpage(1).
-
-HostName	localhost
-This is your host name, the one which will be used to activate
-the system. The value presented may be a guess by the configure
-program, but use the real fully-qualified host name. Often has a
-'www' prepended.
-
-RunType		server
-This determines your initial run state. It is easily reversible
-except for the demo, which will be configured according to your
-selection.  Server mode requires starting minivend.pl as a
-daemon, then having references to the VendURL call that daemon.
-Running in server mode is MUCH faster.  If you want to run in
-static mode, type 'static'.
-
-LINK_FILE		/usr/local/lib/minivend/etc/socket
-The location of the UNIX-domain socket that will allow the
-MiniVend server and the vlink program to communicate.  DON'T
-CHANGE THIS UNLESS YOU WANT HEARTACHE!
-
-LINK_TIMEOUT	10
-The number of seconds the link program will wait before 
-returning an error message that the MiniVend Server is not 
-running.
-
-ConfDir			/usr/local/lib/minivend/etc
-The directory which holds various MiniVend configuration files,
-the pid file which tells you what process MiniVend is running on,
-and the data socket file.  No need to change this.
-
-Mv_BgColor		BLANK_DEFAULT
-Background colors, 1 through 15.  Start with a BEGIN tag,
-then define up to 15 colors for the 15 schemes.  Enter
-'none' for the default.
-
-Mv_TextColor	BLANK_DEFAULT
-Text colors, 1 through 15.  Start with a BEGIN tag, then
-define up to 15 colors for the 15 schemes.  Enter 'none' for
-the default.
-
-Mv_LinkColor	BLANK_DEFAULT
-Link colors, 1 through 15.  Start with a BEGIN tag, then
-define up to 15 colors for the 15 schemes.  Enter 'none' for
-the default.
-
-Mv_VlinkColor	BLANK_DEFAULT
-Visited link colors, 1 through 15.  Start with a BEGIN tag, then
-define up to 15 colors for the 15 schemes.  Enter 'none' for
-the default.
-
-Mv_Background	BLANK_DEFAULT
-Background patterns, 1 through 15.  Start with a BEGIN tag,
-then define up to 15 backgrounds for the 15 schemes.
-
-ButtonBars		BLANK_DEFAULT
-Button bars 0 to 15, specified with a Vend-style filename, i.e. no
-.html suffix, (even though the file will have one), relative
-to the MiniVend page directory. Called by the [buttonbar n] tag,
-numbers start from 0.
-
-Random			BLANK_DEFAULT
-Random messages 0 to 15, specified with a Vend-style filename, i.e. no
-.html suffix, (even though the file will have one), relative
-to the MiniVend page directory. Called by the [random] tag.
-
-Help			BLANK_DEFAULT
-Files with help items, specified with a Vend-style filename,
-i.e. no .html suffix, (even though the file will have one), relative
-to the MiniVend page directory. Help items are keyed by name.
-Called by the [help item] tag.
-
-SalesTax		BLANK_DEFAULT
-The FIELD NAME which is the key to the sales tax calculation. This
-is defined in ProductDir/salestax.asc, and is most commonly
-zipcode or state, one of the fields on the order report. If
-left blank, no sales tax calculation is done.  If an entry
-for that field name is not found, it uses the field 'default',
-which must be defined in the file.  The default can be 0.
-
-CustomShipping	BLANK_DEFAULT
-The FIELD NAME which is the key to the custom shipping calculation.  This
-is defined in ProductDir/shipping.asc, and is most commonly the value of
-a radio button field selecting shipping mode -- one of the fields on the
-order report. If left blank, no custom shipping calculation is done.  If
-an entry for that field name (and quantity) is not found, it uses the
-field 'default', which must be defined in the file.  The default can be
-0. This overrides the Shipping entry.  If neither are defined,
-nothing will be added for shipping.
-
-Tracking		BLANK_DEFAULT
-The name of the statistics tracking database, if tracking is desired.
-Defaults to no tracking.  Suggested value is 'tracking', which will
-create a DBM file in the ProductDir with statistics on how many times
-pages are served, and track any orders placed (with the full text of
-the order report).
-
-BackendOrder	BLANK_DEFAULT
-Controls the fields that are prepended to the item codes and quantities
-for the backend ordering capability.  These are the values from the
-user form in 'order.html'.  You can access any value in that 
-hash. If blank, no backend ordering is in force.
-
-DefaultShipping	default
-Sets the initial shipping mode.
-
-FrameOrderPage	BLANK_DEFAULT
-The special page to use instead of 'order.html' for the order
-page.  This allows you to put the item-list in a separate window/frame
-from the name/address/account information. 
-
-SecureURL		BLANK_DEFAULT
-If you are using an SSL or Secure HTTP server, this is the URL
-which will be used for processing orders securely.  For SSL, it
-is usually the same URL as normal, except that it uses
-'https' instead of 'http'.
-
-SecureOrderMsg	Use Order Security
-The message which will be displayed for the [secure-order] tag. This
-turns on order security, after which all order operations for that
-session will be submitted through the SecureURL instead of VendURL.
-
-EncryptProgram	BLANK_DEFAULT
-The fully-qualified path name of a program which will encrypt 
-a credit card number for storage in the session database.
-
-CreditCards		No
-Enter 'Yes' if you wish to enable MiniVend's encrypted credit card
-handling. This uses Des (or EncryptCommand) to encrypt the form fields
-credit_card_no and credit_card_exp and store them to disk when an order
-is made.
-
-FrameSearchPage	BLANK_DEFAULT
-The special page to use instead of 'search.html' for the search
-page.  This allows you to define separate windows for frame and
-non-frame browsers.
-
-NET_START        -notify
-Determines the behavior of the vlink program if the MiniVend server is
-not running.  Set to -notify (the default) to send mail to the
-MailOrderTo address, to -netstart to automatically start the MiniVend
-server, or to -test to send a message saying "we are probably doing
-development" and take no action.
-NOTE: If you are running with the I<CreditCards> directive enabled, you
-will not be able to enter the password. The CreditCards directive is
-disabled by default if -netstart is used to start up MiniVend.
-
-ScratchDir		etc
-The directory where scratch files will be written, notably cached
-searches.
+SendMailLocation	/usr/lib/sendmail
+BSD, among others, has sendmail(1) in /usr/sbin.  We want to
+make sure an executable is there at program start, so we
+wire in the executable.
+ 
+The suggested value is probably correct.
 

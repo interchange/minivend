@@ -2,91 +2,112 @@
 ###                        ###
 ###   DON'T edit this !!!  ###
 ###                        ###
-### $Revision: 1.1 $
+### $Revision: 1.2 $
 ##############################
 
+File dir 0755
 Vend dir 0755
+Vend/Table dir 0755
 bin dir 0755
 doc dir 0755
 etc dir 0755
 pages odir 0755
-products odir 0755
+demo odir 0755
 sample odir 0755
+sample/bars odir 755
+sample/effects odir 755
+sample/help odir 755
+sample/ord odir 755
+sample/srch odir 755
+sample/special odir 755
 sample/images odir 0755
+simple odir 0755
 src dir 0755
 Changes static 0644
 Copying static 0644
+File/CounterFile.pm script 0644
 README static 0644
-Vend/Cache.pm script 0444
-Vend/Glimpse.pm script 0444
-Vend/Http.pm script 0444
-Vend/Imagemap.pm script 0444
-Vend/Search.pm script 0444
+Vend/Config.pm script 0644
+Vend/Data.pm script 0644
+Vend/Glimpse.pm script 0644
+Vend/Http.pm script 0644
+Vend/Imagemap.pm script 0644
+Vend/Interpolate.pm script 0644
+Vend/PageSyntax.pm script 0644
+Vend/Scan.pm script 0644
+Vend/Search.pm script 0644
 Vend/Server.pm script 0644 vars:LINK_FILE
 Vend/Server.pm.tcp script 0644
+Vend/Session.pm  script 0644
 Vend/Table/DB_File.pm script 0644
 Vend/Table/GDBM.pm script 0644
 Vend/Table/Import.pm script 0644
 Vend/Table/InMemory.pm script 0644
 Vend/Table/Quoted.pm script 0644
 Vend/Table/Update.pm script 0644
-Vend/TextSearch.pm script 0444
-Vend/Util.pm script 0644
-Vend/lock.pm script 0444
-bin/entord script 0755 shbang
+Vend/TextSearch.pm script 0644
+Vend/UserSearch.pm script 0644
+Vend/Util.pm script 0644 modules;File::Lock
+Vend/ValidCC.pm script 0644
 bin/htpasswd.pl script 0700 shbang
 bin/mat script 0644 shbang,vars:VendRoot:ConfigFile:ConfDir:PERL:PageDir
-bin/restart script 0755 shbang,vars:VendRoot:ConfDir
-bin/start script 0755 shbang,vars:VEND:PERL
+bin/restart script 0755 shbang,vars:VendRoot
+bin/start script 0755 shbang,vars:VendRoot:VEND:PERL
 bin/stop script 0755 shbang,vars:VendRoot:ConfDir
-bin/trackrpt script 0755 shbang,vars:VendRoot:ConfDir:ProductDir
+bin/testpages script 0755 shbang,vars:VEND:PERL
 bin/vendpage script 0755 shbang,vars:VendRoot:PageDir:ImageDir:HtmlDir
 configure script 0755
 configure.pl script 0755 shbang
+demo/accessories.asc static 0644
+demo/arbitrary.asc static 0644
+demo/minivend.asc static 0644
+demo/pricing.asc static 0644
+demo/products.sample static 0644
+demo/products.simple static 0644
+demo/salestax.asc static 0644
+demo/shipping.asc static 0644
+demo/sp0 static 0644
+demo/sp1 static 0644
 doc/minivend.pod html 0644 text:__SERVER_NAME__:HostName
-etc/minivend.def static 0444
-etc/mvconf.cfg conf 0644
+etc/minivend.def static 0644
 etc/mvconf.cmt static 0644
+etc/variables.def static 0644
 makedocs script 0755
 manifest static 0644
-minivend.pl script 0644 shbang,vars:VendRoot:VendRoot:PERL:VEND:ConfDir:ConfigFile:ErrorFile
-pages/empty static 0644
-products/products.asc static 0644
-products/products.simple static 0644
-products/products.sample static 0644
-products/salestax.asc static 0644
-products/shipping.asc static 0644
+minivend.pl script 0644 shbang,vars:VendRoot:ConfDir:ConfigFile:SendMailLocation:ErrorFile:BadLocking,modules;Des;HTML::Parse;File::CounterFile
+pages/empty placeholder 0644
 report static 0644
 sample.cfg static 0644
-simple.cfg static 0644
-sample/account.html samppage 0644
-sample/actionmap.html samppage 0644
-sample/address.html samphtml 0644
-sample/artbar0.html samppage 0644
-sample/artbar1.html samppage 0644
-sample/artbar2.html samppage 0644
-sample/artbar3.html samppage 0644
-sample/artbar4.html samppage 0644
-sample/badsearch.html samppage 0644
-sample/ban_start.html samppage 0644
-sample/ban_tool.html samppage 0644
-sample/canceled.html samppage 0644
+sample/address.html samphtml 0644 text:__VEND_URL__:VendURL
+sample/bars/artbar0.html samppage 0644
+sample/bars/artbar1.html samppage 0644
+sample/bars/artbar2.html samppage 0644
+sample/bars/artbar3.html samppage 0644
 sample/catalog.html samppage 0644
-sample/confirmation.html samppage 0644
-sample/control.html samppage 0644
-sample/entered.html samppage 0644
-sample/failed.html samppage 0644
+sample/effects/rand1.html samppage 0644
+sample/effects/rand2.html samppage 0644
+sample/effects/rand3.html samppage 0644
+sample/effects/rand4.html samppage 0644
+sample/effects/rand5.html samppage 0644
+sample/effects/rotate1.html samppage 0644
+sample/effects/rotate2.html samppage 0644
+sample/effects/rotate3.html samppage 0644
+sample/effects/rotate4.html samppage 0644
+sample/effects/rotate5.html samppage 0644
 sample/feature.html samppage 0644
 sample/flypage.html samppage 0644
-sample/fr_comb.html samppage 0644
 sample/fr_greet.html samppage 0644
 sample/fr_home.html samppage 0644
 sample/fr_main.html samppage 0644
-sample/fr_order.html samppage 0644
-sample/fr_resul.html samppage 0644
-sample/help.html samppage 0644
-sample/hintfile.html samppage 0644
+sample/help/help.html samppage 0644
+sample/help/helpframe.html samppage 0644
+sample/help/hintfile.html samppage 0644
+sample/help/sec_faq.html samppage 0644
+sample/help/security.html samppage 0644
 sample/images/00-0011.jpg image 0644
+sample/images/00-341.jpg image 0644
+sample/images/00-342.jpg image 0644
+sample/images/00-343.jpg image 0644
 sample/images/art.gif image 0644
 sample/images/artbar0.gif image 0644
 sample/images/artbar1.gif image 0644
@@ -97,40 +118,46 @@ sample/images/bg.gif image 0644
 sample/images/blue_pap.gif image 0644
 sample/images/button_y.gif image 0644
 sample/images/eyes.gif image 0644
+sample/images/new.gif image 0644
 sample/images/orderbar.gif image 0644
 sample/images/phonelin.gif image 0644
 sample/images/pink_fab.gif image 0644
 sample/images/staircase.jpg image 0644
+sample/images/redball.gif image 0644
 sample/images/undercon.gif image 0644
 sample/images/web_srch.gif image 0644
 sample/images/yellow_w.gif image 0644
 sample/index.html samphtml 0644 text:__VEND_URL__:VendURL
-sample/interact.html samppage 0644
 sample/intro.html samphtml 0644
-sample/missing.html samppage 0644
-sample/needfield.html samppage 0644
 sample/nf_greet.html samppage 0644
-sample/nf_search.html samppage 0644
-sample/nf_sel.html samppage 0644
-sample/nomatch.html samppage 0644
-sample/noproduct.html samppage 0644
-sample/notfound.html samppage 0644
-sample/order.html samppage 0644
-sample/rand1.html samppage 0644
-sample/rand2.html samppage 0644
-sample/rand3.html samppage 0644
-sample/rand4.html samppage 0644
-sample/rand5.html samppage 0644
+sample/ord/basket.html samppage 0644
+sample/ord/checkout.html samppage 0644
+sample/ord/receipt.html samppage 0644
+sample/ord/report.html samppage 0644
 sample/reframe.html samppage 0644
-sample/schframe.html samppage 0644
-sample/search.html samppage 0644
-sample/sec_faq.html samppage 0644
-sample/security.html samppage 0644
-sample/selframe.html samppage 0644
-sample/special1.html samphtml 0644 text:__SERVER_NAME__:HostName
-sample/special2.html samphtml 0644 text:__SERVER_NAME__:HostName
-sample/special3.html samphtml 0644
-sample/violation.html samppage 0644
+sample/special/badsearch.html samppage 0644
+sample/special/canceled.html samppage 0644
+sample/special/confirmation.html samppage 0644
+sample/special/control.html samppage 0644
+sample/special/failed.html samppage 0644
+sample/special/interact.html samppage 0644
+sample/special/missing.html samppage 0644
+sample/special/needfield.html samppage 0644
+sample/special/nomatch.html samppage 0644
+sample/special/noproduct.html samppage 0644
+sample/special/notfound.html samppage 0644
+sample/special/violation.html samppage 0644
+sample/special1.html samphtml 0644 text:__SERVER_NAME__:HostName:__VEND_URL__:VendURL
+sample/special2.html samphtml 0644 text:__SERVER_NAME__:HostName:__VEND_URL__:VendURL
+sample/special3.html samphtml 0644 text:__VEND_URL__:VendURL
+sample/srch/fr_comb.html samppage 0644
+sample/srch/fr_help.html samppage 0644
+sample/srch/fr_resul.html samppage 0644
+sample/srch/mvfaq.html samppage 0644
+sample/srch/mvhelp.html samppage 0644
+sample/srch/schframe.html samppage 0644
+sample/srch/search.html samppage 0644
+simple.cfg static 0644
 simple/badsearch.html simppage 0644
 simple/canceled.html simppage 0644
 simple/catalog.html simppage 0644

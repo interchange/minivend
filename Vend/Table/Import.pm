@@ -1,10 +1,16 @@
 # Table/Import.pm: import a table
 #
-# $Id: Import.pm,v 1.4 1996/03/12 16:18:52 amw Exp $
+# $Id: Import.pm,v 1.6 1996/05/18 20:02:39 mike Exp mike $
 #
-package Vend::Table::Import;
-
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+#
+# $Log: Import.pm,v $
+# Revision 1.6  1996/05/18 20:02:39  mike
+# Minivend 1.03 Beta 1
+#
+# Revision 1.5  1996/04/22 05:18:48  mike
+# Annotation of Andrew's version 1.4
+#
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,42 +26,34 @@ package Vend::Table::Import;
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+package Vend::Table::Import;
+$VERSION = substr(q$Revision: 1.6 $, 10);
+
 require Exporter;
 @ISA = qw(Exporter);
 @EXPORT_OK = qw(import_csv import_quoted import_ascii_delimited);
-
 use strict;
 use Vend::Table::Quoted qw(read_quoted_fields);
 use Vend::Util;
 
 sub import_csv {
-    my ($source, $table_class, $table_file, $force, @options) = @_;
+    my ($source, $create) = @_;
 
     die "The source file '$source' does not exist\n" unless -e $source;
 
-    my $import = $force;
-    $import = 1 unless $import or -e $table_file;
-    $import = 1 unless $import or file_modification_time($source) <=
-                                  file_modification_time($table_file);
-    return unless $import;
-
-    print "Importing product table '$source'\n";
     open(IN, $source) or die "Can't open '$source' for reading: $!\n";
     my @columns = read_quoted_fields(\*IN);
     die "$source is empty\n" unless @columns;
     shift @columns;
 
-    my $new_table_file = "$table_file.new";
-    my $db = $table_class->create([@columns], $new_table_file, @options);
-    my @fields;
+    my $out = &$create(@columns);
+    my (@fields,$key);
     while (@fields = read_quoted_fields(\*IN)) {
-        $db->set_row(@fields);
+        $out->set_row(@fields);
     }
     close(IN);
-    $db->close_table();
-
-    rename($new_table_file, $table_file)
-        or die "Can't move '$new_table_file' to '$table_file': $!\n";
+    $out->close_table();
+	return $out;
 }
 
 sub import_quoted { return import_csv(@_) }
@@ -89,5 +87,7 @@ END
     $out->close_table();
     return $out;
 }
+
+sub version { $Vend::Table::Import::VERSION }
 
 1;

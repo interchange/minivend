@@ -11,19 +11,64 @@
 </CENTER>
 <FORM ACTION="[process-order]" METHOD=POST>
 <H2>Items on your list</H2>
-[item-list]
-<input type="text" name=[quantity-name] value="[item-quantity]" size=3>
-[item-description]
-Catalog Number: [item-code]
-<B>$[item-price]</B>
-<P>
-[/item-list]
 <PRE>
+[item-list]
+[row 80]
+	[col 10]
+		[item-code]
+	[/col]
+	[col align=i width=7 gutter=1]
+		<input type="text" name=[quantity-name] value="[item-quantity]" size=4>
+	[/col]
+	[col 30]
+		[item-description]
+	[/col]
+	[col 16 align=r]
+		$[item-price]
+	[/col]
+[/row]
+[/item-list]
+[row 80]
+	[col 10][/col]
+	[col 7][/col]
+	[column width=30 align=r wrap=no]
+SUBTOTAL
+	[/column]
+	[column width=16 align=r]
+[subtotal]
+	[/column]
+[/row]
+[row 80]
+    [col 10][/col]
+    [col 7][/col]
+    [column width=30 align=r wrap=no]
+Sales Tax
+	[/column]
+	[column width=16 align=r]
+[salestax]
+	[/column]
+[/row]
+[row 80]
+    [col 10][/col]
+    [col 7][/col]
+    [column width=30 align=r wrap=no]
+Shipping
+	[/column]
+	[column width=16 align=r]
+[shipping]
+	[/column]
+[/row]
+[row 80]
+    [col 10][/col]
+    [col 7][/col]
+    [column width=30 align=r wrap=no]
+TOTAL
+	[/column]
+	[column width=16 align=r]
+[total-cost]
+	[/column]
+[/row]
 
-SUBTOTAL   [subtotal]
-Sales Tax  [salestax]
-Shipping   [shipping]
-TOTAL      [total-cost]
 
 </PRE>
 	<I>(If you have decided not to buy an item after all,
@@ -33,8 +78,6 @@ TOTAL      [total-cost]
 <INPUT TYPE="HIDDEN" NAME="mv_todo.map" VALUE="rect cancel 290,2 342,18">
 <INPUT TYPE="HIDDEN" NAME="mv_todo.map" VALUE="default refresh">
 <INPUT TYPE="IMAGE" SRC="/sample/images/orderbar.gif" NAME="mv_todo">
-<P>
-[secure-order]
 <P>
 	<I>
 	(If you changed a quantity, you can see the new total by
@@ -52,6 +95,7 @@ TOTAL      [total-cost]
 
 <CENTER>
 <input type="hidden" name="mv_doit" value="refresh">
+<input type="hidden" name="mv_order_report" value="report">
 <input type="submit" name="mv_todo" value="Submit Order">
 <input type="submit" name="mv_todo" value="Refresh">
 <input type="submit" name="mv_todo" value="Cancel">
@@ -102,5 +146,6 @@ TOTAL      [total-cost]
 
 <P>
 
-
+[help header][help order][help footer]
+[buttonbar 4]
 </body> </html>

@@ -1,4 +1,16 @@
+# $Id: Update.pm,v 1.1 1996/04/22 05:30:34 mike Exp $
+#
+# From and presumably copyright 1996 Andrew M. Wilcox
+#
+# $Log: Update.pm,v $
+# Revision 1.1  1996/04/22 05:30:34  mike
+# Initial revision
+#
+#
+#
+
 package Vend::Table::Update;
+$VERSION = substr(q$Revision: 1.1 $, 10);
 require Exporter;
 @ISA = qw(Exporter);
 @EXPORT = qw();
@@ -35,5 +47,7 @@ sub import_table {
     rename($new_table, $table)
         or die "Can't move '$new_table' to '$table': $!\n";
 }
+
+sub version { $Vend::Table::Update::VERSION }
 
 1;

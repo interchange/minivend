@@ -1,15 +1,54 @@
 #!/usr/bin/perl -w
-# start - starts Vend in server mode
-$VEND = '/usr/local/lib/minivend/minivend.pl';
+# testpages - starts Vend in server mode
+$VendRoot = '/c/t';
+$VEND = '/c/t/minivend.pl';
 $PERL = '/usr/bin/perl';
 $PerlFlags = '-w';
 ## END CONFIGURABLE VARIABLES
 
-system $PERL, $PerlFlags, $VEND, '-serve';
-if(($? >> 8) == 2) {
-	$| = 1;
-	print "Re-start after import, please wait...";
+$n = shift || 1;
+if ($n < 1 or $n > 9) {
+	die <<EOF;
+usage: start [n]
+
+Starts n minivend servers, where n is a number from 1 to 9.
+EOF
+
+}
+
+CHECK: {
+	last CHECK if $n == 1;
+	$found = 0;
+	if( open(CFG, "$VendRoot/minivend.cfg") ) {
+		while (<CFG>) {
+			next unless /^multiserver\s+(\S)/i;
+			$found = $1;
+			$found =~ s/[^Yy1tT]//ig;
+			last;
+		}
+		close CFG;
+	}
+	else {	# Assume they know what they are doing
+		$found = 1;
+	}
+	die <<EOF unless $found;
+You aren't in MultiServer mode, you can only start one MiniVend.
+Please try again.
+EOF
+
+}
+
+$n = int($n);
+
+for($i = 1; $i <= $n; $i++) {
+
 	system $PERL, $PerlFlags, $VEND, '-serve';
+	if(($? >> 8) == 22) {
+		$| = 1;
+		print "Re-start after import, please wait...";
+		system $PERL, $PerlFlags, $VEND, '-serve';
+	}
+
 }
 
 sleep 2;

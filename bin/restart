@@ -1,24 +1,18 @@
 #!/usr/bin/perl
 # restart - restarts Vend in server mode
+# 
+# Modded to just stop and start
+# Support may come for multi-server
+#
 $VendRoot = '/usr/local/lib/minivend';
-$ConfDir = '/usr/local/lib/minivend/etc';
-$PidFile = "$ConfDir/minivend.pid";
 ## END CONFIGURABLE VARIABLES
 
+$n = shift || 1;
 
-open(PID, $PidFile)
-	|| die "Couldn't open $PidFile. Vend apparently not up.\n";
-chomp($PID = <PID>);
+system("$VendRoot/bin/stop");
 
-kill 1, $PID
-	or die "Couldn't restart Vend: $!\n";
+sleep 1;
 
-print <<EOF ;
-Hang-up signal sent to Vend daemon.
-
-Check the error log (probably $VendRoot/error.log) to see if
-the daemon has restarted properly.
-
-EOF
+system("$VendRoot/bin/start $n");
 
 sleep 2;

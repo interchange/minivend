@@ -1,54 +1,67 @@
 <HTML>
 <HEAD><TITLE>Introducing Minivend</TITLE></HEAD>
+<BASE HREF="http://www.iac.net/~mikeh/">
 <BODY BGCOLOR=WHITE>
 <H1>MiniVend</H1>
 
-<STRONG>MiniVend</STRONG> is a full-featured electronic catalog system
-(commonly known as a shopping cart) with online ordering capability and
-support for SSL security. It is designed to provide an interface
-complete with <I>automated entry of orders</I> into your database.
-
+<I>MiniVend</I> is a full-featured electronic catalog system (commonly
+known as a shopping cart) with online ordering capability. It is designed
+to provide an interface complete with SSL security and full database 
+support. It is as powerful as commercial systems costing thousands
+of dollars.
 <P>
 MiniVend is freely-redistributable under the GNU General Public License
--- you can
-<A HREF="http://www.iac.net/~mikeh/download.html" TARGET="_top">
-download</A> it via FTP.
+-- you can <A HREF="download.html">download</A> it via FTP.
 <P>
+There is now a
+<A HREF="mv_faq.html">frequently-asked question (FAQ) list</A>
+for MiniVend.
+<P>
+If you want to see what can be done with MiniVend, see some of the 
+<A HREF="sites.html">sites that use it</A>.
+
+<H2>MiniVend 1.03 Features</H2>
 <UL>
-<LI>Users maintain a "shopping cart" for ordered items
-<LI>Catalogs can be of almost unlimited size with <B>excellent</B> performance
-<LI>Full support for SSL, with DES encryption of credit card
-numbers on disk
-<LI>Pageable searching, with support for Glimpse or standard text search
-<LI>Full database capability, unlimited and configurable fields
-<LI>Catalog pages can be built on the fly from the database or
-pre-made, with automatic selection
-<LI>Supports GDBM, DB_File, and NDBM databases
-<LI>Full frames support
-<LI>Works well with all browsers
-<LI>Back end order entry capability
-<LI>Full client-side imagemap support, including frame targets
-<LI>Automatic installation and configuration
-<LI>Remote administration via the web
-<LI>The <I>vendpage</i> utility maintains parallel HTML and
-Vend page trees
-<LI>Runs under Perl 5 and almost any UNIX
-<LI>Designed to be secure, runs with taint checking enabled
-<LI>User-customizable colors and backgrounds
-<LI>Built-in online help capability
-<LI>Central control of buttonbars
-<LI>Sales tax calculation (zip code and state)
-<LI>Shipping calculation (quantity and/or weight)
+<LI> Users maintain a "shopping cart" for ordered items
+<LI>
+SSL support means secure and practical credit card ordering
+<LI> Catalogs can be of almost unlimited size with <B>excellent</B> performance
+<LI> Powerful search capability including a complete Glimpse interface
+and independent field search selection
+<LI> Multi-server mode for very high capacity on systems with sufficient memory
+<LI> Forked searches for consistent response time in single-server mode
+<LI> Cookie support allows browsers to leave catalog and come back without
+losing session state
+<LI> Full frames support
+<LI> Catalog pages automatically selected -- either built "on the fly" from
+the database or pre-made for popular items
+<LI> Works well with <I>all</I> browsers
+<LI> Complete addressable database support with virtually unlimited rows and columns
+<LI> Fully-configurable quantity pricing
+<LI> ODBC ready
+<LI> Back end order entry capability
+
+<LI> Full client-side imagemap support, including frame targets and form submits
+<LI> Automatic installation and configuration
+<LI> Remote administration via the web using MAT
+<LI> Runs under Perl 5 and almost any UNIX
+<LI> Designed to be secure, runs with taint checking enabled
+<LI> Built-in online help capability
+<LI> Central control of buttonbars
+<LI> Sales tax calculation, with fully independent non-taxable item and taxed shipping
+<LI> Shipping calculation (quantity and/or weight)
 <LI>Blank field checking
-<LI>Configurable order reports
+<LI>Fully configurable order reports
 <LI>Much more
 </UL>
 <P>
-Andrew Wilcox wrote <I>Vend,</I>
+Andrew Wilcox wrote 
+<A HREF="http://www.maine.com/awilcox/vend/"><I>Vend,</I></A>
 the copylefted shopping cart software. MiniVend is based
 on Vend V0.2, but enhanced considerably, adding
-support for SSL security, frames, powerful search capability,
-remote administration, super<I>fast</I> server
+support for
+<A HREF="http://home.netscape.com/assist/net_sites/frames.html">
+frames</a>, search capability, remote administration, super<I>fast</I> server
 mode, client-side imagemaps, user-customizable help and displays, and more.
 This version of Vend includes an automatic configuration and installation
 utility, and continues to be free under the GNU copyleft.
@@ -57,4 +70,12 @@ Frames, the new windowing technology
 Netscape has proposed for HTML 3.0, significantly enhances the 
 electronic catalog experience, letting the user maintain a 
 context as they navigate through the catalog.
-</HTML>
+<P>
+To learn more about <STRONG>MiniVend</STRONG>, see the
+<A HREF="minivend.html">
+HTML documentation</A>,
+visit the <A HREF="mvend.html">offical <I>MiniVend</I>
+site</A>, or
+<A HREF="download.html">download</A> it.
+<P>
+</BODY>

@@ -23,7 +23,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 ############### Configurable Variables ######################
 #
-# Where the Vend root directory is
+# Where the MiniVend root directory is
 BEGIN {
 $VendRoot = '/usr/local/lib/minivend';
 }
@@ -43,7 +43,7 @@ $ConfDir = '/usr/local/lib/minivend/etc';
 # Where the executables are
 $BinDir			= "$VendRoot/bin";
 
-# Where the Vend page directory is
+# Where the MiniVend page directory is
 $VendPageDir	= "$VendRoot/$PageDir";
 
 # Where the main HTML directory is
@@ -55,23 +55,15 @@ $DefaultsFile 	= "$ConfDir/minivend.def";
 
 $HelpFile 	    = "$ConfDir/mvconf.cmt";
 
-$VendpageCmd	= "$BinDir/vendpage";
+$ErrorFile	= "$VendRoot/error.log";
 
 
 ############## END CONFIGURABLE VARIABLES ###################
 
 use lib $::VendRoot;
 use Config;
-use Vend::lock;
+use Vend::Util;
 require "find.pl";
-
-sub is_yes {
-	return( defined($_[0]) && ($_[0] =~ /^[yt1]/i));
-}
-
-sub is_no {
-	return( !defined($_[0]) || ($_[0] =~ /^[nf0]/i));
-}
 
 sub errorbox {
     local($title,@message) = @_;
@@ -195,7 +187,7 @@ the directory where MiniVend is installed.
 
 It reads the set of configurable variables from a defaults
 file (normally F<VendRoot/bin/minivend.def>), and modifies them with those in
-the Vend configuration file (by default F<VendRoot/minivend.cfg>).
+the MiniVend configuration file (by default F<VendRoot/minivend.cfg>).
 
 It is dispatched by an SUID executable compiled from C,
 I<which must be in a password-protected CGI directory>.  It should 
@@ -223,11 +215,8 @@ Starts the MiniVend Server.
 Restarts the MiniVend Server, in effect making it re-read configuration
 and possibly re-build the database.
 
-=item 4. HTML to Vend
-Call an external program, vendpage(1), to automatically
-convert HTML files and links to MiniVend format. The source
-directory is the HTML page directory, the target the MiniVend
-page directory.
+=item 4. Display Error Log
+Displays the MiniVend error log.
 
 =item 5. Rename .htm to .html
 Rename any .htm files in the MiniVend page or HTML page directory to
@@ -295,17 +284,6 @@ Simply calls the VendRoot/bin/restart file, restarting the MiniVend
 server.  This makes MiniVend re-read configuration, but not rebuild
 the database. This option will not be presented if the server is not running.
 
-=head2 HTML to Vend Function
-
-This is activated by clicking the I<HTML to Vend> button in the form.
-This uses the vendpage(1) utility to translate the HTML page directory
-tree to the MiniVend page directory tree.  All files in the HTML
-page directory will be re-written to use Vend-style [page][/page]
-tags.  See vendpage(1) for details.
-
-On completion, the output of the vendpage program is written to
-the browser in plain/text format.
-
 =head2 Rename .htm to .html Function
 
 This is activated by clicking the I<Rename .htm to .html> button in the form.
@@ -340,6 +318,11 @@ If removing, it removes all unencoded carriage returns at the end of a line.
 
 On completion, the status of the operation is returned to
 the browser.
+
+=head2 Display Error Log Function
+
+The Display Error Log function simply shows the contents of MiniVend's
+error log.
 
 =head2 Display Sessions Function
 
@@ -384,68 +367,19 @@ Vend 0.2 package.  Give him the credit.
 =cut
 
 sub check_pid {
-	open(::PIDFILE, "$ConfDir/minivend.pid")
-		or return(1,0);
-    my $ok = lockfile(\*::PIDFILE, 1, 0);
-    chomp(my $pid = <::PIDFILE>);
-	unlockfile(\*::PIDFILE);
-	close(PIDFILE);
-    return ($ok,$pid);
-}
-
-## RANDOM_STRING
-
-# leaving out 0, O and 1, l
-$RANDOM_STRING::chars =
-    "ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
-
-# Return a string of random characters.
-
-sub random_string {
-    my($len) = @_;
-    $len = 8 unless $len;
-    my($r, $i);
-
-    $r = '';
-    for ($i = 0;  $i < $len;  ++$i) {
-	$r .= substr($RANDOM_STRING::chars,
-		     int(rand(length($RANDOM_STRING::chars))), 1);
-    }
-    $r;
-}
-
-
-## UNEVAL
-
-# Returns a string representation of an anonymous array, hash, or scaler
-# that can be eval'ed to produce the same value.
-# uneval([1, 2, 3, [4, 5]]) -> '[1,2,3,[4,5,],]'
-
-sub uneval {
-    my($o) = @_;		# recursive
-    my($r, $s, $i, $key, $value);
-
-    $r = ref $o;
-    if (!$r) {
-	$o =~ s/[\\"\$@]/\\$&/g;
-	$s = '"' . $o . '"';
-    } elsif ($r eq 'ARRAY') {
-	$s = "[";
-	foreach $i (0 .. $#$o) {
-	    $s .= uneval($o->[$i]) . ",";
+	opendir(CHECKPID, $ConfDir)
+			or die "Couldn't open $ConfDir: $!\n";
+	my ($pid,@out);
+	my(@pids) = grep /minivend\.pid[0-9]?/, readdir CHECKPID;
+	closedir CHECKPID;
+	for(@pids) {
+    	open(PIDFILE,"$ConfDir/$_")
+			|| warn "Couldn't open $_: $!\n";
+    	chomp($pid = <PIDFILE>);
+		close(PIDFILE);
+    	push @out, $pid;
 	}
-	$s .= "]";
-    } elsif ($r eq 'HASH') {
-	$s = "{";
-	while (($key, $value) = each %$o) {
-	    $s .= "'$key' => " . uneval($value) . ",";
-	}
-	$s .= "}";
-    } else {
-	$s = "'something else'";
-    }
-
-    $s;
+	return scalar(@pids), @pids;
 }
 
 sub wanted {
@@ -614,10 +548,10 @@ sub writeconfig {
 }
 
 sub sendform {
-	html_header("Vend Configuration Menu");
+	html_header("MiniVend Configuration Menu");
 	$HR = $ENV{'HTTP_USER_AGENT'} =~ /lynx/i ? '<HR>' : '';
 	print <<EOF ;
-<H1>Vend Configuration</H1>
+<H1>MiniVend Configuration</H1>
 <P>
 <FORM METHOD=POST ACTION="$ENV{'SCRIPT_NAME'}"
 		ENCTYPE="application/x-www-form-urlencoded">
@@ -647,9 +581,9 @@ $HR
 EOF
 	}
 	print <<EOF;
-<TR><TD WIDTH=100><B>Pages</B></TD>
-	<TD>
-	<INPUT TYPE=SUBMIT	NAME="func_vendpage" VALUE="HTML to Vend"><BR>
+<TR><TD WIDTH=100><B>Error Log</B></TD>
+	<TD COLSPAN=2>
+	<INPUT TYPE=SUBMIT	NAME="func_disperror" VALUE="Display Error Log"><BR>
 	</TD>
 </TR>
 $HR
@@ -786,7 +720,7 @@ sub dofunction {
 	for(
 		qw( func_translate func_makedbm func_rename func_unixify
 			func_restart func_start func_stop func_dump
-			func_makepage func_vendpage func_dosify
+			func_makepage func_disperror func_dosify
 			func_expire func_config ) 
 		) {
 		next unless defined $FORM{$_};
@@ -801,11 +735,8 @@ sub dofunction {
 				"There was no action (or too many actions) specified.";
 	}
 
-	if($function eq 'func_vendpage') {
-		errorbox("MiniVend Administration Tool Error",
-					"No making pages while the server is running!")
-			if $ServerRunning;
-		open(RESULTS,"$VendpageCmd 2>$tmpfile |")
+	if($function eq 'func_disperror') {
+		open(RESULTS,"$ErrorFile")
 			|| die "Couldn't fork: $!\n";
 		while(<RESULTS>) {
 			push(@Results,$_);
@@ -818,11 +749,11 @@ sub dofunction {
 			close ERRORS;
 		}
 		unless ($?) {
-			push(@Results,"Vendpage successful!");
+			push(@Results,"Error log dump complete.");
 		}
 		else {
 			unshift(@Errors,@Results);
-			push(@Errors,"ERROR: Vendpage unsuccessful.");
+			push(@Errors,"ERROR: Error log dump unsuccessful.");
 			return undef;
 		}
 	}
@@ -957,9 +888,6 @@ sub dofunction {
 		}
 	}
 	elsif($function eq 'func_dump') {
-		errorbox("MiniVend Administration Tool Error",
-					"No dumping while the server is running!")
-			if $ServerRunning;
 		my $gw_interface_save = $ENV{'GATEWAY_INTERFACE'};
 		$ = 0;
 		undef $ENV{'GATEWAY_INTERFACE'};
@@ -988,9 +916,6 @@ sub dofunction {
 		}
 	}
 	elsif($function eq 'func_expire') {
-		errorbox("MiniVend Administration Tool Error",
-					"No expiration while the server is running!")
-			if $ServerRunning;
 		my $gw_interface_save = $ENV{'GATEWAY_INTERFACE'};
 		$ = 0;
 		undef $ENV{'GATEWAY_INTERFACE'};

@@ -1,6 +1,6 @@
 # Http.pm:  interface to cgi protocol
 #
-# $Id: Http.pm,v 1.1 1996/03/21 04:06:06 mike Exp mike $
+# $Id: Http.pm,v 1.2 1996/05/18 20:02:39 mike Exp $
 #
 package Vend::Http;
 
@@ -44,6 +44,7 @@ sub MIME_Version              { $_[0]->{'MIME_Version'} }
 sub Method                    { $_[0]->{'Method'} }
 sub Request_URI               { $_[0]->{'Request_URI'} }
 sub HTTP_Version              { $_[0]->{'HTTP_Version'} }
+sub Cookie                    { $_[0]->{'Cookie'} }
 sub Https_on              	  { $_[0]->{'Https_on'} }
 sub Accept                    { $_[0]->{'Accept'} }
 sub Accept_Charset            { $_[0]->{'Accept_Charset'} }
@@ -141,6 +142,7 @@ my @Map =
 # Pragma
 # no_cache
 # Referer
+     'Cookie' => 'HTTP_COOKIE',
      'Referer' => 'HTTP_REFERER',
      'User_Agent' => 'HTTP_USER_AGENT',
 # Status_Code
@@ -187,6 +189,10 @@ sub read_entity_body {
 sub respond {
     my ($s, $content_type, $body) = @_;
 
+	if ($Config::Cookies) {
+		print STDOUT
+		"Set-Cookie: MV_SESSION_ID=" . $Vend::SessionID . "; path=/\r\n"
+	}
     print STDOUT "Content-type: $content_type\r\n\r\n";
     print STDOUT $body;
     $s->{'response_made'} = 1;
@@ -215,7 +221,7 @@ sub parse_form_input {
     # We have to deal with browsers which use CRLF, CR or LF.
     $input =~ s/\r?[\n\r]/&/mg;
 
-    Main::logError("Post input is $input\n");
+    ::logError("Post input is $input\n");
     my $values = {};
     foreach $pair (split(/&/, $input)) {
 	($key, $value) = ($pair =~ m/([^=]+)=(.*)/)

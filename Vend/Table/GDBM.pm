@@ -1,10 +1,14 @@
 # Table/GDBM.pm: access a table stored in a GDBM file
 #
-# $Id: GDBM.pm,v 1.8 1996/03/14 20:41:00 amw Exp $
+# $Id: GDBM.pm,v 1.11 1996/05/18 20:02:39 mike Exp mike $
 #
-package Vend::Table::GDBM;
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+#
+# $Log: GDBM.pm,v $
+# Revision 1.11  1996/05/18 20:02:39  mike
+# Minivend 1.03 Beta 1
+#
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,6 +24,8 @@ package Vend::Table::GDBM;
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+package Vend::Table::GDBM;
+$VERSION = substr(q$Revision: 1.11 $, 10);
 use Carp;
 use strict;
 use GDBM_File;
@@ -225,5 +231,7 @@ sub delete_record {
 
     delete $s->[$TIE_HASH]{"k$key"};
 }
+
+sub version { $Vend::Table::GDBM::VERSION }
 
 1;

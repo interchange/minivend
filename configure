@@ -20,8 +20,8 @@ EOF
 for i in $*
 do
 	case $i in
-		-D) DEBUG=-D ;;
-		-i) INSTALL=-I ;;
+		-[dD]) DEBUG=-D ;;
+		-[iI]) INSTALL=-I ;;
 		*)
 	esac
 done

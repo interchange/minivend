@@ -8,8 +8,6 @@
 City, State, Zip: $city, $state  $zip
          Country: $country
 
-    CDMO Account: $account
-
    Daytime Phone: $phone_day
    Evening Phone: $phone_night
 

@@ -1,4 +1,4 @@
-# MiniVend V1.0
+# MiniVend V1.03
 # 
 # Copyright 1996 by Michael J. Heins <mikeh@iac.net>
 #
@@ -22,7 +22,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-
 Welcome to MiniVend, based on Vend, Andrew Wilcox's fine shopping cart
 program.  This program is completely unsupported, without warranty of
 any kind -- but that doesn't mean I am not interested in problems,
@@ -34,122 +33,61 @@ Heins, <mikeh@iac.net>.
                         M I N I V E N D
                                        
    MiniVend is a full-featured electronic catalog system (commonly known
-   as a shopping cart) with online ordering capability and support for
-   SSL security. It is designed to provide an interface complete with
-   automated entry of orders into your database.
+   as a shopping cart) with online ordering capability. It is designed to
+   provide an interface complete with SSL security and full database
+   support.
    
    MiniVend is freely-redistributable under the GNU General Public
-   License -- you can download it via FTP at any CPAN archive.
+   License -- you can download it via FTP.
+
+  IMPORTANT NOTE:  MiniVend works best with Perl 5.002 -- if you are
+  having problems, get it. I understand it does work with 5.001m, but
+  it is no longer tested with it.
    
+     Features
+
      * Users maintain a "shopping cart" for ordered items
+     * SSL support means secure and practical credit card ordering
      * Catalogs can be of almost unlimited size with excellent
        performance
-     * Full support for SSL, with DES encryption of credit card numbers
-       on disk
-     * Pageable searching, with support for Glimpse or standard text
-       search
-     * Full database capability, unlimited and configurable fields
-     * Catalog pages can be built on the fly from the database or
-       pre-made, with automatic selection
-     * Supports GDBM, DB_File, and NDBM databases
+     * Powerful search capability including a complete Glimpse
+       interface, one-click search profile capability, and independent
+       field search selection
+     * Multi-server mode for very high capacity on systems with
+       sufficient memory
+     * Forked searches for consistent response time in
+       single-server mode
+     * Cookie support allows browsers to leave catalog and come
+       back without losing session state
      * Full frames support
+     * Catalog pages automatically selected -- either built "on the fly"
+       from the database or pre-made for popular items
      * Works well with all browsers
-     * Back end order entry capability
-     * Full client-side imagemap support, including frame targets
+     * Complete addressable database support with virtually unlimited
+       rows and columns
+     * Fully-configurable quantity pricing
+     * Easy back end order entry
+     * Full client-side imagemap support, including frame targets and
+       form submits
      * Automatic installation and configuration
-     * Remote administration via the web
-     * The vendpage utility maintains parallel HTML and Vend page trees
+     * Remote administration via the web using MAT
      * Runs under Perl 5 and almost any UNIX
      * Designed to be secure, runs with taint checking enabled
-     * User-customizable colors and backgrounds
      * Built-in online help capability
      * Central control of buttonbars
-     * Sales tax calculation (zip code and state)
+     * Sales tax calculation, with fully independent non-taxable
+       item and taxed shipping
      * Shipping calculation (quantity and/or weight)
      * Blank field checking
-     * Configurable order reports
+     * Fully configurable order reports
      * Much more
        
-   
    Andrew Wilcox wrote Vend, the copylefted shopping cart software.
    MiniVend is based on Vend V0.2, but enhanced considerably, adding
-   support for SSL security, frames, powerful search capability, remote
-   administration, superfast server mode, client-side imagemaps,
-   user-customizable help and displays, and more. This version of Vend
-   includes an automatic configuration and installation utility, and
-   continues to be free under the GNU copyleft.
-   
-   Frames, the new windowing technology Netscape has proposed for HTML
-   3.0, significantly enhances the electronic catalog experience, letting
-   the user maintain a context as they navigate through the catalog.
+   support for frames, search capability, remote administration,
+   superfast server mode, client-side imagemaps, user-customizable help
+   and displays, and more. 
 
----------------------------------------------------------------
-
-            C H A N G E S   F R O M   V E N D
-
-MiniVend has been modified in several ways from the original Vend 0.2 --
-see the file Changes for more information.
-
-	1. The product index is now searchable via an ASCII or Glimpse
-	search engine.  The ASCII search operates well at catalog sizes of 
-	10,000 items, so unless your catalog gets larger than that, it
-	should suffice. Glimpse works well for larger databases if the
-	indexing is done properly.
-
-	2. The product listings are broken out into two DBM files,
-	containing the product description and price.  This improves
-	performance for large catalogs.
-
-	3. Frames are fully supported, with the [pagetarget page frame]
-	tag, the [framebase frame] tag, and the OrderFrame and
-	SearchFrame directives.  This allows the user to maintain a
-	context, with a search frame, a search result frame, a banner, a
-	footer, and an order page.  The structure is up to you.
-	A sample frame-based demo comes with this release.
-
-	4. The [item-link] and [search-list] tags allow search-lists to
-	be built up with links to the catalog page of the item, based on
-	a fourth field in the ASCII products file.  The UseCode
-	directive allows this to be overridden to allow a link to a page
-	for the individual part number.  (The part numbers are then
-	constrained to characters that make legal file names).
-
-	5. The MiniVend Administration Tool (MAT) allows remote
-	administration and configuration via the web.  There are 11
-	configuration functions supported, including database
-	translation, .htm to .html renaming, carriage return
-	addition/subtraction, server control, session expiration and
-	display, and directive configuration.  See the file
-	doc/mat.html for documentation.
-
-	6. The vendpage(8) utility allows a separate HTML page tree for
-	standard and Vend-style HTML.  This means you can write the
-	page in standard HTML, with only a few special constructs for
-	the order buttons.  Then you run vendpage(8), which makes a 
-	Vend page tree with the URLS re-written to Vend tags.  See
-	the file doc/vendpage.html for more information.
-
-	7. The page appearance can be controlled with the [help item],
-	[body n], [buttonbar n], and [random] elements, which allow
-	page-sensitive help, custom colors and backgrounds, configurable
-	button bars, and random messages to be placed in pages with
-	a single tag.
-
-	8. Sales tax and custom shipping charge calculation can
-	be easily done, based on several user-entered fields.
-
-	9. Back end order entry is possible, with the tracking feature.
-
-	10. Secure Sockets Layer servers are fully supported, with
-	ability to intermix hot-links to either the secure or standard
-	HTTP server.
-
-	11. Catalog pages are generated on the fly if not present
-	on disk.
-
-    12. The database can be of arbitrary size and structure,
-    both rows and columns. It is automatically imported. (Kudos
-    to Andrew for his Table class!)
 
 -------------------------------------------------------------------
 
@@ -170,8 +108,8 @@ commands:
  cd /usr/minivend                   # wherever your vend directory is
  mkdir pages                        # make if not already there
  cp sample/*.html pages
- md /usr/local/etc/httpd/htdocs/sample
- md /usr/local/etc/httpd/htdocs/sample/images
+ mkdir /usr/local/etc/httpd/htdocs/sample # Or where your doc root is
+ mkdir /usr/local/etc/httpd/htdocs/sample/images
  cp sample/images/* /usr/local/etc/httpd/htdocs/sample/images
  cp sample/special*.html /usr/local/etc/httpd/htdocs/sample
  cp sample/index.html  /usr/local/etc/httpd/htdocs/sample
@@ -185,8 +123,8 @@ the default if you installed in static mode.  To enable it:
  cd /usr/minivend                   # wherever your vend directory is
  mkdir pages                        # make if not already there
  cp simple/*.html pages
- md /usr/local/etc/httpd/htdocs/sample
- md /usr/local/etc/httpd/htdocs/sample/images
+ mkdir /usr/local/etc/httpd/htdocs/sample # Or where your doc root is
+ mkdir /usr/local/etc/httpd/htdocs/sample/images
  cp sample/images/* /usr/local/etc/httpd/htdocs/sample/images
  cp simple/index.html  /usr/local/etc/httpd/htdocs/sample
 
@@ -197,14 +135,31 @@ demo.  I suggest you use it.
 -------------------------------------------------------------------
 
                       A V A I L A B I L I T Y
+					          A N D
+                     C O M P A T I B I L I T Y
 
 MiniVend has been well-tested on Solaris 2, SunOS, Linux, OSF/Alpha, ,
 and FreeBSD. The underlying Vend engine has certainly been tested on
 several more OS versions -- and it should work on any UNIX with Perl 5
 and GDBM, DB_File, or NDBM support.
 
+GDBM works best -- it is the fastest for import, and most reliable.
+
+Solaris 2 and Irix 5 have certain problems with file locking,
+which may have been resolved in MiniVend 1.03 -- we will see.
+In any case, with those operating systems you will need the 
+File::Lock module, available at the same CPAN archive where you
+obtained this program.
+
+To fully use the page checking feature, you will need the HTML::Parse
+module, again available at CPAN in the libwww-perl-5b libraries. You
+will want those anyway, if you are doing much work with the web.
+
+If you are using GCC on Solaris, you may have to pass -lsocket on
+the compile command line.
+
 Please let the author know if you have successfully run MiniVend on
-any additional platforms.
+any additional platforms -- patches would be appreciated.
 
 -------------------------------------------------------------------
 
@@ -228,6 +183,9 @@ should check out the documentation, but it will be in POD format, and if
 you don't have Perl 5, you are out of luck anyway.  You can try building
 it with './makedocs', or just looking at the file doc/minivend.pod.
 
+NOTE:  As the configuration script has gotten better, this procedure
+has been neglected.  It may be incorrect -- use the configure program!
+
 The installation is quite complex.  There are 8 basic steps.
 
 1. Read the documentation.
@@ -245,7 +203,7 @@ The installation is quite complex.  There are 8 basic steps.
 All of the information is there, and it should be clear enough to the
 very technically-oriented user with some knowledge of UNIX.  EXPECT
 PROBLEMS IF YOU DON'T FIT THIS DESCRIPTION. Assistance of an expert may
-be vital. Caveat Emptor.  To make the docs, you can type at the
+be vital. Caveat Emptor. TANSTAAFL. To make the docs, you can type at the
 prompt:
 	
 	sh makedocs
@@ -264,11 +222,11 @@ programs:
 	with MiniVend 1.01, and its server mode, you can get
 	along without it, but MAT will not work.
 
-	b. The location of your Perl 5 binary. Perl 5.001m or higher is
-	recommended for best results -- it might run under Perl 5.000,
+	b. The location of your Perl 5 binary. Perl 5.002 is
+	recommended for best results -- it might run under Perl 5.001,
 	but I wouldn't recommend it.
 
-    c. The location that your vend.pl script will be in.  Creating
+    c. The location that your minivend.pl script will be in.  Creating
 	the directory $HOME/minivend is one possibility -- the default
 	is /usr/local/lib/minivend.
 

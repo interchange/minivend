@@ -1,6 +1,6 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.1 1996/03/21 04:06:26 mike Exp mike $
+# $Id: Server.pm,v 1.6 1996/05/25 07:06:03 mike Exp mike $
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -41,6 +41,9 @@ sub read_entity_body {
 sub respond {
     my ($s, $content_type, $body) = @_;
     my $fh = $s->{fh};
+	if ($Config::Cookies) {
+		print $fh "Set-Cookie: MV_SESSION_ID=" . $Vend::SessionID . "; path=/\r\n";
+    }
     print $fh "Content-type: $content_type\r\n\r\n";
     print $fh $body;
     $s->{'response_made'} = 1;
@@ -50,14 +53,14 @@ sub respond {
 package Vend::Server;
 require Exporter;
 @Vend::Server::ISA = qw(Exporter);
-@Vend::Server::EXPORT = qw(run_server restart_server);
+@Vend::Server::EXPORT = qw(run_server);
 
 use Fcntl;
 use Socket;
 use strict;
-use Vend::lock;
+use Vend::Util;
 
-my $LINK_FILE = '/tmp/minivend/etc/socket';
+my $LINK_FILE = '/tmp/test/etc/socket';
 
 sub _read {
     my ($in) = @_;
@@ -132,20 +135,19 @@ sub get_socketname {
 }
 
 sub connection {
-    my ($debug) = @_;
+    my ($socket,$debug) = @_;
 
     my (@argv, %env, $entity);
     read_cgi_data(\@argv, \%env, \$entity);
 
     my $http = new Vend::Http::Server \*Vend::Server::MESSAGE, \%env, $entity;
-    my $abort = ::dispatch($http,$debug);
+    my $abort = ::dispatch($http,$socket,$debug);
     $abort;
 }
 
 
 ## Signals
 
-my $Signal_Reload;
 my $Signal_Terminate;
 my $Signal_Debug;
 my $Signal_Locking;
@@ -157,8 +159,8 @@ my @trapped_signals = qw(HUP INT TERM USR1 USR2);
 sub setup_signals {
     @orig_signal{@trapped_signals} =
         map(defined $_ ? $_ : 'DEFAULT', @SIG{@trapped_signals});
-    $Signal_Reload = $Signal_Terminate = $Signal_Locking = $Signal_Debug = '';
-    $SIG{'HUP'}  = sub { $Signal_Reload = 1; };
+    $Signal_Terminate = $Signal_Locking = $Signal_Debug = '';
+    $SIG{'HUP'}  = 'IGNORE';
     $SIG{'INT'}  = sub { $Signal_Terminate = 1; };
     $SIG{'TERM'} = sub { $Signal_Terminate = 1; };
     # $SIG{'QUIT'} = sub { $Signal_Debug = 1; };
@@ -183,13 +185,21 @@ sub server {
     setup_signals();
     $abort = 0;
     for (;;) {
-        last if $abort || $Signal_Reload || $Signal_Terminate || $Signal_Debug;
+        last if $abort || $Signal_Terminate || $Signal_Debug;
 
-		socket(Vend::Server::SOCKET, AF_UNIX, SOCK_STREAM, 0) || die "socket: $!";
+		if($Config::MultiServer) {
+			open(Vend::Server::SOCKET_LOCK,"+>>$socket_filename.lock")
+				or die "Couldn't open $socket_filename.lock: $!";
+			fcntl(Vend::Server::SOCKET_LOCK, F_SETFD, 0)
+				or die "Can't fcntl close-on-exec flag for socket lock: $!";
+			lockfile(\*Vend::Server::SOCKET_LOCK,1,1)
+				or die "Couldn't lock $socket_filename.lock: $!";
+		}
 		unlink $socket_filename;
+		socket(Vend::Server::SOCKET, AF_UNIX, SOCK_STREAM, 0) || die "socket: $!";
 		bind(Vend::Server::SOCKET, pack("S", AF_UNIX) . $socket_filename . chr(0))
 			or die "Could not bind (open as a socket) '$socket_filename':\n$!\n";
-		chmod 0600, $socket_filename;
+		chmod $Config::FileCreationMask, $socket_filename;
 		listen(Vend::Server::SOCKET, 5) or die "listen: $!";
 
 		if ($Signal_Locking) {
@@ -220,7 +230,7 @@ sub server {
                 #    debug();
                 # }
                 # elsif
-                if ($Signal_Reload || $Signal_Terminate) {
+                if ($Signal_Terminate) {
                     last;
                 }
             }
@@ -234,10 +244,32 @@ sub server {
             die "accept: $!" unless defined $ok;
 			my $new_socket = get_socketname $socket_filename;
 			rename $socket_filename, $new_socket;
-            $abort = connection($debug);
+
+			if($Config::MultiServer) {
+				# unlock the socketlock so a new server can get it
+				unlockfile(\*Vend::Server::SOCKET_LOCK)
+					or die "Couldn't unlock socket lock: $!";;
+				close Vend::Server::SOCKET_LOCK
+					or die "Couldn't close socket lock: $!";;
+			}
+
+			# Pass the socket name so that a child can unlink it
+            $abort = connection($new_socket, $debug);
             close Vend::Server::SOCKET;
             close Vend::Server::MESSAGE;
-			unlink $new_socket;
+
+			# Here we are using $abort to tell us
+			# if we have forked. It will have a PID in it
+			# if we did (that won't be 1!). If we really want
+			# to add abort later, then we can make an abort be 1.
+			# If we forked, we don't want to unlink the socket,
+			# the child will do that in minivend.pl
+			if ($abort == 0) {
+				unlink $new_socket;
+			}
+			elsif ($abort > 1) {
+				$abort = 0;
+			}
         }
 
         else {
@@ -252,7 +284,7 @@ sub server {
        	::logError("\nServer terminating on signal TERM\n\n");
        	return 'terminate';
    	}
-    return 'reload' if $Signal_Reload || $abort;
+
     return '';
 }
 
@@ -294,7 +326,16 @@ use POSIX;
 my $pidfile;
 
 sub open_pid {
-    $pidfile = $Config::ConfDir . "/minivend.pid";
+	my $multi = shift;
+	my $it = 0;
+	if(defined $multi and $multi) {
+		do {
+			$pidfile = $Config::ConfDir . "/minivend.pid" . $it++;
+		} until ! -e $pidfile;
+	}
+	else {
+		$pidfile = $Config::ConfDir . "/minivend.pid";
+	}
     open(Vend::Server::Pid, "+>>$pidfile")
         or die "Couldn't open '$pidfile': $!\n";
     seek(Vend::Server::Pid, 0, 0);
@@ -307,7 +348,7 @@ sub open_pid {
 }
 
 sub run_server {
-    my ($debug) = @_;
+    my ($multi,$debug) = @_;
     my $next;
     my $pid;
 	my $silent = 0;
@@ -319,7 +360,7 @@ sub run_server {
 	}
     $Print_errors = $debug;
 
-    open_pid();
+    open_pid($multi);
 
     if ($debug) {
         $pid = grab_pid();
@@ -388,26 +429,11 @@ sub run_server {
                     or die "Can't fcntl close-on-exec flag for '$pidfile': $!\n";
 
                 $next = server($LINK_FILE, $debug);
-                if ($next eq 'reload') {
-                    ::logError("\nServer restarting on signal HUP\n\n");
-                    exec($Config::PERL, $Config::VEND, "-restart");
-                }
+				unlink $pidfile;
                 exit 0;
             }
         }
     }                
-}
-
-sub restart_server {
-    open_pid();
-    my $pid = grab_pid();
-    if ($pid) {
-        ::logError("Can't restart: another MiniVend server has already been started\n");
-        exit 1;
-    }
-
-    ::logError("\nServer restarted with pid $$\n\n");
-    server($LINK_FILE);
 }
 
 1;

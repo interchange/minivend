@@ -1,10 +1,13 @@
 # Table/InMemory.pm: store a table in memory
 #
-# $Id: InMemory.pm,v 1.2 1995/11/10 15:24:00 amw Exp $
+# $Id: InMemory.pm,v 1.3 1996/04/22 05:26:09 mike Exp $
 #
-package Vend::Table::InMemory;
-
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+#
+# $Log: InMemory.pm,v $
+# Revision 1.3  1996/04/22 05:26:09  mike
+# Annotation of Andrew's 1.2
+#
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,6 +23,8 @@ package Vend::Table::InMemory;
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+package Vend::Table::InMemory;
+$VERSION = substr(q$Revision: 1.3 $, 10);
 use Carp;
 use strict;
 
@@ -129,5 +134,7 @@ sub clear_table {
     my ($s) = @_;
     %{$s->[2]} = ();
 }
+
+sub version { $Vend::Table::GDBM::VERSION }
 
 1;

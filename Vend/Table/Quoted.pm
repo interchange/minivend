@@ -1,4 +1,14 @@
+# $Id: Quoted.pm,v 1.1 1996/04/22 05:24:17 mike Exp $
+#
+# From and presumably copyright 1996 Andrew M. Wilcox
+#
+# $Log: Quoted.pm,v $
+# Revision 1.1  1996/04/22 05:24:17  mike
+# Initial revision
+#
+#
 package Vend::Table::Quoted;
+$VERSION = substr(q$Revision: 1.1 $, 10);
 require Exporter;
 @ISA = qw(Exporter);
 @EXPORT_OK = qw(read_quoted_fields);
@@ -51,6 +61,8 @@ sub parse {
     $expect and push @a, '';
     return @a;
 }
+
+sub version { $Vend::Table::Quoted::VERSION }
 
 eval join('',<DATA>) || die $@ unless caller();
 1;

@@ -1,7 +1,7 @@
 /* vlink.c:  runs as a cgi program and passes request to Vend server
 			 starts MiniVend or Vend server if not running
 
-   $Id: vlink.c,v 1.0 1996/02/13 12:52:44 mjh Exp $
+   $Id: vlink.c,v 1.1 1996/05/03 18:43:28 mike Exp mike $
 
    Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 
@@ -83,9 +83,19 @@ extern char** environ;
 #define DEBUG(x)
 
 #ifdef sun
+#define USE_PUTENV
 #ifndef SVR4
-#define ERRMSG perror
+#define USE_PERROR
 #endif
+#endif
+
+#ifdef sgi
+#define USE_PUTENV
+#endif
+
+
+#ifdef USE_PERROR
+#define ERRMSG perror
 #else
 #define ERRMSG strerror
 #endif
@@ -229,10 +239,8 @@ static void open_socket()
 
   /* Prevend Vend from thinking it is being called as CGI */
 
-#ifdef sun
-#ifndef SVR4
+#ifdef USE_PUTENV
   putenv("GATEWAY_INTERFACE=");
-#endif
 #else
   setenv("GATEWAY_INTERFACE", "", 1);
 #endif
