@@ -3338,6 +3338,7 @@ EOF
 							field				=> $field->{$c},
 							filter				=> $filter->{$c},
 							form				=> $form->{$c},
+							form_name			=> $opt->{form_name},
 							height				=> $height->{$c},
 							help				=> $help->{$c},
 							help_url			=> $help_url->{$c},
