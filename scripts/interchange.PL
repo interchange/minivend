@@ -2094,7 +2094,7 @@ EOF
 
 	$Vend::Session->{'arg'} = $Vend::Argument = ($CGI::values{mv_arg} || undef);
 #::logDebug("arg is $Vend::Session->{arg}");
-	if($CGI::values{mv_pc} and $CGI::values{mv_pc} =~ /[A-Za-z]/) {
+	if ($CGI::values{mv_pc} =~ /\D/) {
 		$Vend::Session->{'source'} =	$CGI::values{mv_pc} eq 'RESET'
 										? ''
 										: $CGI::values{mv_pc};
