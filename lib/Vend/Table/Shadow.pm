@@ -225,6 +225,12 @@ sub touch {
 	$s->[$OBJ]->touch();
 }
 
+sub sort_each {
+	my ($s, @args) = @_;
+	$s = $s->import_db() unless defined $s->[$OBJ];
+	return $s->[$OBJ]->sort_each(@args);
+}
+
 sub each_record {
 	my ($s, $qual) = @_;
 	$s = $s->import_db() unless defined $s->[$OBJ];
