@@ -845,6 +845,7 @@ sub query {
 			if(! $sth) {
 				# query failed, probably because no table
 				# Do nothing and fall through to MVSEARCH
+::logDebug(qq{query "$query" failed: $@});
 			}
 			else {
 				::logError("SQL query failed: %s\nquery was: %s", $@, $query);
@@ -856,7 +857,7 @@ sub query {
 MVSEARCH: {
 	last MVSEARCH if defined $ref;
 
-	my @tabs = @{$spec->{fi}};
+	my @tabs = @{$spec->{fi} || [ $s->[$CONFIG]{name} ]};
 	for (@tabs) {
 		s/\..*//;
 	}
