@@ -58,6 +58,12 @@ sub add_item {
 					   description => item_description($item)}]);
 }
 
+sub user {
+	my ($self) = shift;
+	push (@{$self->{actions}}, [@_]);
+	return;
+}
+
 sub finish_order {
 	my ($self) = @_;
 
@@ -79,7 +85,7 @@ sub view_product {
 # HEADER
 
 my %hdrsubs = ('ADDITEM' => sub {my $href = shift; join (',', $href->{'code'}, $href->{'description'});},
-			   'ORDER' => sub {my $href = shift; ''},
+			   'ORDER' => sub {my $href = shift; $::Values->{mv_order_number}},
 			   'VIEWPAGE' => sub {my $href = shift; $href->{'page'}},
 			   'VIEWPROD' => sub {my $href = shift; join (',', $href->{'code'}, $href->{'description'});});
 
@@ -93,9 +99,45 @@ sub header {
 		if (exists $hdrsubs{$aref->[0]}) {
 			push(@hdr, $aref->[0] . '=' . &{$hdrsubs{$aref->[0]}} ($aref->[1]));
 		} else {
-			push(@hdr, "UNKNOWN=" . $aref->[0]);
+			push(@hdr, "$aref->[0]=$aref->[1]");
 		}
 	}
 	join('&',@hdr);
+}
+
+sub std_log {
+	my(@parm) = @_;
+	my $now = time();
+	my $date = POSIX::strftime('%Y%m%d', localtime($now));
+
+	::logData(
+		$Vend::Cfg->{TrackFile},
+				$date,
+				$Vend::SessionName,
+				$Vend::Session->{username},
+				($CGI::remote_host || $CGI::remote_addr),
+				$now,
+				$Vend::Session->{source},
+				join('&', @parm),
+	);
+	return;
+}
+
+sub filetrack {
+	return unless $Vend::Cfg->{TrackFile};
+	my ($self) = @_;
+	my (@hdr, $href);
+
+	for my $aref (@{$self->{actions}}) {
+		$href = $aref->[1];
+		if (exists $hdrsubs{$aref->[0]}) {
+			push(@hdr, $aref->[0] . '=' . &{$hdrsubs{$aref->[0]}} ($aref->[1]));
+		}
+		else {
+			push(@hdr, "$aref->[0]=$aref->[1]");
+		}
+	}
+	return std_log(@hdr) unless $Vend::Cfg->{TrackSub};
+	$Vend::Cfg->{TrackSub}->(@hdr);
 }
 

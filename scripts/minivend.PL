@@ -1643,6 +1643,10 @@ EOF
 		}
 	}
 
+# TRACK
+	$Vend::Track->filetrack();
+# END TRACK
+
 	put_session() if $Vend::HaveSession;
 	close_database();
 

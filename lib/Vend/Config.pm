@@ -398,6 +398,7 @@ sub catalog_directives {
     ['FormIgnore',	     'boolean',    	     ''],
     ['EncryptProgram',	 undef,     	     ''],
     ['AsciiTrack',	 	 undef,     	     ''],
+    ['TrackFile',	 	 undef,     	     ''],
     ['SalesTax',		 undef,     	     ''],
     ['SalesTaxFunction', undef,     	     ''],
     ['StaticDBM',  	 	 undef,     	     ''],

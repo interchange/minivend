@@ -664,9 +664,16 @@ sub check_gate {
 }
 
 sub get_option_hash {
-	return $_[0] if ref $_[0];
+	if (ref $_[0]) {
+		return $_[0] unless ref $_[1];
+		for(keys %{$_[1]}) {
+			$_[0]->{$_} = $_[1]->{$_}
+				unless defined $_[0]->{$_};
+		}
+	}
 	return {} unless $_[0] =~ /\S/;
 	my $string = shift;
+	my $merge = shift;
 	$string =~ s/^\s+//;
 	$string =~ s/\s+$//;
 	if($string =~ /^{/ and $string =~ /}/) {
@@ -677,6 +684,13 @@ sub get_option_hash {
 	for(@opts) {
 		my ($k, $v) = split /[\s=]+/, $_, 2;
 		$hash{$k} = $v;
+	}
+	if($merge) {
+		return \%hash unless ref $merge;
+		for(keys %$merge) {
+			$hash{$_} = $merge->{$_}
+				unless defined $hash{$_};
+		}
 	}
 	return \%hash;
 }

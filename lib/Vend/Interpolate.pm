@@ -4777,15 +4777,8 @@ sub shipping {
 				$row->[CRIT] !~ /\S/;
 		}
 
-		$o = get_option_hash($row->[OPT]) 
-			or do {
-				$error_message   = errmsg(
-								"Shipping mode '%s': bad option string.",
-								$mode,
-							);
-				logError($error_message);
-				$o = {};
-			};
+		$o = get_option_hash($row->[OPT], $o)
+			if $row->[OPT];
 		# unless field begins with 'x' or 'f', straight cost is returned
 		# - otherwise the quantity is multiplied by the cost or a formula
 		# is applied
