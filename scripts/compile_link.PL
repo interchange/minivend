@@ -113,7 +113,7 @@ my $Output;
 my $Force;
 my @Flags;
 my $Inet;
-my $Unix;
+my $Unix = 1;
 my $NoSUID;
 my $Nostrip;
 my $Perl_tlink;
@@ -148,6 +148,7 @@ my @options = ( qw/
 	inetmode|i
 	unixmode|u
 	nostrip|n
+	nosuid
 	perl
 	force|f
     build|b=s
@@ -305,15 +306,14 @@ if($Output) {
 		$ans = <>;
 		exit unless $ans =~ /^\s*y/i;
 	}
-	if(! -w $Output) {
-		print "Output file $Output not writable. Overwrite? [y/N] ";
-		
-	}
 	File::Copy::copy($Intermediate, $Output)
 		or die "Cannot write output file $Output: $!\n";
 	if($Unix and ! $NoSUID) {
 		chmod 04755, $Output
-			or die "couldn't make $Output SUID: $!\n";
+			or die "Couldn't make $Output SUID: $!\n";
+	}
+	else {
+			or die "Couldn't chmod 755 $Output: $!\n";
 	}
 }
 
