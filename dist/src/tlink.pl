@@ -26,7 +26,7 @@ use Socket;
 my $LINK_TIMEOUT = 30;
 #my $LINK_TIMEOUT = ~_~LINK_TIMEOUT~_~;
 my $LINK_PORT    = $ENV{MINIVEND_PORT} || 7786;
-#my $LINK_PORT    = $ENV{MINIVEND_PORT} || ~_~LINK_HOST~_~;
+#my $LINK_PORT    = $ENV{MINIVEND_PORT} || ~_~LINK_PORT~_~;
 my $LINK_HOST    = 'localhost';
 #my $LINK_HOST    = '~_~LINK_HOST~_~';
 my $ERROR_ACTION = "-notify";
