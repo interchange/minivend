@@ -5917,6 +5917,8 @@ sub shipping {
 		}
 		elsif ($what =~ /^>>(\w+)/) {
 			my $newmode = $1;
+			local($opt->{redirect_from});
+			$opt->{redirect_from} = $mode;
 			return shipping($newmode, $opt);
 		}
 		elsif ($what eq 'x') {
@@ -6055,7 +6057,7 @@ sub shipping {
 #::logDebug("label start: $label");
 		my %subst = (
 						'%' => '%',
-						M => $mode,
+						M => $opt->{redirect_from} || $mode,
 						T => $total,
 						S => $sel ? ' SELECTED' : '',
 						C => $sel ? ' CHECKED' : '',
@@ -6192,7 +6194,7 @@ sub tag_shipping {
 			$o->{type} = delete $o->{widget};
 			$o->{passed} = join ",", @out;
 			$o->{name} ||= 'mv_shipmode';
-			$o->{default} ||= $::Values->{mv_shipmode};
+			$o->{value} ||= $::Values->{mv_shipmode};
 			$out = Vend::Form::display($o);
 		}
 		else {
