@@ -1089,6 +1089,7 @@ sub resolve_options {
 		link_sort
 		link_key
 		link_view
+		link_no_blank
 		link_template
 		link_extra
 		mv_blob_field
@@ -2374,6 +2375,7 @@ EOF
 		my @lview;
 		my @llab;
 		my @ltpl;
+		my @lnb;
 		my @lbefore;
 		my @lsort;
 		my $tcount = 1;
@@ -2384,6 +2386,7 @@ EOF
 			@lkey    = @{$opt->{link_key}};
 			@llab    = @{$opt->{link_label}};
 			@ltpl    = @{$opt->{link_template}};
+			@lnb     = @{$opt->{link_no_blank}};
 			@lbefore = @{$opt->{link_before}};
 			@lsort   = @{$opt->{link_sort}};
 		}
@@ -2394,6 +2397,7 @@ EOF
 			@lkey    = $opt->{link_key};
 			@llab    = $opt->{link_label};
 			@ltpl    = $opt->{link_template};
+			@lnb     = $opt->{link_no_blank};
 			@lbefore = $opt->{link_before};
 			@lsort   = $opt->{link_sort};
 		}
@@ -2403,6 +2407,7 @@ EOF
 			my $lk = shift @lkey;
 			my $ll = shift @llab;
 			my $lb = shift @lbefore;
+			my $lnb = shift @lnb;
 			my $ls = shift @lsort;
 
 			my $rcount = 0;
@@ -2464,20 +2469,22 @@ $l_pkey</td>};
 				push @lout, $Tag->row_edit(\%o);
 				push @lout, "</tr>";
 			}
-			my %o = (
-				table => $lt,
-				blank => 1,
-				extra => $opt->{link_extra},
-				pointer => 999999,
-				stacker => $tcount,
-				columns => $lf,
-				extra => $opt->{link_extra},
-			);
-			push @lout, qq{<tr><td$lextra>};
-			push @lout, qq{<input size=8 name="999999_${l_pkey}__$tcount" value="">};
-			push @lout, '</td>';
-			push @lout, $Tag->row_edit(\%o);
-			push @lout, '</tr>';
+			unless($lnb) {
+				my %o = (
+					table => $lt,
+					blank => 1,
+					extra => $opt->{link_extra},
+					pointer => 999999,
+					stacker => $tcount,
+					columns => $lf,
+					extra => $opt->{link_extra},
+				);
+				push @lout, qq{<tr><td$lextra>};
+				push @lout, qq{<input size=8 name="999999_${l_pkey}__$tcount" value="">};
+				push @lout, '</td>';
+				push @lout, $Tag->row_edit(\%o);
+				push @lout, '</tr>';
+			}
 			push @lout, "</table>";
 			$whash->{LABEL}  = $ll;
 			$whash->{WIDGET} = join "", @lout;

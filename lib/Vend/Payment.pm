@@ -468,13 +468,10 @@ sub charge {
 	$Vend::Session->{payment_id} = $result{'order-id'};
 
 	my $encrypt = charge_param('encrypt');
-	$encrypt = 1 unless defined $encrypt;
 
-	if($encrypt) {
+	if($encrypt and $CGI::values{mv_credit_card_number} and $Vend::Cfg->{EncryptKey}) {
 		my $prog = charge_param('encrypt_program') || $Vend::Cfg->{EncryptProgram};
 		if($prog =~ /pgp|gpg/) {
-			local($Vend::Cfg->{Encrypt_program});
-			$Vend::Cfg->{Encrypt_program} = $prog;
 			$CGI::values{mv_credit_card_force} = 1;
 			(
 				undef,

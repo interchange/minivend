@@ -830,6 +830,9 @@ sub pgp_encrypt {
 	if("\L$cmd" eq 'none') {
 		return ::errmsg("NEED ENCRYPTION ENABLED.");
 	}
+	elsif(! $key) {
+		return ::errmsg("NEED ENCRYPTION KEY POINTER.");
+	}
 	elsif($cmd =~ m{^(?:/\S+/)?\bgpg$}) {
 		$cmd .= " --batch --always-trust -e -a -r '%s'";
 	}
