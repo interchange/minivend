@@ -1027,7 +1027,7 @@ if($opt->{debug}) {
 	my $look;
 
 	if($look = $opt->{lookup_query}) {
-		my $tab = $opt->{table} || $Vend::Cfg->{ProductFiles}[0];
+		my $tab = $opt->{db} || $opt->{table} || $Vend::Cfg->{ProductFiles}[0];
 		my $db = Vend::Data::database_exists_ref($tab);
 		my @looks = split /\s*;\s*/, $look;
 		$data = [];
@@ -1075,7 +1075,7 @@ if($opt->{debug}) {
 	elsif($opt->{passed}) {
 		$data = options_to_array($opt->{passed}, $opt);
 	}
-	elsif($opt->{column} and $opt->{table}) {
+	elsif(! $opt->{already_got_data} and $opt->{column} and $opt->{table} ) {
 		GETDATA: {
 			last GETDATA if $opt->{table} eq 'mv_null';
 			my $key = $opt->{outboard} || $item->{code} || $opt->{code};
