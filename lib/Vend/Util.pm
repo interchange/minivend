@@ -2063,5 +2063,23 @@ sub send_mail {
 	$ok;
 }
 
+
+sub Vend::Util::get_cfg_header {
+	my ($file) = @_;
+	my $cfg = {};
+	local ($_, *IN);
+	unless (open IN, "<$file") {
+		my @msg = ("Can't open config file '%s': %s\n", $file, $!);
+		logError(@msg);
+		return { error => errmsg(@msg) };
+	}
+	while (<IN>) {
+		($cfg->{position} = $1, last) if /^\s*#\s*position\s*:\s*(\d+)/i;
+	}
+	close IN;
+	return $cfg;
+}
+
+
 1;
 __END__
