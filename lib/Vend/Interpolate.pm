@@ -618,6 +618,7 @@ sub filter_value {
 	my @filters = Text::ParseWords::shellwords($filter); 
 	my @args;
 	for (@filters) {
+		next unless $_;
 		@args = ();
 		if(/%/) {
 			$value = sprintf($_, $value);
