@@ -400,8 +400,8 @@ sub display {
 			last METAMAKE;
 		}
 
-#::logDebug("formatting prepend/append");
-		for(qw/append prepend/) {
+#::logDebug("formatting prepend/append/lookup_query");
+		for(qw/append prepend lookup_query/) {
 			next unless $record->{$_};
 			if($opt->{restrict_allow}) {
 				$record->{$_} = $Tag->restrict({

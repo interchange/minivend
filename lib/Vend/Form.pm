@@ -1027,6 +1027,7 @@ if($opt->{debug}) {
 	my $look;
 
 	if($look = $opt->{lookup_query}) {
+#::logDebug("lookup_query called, opt=" . uneval($opt));
 		my $tab = $opt->{db} || $opt->{table} || $Vend::Cfg->{ProductFiles}[0];
 		my $db = Vend::Data::database_exists_ref($tab);
 		my @looks = split /\s*;\s*/, $look;
@@ -1034,7 +1035,8 @@ if($opt->{debug}) {
 		for my $l (@looks) {
 			next unless $db;
 			next unless $l =~ /^select\s+/i;
-			push @$data, @{$db->query($l)};
+			my $qr = $db->query($l);
+			ref($qr) eq 'ARRAY' and push @$data, @$qr;
 		}
 		if($data->[0] and @{$data->[0]} > 2) {
 			my $j = $opt->{label_joiner} || '-';
