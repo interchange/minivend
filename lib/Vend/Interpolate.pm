@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # Interpolate.pm - Interpret MiniVend tags
 # 
-# $Id: Interpolate.pm,v 1.87 1999/08/05 03:51:31 mike Exp $
+# $Id: Interpolate.pm,v 1.88 1999/08/09 02:30:31 mike Exp mike $
 #
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
 #
@@ -24,7 +24,7 @@ package Vend::Interpolate;
 require Exporter;
 @ISA = qw(Exporter);
 
-$VERSION = substr(q$Revision: 1.87 $, 10);
+$VERSION = substr(q$Revision: 1.88 $, 10);
 
 @EXPORT = qw (
 
@@ -149,6 +149,8 @@ TAGBUILD: {
 		item-description
 		item-discount
 		item-field
+		item-alternate
+		/item-alternate
 		item-increment
 		item-last
 		/item-last
@@ -178,6 +180,8 @@ TAGBUILD: {
 		loop-data
 		loop-description
 		loop-field
+		loop-alternate
+		/loop-alternate
 		loop-increment
 		loop-last
 		/loop-last
@@ -196,6 +200,8 @@ TAGBUILD: {
 		sql-data
 		sql-description
 		sql-field
+		sql-alternate
+		/sql-alternate
 		sql-increment
 		sql-link
 		sql-param
@@ -1069,7 +1075,7 @@ sub conditional {
 		$op = database_field($d,$k,$f);
 # DEBUG
 #Vend::Util::logDebug
-#("tag_if db=$d fld=$f key=$k data=$data\n")
+#("tag_if db=$d fld=$f key=$k\n")
 #	if ::debug(0x1);
 # END DEBUG
 		$op = 'q{' . $op . '}' unless defined $noop;
@@ -1081,7 +1087,7 @@ sub conditional {
 		$op = product_field($f,$k);
 # DEBUG
 #Vend::Util::logDebug
-#("tag_if field fld=$f key=$k data=$data\n")
+#("tag_if field fld=$f key=$k\n")
 #	if ::debug(0x1);
 # END DEBUG
 		$op = 'q{' . $op . '}' unless defined $noop;
@@ -1439,9 +1445,10 @@ EOF
 }
 
 sub tag_price {
-	my($code,$quantity,$base,$noformat) = @_;
+	my($code,$quantity,$base,$noformat,$ref) = @_;
+	$quantity = $ref->{quantity} = 1 if ! $ref->{quantity};
 	return currency(
-					 product_price($code,$quantity,$base),
+					 Vend::Data::item_price($ref,$quantity),
 					 $noformat,
 					 );
 }
@@ -1562,8 +1569,17 @@ sub safe_tag {
 }
 
 sub mvasp {
-	my ($text) = @_;
+	my ($tables, $text) = @_;
 	my @code;
+	if($tables) {
+		my (@tab) = grep /\S/, split /\s+/, $tables;
+		for(@tab) {
+			my $db = Vend::Data::database_exists_ref($_);
+			next unless $db;
+			$db = $db->ref();
+			$db->touch();
+		}
+	}
 	while ( $text =~ s/(.*?)<%//s || $text =~ s/(.+)//s ) {
 		push @code, <<EOF;
 ; my \$html = <<'_MV_ASP_EOF$^T';
@@ -3107,6 +3123,10 @@ sub tag_search_list {
 		$count++;
 
 	    $run = $text;
+		$run =~ s#$T{'item-alternate'}$Opt\]($Some)$T{'/item-alternate'}\]#
+				  $count % ($1 || $::Values->{mv_item_alternate} || 2)
+				  							?	pull_else($2)
+											:	pull_if($2)#geo;
 	    $run =~ s:$T{'item-param'}$Spacef(\d+)\]:$fields[$1]:go;
 		$run =~ s#$T{'if-param'}$Spacef(!?)\s*($Codere)\]($Some)$T{'/if-param'}\]#
 				  $fields[$field_hash{$2}]	?	pull_if($3,$1)
@@ -3653,6 +3673,10 @@ sub tag_item_list {
 		$code = $item->{'code'};
 
 		$run = $text;
+		$run =~ s#$T{'item-alternate'}$Opt\]($Some)$T{'/item-alternate'}\]#
+				  ($i + 1) % ($1 || $::Values->{mv_item_alternate} || 2)
+				  							?	pull_else($2)
+											:	pull_if($2)#geo;
 		tag_item_data_row($code,\$run);
 		$run =~ s#$T{'if-field'}$Spacef(!?)$Spaceo($Codere)\]($Some)$T{'/if-field'}\]#
 				  product_field($2, $code)	?	pull_if($3,$1)
@@ -3740,6 +3764,10 @@ sub tag_sql_list {
 		$count++;
 
 	    $run = $text;
+		$run =~ s#$T{'sql-alternate'}$Opt\]($Some)$T{'/sql-alternate'}\]#
+				  $count % ($1 || $::Values->{mv_sql_alternate} || 2)
+				  							?	pull_else($2)
+											:	pull_if($2)#geo;
 	    $run =~ s:$T{'sql-param'}\s+(\d+)\]:$item->[$1]:go;
 		$run =~ s#$T{'if-sql-param'}$Spacef(!?)\s*($Codere)\]($Some)$T{'/if-sql-param'}\]#
 			  $item->[$Vend::Table::DBI::mv_sql_names{lc $2}]
@@ -3767,7 +3795,7 @@ sub tag_sql_list {
 }
 
 sub loop_with {
-	my ($code,$run,$i,$with) = @_;
+	my ($code,$run,$count,$with) = @_;
 	return '' unless $code && defined $run;
 	$with = '' unless defined $with;
 	if($Vend::OnlyProducts) {
@@ -3790,7 +3818,7 @@ sub loop_with {
 			  product_field($2, $code)	?	pull_if($3,$1)
 										:	pull_else($3,$1)#xge;
 	tag_loop_data_row($code,\$run,$with);
-	$run =~ s:$T{'loop-increment'}$with\]:$i:xg;
+	$run =~ s:$T{'loop-increment'}$with\]:$count:xg;
 	$run =~ s:$T{'loop-accessories'}$with($Spacef[^\]]+)?\]:tag_accessories($code,'',$1):ge;
 	$run =~ s:$T{'loop-code'}$with\]:$code:g;
 	$run =~ s:$T{'loop-field'}$with$Mandf\]:product_field($1, $code):ge;
@@ -3814,7 +3842,7 @@ sub loop_with {
 }
 
 sub loop_substitute {
-	my ($code,$run,$i) = @_;
+	my ($code,$run,$count) = @_;
 	my $return;
 	if($Vend::OnlyProducts) {
 		$run =~ s/$T{'loop-field'}$Spacef/[loop-data $Vend::OnlyProducts /g;
@@ -3827,7 +3855,11 @@ sub loop_substitute {
 			  product_field($2, $code)	?	pull_if($3,$1)
 										:	pull_else($3,$1)#xgeo;
 	tag_loop_data_row($code,\$run);
-	$run =~ s:$T{'loop-increment'}\]:$i:xgo;
+	$run =~ s#$T{'loop-alternate'}$Opt\]($Some)$T{'/loop-alternate'}\]#
+				  $count % ($1 || $::Values->{mv_loop_alternate} || 2)
+				  							?	pull_else($2)
+											:	pull_if($2)#geo;
+	$run =~ s:$T{'loop-increment'}\]:$count:xgo;
 	$run =~ s:$T{'loop-accessories'}($Spacef[^\]]+)?\]:tag_accessories($code,'',$1):geo;
 	$run =~ s:$T{'loop-code'}\]:$code:go;
 	$run =~ s:$T{'loop-field'}$Mandf\]:product_field($1, $code):geo;
@@ -4958,6 +4990,60 @@ sub tag_lookup {
 	return tag_data($selector,$field,$key);
 }
 
+sub timed_build {
+    my $file = shift;
+    my $opt = shift;
+	my $abort;
+	if($file eq 'scan') {
+		$file = $Vend::Session->{last_search};
+		unless ($file =~ m:MM=:) {
+			$file =~ s/(\W)/sprintf("%02x", ord($1))/eg;
+		}
+		else { $abort = 1 }
+	}
+
+    if($abort or ! $CGI::cookie or ! $opt->{login} && $Vend::Session->{logged_in}) {
+        return Vend::Interpolate::interpolate_html(shift);
+    }
+
+	my $secs;
+	CHECKDIR: {
+		if (! $file) {
+			my $dir = $Vend::Cfg->{StaticDir};
+			$dir = 'timed' if ! -d $dir || ! -w _;
+			$dir .= "/$1"
+				if $file =~ s:(.*)/::;
+			if(! -d $dir) {
+				require File::Path;
+				File::Path::mkpath($dir);
+			}
+			$file = $Global::Variable->{MV_PAGE} . $Vend::Cfg->{StaticSuffix};
+			$file = Vend::Util::catfile($dir, $file);
+		}
+	}
+    if($opt->{noframes} and $::Scratch->{frames}) {
+        return '';
+    }
+
+    if(! $CGI::cookie or ! $opt->{login} && $Vend::Session->{logged_in}) {
+        return Vend::Interpolate::interpolate_html(shift);
+    }
+
+	if($opt->{minutes}) {
+        $secs = int($opt->{minutes} * 60);
+    }
+	elsif ($opt->{period}) {
+		$secs = Vend::Config::time_to_seconds($opt->{period});
+	}
+
+    if( ! -f $file or $secs && (stat(_))[9] < (time() - $secs) ) {
+        my $out = Vend::Interpolate::interpolate_html(shift);
+        Vend::Util::writefile(">$file", $out);
+        return $out;
+    }
+    else {        return Vend::Util::readfile($file);    }
+}
+
 package Vend::Tags;
 
 require Exporter;
@@ -4974,6 +5060,9 @@ sub AUTOLOAD {
 	shift;
 	my $routine = $AUTOLOAD;
 	$routine =~ s/.*:://;
+	if(ref $_[0]) {
+		@_ = Vend::Parse::resolve_args($routine, @_);
+	}
 	return Vend::Parse::do_tag($routine, @_);
 }
 
@@ -5038,6 +5127,10 @@ sub write {
 	return if ! $Hot;
 	Vend::Tags::Document::send( undef, join("", splice(@Vend::Tags::Out, 0)) );
 }
+
+1;
+
+package Vend::Interpolate;
 
 1;
 __END__

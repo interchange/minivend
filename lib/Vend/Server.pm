@@ -1,6 +1,6 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.56 1999/07/16 11:05:41 mike Exp $
+# $Id: Server.pm,v 1.57 1999/08/09 02:31:52 mike Exp mike $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
@@ -24,7 +24,7 @@ require Vend::Http;
 @ISA = qw(Vend::Http::CGI);
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.56 $, 10);
+$VERSION = substr(q$Revision: 1.57 $, 10);
 
 use Vend::Util qw(strftime);
 use POSIX qw(setsid);
@@ -690,9 +690,9 @@ sub server_both {
 
     setup_signals();
 
-	my $port;
+	my ($host, $port);
 	if($Global::Inet_Mode) {
-		my $host = $Global::TcpHost || '127.0.0.1';
+		$host = $Global::TcpHost || '127.0.0.1';
 		my @hosts;
 		$Global::TcpHost =~ s/\./\\./g;
 		$Global::TcpHost =~ s/\*/\\S+/g;

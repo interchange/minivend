@@ -1,3 +1,4 @@
+[fly-list]
 <HTML>
 [tag flag build][/tag]
 <HEAD><TITLE>[item-description]</TITLE></HEAD>
@@ -53,7 +54,7 @@ __LEFTSIDE__
                         <P>
                         [L]Catalog[/L] [L]Number[/L]: [item-code]<BR>
                         Our Price:<B>
-                        [item-price]
+                        [price code="[item-code]" quantity="[cgi prospective_price]"]
                         </B>
                         &nbsp; 
                         [if ordered [item-code]]
@@ -64,7 +65,11 @@ __LEFTSIDE__
                         [/if]
                         <P>
                         [if-field size]
-                        <FORM ACTION="[process-target]" METHOD=POST>
+									[calc]
+										$qty = q{[cgi prospective_price]} || 1;
+										return '';
+									[/calc]
+                        <FORM NAME=orderform ACTION="[process-target]" METHOD=POST>
                         <TABLE BACKGROUND="__IMAGE_DIR__/__BGIMAGE__">
                         <TR><TD VALIGN=TOP>
                         <INPUT TYPE=SUBMIT VALUE="[L]ORDER NOW[/L]">
@@ -72,7 +77,7 @@ __LEFTSIDE__
                         <INPUT TYPE=hidden NAME=mv_order_item VALUE="[item-code]">
                         <INPUT TYPE=hidden NAME=mv_separate_items VALUE="1">
                         </TD><TD VALIGN=TOP BGCOLOR="#00F0F0">
-                        <INPUT SIZE=3 NAME=mv_order_quantity VALUE="1">
+                        <INPUT SIZE=3 NAME=mv_order_quantity VALUE="[calc]$qty[/calc]">
                         </TD></TR>
                         <TR>
                             <TD COLSPAN=2>
@@ -87,7 +92,22 @@ __LEFTSIDE__
                                 BACKGROUND=""
                                 __HEADERBG__
                                 TEXT="__HEADERTEXT__">
-                                <H3><B>Quick-order</B></H3>
+                                <FONT SIZE="+1"><B>Quick-order</B></FONT><BR>
+								[loop arg="1 2 5 10 25"]
+									[if cgi prospective_price == [loop-code]]
+									<B>[loop-code]</B>
+									[elsif !value prospective_price]
+									<A HREF="[area href=flypage form="
+														  mv_arg=[item-code]
+														  prospective_price=[loop-code]
+														  "]"
+								onMouseOver="document.orderform.price_display.value='Quantity [loop-code] pricing'"
+														>[loop-code]</A>
+									[/elsif]
+									[/if]
+								[/loop]<BR>
+								<FONT SIZE=-1><INPUT NAME=price_display SIZE=16
+									VALUE='Quantity [calc]$qty[/calc] pricing'></FONT>
                             </TD>
                             </TR>
                             <TR>
@@ -107,13 +127,22 @@ __LEFTSIDE__
                                 </TD>
                                 [loop with="-a" arg="[item-accessories size, options]"]
                                 <TD>
-                                [page form="
+                                <A HREF="[area form="
                                     mv_order_item=[item-code]
                                     mv_order_color=[loop-code]
                                     mv_order_size=[loop-code-a]
+									mv_order_quantity=[cgi prospective_price]
                                     mv_separate_items=1
                                     mv_todo=refresh
-                                "][loop-code-a]</A><BR>
+                                "]"
+								onMouseOut="document.orderform.price_display.value='hover to see price'"
+								onMouseOver="document.orderform.price_display.value='[price
+										code="[item-code]"
+										color="[loop-code]"
+										size="[loop-code-a]"
+										quantity="[cgi prospective_price]"
+										]'">[loop-code-a]</A> 
+										<BR>
                                 </TD>
                                 [/loop]
                             </TR>
@@ -155,3 +184,4 @@ __COPYRIGHT__
 <!-- current page: @@MV_PAGE@@ -->
 </BODY>
 </HTML>
+[/fly-list]

@@ -1,6 +1,6 @@
 # Parse.pm - Parse MiniVend tags
 # 
-# $Id: Parse.pm,v 1.53 1999/08/05 05:47:25 mike Exp mike $
+# $Id: Parse.pm,v 1.54 1999/08/09 02:31:17 mike Exp mike $
 #
 # Copyright 1997-1999 by Michael J. Heins <mikeh@iac.net>
 #
@@ -20,12 +20,12 @@
 
 package Vend::Parse;
 
-# $Id: Parse.pm,v 1.53 1999/08/05 05:47:25 mike Exp mike $
+# $Id: Parse.pm,v 1.54 1999/08/09 02:31:17 mike Exp mike $
 
 require Vend::Parser;
 
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.53 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.54 $ =~ /(\d+)\.(\d+)/);
 
 use Safe;
 use Vend::Util;
@@ -40,7 +40,7 @@ require Exporter;
 
 @ISA = qw(Exporter Vend::Parser);
 
-$VERSION = substr(q$Revision: 1.53 $, 10);
+$VERSION = substr(q$Revision: 1.54 $, 10);
 @EXPORT = ();
 @EXPORT_OK = qw(find_matching_end);
 
@@ -84,6 +84,7 @@ my %PosNumber =	( qw!
                 last_page        2
                 lookup           1
                 loop             1
+                mvasp            1
                 nitems           1
                 order            4
                 page             2
@@ -107,6 +108,7 @@ my %PosNumber =	( qw!
                 sql              2
                 subtotal         2
                 tag              1
+				timed_build      1
                 total_cost       2
                 userdb           1
                 value            4
@@ -160,7 +162,7 @@ my %Order =	(
 				page			=> [qw( href arg secure)],
 				pagetarget		=> [qw( href target arg secure)],
 				perl			=> [qw( arg )],
-				mvasp			=> [],
+				mvasp			=> [qw( tables )],
 				post			=> [],
 				price			=> [qw( code quantity base noformat)],
 				process_order	=> [qw( target secure )],
@@ -184,6 +186,7 @@ my %Order =	(
 				strip			=> [],
 				'subtotal'		=> [qw( name noformat )],
 				tag				=> [qw( op base file type )],
+				timed_build		=> [qw( file )],
 				total_cost		=> [qw( name noformat )],
 				userdb          => [qw( function ) ],
 				value			=> [qw( name escaped set hide)],
@@ -387,6 +390,7 @@ my %Routine = (
 										return $_;
 									},
 				tag				=> \&Vend::Interpolate::do_parse_tag,
+				timed_build		=> \&Vend::Interpolate::timed_build,
 				total_cost		=> \&Vend::Interpolate::tag_total_cost,
 				userdb			=> \&Vend::UserDB::userdb,
 				value			=> \&Vend::Interpolate::tag_value,
@@ -484,14 +488,16 @@ my %canNest = (
 
 my %addAttr = (
 				qw(
-					ecml      1
-					userdb    1
-					import    1
-					input_filter  1
-					index     1
-					page	  1
-					area	  1
-					value_extended    1
+					ecml            1
+					userdb          1
+					import          1
+					input_filter    1
+					index           1
+					page            1
+					price           1
+					area            1
+					timed_build     1
+					value_extended  1
 				)
 			);
 
@@ -563,25 +569,26 @@ my %endHTML = (
 my %hasEndTag = (
 
 				qw(
-						calc		1
-						compat		1
-						currency	1
-						discount	1
-						fly_list	1
-						if			1
-						import		1
-						item_list	1
-						input_filter  1
-						loop		1
-						sql			1
-						perl		1
-						mvasp		1
-						post		1
-						row			1
-						set			1
-						search_region			1
-						strip		1
-						tag			1
+						calc			1
+						compat			1
+						currency		1
+						discount		1
+						fly_list		1
+						if				1
+						import			1
+						item_list		1
+						input_filter	1
+						loop			1
+						sql				1
+						perl			1
+						mvasp			1
+						post			1
+						row				1
+						set				1
+						search_region	1
+						timed_build		1
+						strip			1
+						tag				1
 
 				)
 			);
@@ -599,7 +606,14 @@ my %Interpolate = (
 				)
 			);
 
-my %Gobble = ( qw/ mvasp 1/ );
+my %NoReparse = ( qw/
+					mvasp			1
+				/ );
+
+my %Gobble = ( qw/
+					timed_build		1
+					mvasp			1
+				/ );
 
 my %isEndAnchor = (
 
@@ -663,7 +677,7 @@ my %myRefs = (
 
 sub do_tag {
 	my $tag = shift;
-	if (! defined $Routine{tag}) {
+	if (! defined $Routine{tag} and (not $tag = $Alias{$tag}) ) {
 		::logError("Tag '$tag' not defined.");
 		return undef;
 	};
@@ -678,6 +692,24 @@ sub do_tag {
 	else {
 		return &{$Routine{$tag}}(@_);
 	}
+}
+
+sub resolve_args {
+	my $tag = shift;
+	return @_ unless defined $Routine{$tag};
+	my $ref = shift;
+	my @list;
+	if(defined $attrAlias{$tag}) {
+		my ($k, $v);
+		while (($k, $v) = each %{$attrAlias{$tag}} ) {
+			next unless defined $ref->{$k};
+			$ref->{$v} = $ref->{$k};
+		}
+	}
+	@list = @{$ref}{@{$Order{$tag}}};
+	push @list, $ref if defined $addAttr{$tag};
+	push @list, (shift || $ref->{body} || '') if $hasEndTag{$tag};
+	return @list;
 }
 
 sub add_tags {
@@ -847,7 +879,8 @@ sub html_start {
 	}
 
 	$attr->{'decode'} = 1 unless defined $attr->{'decode'};
-	$attr->{'reparse'} = 1 unless defined $attr->{'reparse'};
+	$attr->{'reparse'} = 1 unless	defined $NoReparse{$tag}
+								||	defined $attr->{'reparse'};
 	$attr->{'true'} = 1;
 	$attr->{'false'} = 0;
 	$attr->{'undef'} = undef;
@@ -1120,6 +1153,8 @@ sub start {
 		$self->{INVALID} += $p->{INVALID};
 	}
 
+	$attr->{'reparse'} = 1 unless	defined $NoReparse{$tag}
+								||	defined $attr->{'reparse'};
 	$attr->{'true'} = 1;
 	$attr->{'false'} = 0;
 	$attr->{'undef'} = undef;
@@ -1199,8 +1234,13 @@ EOF
 			$p->parse($tmpbuf);
 			$tmpbuf = $p->{ABORT} ? '' : $p->{OUT};
 		}
-		my $intermediate = &$routine(@args,$tmpbuf);
-		$$buf = $intermediate . $$buf;
+		if($attr->{reparse} ) {
+			my $intermediate = &$routine(@args,$tmpbuf);
+			$$buf = $intermediate . $$buf;
+		}
+		else {
+			$self->{OUT} .= &{$routine}(@args,$tmpbuf);
+		}
 	}
 	elsif(! $attr->{interpolate}) {
 		$self->{OUT} .= &$routine( @args );

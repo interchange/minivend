@@ -133,7 +133,14 @@ MiniVend 3.15 incorporates some new features -- I couldn't resist. 8-)
                    NAME=Ecom_ShipTo_Postal_StateProv
                    SIZE=2>
 
-     
+    * The [price] tag now supports pricing with attributes (size/color etc.).
+      If you do
+
+            [price code=99-102 size=XL color=RED]
+            [price code=99-102 size=L color=RED]
+            [price code=99-102 size=L color=BLUE]
+
+      in the demo, this will demonstrate it.
 
 MiniVend 3.14 is a bug fix release with a couple of new features:
 

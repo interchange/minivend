@@ -1602,6 +1602,8 @@ session. The tag names and their general function are:
     /if-sql-field
   include       Include a file with complete MiniVend interpretation
   item-accessories  Product accessory functions (set select box)
+  item-alternate       Alternation for table/line build
+  /item-alternate
   item-code     Insert current item SKU/code/part number
   item-data     Insert data entry corresponding to current SKU
   item-description     Insert description corresponding to current SKU
@@ -1628,6 +1630,8 @@ session. The tag names and their general function are:
   loop-accessories  Product accessory functions (set select box)
   loop-change   Grouping of items in list display
     /loop-change
+  loop-alternate       Alternation for table/line build
+  /loop-alternate
   loop-code     Insert current item SKU/code/part number
   loop-data     Insert data entry corresponding to current SKU
   loop-description  Insert description corresponding to current SKU
@@ -1645,6 +1649,8 @@ session. The tag names and their general function are:
   more-list     Display more matches list with links to next series
     /more-list
   sql           Perform any of several types of SQL query
+  sql-alternate       Alternation for table/line build
+  /sql-alternate
   sql-code      Insert current item SKU/code/part number
   sql-data      Insert data entry corresponding to current SKU
   sql-description  Insert description corresponding to current SKU
@@ -3191,6 +3197,8 @@ It uses the same tags as in the <CODE>[loop ....]</CODE>, except prefixed with <
   [if-sql-data db fld] Returns enclosed text only if data field not empty
   [/if-sql-field]      Terminator for above
   [sql-increment]      Returns integer count of row
+  [sql-alternate n]    Alternating text
+  [/sql-alternate]     Terminator for above
   [sql-code]           The first field of each row returned
   [sql-data db fld]    Database field for [sql-code]
   [sql-description]    Product description for [sql-code]
@@ -3792,6 +3800,24 @@ Outputs the <STRONG>IF</STRONG> if the <A HREF="#item_field">field</A> in the <A
 <P><DT><STRONG><A NAME="item__loop_accessories_">[loop-accessories]</A></STRONG><DD>
 
 Evaluates to the value of the Accessories database entry for the item.
+
+<P><DT><STRONG><A NAME="item__loop_alternate">[loop-alternate N] DIVISIBLE [else] NOT DIVISIBLE [/else][/loop-alternate]</A></STRONG><DD>
+
+Set up an alternation sequence. If the loop-increment is divisible by <A HREF="#item_N">N</A>, the text will be displayed. If an <CODE>[else]NOT DIVISIBLE TEXT[/else]</CODE> is present, then the 
+<FONT SIZE=-1>NOT</FONT> 
+<FONT SIZE=-1>DIVISIBLE</FONT> 
+<FONT SIZE=-1>TEXT</FONT> will be displayed.
+
+<P>
+For example:
+
+<P>
+<PRE>        [loop-alternate 2]EVEN[else]ODD[/else][/loop-alternate]
+        [loop-alternate 3]BY 3[else]NOT by 3[/else][/loop-alternate]
+</PRE>
+<P><DT><STRONG><A NAME="item__loop_alternate_">[/loop-alternate]</A></STRONG><DD>
+
+Terminate the alternation area.
 
 <P><DT><STRONG><A NAME="item__loop_change">[loop-change marker]</A></STRONG><DD>
 
@@ -4832,13 +4858,50 @@ recommended for the novice, though -- keep it simple. 8-)
 <DL>
 <DT><STRONG><A NAME="item__price">[price code quantity* database* noformat*]</A></STRONG><DD>
 
-named attributes: <CODE>[price code=&quot;code&quot; quantity=&quot;quantity&quot; base=&quot;database&quot; noformat=1*]</CODE>
+named attributes: <CODE>[price
+		code=&quot;code&quot;
+		quantity=&quot;N&quot;
+		base=&quot;database&quot;
+		noformat=1*
+		optionX=&quot;value&quot;]</CODE>
 
 <P>
 Expands into the price of the product identified by code as found in the
 products database. If there is more than one products file defined, they
 will be searched in order unless constrained by the optional argument <STRONG>base</STRONG>. The optional argument <STRONG>quantity</STRONG> selects an entry from the quantity price list. To receive a raw number,
 with no currency formatting, use the option <CODE>noformat=1</CODE>.
+
+<P>
+As of MiniVend 3.15, if an named attribute corresponding to a product
+option is passed, and that option would cause a change in the price, the
+appropriate price will be displayed.
+
+<P>
+
+<FONT SIZE=-1>DEMO</FONT> 
+<FONT SIZE=-1>EXAMPLE:</FONT> The T-Shirt (product code 99-102), with a base price of $10.00, can vary in price depending on size and color.
+ <CODE>S</CODE>, the small size, is 50 cents less; <CODE>XL</CODE>, the extra large size, is $1.00 more, and the color <CODE>RED</CODE> is 0.75 extra. There are also quantity pricing breaks (see the demo <A HREF="#item_pricing">pricing</A> database. So the following will be true:
+
+<P>
+<PRE>    [price  code=99-102
+            size=L]              is $10.00
+ 
+    [price  code=99-102
+            size=XL]             is $11.00
+ 
+    [price  code=99-102
+            color=RED
+            size=XL]             is $11.75
+ 
+    [price  code=99-102
+            size=XL
+            quantity=10]         is $10.00
+ 
+    [price  code=99-102
+            size=S]              is $9.50
+</PRE>
+<P>
+An illustration of this is on the <A HREF="#item_flypage">flypage</A> template when passed that item code.
 
 <P><DT><STRONG><A NAME="item__description">[description code database*]</A></STRONG><DD>
 
@@ -5226,6 +5289,24 @@ Terminates an <CODE>[if_field fieldname]</CODE> element.
 Evaluates to the value of the Accessories database entry for the item. If
 passed any of the optional arguments, initiates special processing of item
 attributes based on entries in the product database.
+
+<P><DT><STRONG><A NAME="item__item_alternate">[item-alternate N] DIVISIBLE [else] NOT DIVISIBLE [/else][/item-alternate]</A></STRONG><DD>
+
+Set up an alternation sequence. If the item-increment is divisible by <A HREF="#item_N">N</A>, the text will be displayed. If an <CODE>[else]NOT DIVISIBLE TEXT[/else]</CODE> is present, then the 
+<FONT SIZE=-1>NOT</FONT> 
+<FONT SIZE=-1>DIVISIBLE</FONT> 
+<FONT SIZE=-1>TEXT</FONT> will be displayed.
+
+<P>
+For example:
+
+<P>
+<PRE>        [item-alternate 2]EVEN[else]ODD[/else][/item-alternate]
+        [item-alternate 3]BY 3[else]NOT by 3[/else][/item-alternate]
+</PRE>
+<P><DT><STRONG><A NAME="item__item_alternate_">[/item-alternate]</A></STRONG><DD>
+
+Terminate the alternation area.
 
 <P><DT><STRONG><A NAME="item__item_code_">[item-code]</A></STRONG><DD>
 
@@ -5848,6 +5929,27 @@ Using the <CODE>$Tag</CODE> object, you can access any MiniVend tag
 including user-defined tags.
 
 <P>
+<STRONG>IMPORTANT NOTE:</STRONG> If the tag will access a database that has not been previously opened, you must pass in the table name in the 
+<FONT SIZE=-1>ASP</FONT> call, i.e.:
+
+<P>
+<PRE>        # HTML style
+        &lt;HTML MV=&quot;mvasp&quot; MV.TABLES=&quot;products pricing&quot;&gt;
+     
+          or
+     
+        # Named parameters
+        [mvasp tables=&quot;products pricing&quot;] 
+     
+          or
+     
+        # Positional parameters
+        [mvasp products pricing] 
+</PRE>
+<P>
+Any tag can be called.
+
+<P>
 <PRE>        &lt;%
                 my $user = $Session-&gt;{username};
                 my $name_from_db = $Tag-&gt;data('userdb', 'name', $user );
@@ -5860,6 +5962,68 @@ is the same as:
 <P>
 <PRE>        [data table=userdb column=name key=&quot;[data session username]&quot;]
 </PRE>
+<P>
+If the tag has a dash (<CODE>-</CODE>) in it, use an underscore instead:
+
+<P>
+<PRE>        # WRONG!!!
+        $Tag-&gt;shipping-desc('upsg');
+        # Right
+        $Tag-&gt;shipping_desc('upsg');
+</PRE>
+<P>
+There are two ways of specifying parameters. You can either use the
+positional parameters as documented (for an authoritative look at the
+parameters, trace the <A HREF="#item__Routine">%Routine</A> value in
+Vend::Parse), or you can specify it all with an option hash parameter names
+as in any named parameters as you would specify in a MiniVend tag. The
+calls
+
+<P>
+<PRE>        $Tag-&gt;data('products', 'title', '00-0011');
+</PRE>
+<P>
+and
+
+<P>
+<PRE>        my $opt = {             
+                                        table   =&gt; 'products',
+                                        column  =&gt; 'title',
+                                        key             =&gt; '00-0011',
+                                };
+</PRE>
+<P>
+<PRE>        $Tag-&gt;data( $opt );
+</PRE>
+<P>
+are equivalent for the <A HREF="#item_data">data</A> tag.
+
+<P>
+If you are using the option hash method, and the tag has container text,
+you can either specify it in the hash parameter <CODE>body</CODE> or add it as the next argument. The two calls:
+
+<P>
+<PRE>        $Tag-&gt;item_list( { 
+                                                'body' =&gt; &quot;[item-code] [item-field title]&quot;,
+                                        });
+</PRE>
+<P>
+and 
+
+<P>
+<PRE>        $Tag-&gt;item_list( { }, &quot;[item-code] [item-field title]&quot;)
+</PRE>
+<P>
+are equivalent.
+	
+						
+	
+						
+
+<P>
+Parameter names are 
+<FONT SIZE=-1>ALWAYS</FONT> lower case.
+
 <P><DT><STRONG><A NAME="item__Values">$Values</A></STRONG><DD>
 
 <FONT SIZE=-1>A</FONT> reference to the user form values ala <CODE>[value foo]</CODE>.

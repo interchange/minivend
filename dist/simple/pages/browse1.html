@@ -151,9 +151,7 @@ things:
 [page href=browse1 arg="[scratch prev]:[scratch chunk]"]
 	<B>[L]Previous[/L]</B></A>&nbsp;&nbsp;
 [/if]
-[if type=explicit compare="[calc]
-			[value mv_search_match_count] > [scratch next]
-			[/calc]"]
+[if type=explicit compare="[value mv_search_match_count] > [scratch next]"]
 [page href=browse1 arg="[scratch next]:[scratch chunk]"]<B>[L]Next[/L]</B></A>
 [/if]</BR>&nbsp;
 </TD></TR></TABLE>
