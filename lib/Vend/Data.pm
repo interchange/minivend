@@ -1076,7 +1076,7 @@ sub import_database {
 		if($@) {
 #::logDebug("Dieing of $@");
 			die $@ unless $no_import;
-			die $@ unless $tried_import++;
+			die $@ if $tried_import++;
 			if(! -f $database_dbm) {
 				$Vend::ForceImport{$obj->{name}} = 1;
 				return import_database($obj);
