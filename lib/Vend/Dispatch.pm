@@ -164,6 +164,9 @@ sub parse_click {
 	mv_click  1
 	mv_nextpage  1
 	mv_failpage  1
+	mv_password  1
+	mv_verify  1
+	mv_password_old  1
 	mv_successpage  1
 	mv_more_ip  1
 	mv_credit_card_number  1
