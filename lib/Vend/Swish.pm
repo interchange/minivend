@@ -181,7 +181,7 @@ sub search {
 		and ::logError("Removed unsafe characters from search string");
 
 	if(length($spec) < $s->{mv_min_string}) {
-		my $msg = errmsg(
+		my $msg = ::errmsg(
 					"Swish search string less than minimum %s characters: %s",
 					$s->{mv_min_string},
 					$spec,
