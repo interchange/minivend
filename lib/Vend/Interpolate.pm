@@ -4965,8 +4965,8 @@ my $once = 0;
 											:	pull_if($2)#ige;
 		1 while $run =~ s#$IB$QR{_param_if}$IE[-_]param\1\]#
 				  (defined $fh->{$3} ? $row->[$fh->{$3}] : '')
-				  					?	pull_if($5,$2,$4,$row->[$3])
-									:	pull_else($5,$2,$4,$row->[$3])#ige;
+				  					?	pull_if($5,$2,$4,$row->[$fh->{$3}])
+									:	pull_else($5,$2,$4,$row->[$fh->{$3}])#ige;
 	    $run =~ s#$B$QR{_param}#defined $fh->{$1} ? ed($row->[$fh->{$1}]) : ''#ige;
 		1 while $run =~ s#$IB$QR{_pos_if}$IE[-_]pos\1\]#
 				  $row->[$3] 
@@ -6393,12 +6393,19 @@ sub tag_control {
 	if(! $name) {
 		# Here we either reset the index or increment it
 		# Done this way for speed, no blocks to enter other than top one
-		($::Scratch->{control_index} = 0, return) if $opt->{reset};
-		return set_tmp('control_index', ++$::Scratch->{control_index});
+		if($opt->{space}) {
+			$::Control = $Tmp->{$opt->{space}} ||= [];
+			return set_tmp('control_index', 0);
+		}
+		else {
+			($::Scratch->{control_index} = 0, return) if $opt->{reset};
+			return set_tmp('control_index', ++$::Scratch->{control_index});
+		}
 	}
 
 	$name = lc $name;
 	$name =~ s/-/_/g;
+	$opt ||= {};
 	if (! defined $default and $opt->{set}) {
 		$::Control->[$::Scratch->{control_index}]{$name} = $::Scratch->{$name};
 		return;
