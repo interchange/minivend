@@ -244,9 +244,9 @@ sub parse
 				# At the end there should be a closing "\] or >"
 				if ($$buf =~ s|^\]|| ) {
 					$self->start($tag, \%attr, \@attrseq, "$eaten]");
-				} elsif ($$buf =~ s|^/\s*]||) {
+				} elsif ($$buf =~ s|^/\s*\]||) {
 					## Empty container tag
-					$self->start($tag, {}, [], $eaten, 1);
+					$self->start($tag, \%attr, \@attrseq, "$eaten]", 1);
 				} elsif ($$buf =~ s|^([^\]\n]+\])||) {
 					$eaten .= $1;
 					$self->start($tag, {}, [], $eaten);
