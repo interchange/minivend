@@ -450,6 +450,7 @@ sub signio {
 						ZIP			b_zip
 						STREET		b_address
 						SHIPTOZIP	zip
+						EMAIL    	email
 						COMMENT1	comment1
 						COMMENT2	comment2
         /
