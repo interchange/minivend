@@ -2022,8 +2022,12 @@ EOF
 	my $linecount;
 
 	CANONCOLS: {
-		my @cols = split /[,\0\s]/, $opt->{ui_data_fields};
-		#@cols = grep /:/ || $db->column_exists($_), @cols;
+		my (@cols, %colseen);
+
+		for (split /[,\0\s]/, $opt->{ui_data_fields}) {
+			next if $colseen{$_}++;
+			push (@cols, $_);
+		}
 
 		$opt->{ui_data_fields} = join " ", @cols;
 
