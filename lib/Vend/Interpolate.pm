@@ -3476,6 +3476,9 @@ sub more_link {
 #::logDebug("more_link: inc=$inc current=$current");
 	$last = $next + $chunk - 1;
 	$last = ($last+1) < $total ? $last : ($total - 1);
+	$pa =~ s/__PAGE__/$inc/g;
+	$pa =~ s/__MINPAGE__/$next + 1/eg;
+	$pa =~ s/__MAXPAGE__/$last + 1/eg;
 	if($inc == $current) {
 		$pa =~ s/__BORDER__/$border_selected || $border || ''/e;
 		$list .= qq|<STRONG>$pa</STRONG> | ;
@@ -3608,7 +3611,6 @@ sub tag_more_list {
 	unless ($page_anchor) {
 		if($r =~ s:\[page[-_]anchor\]($All)\[/page[-_]anchor\]::i) {
 			$page_anchor = $1;
-			$page_anchor =~ s/\$PAGE\$/__PAGE__/i;
 		}
 		else {
 			$page_anchor = '__PAGE__';
@@ -3617,6 +3619,8 @@ sub tag_more_list {
 	elsif ($page_anchor ne 'none') {
 		$page_anchor = qq%<IMG SRC="$page_anchor?__PAGE__"__BORDER__>%;
 	}
+
+	$page_anchor =~ s/\$(MIN|MAX)?PAGE\$/__${1}PAGE__/g;
 
 	my $more_string = ::errmsg('more');
 	my ($decade_next, $decade_prev, $decade_div);
