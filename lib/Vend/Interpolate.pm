@@ -2797,36 +2797,6 @@ sub static_url {
 	return $Vend::Cfg->{StaticPath} . "/" . shift;
 }
 
-sub resolve_static {
-#::logDebug("entering resolve_static...");
-	return if ! $Vend::Cookie;
-#::logDebug("have cookie...");
-	return if ! $Vend::Cfg->{Static};
-#::logDebug("are static...");
-	my $key = Vend::Util::escape_chars_url($page);
-	if($arg) {
-		my $tmp = $arg;
-		$tmp =~ s:([^\w/]): sprintf '%%%02x', ord($1) :eg;
-		$key .= "/$arg";
-	}
-#::logDebug("checking $key...");
-
-	if(defined $Vend::StaticDBM{$key}) {
-#::logDebug("found DBM $key...");
-		$page = $Vend::StaticDBM{$key} || "$key$Vend::Cfg->{StaticSuffix}";
-	}
-	elsif(defined $Vend::Cfg->{StaticPage}{$key}) {
-#::logDebug("found StaticPage $key...");
-		$page = $Vend::Cfg->{StaticPage}{$key} || "$key$Vend::Cfg->{StaticSuffix}";
-	}
-	else {
-#::logDebug("not found $key...");
-		return;
-	}
-	$urlroutine = \&static_url;
-	return;
-}
-
 sub tag_page {
     my ($page, $arg, $opt) = @_;
 
@@ -2867,8 +2837,6 @@ sub tag_area {
 	}
 
 	$urlroutine = $opt->{secure} ? \&secure_vendUrl : \&vendUrl;
-
-	resolve_static();
 
 	my $anchor = '';
 	if($opt->{anchor}) {
