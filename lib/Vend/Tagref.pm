@@ -1,6 +1,6 @@
 # Tagref.pm - Document MiniVend tags
 # 
-# $Id: Tagref.pm,v 1.5 2000/03/02 10:33:33 mike Exp $
+# $Id: Tagref.pm,v 1.5 2000/03/28 05:37:10 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -23,7 +23,7 @@ package Vend::Tagref;
 use lib "$Global::VendRoot/lib";
 use lib '../lib';
 
-# $Id: Tagref.pm,v 1.5 2000/03/02 10:33:33 mike Exp $
+# $Id: Tagref.pm,v 1.5 2000/03/28 05:37:10 mike Exp $
 
 use Vend::Parse;
 
@@ -822,6 +822,100 @@ then subsequent pieces will be discarded without interpolation.
 Example:
 
   [either][value must_be_here][or][bounce href="[area incomplete]"][/either]
+
+%%%
+error
+%%
+
+    [error var options]
+        var is the error name, e.g. "session"
+
+The [error ...] tag is designed to manage form variable checking
+for the Minivend C<submit> form processing action. It works in
+conjunction with the definition set in C<mv_order_profile>, and can
+generate error messages in any format you desire.
+
+If the variable in question passes order profile checking, it will
+output a label, by default B<bold> text if the item is required,
+or normal text if not (controlled by the <require> parameter. If
+the variable fails one or more order checks, the error message
+will be substituted into a template and the error cleared from
+the user's session.
+
+(Below is as of 4.03, the equivalent in 4.02 is
+[if type=explicit compare="[error all=1 keep=1]"] ... [/if].)
+
+To check errors without clearing them, you can use the idiom:
+
+    [if errors]
+    <FONT SIZE="+1" COLOR=RED>
+        There were errors in your form submission.
+    </FONT>
+    <BLOCKQUOTE>
+        [error all=1 show_error=1 joiner="<BR>"]
+    </BLOCKQUOTE>
+    [/if]
+
+The options are:
+
+=over 4
+
+=item all=1
+
+Display all error messages, not just the one
+refered to by <var>. The default is only display
+the error message assigned to <var>.
+
+text=<optional string to embed the error message(s) in>
+
+place a "%s" somewhere in 'text' to mark where
+you want the error message placed, otherwise it's
+appended on the end. This option also implies
+show_error.
+
+=item joiner=<char>
+
+Character used to join multiple error messages.
+Default is '\n', a newline.
+
+=item keep=1
+
+keep=1 means don't delete the error messages after
+copy; anything else deletes them.
+
+=item show_var=1
+
+show_var=1 means include the variable relating to the
+error message as part of the error message (E.g.:
+"email: not a valid email address".)
+
+show_error=1
+show_error=1 means return the error message text;
+otherwise just the number of errors found is returned.
+
+=item std_label
+
+std_label=<label string for error message>
+
+used with 'required' to display a standardized
+error format. The HTML formating can bet set
+via the global variable MV_ERROR_STD_LABEL with
+the default being:
+
+	<FONT COLOR=RED>label_str<SMALL><I>(%s)</I></SMALL></FONT>
+
+where <label_str> is what you set std_label to and %s
+is substituted with the error message. This option
+can not be used with the text= option.
+
+=item required=1
+
+Specifies that this is a required field for formatting purposes.
+In the std_label format, it means the field will be bolded.
+If you specify your own label string, it will insert HTML anywhere
+you have {REQUIRED: HTML}, but only when the field is required.
+
+=back
 
 %%%
 field
@@ -2683,12 +2777,13 @@ fails. Defaults to the empty string.
 %%%
 BEGIN
 %%
+=head1 NAME
 
-=head1 TITLE
-
-MML (Minivend Markup Language) TAG REFERENCE
+mvtags - MML TAG REFERENCE
 
 =head1 DESCRIPTION
+
+MML stands for Minivend Markup Language.
 
 There are dozens of MML pre-defined tag functions. If you don't see
 just what you need, you can use C<USER DEFINED TAGS> to create tags just as

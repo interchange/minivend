@@ -25,7 +25,7 @@ DOIT: {
 #
 # MiniVend link program configurator
 #
-# $Id: compile_link,v 1.4 2000/03/02 10:34:12 mike Exp $
+# $Id: compile_link.PL,v 1.3 2000/03/25 21:33:48 racke Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -94,14 +94,14 @@ options:
   -n, --nostrip         Don't try and strip(1) the executable files
   -o cgifile,           Write it to a specific file as well as the
      --output=cgifile    link catalog directory
+  -p port, --port=port  Port number to use (default $Self->{LINK_PORT})
   -s socketfile,        Location of UNIX socket (default
       --socket=file      $Self->{INSTALLARCHLIB}/etc/socket)
-  -t port, --port=port  Port number to use (default $Self->{LINK_PORT})
   -w N, --timeout=N     Number of seconds before timeout (default $Self->{LINK_TIMEOUT})
   -u, --unixmode        Copy the vlink file to outputfile (default)
   --nosuid              Don't change mode to suid for vlink (CGIWRAP)
   --perl                Use Perl tlink program
-  --source              Alterate source dir (default $Self->{SRC_DIR})
+  --source              Alternate source dir (default $Self->{SRC_DIR})
 EOF
 
 Getopt::Long::config(qw/permute/);
@@ -194,7 +194,7 @@ else {
 }
 
 if(! $Perl_tlink and ! -f "config.h" || ! -f "syscfg") {
-	system "./configure";
+	system "/bin/sh ./configure";
 	if($?) {
 		die "Couldn't run configure; probably no C compiler.\n";
 	}

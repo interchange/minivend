@@ -25,7 +25,7 @@ DOIT: {
 #
 # MiniVend program configurator
 #
-# $Id: config_prog,v 1.4 2000/03/02 10:34:24 mike Exp $
+# $Id: config_prog.PL,v 1.2 2000/03/11 12:05:45 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -77,11 +77,11 @@ my $Self = {
 #	INSTALLPRIVLIB => '~_~INSTALLPRIVLIB~_~',
 	INSTALLARCHLIB => '/usr/local/minivend',
 #	INSTALLARCHLIB => '~_~INSTALLARCHLIB~_~',
-	INSTALLMAN1DIR => '/usr/local/man',
+	INSTALLMAN1DIR => '/usr/local/minivend/doc',
 #	INSTALLMAN1DIR => '~_~INSTALLMAN1DIR~_~',
 	INSTALLSCRIPT => '/usr/local/minivend/bin',
 #	INSTALLSCRIPT => '~_~INSTALLARCHLIB~_~/bin',
-	INSTALLBIN => '/usr/local/bin',
+	INSTALLBIN => '/usr/local/minivend/bin',
 #	INSTALLBIN => '~_~INSTALLBIN~_~',
 };
 
@@ -153,7 +153,7 @@ config_prog -- Configure MiniVend programs with MakeMaker variables
 
 =head1 VERSION
 
-$Id: config_prog,v 1.4 2000/03/02 10:34:24 mike Exp $
+$Id: config_prog.PL,v 1.2 2000/03/11 12:05:45 mike Exp $
 
 =head1 DESCRIPTION
 

@@ -1,6 +1,6 @@
 # Table/DBI.pm: access a table stored in an DBI/DBD Database
 #
-# $Id: DBI.pm,v 1.7 2000/03/02 10:33:53 mike Exp $
+# $Id: DBI.pm,v 1.3 2000/03/28 04:27:45 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -20,7 +20,7 @@
 # MA  02111-1307  USA.
 
 package Vend::Table::DBI;
-$VERSION = substr(q$Revision: 1.7 $, 10);
+$VERSION = substr(q$Revision: 1.3 $, 10);
 
 use strict;
 
@@ -134,6 +134,7 @@ sub create {
 
 	$key = $config->{KEY} || $columns->[0];
 
+	my $def_type = $config->{DEFAULT_TYPE} || 'char(128)';
 #::logDebug("columns coming in: @{$columns}");
     for ($i = 0;  $i < @$columns;  $i++) {
         $cols[$i] = $$columns[$i];
@@ -145,7 +146,7 @@ sub create {
 			$cols[$i] .= " " . $config->{COLUMN_DEF}->{$cols[$i]};
 		}
 		else {
-			$cols[$i] .= " char(128)";
+			$cols[$i] .= " $def_type";
 		}
 		$$columns[$i] = $cols[$i];
 		$$columns[$i] =~ s/\s+.*//;
@@ -399,6 +400,15 @@ sub set_row {
 	my $cfg = $s->[$CONFIG];
 	$s->filter(\@fields, $s->[$CONFIG]{COLUMN_INDEX}, $s->[$CONFIG]{FILTER_TO})
 		if $s->[$CONFIG]{FILTER_TO};
+	if(scalar @fields == 1) {
+		eval {
+			my $val = $s->quote($fields[0], $s->[$KEY]);
+			$s->[$DBI]->do("delete from $s->[$TABLE] where $s->[$KEY] = $val");
+			$s->[$DBI]->do("insert into $s->[$TABLE] ($s->[$KEY]) VALUES ($val)");
+		};
+		die "$DBI::errstr\n" if $@;
+		return 1;
+	}
 	if(! $cfg->{_Insert_h}) {
 		my (@ins_mark);
 		my $i = 0;

@@ -1,3 +1,35 @@
+Minivend-4.03 changes:
+* MiniMate now a part of Minivend
+* Fixed partial update problems with SQL databases
+* Fixed [time ...] tag.
+* Fixed OnFly ordering problem (Parse.pm).
+* Fixed initp.PL problem when using CPAN module installer (thanks to Jim Balster)
+* Added [if errors] You have errors. [/if]
+* Added tag reference to distribution -- it was there in Tagref.pm but
+  now we build it
+* Added ability to not update order counter in Order.pm -- if
+  Vend::Session->{mv_order_number} is used
+* fix [checked ...] tag to work and set default only if empty
+* fixed [timed-build] to work with $Vend::Session->{frames}
+* fixed _ca_postcode and _zip to actually work.
+* fixed $::Session reference (thanks Bill Randle!)
+* changed uneval to uneval_it in UserDB for more compact storage
+  with no <CR>
+* added keep=1 parameter in set_hash to allow sort of a merge
+* fixed expire to work better with file-based sesssions
+* Makecat:
+    -- fixed endless loop problem with --nocopy and bad directory spec
+    -- added ~ processing to the appropriate directories.
+* Racke updated distribution so it works better with CVS
+* Fixed etc/log_transaction so auto-user updates are made, now allows
+  you to keep track of customers
+* Documentation update to Minimate (recommended modules)
+* Frames fixes for Minimate
+* Stefan fixed compile_link to work with relocation (debian pkg build)
+* Jim Balster helped me find a race condition in SessionFile.pm, fixed
+* Added ability to set DEFAULT_TYPE for SQL type, replaces former hard-coded
+  default of char(128)
+* Added history-scan tag
 
 Minivend-4.02 changes:
 

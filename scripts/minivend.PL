@@ -25,7 +25,7 @@ DOIT: {
 #
 # MiniVend version 4.0xxx
 #
-# $Id: minivend,v 1.5 2000/03/02 10:34:48 mike Exp mike $
+# $Id: minivend.PL,v 1.4 2000/03/28 04:28:06 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -124,7 +124,7 @@ use vars qw($VERSION);
 require Exporter;
 
 BEGIN {
-	$VERSION = '4.02';
+	$VERSION = '4.03';
 }
 
 
@@ -1151,7 +1151,7 @@ sub adjust_cgi {
 sub url_history {
 	$Vend::Session->{History} = []
 		unless defined $Vend::Session->{History};
-	pop @{$Vend::Session->{History}}
+	shift @{$Vend::Session->{History}}
 		if $#{$Vend::Session->{History}} >= $Vend::Cfg->{History};
 	if($CGI::pragma =~ /\bno-cache\b/ || $CGI::values{mv_no_cache}) {
 		push (@{$Vend::Session->{History}},  [ 'expired', {} ]);
@@ -2273,6 +2273,7 @@ on Vend 0.2, with portions from Vend 0.3; both were produced in 1995.
 Contributions to MiniVend have been made by:
 
     Andreas Koenig         
+    Bill Randle
     Birgitt Funk           
     Bob Jordan             
     Brian Bullen           

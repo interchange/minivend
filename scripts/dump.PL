@@ -25,7 +25,7 @@ DOIT: {
 #
 # MiniVend session dumper
 #
-# $Id: dump,v 1.4 2000/03/02 10:34:28 mike Exp $
+# $Id: dump.PL,v 1.1.1.1 2000/03/09 19:08:21 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -239,7 +239,7 @@ dump -- MiniVend session dumper
 
 =head1 VERSION
 
-$Id: dump,v 1.4 2000/03/02 10:34:28 mike Exp $
+$Id: dump.PL,v 1.1.1.1 2000/03/09 19:08:21 mike Exp $
 
 =head1 SEE ALSO
 

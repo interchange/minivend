@@ -2,7 +2,7 @@
 #
 # MakeCat.pm - routines for catalog configurator
 #
-# $Id: MakeCat.pm,v 1.5 2000/03/02 10:32:53 mike Exp $
+# $Id: MakeCat.pm,v 1.1.1.1 2000/03/09 19:08:21 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -61,7 +61,7 @@ sethistory
 use strict;
 
 use vars qw($Force $Error $History $VERSION);
-$VERSION = substr(q$Revision: 1.5 $, 10);
+$VERSION = substr(q$Revision: 1.1.1.1 $, 10);
 
 $Force = 0;
 $History = 0;

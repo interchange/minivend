@@ -52,11 +52,12 @@ Major files/directories in the distribution:
                 files and modules. Includes:
 
                 minivend.cfg.dist   Distribution minivend.cfg
-                checkout/           Checkout-only demo application.
+                basic/              The basic MV catalog demo application.
                 simple/             The not so aptly named "simple" demo
                                     application.
                 src/                C and Perl code for CGI links
                 compat/             Some Minivend-3 compatibility tags
+                lib/                Minimate
                 usertag/            Some fairly-standard usertags
 
     extra/      Some not-always-needed Perl libraries.
@@ -97,7 +98,8 @@ Major files/directories in the distribution:
          sufficient memory
        * Cookie support allows browsers to leave catalog and come
          back without losing session state
-       * Minimate web administration interface (separate package)
+       * Minimate web administration interface allows complete
+         database editing
        * Complete user authentication and database with address
          books and stored shopping carts
        * Many, many, other features

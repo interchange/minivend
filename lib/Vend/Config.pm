@@ -1,6 +1,6 @@
 # Config.pm - Configure Minivend
 #
-# $Id: Config.pm,v 1.13 2000/03/09 13:31:26 mike Exp mike $
+# $Id: Config.pm,v 1.2 2000/03/28 05:04:45 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -101,7 +101,7 @@ BEGIN {
 	};
 }
 
-$VERSION = substr(q$Revision: 1.13 $, 10);
+$VERSION = substr(q$Revision: 1.2 $, 10);
 
 for( qw(search refresh cancel return secure unsecure submit control checkout) ) {
 	$Global::LegalAction{$_} = 1;
@@ -315,6 +315,7 @@ sub catalog_directives {
 	['Sub',				 'subroutine',       ''],
 	['VendURL',          'url',              undef],
 	['SecureURL',        'url',              undef],
+	['History',          'integer',          0],
 	['OrderReport',      undef,       'etc/report'],
 	['ScratchDir',       'relative_dir',     'tmp'],
 	['SessionDB',  		 undef,     		 ''],

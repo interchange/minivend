@@ -50,7 +50,7 @@ use lib '/usr/local/minivend';
 BEGIN {
 	($VendRoot = $ENV{MINIVEND_ROOT})
 		if defined $ENV{MINIVEND_ROOT};
-	$VendRoot = $VendRoot || '/work/minivend';
+	$VendRoot = $VendRoot || '/usr/local/minivend';
 #	$VendRoot = $VendRoot || '~_~INSTALLARCHLIB~_~';
 
 	$ProgRoot = '/usr/local/minivend';
@@ -485,14 +485,24 @@ sub strip_trailing_slash {
 	return $url;
 }
 
+sub directory_process {
+    my $dir = shift;
+    $dir =~ s:[/\s]+$::;
+    if($Conf{catuser} and $dir =~ /^~/) {
+        my $userdir = ( getpwnam( $Conf{catuser} ) )[7];
+		$dir =~ s/^~/$userdir/ if $userdir;
+    }
+    return $dir;
+}
+
 my %Postprocess = (
 
 	cgibase			=> \&strip_trailing_slash,
 	basedir			=> \&strip_trailing_slash,
-	documentroot	=> \&strip_trailing_slash,
-	imagedir		=> \&strip_trailing_slash,
-	samplehtml		=> \&strip_trailing_slash,
-	catroot			=> \&strip_trailing_slash,
+	documentroot	=> \&directory_process,
+	imagedir		=> \&directory_process,
+	samplehtml		=> \&directory_process,
+	catroot			=> \&directory_process,
 	relocate		=> \&strip_trailing_slash,
 
 );
@@ -1025,6 +1035,9 @@ SETSERVER: {
 		print "\n\n";
 		my $msg = pretty($p) . "? ";
 		$Conf{$p} = prompt ($msg, $val);
+		if(defined $Postprocess{$p}) {
+			$Conf{$p} = $Postprocess{$p}->($Conf{$p});
+		}
 		if($Conf{$p} eq '@') {
 			$Conf{$p} = $val;
 			$i--;
@@ -1230,7 +1243,9 @@ FINDPROG: {
 			$cmd .= "-$lm " if $lm;
 			$cmd .= "-p $lp " if $lp;
 			$cmd .= "-h $lh " if $lh;
-			$cmd .= "--relocate $Conf{relocate}"  if $Conf{relocate};
+			if ($Conf{relocate}) { 
+                        	$cmd .= "--source $Conf{relocate}/$Conf{vendroot}/src ";
+            		}
 			system $cmd;
 			$tried_compile = 1;
 			redo FINDPROG;
@@ -1313,6 +1328,10 @@ if($warn) {
 }
 
 for(qw(catroot samplehtml imagedir)) {
+    my $userdir;
+    if($dir =~ /^~/ and $userdir = (getpwnam($Conf{catuser}))[7] ) {
+		$dir =~ s/^~/$userdir/;
+    }
 	$dir = "$Conf{relocate}$Conf{$_}";
 
 	# Allow nocopy
@@ -1323,7 +1342,7 @@ for(qw(catroot samplehtml imagedir)) {
 		my $parent = $dir;
 		do {
 			$parent =~ s:/[^/]+$::;
-		} until ! $parent or -d $parent;
+		} until $parent !~ m{/} or -d $parent;
 		warn "Directory $dir (or parents) not writable, could be problems.\n"
 			unless -w $dir || -w $parent;
 		next;
@@ -1921,7 +1940,7 @@ makecat [--options] name
 
 =head1 VERSION
 
-$Id: makecat,v 1.5 2000/03/09 13:34:59 mike Exp mike $
+$Id: makecat.PL,v 1.4 2000/03/25 21:51:48 racke Exp $
 
 =head1 INTRODUCTION
 

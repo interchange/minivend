@@ -227,8 +227,8 @@ lose your shopping cart.
 [/table-font]
 
 [set Continue shopping]
-mv_todo=return
-mv_nextpage=last_search
+[bounce href='[history-scan exclude="^/ord|^/multi/|^/process" default=browse]']
+mv_nextpage=nothing
 [/set]
 
 [set Stop shopping]

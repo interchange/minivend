@@ -1,6 +1,6 @@
 # Parse.pm - Parse MiniVend tags
 # 
-# $Id: Parse.pm,v 1.14 2000/03/09 13:32:44 mike Exp mike $
+# $Id: Parse.pm,v 1.5 2000/03/27 08:15:37 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -27,12 +27,12 @@
 
 package Vend::Parse;
 
-# $Id: Parse.pm,v 1.14 2000/03/09 13:32:44 mike Exp mike $
+# $Id: Parse.pm,v 1.5 2000/03/27 08:15:37 mike Exp $
 
 require Vend::Parser;
 
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.14 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.5 $ =~ /(\d+)\.(\d+)/);
 
 use Safe;
 use Vend::Util;
@@ -44,7 +44,7 @@ require Exporter;
 
 @ISA = qw(Exporter Vend::Parser);
 
-$VERSION = substr(q$Revision: 1.14 $, 10);
+$VERSION = substr(q$Revision: 1.5 $, 10);
 @EXPORT = ();
 @EXPORT_OK = qw(find_matching_end);
 
@@ -91,6 +91,7 @@ my %PosNumber =	( qw!
                 index            1
                 label            1
                 loop             1
+                log              1
                 mvasp            1
                 nitems           1
                 onfly            2
@@ -118,7 +119,7 @@ my %PosNumber =	( qw!
                 strip            0
                 subtotal         2
                 tag              2
-				time			 2
+				time			 1
 				timed_build      1
 				try				 1
                 total_cost       2
@@ -153,7 +154,7 @@ my %Order =	(
 				file			=> [qw( name type )],
 				filter			=> [qw( op )],
 				flag			=> [qw( type )],
-				time			=> [qw( type param )],
+				time			=> [qw( locale )],
 				fly_tax			=> [qw( area )],
 				fly_list		=> [qw( code base )],
 				'goto'			=> [qw( name if)],
@@ -168,6 +169,7 @@ my %Order =	(
 				include			=> [qw( file )],
 				item_list		=> [qw( name )],
 				label			=> [qw( name )],
+				log				=> [qw( file )],
 				loop			=> [qw( list )],
 				nitems			=> [qw( name  )],
 				onfly			=> [qw( code quantity )],
@@ -244,6 +246,8 @@ my %addAttr = (
 					shipping        1
 					handling        1
                     tag             1
+                    log             1
+					time			1
 					timed_build     1
                     try             1
 					update          1
@@ -282,7 +286,9 @@ my %hasEndTag = (
                         sql             1
                         strip           1
                         tag             1
+                        log             1
                         try             1
+                        time			1
                         timed_build     1
 
 				)
@@ -444,9 +450,10 @@ my %Routine = (
 				'and'			=> sub { return &Vend::Interpolate::tag_self_contained_if(@_, 1) },
 				'goto'			=> sub { return '' },
 				label			=> sub { return '' },
+				log				=> \&Vend::Interpolate::log,
 				loop			=> \&Vend::Interpolate::tag_loop_list,
 				nitems			=> \&Vend::Util::tag_nitems,
-				onfly			=> \&onfly,
+				onfly			=> \&Vend::Order::onfly,
 				order			=> \&Vend::Interpolate::tag_order,
 				page			=> \&Vend::Interpolate::tag_page,
 				perl			=> \&Vend::Interpolate::tag_perl,
@@ -595,6 +602,7 @@ my %attrAlias = (
 	 						 arg => 'list', },
 	 item_list	       	=> { cart => 'name', },
 	 tag		       	=> { description => 'arg', },
+	 log		       	=> { arg => 'file', },
 );
 
 my %Alias = (
@@ -1041,6 +1049,9 @@ sub html_start {
 		}
 		elsif($tag eq 'bounce') {
 			return 1 if resolve_if_unless($attr);
+			if(! $attr->{href} and $attr->{page}) {
+				$attr->{href} = Vend::Interpolate::tag_area($attr->{page});
+			}
 			$Vend::StatusLine = '' if ! $Vend::StatusLine;
 			$Vend::StatusLine .= <<EOF;
 Status: 302 moved
@@ -1331,6 +1342,9 @@ sub start {
 		}
 		elsif($tag eq 'bounce') {
 			return 1 if resolve_if_unless($attr);
+			if(! $attr->{href} and $attr->{page}) {
+				$attr->{href} = Vend::Interpolate::tag_area($attr->{page});
+			}
 			$Vend::StatusLine = '' if ! $Vend::StatusLine;
 			$Vend::StatusLine .= "\n" if $Vend::StatusLine !~ /\n$/;
 			$Vend::StatusLine .= <<EOF;

@@ -58,7 +58,8 @@ usage: expireall [-r] [-f file]
 
 EOF
 
-getopts('e:f:r') or die "$@\n$USAGE\n";
+use vars qw/$opt_e $opt_f $opt_n $opt_r/; 
+getopts('e:f:rn') or die "$@\n$USAGE\n";
 
 my $Configfile = $opt_f || "$VendRoot/minivend.cfg";
 
@@ -70,6 +71,10 @@ if ($opt_r) {
 
 if($opt_e) {
 	$flag .= qq{ -e "$opt_e"};
+}
+
+unless ($opt_n) {
+	$flag .= " -u";
 }
 
 # Parse the minivend.cfg file to look for script/catalog info
@@ -101,7 +106,7 @@ expireall -- Run Minivend expire on all catalogs
 
 =head1 VERSION
 
-$Id: expireall,v 1.4 2000/03/09 13:34:29 mike Exp mike $
+$Id: expireall.PL,v 1.2 2000/03/10 15:13:37 mike Exp $
 
 =head1 DESCRIPTION
 

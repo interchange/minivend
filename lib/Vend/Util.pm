@@ -1,6 +1,6 @@
 # Util.pm - Minivend utility functions
 #
-# $Id: Util.pm,v 1.10 2000/03/09 13:33:40 mike Exp mike $
+# $Id: Util.pm,v 1.2 2000/03/18 16:04:49 mike Exp $
 # 
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -62,6 +62,7 @@ require Exporter;
 	setup_escape_chars
 	tag_nitems
 	uneval
+	uneval_it
 	uneval_fast
 	unlockfile
 	vendUrl
@@ -73,7 +74,7 @@ use Config;
 use Fcntl;
 use subs qw(logError logGlobal);
 use vars qw($VERSION @EXPORT @EXPORT_OK);
-$VERSION = substr(q$Revision: 1.10 $, 10);
+$VERSION = substr(q$Revision: 1.2 $, 10);
 
 BEGIN {
 	eval {

@@ -25,7 +25,7 @@ DOIT: {
 #
 # MiniVend restarter
 #
-# $Id: restart,v 1.2 2000/03/02 10:35:08 mike Exp $
+# $Id: restart.PL,v 1.2 2000/03/11 12:05:46 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -48,7 +48,7 @@ DOIT: {
 
 $Global::VendRoot = $Global::VendRoot || '/usr/local/minivend';
 #$Global::VendRoot = $Global::VendRoot || '~_~INSTALLARCHLIB~_~';
-$Global::VendBin  = $Global::VendBin  || '/usr/local/bin';
+$Global::VendBin = $Global::VendBin || '/usr/local/minivend/bin';
 #$Global::VendBin = $Global::VendBin || '~_~INSTALLBIN~_~';
 
 my $force;

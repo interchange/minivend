@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# $Id: UserDB.pm,v 1.6 2000/02/25 20:13:07 mike Exp $
+# $Id: UserDB.pm,v 1.2 2000/03/18 16:04:49 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -8,7 +8,7 @@
 
 package Vend::UserDB;
 
-$VERSION = substr(q$Revision: 1.6 $, 10);
+$VERSION = substr(q$Revision: 1.2 $, 10);
 
 use vars qw! $VERSION @S_FIELDS @B_FIELDS @P_FIELDS %S_to_B %B_to_S!;
 
@@ -750,7 +750,7 @@ sub delete_nickname {
 		return undef;
 	}
 
-	my $s = uneval $self->{$name};
+	my $s = ::uneval_it($self->{$name});
 
 	$self->{DB}->set_field( $self->{USERNAME}, $field_name, $s);
 
@@ -774,10 +774,12 @@ sub set_hash {
 
 	die "no nickname?" unless $nick;
 
-	$self->{$name}{$nick} = {} unless defined $self->{$name}{$nick};
+	$self->{$name}{$nick} = {} unless $self->{OPTIONS}{keep}
+							   and    defined $self->{$name}{$nick};
 
 	for(@fields) {
-		$self->{$name}{$nick}{$_} = $::Values->{$_};
+		$self->{$name}{$nick}{$_} = $::Values->{$_}
+			if defined $::Values->{$_};
 	}
 
 	my $field_name = $self->{LOCATION}->{$name};
@@ -786,7 +788,7 @@ sub set_hash {
 		return undef;
 	}
 
-	my $s = uneval $self->{$name};
+	my $s = ::uneval_it($self->{$name});
 
 	$self->{DB}->set_field( $self->{USERNAME}, $field_name, $s);
 
@@ -842,7 +844,9 @@ sub get_hash {
 	$self->{$name}->{$nick} = {} unless defined $self->{$name}{$nick};
 
 	for(@fields) {
-		$::Values->{$_} = $self->{$name}{$nick}{$_} || '';
+		delete $::Values->{$_};
+		$::Values->{$_} = $self->{$name}{$nick}{$_}
+			if defined  $self->{$name}{$nick}{$_};
 		next unless $self->{CGI};
 		$CGI::values{$_} = $::Values->{$_};
 	}

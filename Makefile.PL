@@ -26,7 +26,7 @@ my $Prompt_sub;
 my @mods_to_get;
 my $Lock_troubles;
 
-$VERSION = '4.02';
+$VERSION = '4.03';
 
 # See if we have the CPAN module
 my $Cpan = 0;
@@ -334,8 +334,16 @@ sub initialize {
 			if ! $MV::Default{INSTALLMAN3DIR};
 	}
 
+	if (! -f 'pod/mvtags.pod') {
+		chdir 'lib'
+			or die "Cannot chdir to ./lib: $!\n";
+		system("$^X Vend/Tagref.pm > ../pod/mvtags.pod");
+		chdir '..'
+			or die "Cannot chdir back to ..: $!\n";
+	}
 	my @re_dir  = qw( simple/download );
 	my @re_copy = qw(	
+						../pod/mvtags.pod simple/download/mvtags.pod
 						../pod/mvdocs.pod simple/download/mvdocs.pod
 						../pod/mvfaq.pod simple/download/mvfaq.pod
 						);
@@ -381,15 +389,6 @@ sub initialize {
 			}
 		}
 		chdir '..';
-		my (@minimate) = sort grep -d $_, glob '../MiniMate-4*';
-		my $minimate = pop @minimate;
-		if( $minimate and ! $ENV{RPM_BUILD_ROOT} ) {
-			my $dir = $realdir;
-			$dir = "$X{RPMBUILDDIR}/$dir"
-				if $X{RPMBUILDDIR};
-			chdir $minimate;
-			system "$^X install $dir 1"
-		}
 		exit;
 	}
 
@@ -513,6 +512,7 @@ EOF
 
 	MODGET: {
 		last MODGET unless $Cpan;
+		my $odir = cwd();
 		unless (-d 'build') {
 			mkdir('build', 0777)
 				or die "Couldn't make build directory for CPAN: $!\n";
@@ -530,7 +530,8 @@ EOF
 				print "\a\n$mod get failed.\n\n";
 			}
 		}
-		chdir '..';
+		chdir $odir
+			or die "Couldn't return to original dir $odir: $!\n";
 	}
 
 	$Data::Dumper::Terse = 1;
@@ -562,6 +563,8 @@ sub MY::install {
 	}
 
 	my $new = <<'EOF';
+VERBINST=0
+
 mv_install ::
 			$(PERL) Makefile.PL force final=$(INSTALLARCHLIB)
 
@@ -623,10 +626,14 @@ EOF
 
 WriteMakefile(
 	NAME       => "MiniVend",
-	MAN3PODS => { 'pod/mvdocs.pod' => 'blib/man3/mvdocs.8' },
+	MAN3PODS => {
+					'pod/mvdocs.pod' => 'blib/man3/mvdocs.8',
+					'pod/mvtags.pod' => 'blib/man3/mvtags.8',
+					'pod/mvfaq.pod' => 'blib/man3/mvfaq.8',
+					},
 	DISTNAME => "minivend",
 	clean    => {
-	            FILES=> "lib/IniConf.pm _uid _db_storable _session_storable lib/File/CounterFile.pm scripts/initp.pl scripts/compile_link scripts/config_prog scripts/configdump scripts/dump scripts/expire scripts/localize scripts/expireall scripts/makecat scripts/minivend scripts/offline scripts/restart scripts/update dist/simple/download/mvdocs.pod dist/simple/download/mvfaq.pod",
+	            FILES=> "lib/IniConf.pm _uid _db_storable _session_storable lib/File/CounterFile.pm scripts/initp.pl scripts/compile_link scripts/config_prog scripts/configdump scripts/dump scripts/expire scripts/localize scripts/expireall scripts/makecat scripts/minivend scripts/offline scripts/restart scripts/update dist/simple/download/mvdocs.pod dist/simple/download/mvtags.pod dist/simple/download/mvfaq.pod pod/mvtags.pod",
 	           },
 
 	dist     => {

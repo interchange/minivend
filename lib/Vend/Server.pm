@@ -1,6 +1,6 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.9 2000/03/09 13:32:55 mike Exp mike $
+# $Id: Server.pm,v 1.2 2000/03/28 04:27:22 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -28,7 +28,7 @@
 package Vend::Server;
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.9 $, 10);
+$VERSION = substr(q$Revision: 1.2 $, 10);
 
 use POSIX qw(setsid strftime);
 use Vend::Util;
@@ -148,7 +148,16 @@ sub parse_post {
 	my(@pairs, $pair, $key, $value);
 	undef %CGI::values;
 	return unless defined $CGI::post_input;
-	return parse_multipart() if $CGI::content_type =~ /^multipart/i;
+	if ($CGI::content_type =~ /^multipart/i) {
+		return parse_multipart() if  $CGI::useragent !~ /MSIE\s+5/i;
+		# try and work around an apparent IE5 bug that sends the content type
+		# of the next POST after a multipart/form POST as multipart also -
+		# even though it's sent as non-multipart data
+		# Contributed by Bill Randle
+		my ($boundary) = $CGI::content_type =~ /boundary=\"?([^\";]+)\"?/;
+		$boundary = "--$boundary";
+		return parse_multipart() if $CGI::post_input =~ /^\s*$boundary\s+/;
+	}
 	@pairs = split(/&/, $CGI::post_input);
 	if( defined $pairs[0] and $pairs[0] =~ /^	(\w{8,32})? ; /x)  {
 		@CGI::values{qw/ mv_session_id mv_arg mv_pc /}
@@ -202,9 +211,9 @@ sub parse_multipart {
 #::logDebug("got to multipart");
 	# Stolen from CGI.pm, thanks Lincoln
 	$boundary = "--$boundary"
-		unless $Vend::Session->{browser} =~ /MSIE 3\.0[12];  Mac/i;
+		unless $CGI::useragent =~ /MSIE 3\.0[12];  Mac/i;
 	unless ($CGI::post_input =~ s/^\s*$boundary\s+//) {
-		return interaction_error("multipart/form-data sent incorrectly");
+		die errmsg("multipart/form-data sent incorrectly\n");
 	}
 
 	my @parts;

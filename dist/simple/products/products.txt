@@ -27,3 +27,4 @@ sku	description	title	artist	comment	display	image	price	category	nontaxable	wei
 99-322	My Gems, HARNETT	My Gems	HARNETT, William	1888, Oil on wood, 18 x 14 in. (45.7 x 35.5 cm)	National Gallery of Art, Washington	my_gems.jpg	1000000	Americana		5							
 MVFAQ1	MiniVend FAQ (downloadable)	MiniVend 4 Frequently-Asked Questions	HEINS, Mike	This product is downloadable. You can pay me by reading this!		../mvlogo.png	1	Docs	1	0			MVDOC1	Front	1	application/octet-stream	download/mvfaq.pod
 MVDOC1	MiniVend Documentation (downloadable)	MiniVend 4 Documentation	HEINS, Mike	This product is downloadable. You can pay me by reading this!		../mvlogo.png	1	Docs	1	0			MVFAQ1	Front	1	application/octet-stream	download/mvdocs.pod
+MVTAG1	MiniVend Tag Reference (downloadable)	MiniVend 4 Tag Reference	HEINS, Mike	This product is downloadable. You can pay me by reading this!		../mvlogo.png	1	Docs	1	0			MVFAQ1	Front	1	application/octet-stream	download/mvtags.pod

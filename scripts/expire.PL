@@ -25,7 +25,7 @@ DOIT: {
 #
 # MiniVend session expiration
 #
-# $Id: expire,v 1.5 2000/03/09 13:34:16 mike Exp mike $
+# $Id: expire.PL,v 1.2 2000/03/10 15:11:06 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -111,7 +111,7 @@ BEGIN {
 
 use Vend::Session;
 use Vend::Config qw(get_catalog_default parse_time);
-use vars qw/$opt_c $opt_r $opt_e $opt_u $opt_x/;
+use vars qw/$opt_c $opt_r $opt_e $opt_u $opt_v $opt_x/;
 
 $Vend::Quiet = 1;
 
@@ -146,7 +146,7 @@ $Vend::Cfg = { FileCreationMask => 0600 };
 
 use Getopt::Std;
 
-getopts('c:e:rux') or die "$@\n$USAGE\n";
+getopts('c:e:ruvx') or die "$@\n$USAGE\n";
 
 $catalog    = $opt_c || undef;
 $expiretime = $opt_e || undef;
@@ -215,7 +215,11 @@ if($expiretime) {
 	$Vend::Cfg->{SessionExpire} = parse_time('SessionExpire', $expiretime);
 }
 
-print "expire=$expiretime=$Vend::Cfg->{SessionExpire}\n";
+print "$Vend::Cfg->{CatalogName} expire="
+    . $Vend::Cfg->{SessionExpire} / 3600
+    . " hour" . ($Vend::Cfg->{SessionExpire} > 3600 ? 's' : '') . "\n"
+  if $opt_v;
+
 
 if ($Vend::Cfg->{SessionType} eq 'File' ) {
 	require File::Find;
@@ -225,7 +229,7 @@ if ($Vend::Cfg->{SessionType} eq 'File' ) {
 	my @nuke;
 	$wanted = sub {
 		return unless -f $_ && -M _ > $expire;
-		push @nuke, $_;
+		push @nuke, $File::Find::name;
 	};
 	require File::Find;
 	File::Find::find($wanted, $Vend::Cfg->{SessionDatabase});

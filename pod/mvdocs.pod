@@ -3435,8 +3435,8 @@ with the C<[set name]value[/set]> element.
 
 =item session
 
-The MiniVend session variables. Of particular interest
-are I<login>, I<frames>, I<secure>, and I<browser>.
+The MiniVend session variables. Of particular interest are I<logged_in>,
+I<source>, I<browser>, and I<username>.
 
 =item shipping
 
@@ -4994,18 +4994,18 @@ your catalog.
 
 To get a reference to a particular table, specify its hash element:
 
-    $ref = $Db->{products};
+    $ref = $Db{products};
 
 The methods available:
 
     # access an element of the table
-    $field = $ref->field($column, $key);
+    $field = $ref->field($key, $column);
 
     # set an element of the table
-    $ref->set_field($column_name, $key, $value);
+    $ref->set_field($key, $column_name, $value);
 
     # atomic increment of an element of the table
-    $ref->inc_field($column_name, $key, 1);
+    $ref->inc_field($key, $column_name, 1);
 
     # see if element of the table is numeric
     $is_numeric = $ref->numeric($column_name);
@@ -5061,7 +5061,7 @@ parameter to the tag call. It returns the DBI database handle, so
 you can do things like:
 
   <%
-    my $dbh = $SQL{products}
+    my $dbh = $Sql{products}
         or return HTML "Database not shared.";
     my $sth = $dbh->prepare('select * from products')
         or return HTML "Couldn't open database.";
@@ -14236,6 +14236,7 @@ There have been many who contributed to Minivend's development, especially with
 testing and feature content. They include:
 
     Andreas Koenig     
+    Bill Randle
     Birgitt Funk       
     Bob Jordan         
     Brian Bullen       

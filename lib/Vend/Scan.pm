@@ -1,6 +1,6 @@
 # Vend/Scan.pm:  Prepare searches for MiniVend
 #
-# $Id: Scan.pm,v 1.10 2000/03/02 10:33:04 mike Exp $
+# $Id: Scan.pm,v 1.1.1.1 2000/03/09 19:08:20 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -29,7 +29,7 @@ require Exporter;
 			perform_search
 			);
 
-$VERSION = substr(q$Revision: 1.10 $, 10);
+$VERSION = substr(q$Revision: 1.1.1.1 $, 10);
 
 use strict;
 use Vend::Util;

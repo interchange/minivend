@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # Tags.pm - Interpret MiniVend tags for Safe
 # 
-# $Id: Tags.pm,v 1.4 2000/03/02 10:33:39 mike Exp $
+# $Id: Tags.pm,v 1.1.1.1 2000/03/09 19:08:21 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #

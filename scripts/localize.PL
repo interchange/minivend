@@ -24,7 +24,7 @@ DOIT: {
 #
 # MiniVend localizer
 #
-# $Id: localize,v 1.3 2000/03/02 10:34:31 mike Exp $
+# $Id: localize.PL,v 1.1.1.1 2000/03/09 19:08:21 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -353,7 +353,7 @@ localize -- produce MiniVend localization file from set of pages
 
 =head1 VERSION
 
-$Id: localize,v 1.3 2000/03/02 10:34:31 mike Exp $
+$Id: localize.PL,v 1.1.1.1 2000/03/09 19:08:21 mike Exp $
 
 =head1 SYNOPSIS
 

@@ -20,12 +20,6 @@
 
 [try]
 [comment][perl] Log("Past ACL create log."); [/perl][/comment]
-[if scratch auto_create]
-	[userdb logout]
-	[value name=mv_username set=""]
-[/if]
-[comment][perl] Log("Past add data entry."); [/perl][/comment]
-
 Add main order[data
 	table=userdb
 	column=order_numbers
@@ -87,7 +81,13 @@ order_date: [value order_date]
 status: pending
 [/import]
 [/item-list][/try]
-[catch] There was an error. [/catch]
+[catch] There was an error adding to the transaction log. [/catch]
+[if scratch auto_create]
+	[userdb logout]
+	[value name=mv_username set=""]
+[/if]
+[comment][perl] Log("Past add data entry."); [/perl][/comment]
+
 [comment][perl] Log("Past all transaction log."); [/perl][/comment]
 [/seti][perl]
 	my $out = $Scratch->{transaction_record};

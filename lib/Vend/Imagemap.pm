@@ -2,7 +2,7 @@
 #
 # Imagemap.pm -- interpret NCSA imagemap in CGI program
 #
-# $Id: Imagemap.pm,v 1.1 1999/11/12 08:46:23 mike Exp $
+# $Id: Imagemap.pm,v 1.1.1.1 2000/03/09 19:08:21 mike Exp $
 #
 # This module adapted from the Perl imagemap program by:
 #
@@ -50,7 +50,7 @@ require Exporter;
 @EXPORT = qw(action_map);
 use strict;
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.1 $, 10);
+$VERSION = substr(q$Revision: 1.1.1.1 $, 10);
 
 my $Action = "";
 my $minDistance = -1;

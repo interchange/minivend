@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # Interpolate.pm - Interpret MiniVend tags
 # 
-# $Id: Interpolate.pm,v 1.13 2000/03/09 13:31:54 mike Exp mike $
+# $Id: Interpolate.pm,v 1.5 2000/03/25 07:16:49 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -32,7 +32,7 @@ package Vend::Interpolate;
 require Exporter;
 @ISA = qw(Exporter);
 
-$VERSION = substr(q$Revision: 1.13 $, 10);
+$VERSION = substr(q$Revision: 1.5 $, 10);
 
 @EXPORT = qw (
 
@@ -293,6 +293,7 @@ my @th = (qw!
 	'/_modifier'	=> qr($T{_modifier}\]),
 	'/_next'		=> qr($T{_next}\]),
 	'/_param'		=> qr($T{_param}\]),
+	'/_pos'			=> qr($T{_pos}\]),
 	'/order'		=> qr(\[/order\])i,
 	'/page'			=> qr(\[/page(?:target)?\])i,
 	'_accessories'  => qr($T{_accessories}($Spacef[^\]]+)?\]),
@@ -997,6 +998,11 @@ sub conditional {
 		$op = 'f';
 		$op = qq|-$op "$term"|;
 	}
+	elsif($base =~ /^errors?$/) {
+		my $err_ref = $Vend::Session->{errors}
+			or return '';
+		return scalar (keys %$err_ref);
+	}
 	elsif($base eq 'validcc') {
 		$CacheInvalid = 1;
 		no strict 'refs';
@@ -1334,7 +1340,7 @@ sub tag_accessories {
 		$data = $db ? tag_data($db, $field, $code) : product_field($field,$code);
 	}
 
-	unless ($data || $type =~ /^text/i) {
+	unless ($data || $type =~ /^text|^hidden/i) {
 		return '' if $item;
 		return '' if $name;
 		return qq|<INPUT TYPE="hidden" NAME="mv_order_$attribute" VALUE="">|;
@@ -1351,6 +1357,8 @@ sub tag_accessories {
 
 	return qq|<INPUT TYPE="hidden" NAME="$name" VALUE="$attrib_value">|
 		if "\L$type" eq 'hidden';
+	return qq|<INPUT TYPE="hidden" NAME="$name" VALUE="$attrib_value">$attrib_value|
+		if $type =~ /hidden/;
 	return qq|<TEXTAREA NAME="$name" ROWS=$1 COLS=$2>$attrib_value</TEXTAREA>|
 		if "\L$type" =~ /^textarea_(\d+)_(\d+)$/;
 	return qq|<INPUT TYPE=text NAME="$name" SIZE=$1 VALUE="$attrib_value">|
@@ -1722,13 +1730,13 @@ sub log {
 
 	my $status;
 
-	$file = $Vend::Cfg->{LogFile} if ! $file;
+	$file = $opt->{file} || $Vend::Cfg->{LogFile};
 	$file = Vend::Util::escape_chars($file);
 
 	unless($opt->{process} =~ /\bnostrip\b/i) {
-		$data =~ s/\r\n/\n/;
-		$data =~ s/\s+$//;
+		$data =~ s/\r\n/\n/g;
 		$data =~ s/^\s+//;
+		$data =~ s/\s+$/\n/;
 	}
 
 	my ($delim, $record_delim);
@@ -3251,7 +3259,7 @@ my $once = 0;
 									:	pull_else($3,$1)#ige;
 	    $run =~ s#$B$QR{_param}#defined $fh->{$1} ? $row->[$fh->{$1}] : ''#ige;
 		$run =~ s#$IB$QR{_pos_if}$IE$QR{'/_pos'}#
-				  $->[$2] 
+				  $row->[$2] 
 						?	pull_if($3,$1)
 						:	pull_else($3,$1)#ige;
 	    $run =~ s#$B$QR{_pos}#$row->[$1]#ig;
@@ -3347,7 +3355,7 @@ sub iterate_hash_list {
 		$run =~ s!$B$QR{_price}!currency(item_price($item,$1), $2)!ge;
 		$run =~ s!$QR{discount_price}!
 					currency(
-						discount_price($item, item_price($item,$1), $1)
+						discount_price($item, item_price($item,$1), $1 || 1)
 						, $2
 						)!ge;
 		$run =~ s!$B$QR{_discount}!
@@ -4116,7 +4124,7 @@ sub tag_checked {
 	my $ref = lc $::Values->{$field};
 	my $r;
 
-	if( $ref eq "\L$value" or ! $ref && $default) {
+	if( $ref eq "\L$value" or ! length($ref) && $default) {
 		$r = 'CHECKED';
 	}
 	elsif ($multiple) {
@@ -4209,7 +4217,7 @@ sub timed_build {
 		or $Vend::BuildingPages
 		or ! $opt->{login} && $Vend::Session->{logged_in};
 
-    if($opt->{noframes} and $::Session->{frames}) {
+    if($opt->{noframes} and $Vend::Session->{frames}) {
         return '';
     }
 

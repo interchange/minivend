@@ -20,7 +20,7 @@ sub doit {
 DOIT: {
 	local ($/);
 	local($_) = <<'_EoP_';
-#!/usr/bin/perl
+#!/usr/bin/perl 
 ##!~_~perlpath~_~    
 #
 # MiniVend configuration dumper (version see POD documentation)

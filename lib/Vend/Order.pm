@@ -2,7 +2,7 @@
 #
 # MiniVend version 4.0
 #
-# $Id: Order.pm,v 1.11 2000/03/02 10:33:01 mike Exp $
+# $Id: Order.pm,v 1.3 2000/03/25 07:16:49 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -33,7 +33,7 @@
 package Vend::Order;
 require Exporter;
 
-$VERSION = substr(q$Revision: 1.11 $, 10);
+$VERSION = substr(q$Revision: 1.3 $, 10);
 
 @ISA = qw(Exporter);
 
@@ -844,6 +844,7 @@ sub report_field {
 
 sub onfly {
 	my ($code, $qty, $opt) = @_;
+#::logDebug("called onfly");
 	my $item_text;
 	if (ref $opt) {
 		$item_text = $opt->{text} || '';
@@ -1141,7 +1142,9 @@ sub _yes {
 }
 
 sub _postcode {
-	_zip(@_) or _ca_postcode(@_);
+	_zip(@_) or _ca_postcode(@_)
+		and return (1, $_[1], '');
+	return (undef, $var, 'not a US or Canada postal/zip code');
 }
 
 sub _ca_postcode {
@@ -1150,11 +1153,15 @@ sub _ca_postcode {
 	defined $val
 		and
 	$val =~ /^[ABCEGHJKLMNPRSTVXYabceghjklmnprstvxy]\d[A-Za-z]\d[A-Za-z]\d$/
+		and return (1, $var, '');
+	return (undef, $var, 'not a Canadian postal code');
 }
 
 sub _zip {
 	my($ref,$var,$val) = @_;
-	defined $val and $val =~ /^\s*\d{5}(?:[-]\d{4})?\s*$/;
+	defined $val and $val =~ /^\s*\d{5}(?:[-]\d{4})?\s*$/
+		and return (1, $var, '');
+	return (undef, $var, 'not a US zip code');
 }
 
 *_us_postcode = \&_zip;
@@ -1379,15 +1386,18 @@ sub route_order {
 	# Here we return if it is only a check
 	return route_profile_check(@routes) if $check_only;
 
-	$::Values->{mv_order_number} = counter_number($main->{counter});
+	# Careful! If you set it on one order and not on another,
+	# you must delete in between.
+	$::Values->{mv_order_number} = counter_number($main->{counter})
+			unless $Vend::Session->{mv_order_number};
 
 	my $value_save = { %{$::Values} };
 
 		BUILD:
 	foreach $c (@routes) {
 		my $route = $Vend::Cfg->{Route_repository}{$c};
-#$Data::Dumper::Indent = 3;
-#::logDebug("Route $c:\n" . Data::Dumper::Dumper($route) .	"values:\n" .  Data::Dumper::Dumper($::Values));
+
+#::logDebug($Data::Dumper::Indent = 3 and "Route $c:\n" . Data::Dumper::Dumper($route) .	"values:\n" .  Data::Dumper::Dumper($::Values));
 		$::Values = { %$value_save };
 		my $pre_encrypted;
 		my $credit_card_info;
@@ -1465,8 +1475,8 @@ sub route_order {
 							);
 		}
 
-		if($::Session->{mv_order_number}) {
-			$::Values->{mv_order_number} = $::Session->{mv_order_number};
+		if($Vend::Session->{mv_order_number}) {
+			$::Values->{mv_order_number} = $Vend::Session->{mv_order_number};
 		}
 		elsif($route->{counter}) {
 			$::Values->{mv_order_number} = counter_number($route->{counter});
@@ -1709,6 +1719,7 @@ sub add_items {
 		else {
 			$base = 'mv_fly';
 			my $ref;
+#::logError("onfly call=$Vend::Cfg->{OnFly} ($code, $quantity, $fly[$j])");
 			eval {
 				$item = Vend::Parse::do_tag($Vend::Cfg->{OnFly},
 												$code,
@@ -1718,7 +1729,8 @@ sub add_items {
 			};
 			if($@) {
 				::logError(
-				"failed on-the-fly item add with %s for: sku=%s, qty=%s, passed=%s",
+				"failed on-the-fly item add with error %s for: tag=%s sku=%s, qty=%s, passed=%s",
+					$@,
 					$Vend::Cfg->{OnFly},
 					$code,
 					$quantity,

@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 #
-# $Id: Search.pm,v 1.7 2000/03/02 10:33:17 mike Exp $
+# $Id: Search.pm,v 1.1.1.1 2000/03/09 19:08:21 mike Exp $
 #
 # Vend::Search -- Base class for search engines
 #
@@ -26,7 +26,7 @@
 #
 package Vend::Search;
 
-$VERSION = substr(q$Revision: 1.7 $, 10);
+$VERSION = substr(q$Revision: 1.1.1.1 $, 10);
 
 use strict;
 use vars qw($VERSION);
