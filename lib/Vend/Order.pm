@@ -1532,7 +1532,11 @@ sub route_order {
 			$reply   = $route->{reply} || $main->{reply};
 			$reply   = $::Values->{$reply} if $reply =~ /^\w+$/;
 			$to		 = $route->{email};
-			push @out, [$to, $subject, $page, $reply, $use_mime];
+			my $ary = [$to, $subject, $page, $reply, $use_mime];
+			if($route->{from}) {
+				push @$ary, "From: $route->{from}";
+			}
+			push @out, $ary;
 		}
 		elsif ($route->{empty}) {
 			# Do nothing
