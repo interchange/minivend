@@ -1854,8 +1854,8 @@ my %action = (
 						$Vend::StatusLine = "Status: 204 No content";
 						my $extra_click = $Vend::FinalPath;
 						$extra_click =~ s:/:\0:g;
-						$CGI->{mv_click} =  $CGI->{mv_click}
-											? "$CGI->{mv_click}\0$extra_click"
+						$CGI::values{mv_click} =  $CGI::values{mv_click}
+											? "$CGI::values{mv_click}\0$extra_click"
 											:  $extra_click;
 						do_process(@_);
 						::respond('');
