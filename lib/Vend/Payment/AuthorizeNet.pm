@@ -412,6 +412,7 @@ sub authorizenet {
 		x_Version				=> '3.1',
 		x_ADC_URL				=> 'FALSE',
 		x_ADC_Delim_Data		=> 'TRUE',
+		x_ADC_Delim_Character	=> "\037",
     );
 
     my @query;
@@ -497,7 +498,7 @@ sub authorizenet {
 			x_cvv2_resp_code			
 		/
 		}
-		 = split (/,/,$page);
+		 = split (/\037/,$page);
     	
 #::logDebug(qq{authorizenet response_reason_text=$result{x_response_reason_text} response_code: $result{x_response_code}});    	
 
