@@ -4110,7 +4110,7 @@ sub map_list_routines {
 
 sub iterate_array_list {
 	my ($i, $end, $count, $text, $ary, $opt_select, $fh, $opt) = @_;
-::logDebug("passed opt=" . ::uneval($opt));
+#::logDebug("passed opt=" . ::uneval($opt));
 	my $r = '';
 	$opt ||= {};
 
