@@ -57,6 +57,19 @@ use Getopt::Long;
 
 Getopt::Long::config(qw/permute/);
 
+my $Self = {
+	INSTALLPRIVLIB => '/usr/local/interchange/lib',
+#	INSTALLPRIVLIB => '~_~INSTALLPRIVLIB~_~',
+	INSTALLARCHLIB => '/usr/local/interchange',
+#	INSTALLARCHLIB => '~_~INSTALLARCHLIB~_~',
+	INSTALLMAN1DIR => '/usr/local/interchange/doc',
+#	INSTALLMAN1DIR => '~_~INSTALLMAN1DIR~_~',
+	INSTALLSCRIPT => '/usr/local/interchange/bin',
+#	INSTALLSCRIPT => '~_~INSTALLARCHLIB~_~/bin',
+	INSTALLBIN => '/usr/local/interchange/bin',
+#	INSTALLBIN => '~_~INSTALLBIN~_~',
+};
+
 ### END CONFIGURATION VARIABLES
 
 my $prog = $0;
@@ -76,19 +89,6 @@ options:
 	LINK_TIMEOUT=15  Set the tlink.c timeout
 
 EOF
-
-my $Self = {
-	INSTALLPRIVLIB => '/usr/local/interchange/lib',
-#	INSTALLPRIVLIB => '~_~INSTALLPRIVLIB~_~',
-	INSTALLARCHLIB => '/usr/local/interchange',
-#	INSTALLARCHLIB => '~_~INSTALLARCHLIB~_~',
-	INSTALLMAN1DIR => '/usr/local/interchange/doc',
-#	INSTALLMAN1DIR => '~_~INSTALLMAN1DIR~_~',
-	INSTALLSCRIPT => '/usr/local/interchange/bin',
-#	INSTALLSCRIPT => '~_~INSTALLARCHLIB~_~/bin',
-	INSTALLBIN => '/usr/local/interchange/bin',
-#	INSTALLBIN => '~_~INSTALLBIN~_~',
-};
 
 my $Output;
 my $Force;
