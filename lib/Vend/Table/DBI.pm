@@ -1602,9 +1602,9 @@ sub set_field {
 		}
 		else {
 #::logDebug("creating key '$rawkey' in table $s->[$TABLE]");
-			$s->set_row($$key);
+			$s->set_row($key);
 		}
-		}
+	}
 
 	my @args;
 	if(!$q) {
@@ -1920,9 +1920,9 @@ sub query {
 	eval {
 		if($update and $s->[$CONFIG]{Read_only}) {
 			$s->log_error(
-						"Attempt to do update on read-only table.\nquery: %s",
-						$query,
-					  );
+				"Attempt to do update on read-only table.\nquery: %s",
+				$query,
+			);
 			return undef;
 		}
 		$opt->{row_count} = 1 if $update;
