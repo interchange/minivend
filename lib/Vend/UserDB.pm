@@ -166,25 +166,6 @@ box or in a set of links.
 
 =cut
 
-@S_FIELDS = ( 
-qw!
-	s_nickname
-	name
-	fname
-	lname
-	address
-	address1
-	address2
-	address3
-	city
-	state
-	zip
-	country	
-	phone_day
-	mv_shipmode
-  !
-);
-
 @B_FIELDS = ( 
 qw!
 	b_nickname
