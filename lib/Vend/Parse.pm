@@ -812,9 +812,12 @@ sub do_tag {
 	die errmsg("Unauthorized for admin tag %s", $tag)
 		if defined $Vend::Cfg->{AdminSub}{$tag} and ! $Vend::admin;
 	
-	if (! defined $Routine{tag} and (not $tag = $Alias{$tag}) ) {
-		::logError("Tag '$tag' not defined.");
-		return undef;
+	if (! defined $Routine{$tag}) {
+        if (! $Alias{$tag}) {
+            ::logError("Tag '$tag' not defined.");
+            return undef;
+        }
+        $tag = $Alias{$tag};
 	};
 	if(ref($_[-1]) =~ /HASH/ && scalar @{$Order{$tag}} > scalar @_) {
 		my $text;
