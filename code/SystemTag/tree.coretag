@@ -153,9 +153,10 @@ sub {
 			my $base = $passed[$key - 1]->{$l} + 1;
 #::logDebug("Base level=$base, firstone = $passed[$key]{$l}");
 			my @out;
-			for(my $i = $key; $passed[$i]{$l} == $base ; $i++ ) {
-				push @out, $passed[$i];
+			for(my $i = $key; $passed[$i]{$l} >= $base ; $i++ ) {
+				push @out, $passed[$i] if $passed[$i]{$l} == $base;
 			}
+			return unless @out;
 			return \@out;
 		};
 	}
@@ -180,6 +181,7 @@ sub {
 			while(my $ref = $sth->fetchrow_hashref()) {
 				push @ary, { %$ref };
 			}
+			return unless @ary;
 			return \@ary;
 		};
 	}
