@@ -104,7 +104,7 @@ sub display_page {
 		$name = find_special_page('violation');
 	}
 
-	$page = readin($name);
+	$page = $Vend::VirtualPage || readin($name);
 # TRACK
 	if (defined $page && $Vend::Track) {
 		$Vend::Track->view_page($name);
