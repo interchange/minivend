@@ -188,6 +188,7 @@ EOF
 
 #::logDebug("CGI::query_string=" . $CGI::query_string);
 #::logDebug("entity=" . ${$h->{entity}});
+	undef %CGI::values;
 	if ("\U$CGI::request_method" eq 'POST') {
 		parse_post(\$CGI::query_string)
 			if $Global::TolerateGet;
@@ -217,7 +218,6 @@ sub store_cgi_kv {
 sub parse_post {
 	my $sref = shift;
 	my(@pairs, $pair, $key, $value);
-	undef %CGI::values;
 	return unless length $$sref;
 	if ($CGI::content_type =~ /^multipart/i) {
 		return parse_multipart($sref) if $CGI::useragent !~ /MSIE\s+5/i;
