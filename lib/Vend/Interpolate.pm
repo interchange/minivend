@@ -2159,12 +2159,6 @@ sub pragma {
 	}
 
 	$::Pragma->{$pragma} = $value;
-	if($pragma eq 'no_html_parse') {
-		$Vend::Parse::find_tag	= $value
-									?  qr{^([^[]+)}
-									:  qr{^([^[<]+)}
-									;
-	}
 	return;
 }
 

@@ -3086,23 +3086,17 @@ my %tagCanon = ( qw(
 	cannest			canNest
 	description  	Description
 	documentation	Documentation
-	endhtml			endHTML
 	gobble			Gobble
 	hasendtag		hasEndTag
 	implicit		Implicit
-	inserthtml		insertHTML
-	insidehtml		insideHTML
 	interpolate		Interpolate
 	invalidatecache	InvalidateCache
 	isendanchor		isEndAnchor
-	lookaheadhtml	lookaheadHTML
 	order			Order
 	posnumber		PosNumber
 	posroutine		PosRoutine
 	maproutine		MapRoutine
 	noreparse		NoReparse
-	replaceattr		replaceAttr
-	replacehtml		replaceHTML
 	required		Required
 	routine			Routine
 	version			Version
@@ -3113,7 +3107,6 @@ my %tagAry 	= ( qw! Order 1 Required 1 Version 1 ! );
 my %tagHash	= ( qw!
                 attrAlias   1
                 Implicit    1
-                replaceAttr 1
 				! );
 my %tagBool = ( qw!
                 ActionMap   1
