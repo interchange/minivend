@@ -937,7 +937,7 @@ sub vendUrl {
 
 	my @parms;
 
-	if(defined $Vend::Cfg->{AlwaysSecure}{$path}) {
+	if(exists $Vend::Cfg->{AlwaysSecure}{$path}) {
 		$r = $Vend::Cfg->{SecureURL};
 	}
 
