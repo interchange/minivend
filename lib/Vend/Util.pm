@@ -426,8 +426,6 @@ sub setlocale {
             $Vend::Cfg->{$_} = $curr->{$_}
                 if defined $curr->{$_};
         }
-        @{$Vend::Cfg->{Locale}}{@Vend::Config::Locale_keys_currency} =
-                @{$curr}{@Vend::Config::Locale_keys_currency};
     }
 
 	if(my $ref = $Vend::Cfg->{CodeDef}{LocaleChange}) {
@@ -440,8 +438,22 @@ sub setlocale {
 		}
 	}
 
-    $::Scratch->{mv_locale}   = $locale    if $opt->{persist} and $locale;
-    $::Scratch->{mv_currency} = $currency  if $opt->{persist} and $currency;
+    if($opt->{persist}) {
+		$::Scratch->{mv_locale}   = $locale		if $locale;
+		delete $::Scratch->{mv_currency_tmp};
+		delete $::Scratch->{mv_currency};
+		$::Scratch->{mv_currency} = $currency if $currency;
+	}
+	elsif($currency) {
+		Vend::Interpolate::set_tmp('mv_currency_tmp')
+			unless defined $::Scratch->{mv_currency_tmp};
+		$::Scratch->{mv_currency_tmp} = $currency;
+	}
+	else {
+		delete $::Scratch->{mv_currency_tmp};
+		delete $::Scratch->{mv_currency};
+	}
+
     return '';
 }
 
@@ -459,7 +471,22 @@ sub currency {
 	my $fmt;
 	my $precede = '';
 	my $succede = '';
-	if ($loc = $opt->{locale} || $Vend::Cfg->{Locale}) {
+	my $loc = $opt->{locale}
+			|| $::Scratch->{mv_currency_tmp}
+			|| $::Scratch->{mv_currency}
+			|| $Vend::Cfg->{Locale};
+
+	if(ref($loc)) {
+		## Do nothing, is a hash reference
+	}
+	elsif($loc) {
+		$loc = $Vend::Cfg->{Locale_repository}{$loc};
+	}
+	
+	if (! $loc) {
+		$fmt = "%.2f";
+	}
+	else {
 		$sep = $loc->{mon_thousands_sep} || $loc->{thousands_sep} || ',';
 		$dec = $loc->{mon_decimal_point} || $loc->{decimal_point} || '.';
 		return picture_format($amount, $loc->{price_picture}, $sep, $dec)
@@ -476,9 +503,6 @@ sub currency {
 				$succede = " $succede" if $loc->{p_sep_by_space};
 			}
 		}
-	}
-	else {
-		$fmt = "%.2f";
 	}
 
 	$amount = safe_sprintf($fmt, $amount);
