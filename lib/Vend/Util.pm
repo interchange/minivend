@@ -1159,6 +1159,8 @@ my @scratches = qw/
 				add_source
 				link_relative
 				match_security
+				no_count
+				no_session
 				/;
 
 sub vendUrl {
@@ -1213,7 +1215,7 @@ sub vendUrl {
 		unless $opt->{no_session_id}
 		or     ($Vend::Cookie and $::Scratch->{mv_no_session_id});
 	$ct = ++$Vend::Session->{pageCount}
-		unless $opt->{no_count} or $::Scratch->{mv_no_count};
+		unless $opt->{no_count};
 
 	if($opt->{match_security}) {
 		$opt->{secure} = $CGI::secure;
