@@ -684,7 +684,9 @@ sub set_field {
 
 	undef $value if $value eq '' and exists $s->[$CONFIG]{PREFER_NULL}{$column};
 
-	$s->set_slice($key, [$column], [$value]);
+	$s->set_slice($key, [$column], [$value])
+		and return $value;
+	return undef;
 }
 
 sub ref {
