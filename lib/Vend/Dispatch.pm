@@ -959,8 +959,6 @@ EOF
 			$Vend::Cfg->{Locale} = $Vend::Cfg->{Locale_repository}{$loc}
 					if defined $Vend::Cfg->{Locale_repository}{$loc};
 		}
-		$Vend::Cfg->{StaticPage} = {}
-			unless $Vend::Cfg->{Static};
 	}
 	$::Variable = $Vend::Cfg->{Variable};
 	$::Pragma   = { %{ $Vend::Cfg->{Pragma} } };

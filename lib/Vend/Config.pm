@@ -2106,8 +2106,6 @@ sub parse_boolean {
 	my(@setting) = split /[\s,]+/, $settings;
 	my $c;
 
-	my $val = $item eq "StaticPage" ? '' : 1;
-
 	if(defined $C) {
 		$c = $C->{$item} || {};
 	}
@@ -2117,7 +2115,7 @@ sub parse_boolean {
 	}
 
 	for (@setting) {
-		$c->{$_} = $val;
+		$c->{$_} = 1;
 	}
 	return $c;
 }
