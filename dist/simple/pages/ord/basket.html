@@ -51,7 +51,9 @@ __LEFTSIDE__
 		<BR>[page quantity [item-code]]
 			<FONT SIZE=1 COLOR=RED>QUANTITY PRICING</FONT>
 			</A>
+	[if-field weight]
 	[summary amount="[calc][item-quantity] * ([item-field weight] || 0)[/calc]" hide=1]
+	[/if-field]
 	<BR><FONT SIZE="-1">
 	[if-field related]
 	[loop arg="[item-field related]"]

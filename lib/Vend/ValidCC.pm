@@ -1,4 +1,4 @@
-# $Id: ValidCC.pm,v 1.12 1998/12/10 12:52:22 mike Exp $
+# $Id: ValidCC.pm,v 1.13 1999/06/07 08:08:09 mike Exp mike $
 #
 # ValidCC.pm - validate credit card numbers
 #
@@ -7,7 +7,7 @@
 # Modified by Mike to make more forgiving in the parameters.
 
 package Vend::ValidCC;
-$VERSION = substr(q$Revision: 1.12 $, 10);
+$VERSION = substr(q$Revision: 1.13 $, 10);
 require 5.000;
 require Exporter;
 

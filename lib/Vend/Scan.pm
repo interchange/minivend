@@ -186,6 +186,7 @@ my %Scan = ( qw(
                     bs  mv_begin_string
                     co  mv_coordinate
                     cs  mv_case
+                    cv  mv_verbatim_columns
                     de  mv_dict_end
                     df  mv_dict_fold
                     di  mv_dict_limit
@@ -859,6 +860,7 @@ sub perform_search {
 			if defined $found;
 	}
 
+	$c->{mv_verbatim_columns} = 1 if $c->{mv_searchtype} eq 'db';
 	foreach $param ( grep defined $c->{$_}, @Order) {
 		$p = $Map{$param};
 		$options{$p} = $c->{$param};
@@ -910,6 +912,9 @@ sub perform_search {
 		}
 		elsif ( $options{search_type} eq 'glimpse'){
 			$q = new Vend::Glimpse %options;
+		}
+		elsif ( $options{search_type} eq 'db'){
+			$q = new Vend::DbSearch %options;
 		}
 		else  {
 			eval {
@@ -969,6 +974,7 @@ BEGIN {
 sub sql_statement {
 	my($text, $ref, $table) = @_;
 	return $text if $text =~ m{([&/\s]|^)st=sql([&/\s]|$)};
+#::logError("sql_statement input=$text");
 	my @ss;
 
 	if ($table) {
@@ -987,10 +993,11 @@ sub sql_statement {
 	eval {
 		$stmt = SQL::Statement->new($text, $parser);
 	};
-	if($@ and $text =~ s/(\n\s*\w\w\s*=.*)//s) {
-		push @ss, $1;
+	if($@ and $text =~ s/^\s*sq\s*=(.*)//m) {
+		my $query = $1;
+		push @ss, $text;
 		eval {
-			$stmt = SQL::Statement->new($text, $parser);
+			$stmt = SQL::Statement->new($query, $parser);
 		};
 	}
 	if($@) {

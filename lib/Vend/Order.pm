@@ -902,7 +902,7 @@ sub route_order {
 			counter		=> '',
 			increment	=> 0,
 			supplant	=> 0,
-			track   	=> 1,
+			track   	=> '',
 			errors_to	=> $Vend::Cfg->{MailOrderTo},
 		};
 	}
@@ -1061,8 +1061,8 @@ sub route_order {
 		}
 		elsif ($address = $route->{email}) {
 			$address = $::Values->{$address} if $address =~ /^\w+$/;
-			$::Values->{mv_order_subject} =~ s/%n/%s/;
 			$subject = $::Values->{mv_order_subject} || 'ORDER %s';
+			$subject =~ s/%n/%s/;
 			$subject = sprintf "$subject", $::Values->{mv_order_number};
 			$reply   = $route->{reply} || $main->{reply};
 			$reply   = $::Values->{$reply} if $reply =~ /^\w+$/;
@@ -1077,6 +1077,20 @@ sub route_order {
 		}
 		if ($route->{supplant}) {
 			track_order($::Values->{mv_order_number}, $page);
+		}
+		if ($route->{track}) {
+			Vend::Util::writefile($route->{track}, $page)
+				or ::logError("route tracking error writing $route->{track}: $!");
+			chmod($route->{track_mode}, $route->{track}) if $route->{track_mode};
+		}
+		if ($route->{individual_track}) {
+			my $fn = Vend::Util::catfile(
+							$route->{individual_track},
+							$::Values->{mv_order_number},
+						);
+			Vend::Util::writefile( $fn, $page,	)
+				or ::logError("route tracking error writing $fn: $!");
+			chmod($route->{track_mode}, $fn) if $route->{track_mode};
 		}
 	};
 		if($@) {

@@ -244,6 +244,10 @@ sub field {
 
 sub set_field {
     my ($s, $key, $column, $value) = @_;
+    if($s->[$CONFIG]{Read_only}) {
+		::logError("Attempt to set $s->[$CONFIG]{name}::${column}::$key in read-only table");
+		return undef;
+	}
     my @row = $s->row($key);
     $row[$s->column_index($column)] = $value;
     $s->set_row($key, @row);
@@ -253,6 +257,10 @@ sub set_field {
 sub inc_field {
     my ($s, $key, $column, $adder) = @_;
     my($value);
+    if($s->[$CONFIG]{Read_only}) {
+		::logError("Attempt to set $s->[$CONFIG]{name}::${column}::$key in read-only table");
+		return undef;
+	}
     my @row = $s->row($key);
     $value = $row[$s->column_index($column)] += $adder;
     $s->set_row($key, @row);
@@ -298,6 +306,10 @@ sub record_exists {
 
 sub delete_record {
     my ($s, $key) = @_;
+    if($s->[$CONFIG]{Read_only}) {
+		::logError("Attempt to delete row '$key' in read-only table $s->[$CONFIG]{name}");
+		return undef;
+	}
 
     delete $s->[$TIE_HASH]{"k$key"};
 	1;

@@ -87,6 +87,8 @@ This document describes MiniVend 3.12, based originally on Andrew Wilcox's
 		<LI><A HREF="#IMPORT_ONCE">IMPORT_ONCE</A>
 		<LI><A HREF="#Importing_in_a_page">Importing in a page</A>
 		<LI><A HREF="#Exporting_from_a_database">Exporting from a database</A>
+		<LI><A HREF="#Write_Control">Write Control</A>
+		<LI><A HREF="#Global_Databases">Global Databases</A>
 	</UL>
 
 	<LI><A HREF="#SQL_SUPPORT">SQL SUPPORT</A>
@@ -2710,6 +2712,69 @@ MiniVend, you can create an <EM>AdminPage</EM> (or any page, for that matter) th
 <P>
 Perhaps a better method is to define the same sort of tags in an
 <EM>OrderProfile</EM>, and then use forms and buttons to access the profile.
+
+<P>
+<HR>
+<H2><A NAME="Write_Control">Write Control</A></H2>
+<P>
+MiniVend databases can be written in the normal course of events, either
+using the <CODE>[import ...]</CODE> tag or with a tag like
+<CODE>[data table=table column=field key=code value=new-value]</CODE>.
+
+<P>
+If you wish to control writing of a global database, or to a certain
+catalog within a series of subcatalogs, or make one read only, you can do
+so.
+
+<P>
+To enable write control:
+
+<P>
+<PRE>        Database   products  WRITE_CONTROL  1
+</PRE>
+<P>
+Once that is done, you can make a database read only, which won't allow
+writing even if <CODE>[tag flag write]products[/tag]</CODE> is specified:
+
+<P>
+<PRE>        Database   products  READ_ONLY  1
+</PRE>
+<P>
+If you want to have control with <CODE>[tag flag write]products[/tag]</CODE>:
+
+<P>
+<PRE>        Database   products  WRITE_TAGGED  1
+</PRE>
+<P>
+If you want to limit write to certain catalogs, you can set:
+
+<P>
+<PRE>        Database   products  WRITE_CATALOG  simple=0, sample=1
+</PRE>
+<P>
+The ``simple'' catalog will not be able to write, while ``sample'' will if <CODE>[tag flag write]products[/tag]</CODE> is enabled.
+
+<P>
+If you want a database to be always writable without having to specify <CODE>[tag flag write] ... [/tag]</CODE>, then you can define:
+
+<P>
+<PRE>        Database   products  WRITE_ALWAYS  1
+</PRE>
+<P>
+The default behavior of 
+<FONT SIZE=-1>SQL</FONT> datbases is equivalent to 
+<FONT SIZE=-1>WRITE_ALWAYS,</FONT> while the default for GDBM_File, DB_File, and Memory databases is equivalent to:
+
+<P>
+<PRE>        Database   products  WRITE_CONTROL 1
+        Database   products  WRITE_TAGGED  1
+</PRE>
+<P>
+<HR>
+<H2><A NAME="Global_Databases">Global Databases</A></H2>
+<P>
+If you have a database you want to make available to all catalogs on the MiniVend server instance, you may define a database in minivend.cfg. Any catalog running under that server will be able to use it. Careful; it is writable by any catalog unless you use 
+<FONT SIZE=-1>WRITE_CONTROL.</FONT>
 
 <P>
 <HR>
@@ -5767,16 +5832,16 @@ These special fields all begin with <CODE>mv_</CODE>, and include:
  mv_return_delim      rd  S   Return record delimiter
  mv_return_fields     rf  S   Fields to return on a search
  mv_return_file_name  rn  S   Set return of file name for searches
- mv_return_spec       rs  S   Return the MiniVend page specified in search string
+ mv_return_spec       rs  S   Return the search string as the only result
  mv_save_session          C   Set to non-zero to prevent expiration of user session
  mv_search_field      sf  S   Sets the fields to be searched
  mv_search_file       fi  S   Sets the file(s) to be searched
  mv_search_line_return lr S   Each line is a return code (loop search)
- mv_search_match_count     S  Returns the number of matches found (read-only)
+ mv_search_match_count    S   Returns the number of matches found (read-only)
  mv_search_over_msg       S   Returns string indicating search overflow (read-only)
  mv_search_page       sp  S   Sets the page for search display
  mv_searchspec        se  S   Search specification
- mv_searchtype        st  S   Sets search type (text or glimpse)
+ mv_searchtype        st  S   Sets search type (text, glimpse, db or sql)
  mv_separate_items        O   Sets separate order lines (one per item ordered)
  mv_shipmode              O   Sets shipping mode for custom shipping
  mv_sort_command      tc  S   Sets the command to use for sorting searches
@@ -6892,7 +6957,7 @@ The following variables are in effect for
  mv_search_file       S   Sets the table to be searched
  mv_search_page       S   Sets the page for search display
  mv_searchspec        S   Search specification(s)
- mv_searchtype        S   Sets search type (text, glimpse, or sql)
+ mv_searchtype        S   Sets search type (text, glimpse, db, or sql)
  mv_sort_field        S   Column(s) to sort on
  mv_sort_option       S   Options for sort (only global reverse)
  mv_sql_query         S   SQL query text for simple query
@@ -7728,6 +7793,10 @@ name or by column number. You should almost always specify 0 as the first
 field to be returned if searching the products database, since that is the
 key for accessing database fields.
 
+<P><DT><STRONG><A NAME="item_mv_return_spec">mv_return_spec</A></STRONG><DD>
+
+Returns the string specified as the search (i.e. the value of <A HREF="#item_mv_searchspec">mv_searchspec</A>) as the one and only match. Typically used in a SKU/part number search.
+
 <P><DT><STRONG><A NAME="item_mv_search_field">mv_search_field</A></STRONG><DD>
 
 The <CODE>field(s)</CODE> to be searched, specified either by column name
@@ -7790,6 +7859,10 @@ If set to <EM>glimpse</EM>, selects the Glimpse search (if Glimpse is defined).
 <P>
 If set to <EM>sql</EM>, formulates an 
 <FONT SIZE=-1>SQL</FONT> select statement to return the search list. 
+
+<P>
+If set to <EM>db</EM>, iterates over every row of the database (not the associated text source
+file).
 
 <P>
 If set to <EM>text</EM>, selects the text-based search.
@@ -11531,6 +11604,11 @@ Whether the order number should be incremented as a result of this result.
 Default is not to increment, as the order number should usually be the same
 for different routes within the same customer order.
 
+<P><DT><STRONG><A NAME="item_individual_track">individual_track</A></STRONG><DD>
+
+<FONT SIZE=-1>A</FONT> <EM>directory</EM> where individual order tracking files will be placed. The file name will
+correspond to the value of <CODE>mv_order_number</CODE>. This can be useful for batching orders via download.
+
 <P><DT><STRONG><A NAME="item_pgp_cc_key">pgp_cc_key</A></STRONG><DD>
 
 The 
@@ -11572,6 +11650,16 @@ describes a MiniVend variable name where the address can be found.
 
 Whether this route should supplant the main order report. If set, the <EM>AsciiTrack</EM> operation will use this route and the normal MiniVend order email sequence
 will not be performed.
+
+<P><DT><STRONG><A NAME="item_track">track</A></STRONG><DD>
+
+The name of a file which should be used for tracking. If the
+<A HREF="#item_supplant">supplant</A> attribute is set, then the normal order tracking will be used as well.
+
+<P><DT><STRONG>track</STRONG><DD>
+
+<FONT SIZE=-1>A</FONT> number representing the mode to change either <A HREF="#item_track">track</A> or
+<A HREF="#item_individual_track">individual_track</A> files to.
 
 <P></DL>
 <P>

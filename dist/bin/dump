@@ -2,7 +2,7 @@
 #
 # MiniVend session dumper
 #
-# $Id: dump,v 1.11 1999/01/23 19:52:33 mike Exp $
+# $Id: dump,v 1.14 1999/06/07 08:08:56 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>

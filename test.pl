@@ -104,8 +104,8 @@ sub send_environment () {
 	return $val;
 }
 
-$SIG{PIPE} = sub { die_page("signal"); };
-$SIG{ALRM} = sub { server_not_running(); exit 1; };
+$SIG{PIPE} = sub { die("signal"); };
+$SIG{ALRM} = sub { die("not communicating with server\n"); exit 1; };
 
 alarm $LINK_TIMEOUT;
 

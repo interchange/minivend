@@ -151,7 +151,7 @@ sub debug {
 }
 
 BEGIN {
-	$VERSION = '3.12';
+	$VERSION = '3.14';
 }
 use strict;
 use Fcntl;
@@ -229,6 +229,7 @@ use Vend::Glimpse;
 
 use Vend::Scan;
 use Vend::TextSearch;
+use Vend::DbSearch;
 use Vend::Order;
 use Vend::Data;
 use Vend::Util;
@@ -1654,11 +1655,14 @@ EOF
 			unless ($Vend::Cfg->{Locale}) {
 				for(@n) {
 					next unless $Vend::Cfg->{Locale_repository}{$_}{'default'};
+					$Vend::Cfg->{DefaultLocale} = $_;
 					$Vend::Cfg->{Locale} = $Vend::Cfg->{Locale_repository}{$_};
 					last;
 				}
-				$Vend::Cfg->{Locale} = $Vend::Cfg->{Locale_repository}{$n[0]}
-					unless $Vend::Cfg->{Locale};
+				unless ($Vend::Cfg->{Locale}) {
+					$Vend::Cfg->{Locale} = $Vend::Cfg->{Locale_repository}{$n[0]};
+					$Vend::Cfg->{DefaultLocale} = $n[0];
+				}
 			}
 		}
 
@@ -2257,6 +2261,11 @@ sub dispatch {
                 undef $Vend::Cfg->{$_};
             }
 			copyref $c, $Vend::Cfg;
+			if($Vend::Cfg->{Variable}{MV_LANG}) {
+				my $loc = $Vend::Cfg->{Variable}{MV_LANG};
+				$Vend::Cfg->{Locale} = $Vend::Cfg->{Locale_repository}{$loc}
+						if defined $Vend::Cfg->{Locale_repository}{$loc};
+			}
 			$Vend::Cfg->{StaticPage} = {}
 				unless $Vend::Cfg->{Static};
 		}
@@ -2464,12 +2473,18 @@ EOF
 			last COOKIELOGIN unless
 				$password = Vend::Util::read_cookie('MV_PASSWORD');
 			$CGI::values{mv_password} = $password;
+			eval {
 			Vend::UserDB::userdb('login');
+			};
+			if($@) {
+				$Vend::Session->{failure} .= $@;
+			}
 		}
 	}
 
 	$Vend::Session->{'id'} = $Vend::SessionID;
-	$Vend::Session->{'arg'} = $Vend::Argument;
+	$Vend::Session->{'arg'} =
+		$Vend::Argument ? ($Vend::Argument) : $CGI::values{mv_arg} || '';
 	$Vend::Session->{'source'} = $rest
 		if ! $Vend::Session->{source} &&
 			 $rest && $rest =~ /[A-Za-z]/;
@@ -2518,6 +2533,11 @@ EOF
 		defined $Vend::Cfg->{Locale_repository}->{$locale}
 	)
 	{ 
+		$Global::Variable->{LANG}
+				= $Vend::Cfg->{Variable}->{LANG}
+				= $::Scratch->{mv_language}
+				= $locale
+			 if ! $::Scratch->{mv_language};
 		Vend::Util::setlocale(	$locale,
 								($Vend::Session->{scratch}{mv_currency} || undef)
 							);
@@ -2677,7 +2697,7 @@ sub parse_multipart {
 
 	DOMULTI: {
 		for (@parts) {	
-			last if ! $_ || $_ eq '--';
+		    last if ! $_ || ($_ =~ /^--(\r?\n)?$/);
 			s/^\s+//;
 			my($header, $data) = split /\r?\n\r?\n/, $_, 2;
 			my $token = '[-\w!\#$%&\'*+.^_\`|{}~]';

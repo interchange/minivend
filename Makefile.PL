@@ -416,15 +416,6 @@ EOF
 		unless $install;
 
 	# Do the extra library checks
-	eval {
-		require File::Spec;
-	};
-	if ($@) {
-		push @extra_lib_dirs, 'File', 'File/Spec';
-		my (@f) = glob 'extra/File/Spec/*';
-		for (@f) { s:extra/:: }
-		push @extra_lib_files, 'File/Spec.pm', @f;
-	}
 
 	# We will use our own version of File::CounterFile always
 	push @extra_lib_dirs, 'File';

@@ -162,6 +162,7 @@ dist/simple/images/bg.gif
 dist/simple/images/blue_pap.gif
 dist/simple/images/coolad1.gif
 dist/simple/images/coolbits.gif
+dist/simple/images/download.gif
 dist/simple/images/mini.gif
 dist/simple/images/mvlogo.gif
 dist/simple/images/mvlogo_dark.gif
@@ -297,6 +298,7 @@ extra/URI/URL.pm
 lib/Vend/Cart.pm
 lib/Vend/Config.pm
 lib/Vend/Data.pm
+lib/Vend/DbSearch.pm
 lib/Vend/FlyCat.pm
 lib/Vend/Glimpse.pm
 lib/Vend/Http.pm

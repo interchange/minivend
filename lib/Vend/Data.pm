@@ -129,6 +129,9 @@ sub open_database {
 
 sub tie_database {
 	my ($name, $data);
+	if($Global::Database) {
+		copyref($Global::Database, $Vend::Cfg->{Database});
+	}
     while (($name,$data) = each %{$Vend::Cfg->{Database}}) {
 # DEBUG
 #Vend::Util::logDebug
@@ -426,7 +429,7 @@ sub column_index {
 
 sub column_exists {
     my ($field_name) = @_;
-    return $Products->test_column($field_name);
+    return defined $Products->test_column($field_name);
 }
 
 sub db_column_exists {
@@ -730,6 +733,7 @@ my %db_config = (
 		'MEMORY' => {
 				qw/
 					Cacheable			 1
+					Tagged_write		 1
 					Class                Vend::Table::InMemory
 				/
 				},
@@ -737,6 +741,7 @@ my %db_config = (
 				qw/
 					TableExtension		 .gdbm
 					Extension			 gdbm
+					Tagged_write		 1
 					Class                Vend::Table::GDBM
 				/
 				},
@@ -744,6 +749,7 @@ my %db_config = (
 				qw/
 					TableExtension		 .db
 					Extension			 db
+					Tagged_write		 1
 					Class                Vend::Table::DB_File
 				/
 		},
@@ -922,22 +928,39 @@ sub import_database {
     }
   }
 
-	my $read_only = ! defined $Vend::WriteDatabase{$name};
+	my $read_only;
+
+	if($obj->{WRITE_CONTROL}) {
+		if($obj->{READ_ONLY}) {
+			$obj->{Read_only} = 1;
+		}
+		elsif($obj->{WRITE_ALWAYS}) {
+			$obj->{Read_only} = 0;
+		}
+		elsif($obj->{WRITE_CATALOG}) {
+			$obj->{Read_only} = $obj->{WRITE_CATALOG}{$Vend::Cfg->{CatalogName}}
+					? (! defined $Vend::WriteDatabase{$name}) 
+					: 1;
+		}
+		elsif($obj->{WRITE_TAGGED}) {
+			$obj->{Read_only} = ! defined $Vend::WriteDatabase{$name};
+		}
+	}
+	else {
+		$obj->{Read_only} = ! defined $Vend::WriteDatabase{$name}
+			if $class_config->{Tagged_write};
+	}
 
 		
     if($class_config->{Extension}) {
 
-		$obj->{Read_only} = $read_only;
 		$obj->{db_file} = $table_name unless $obj->{db_file};
 		$obj->{db_text} = $database_txt unless $obj->{db_text};
     	$db = $class_config->{Class}->open_table( $obj, $table_name );
 		$obj->{NAME} = $db->[3] unless defined $obj->{NAME};
 
-# DEBUG
-#Vend::Util::logDebug
-#("Opening GDBM: RO=$read_only\n")
-#	if ::debug(0x4);
-# END DEBUG
+#::logError ("Opening Database $obj->{name}: RO=$obj->{Read_only} WC=$obj->{WRITE_CONTROL} WA=$obj->{WRITE_ALWAYS}\n");
+
 		if($@) {
 			die $@ unless $no_import;
 			if(! -f $database_dbm) {

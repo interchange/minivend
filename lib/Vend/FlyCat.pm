@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# $Id: FlyCat.pm,v 1.3 1999/02/15 08:51:00 mike Exp mike $
+# $Id: FlyCat.pm,v 1.5 1999/06/07 08:06:28 mike Exp mike $
 #
 # Copyright 1998-1999 by Michael J. Heins <mikeh@iac.net>
 #
@@ -8,7 +8,7 @@
 
 package Vend::FlyCat;
 
-$VERSION = substr(q$Revision: 1.3 $, 10);
+$VERSION = substr(q$Revision: 1.5 $, 10);
 $DEBUG = 0;
 
 use vars qw! $VERSION $DEBUG @S_FIELDS @B_FIELDS @P_FIELDS %S_to_B %B_to_S!;

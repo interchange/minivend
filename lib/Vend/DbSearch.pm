@@ -1,6 +1,6 @@
-# Vend/TextSearch.pm:  Search indexes with Perl
+# Vend/DbSearch.pm:  Search indexes with Perl
 #
-# $Id: TextSearch.pm,v 1.24 1999/06/07 08:07:53 mike Exp mike $
+# $Id: DbSearch.pm,v 1.22 1999/02/15 08:51:31 mike Exp mike $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::TextSearch
 #
@@ -20,12 +20,12 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-package Vend::TextSearch;
+package Vend::DbSearch;
 require Vend::Search;
 
 @ISA = qw(Vend::Search);
 
-$VERSION = substr(q$Revision: 1.24 $, 10);
+$VERSION = substr(q$Revision: 1.22 $, 10);
 
 use Search::Dict;
 use strict;
@@ -44,12 +44,12 @@ sub new {
 sub init {
 	my $s = shift;
 	my $g = $s->{global};
-	$g->{'dict_look'}	= '';
-	$g->{'dict_end'}	= '';
+	$s->{global}->{base_directory} = 'products';
+	$s->{global}->{search_file} = '';
 }
 
 sub version {
-	$Vend::TextSearch::VERSION;
+	$Vend::DbSearch::VERSION;
 }
 
 sub escape {
@@ -63,16 +63,107 @@ sub escape {
     return @text;
 }
 
+sub spec_check {
+  my ($s, $g, @specs) = @_;
+  my @pats;
+  SPEC_CHECK: {
+	last SPEC_CHECK if $g->{return_all};
+	# Patch supplied by Don Grodecki
+	# Now ignores empty search strings if coordinated search
+	my $i = 0;
+
+	unless ($g->{coordinate} and @specs == @{$s->{fields}}) {
+		for(qw! case_sensitive substring_match negate !) {
+			next unless ref $g->{$_};
+			$g->{$_} = $g->{$_}->[0];
+		}
+		$g->{coordinate} = '';
+	}
+
+	while ($i < @specs) {
+		if($#specs and length($specs[$i]) == 0) { # should add a switch
+			if($g->{coordinate}) {
+		        splice(@{$s->{fields}}, $i, 1);
+		        splice(@{$g->{column_op}}, $i, 1)
+					if ref $g->{column_op};
+		        splice(@{$g->{case_sensitive}}, $i, 1)
+					if ref $g->{case_sensitive};
+		        splice(@{$g->{numeric}}, $i, 1)
+					if ref $g->{numeric};
+		        splice(@{$g->{substring_match}}, $i, 1)
+					if ref $g->{substring_match};
+		        splice(@{$g->{negate}}, $i, 1)
+					if ref $g->{negate};
+			}
+		    splice(@specs, $i, 1);
+			splice(@{$s->{specs}}, $i, 1);
+		}
+		else {
+			if(
+				$g->{coordinate}
+				and defined $g->{column_op}
+				and $g->{column_op}[$i] =~ /^(==?|eq)$/
+				)
+			{
+				my $spec = $specs[$i];
+				$g->{eq_specs} = []
+					unless $g->{eq_specs};
+				$spec = $g->{dbref}->quote($spec)
+					if ! $s->{numeric} || (ref $s->{numeric} and ! $s->{numeric}[$i]);
+				$spec = $g->{field_names}[ $s->{fields}[$i] ] . " = $spec";
+				push(@{$g->{eq_specs}}, $spec);
+			}
+			$i++;
+		}
+	}
+
+# DEBUG
+Vend::Util::logError
+($s->dump_options() . "\nspecs=" . join("|", @specs) . "|\n")
+	if $g->{mv_search_debug};
+# END DEBUG
+
+	if ( ! $g->{exact_match} and ! $g->{coordinate}) {
+		my $string = join ' ', @specs;
+		eval {
+			@specs = Text::ParseWords::shellwords( $string );
+		};
+		if($@ or ! @specs) {
+			$string =~ s/['"]/./g;
+			$g->{all_chars} = 0;
+			@specs = Text::ParseWords::shellwords( $string );
+		}
+	}
+
+	@specs = $s->escape(@specs);
+
+# DEBUG
+Vend::Util::logDebug
+("spec='" . (join "','", @specs) . "'\n")
+	if ::debug(0x10 );
+# END DEBUG
+
+	# untaint
+	for(@specs) {
+		/(.*)/s;
+		push @pats, $1;
+	}
+	@{$s->{'specs'}} = @pats;
+
+# DEBUG
+Vend::Util::logDebug
+("pats: '" . join("', '", @pats) . "'\n")
+	if ::debug(0x10);
+# END DEBUG
+
+  } # last SPEC_CHECK
+  return @pats;
+}
+
 sub search {
 
 	my($s,%options) = @_;
     my $g = $s->{global};
-
-# DEBUG
-Vend::Util::logDebug
-("Text search using Vend::TextSearch\n")
-	if ::debug(0x10);
-# END DEBUG
 
 	my($delim);
 	my($max_matches,$mod,$spec);
@@ -100,28 +191,35 @@ Vend::Util::logDebug
 		return undef; # If it makes it this far
 	}
 
-	if($g->{base_directory}) {
-		for(@searchfiles) {
-			$_ = Vend::Util::catfile($g->{base_directory}, $_)
-				unless Vend::Util::file_name_is_absolute($_);
-		}
+	$g->{base_directory} =~ s/\..*//;
+	my $dbref = Vend::Data::database_exists_ref($g->{base_directory});
+
+	if(! $dbref) {
+		&{$g->{error_routine}}($g->{error_page},
+			"{base_directory} must be a valid database reference, was $g->{base_directory}.\n");
+		$g->{matches} = -1;
+		return undef; # If it makes it this far
 	}
 
-	# Auto-index search
-	if($g->{dict_look} and $g->{dict_limit} =~ /[^-0-9]/) {
-		my $f = $g->{dict_limit};
-		$g->{dict_limit} = -1;
-		for (@searchfiles) {
-			next unless -f "$_.$f"; 
-			$_ .= ".$f";
-			$g->{return_fields} = [1];
+#::logError("DbSearch: made it past ref check");
+
+	$dbref = $g->{dbref} = $dbref->ref();
+	my (@fn) = ($dbref->config('FIRST_COLUMN_NAME') || 'code', $dbref->columns());
+#::logError("DbSearch: fn=@fn");
+
+	$g->{field_names} = \@fn;
+	my %fh;
+	my $idx = 0;
+	for (@fn) {
+		$fh{$_} = $idx++;
+	}
+	my $fa;
+	foreach $fa ( qw/ return_fields range_look search_field sort_field /) {
+		next unless $g->{$fa};
+		for( @{$g->{$fa}} ) {
+			$_ = $fh{$_} if defined $fh{$_};
 		}
 	}
-
- 	$return_file_name = $g->{return_file_name} || undef;
- 	$index_delim = $g->{index_delim};
-	$g->{return_delim} = $index_delim
-		unless defined $g->{return_delim};
 
 	$g->{matches} = 0;
 
@@ -148,14 +246,7 @@ Vend::Util::logDebug
 
 	@pats = $s->spec_check($g, @specs);
 
-# DEBUG
-Vend::Util::logDebug
-($s->dump_options() )
-	if ::debug(0x10);
-Vend::Util::logError
-($s->dump_options() . "specs: " . join('|', @pats) )
-    if $CGI::values{mv_search_debug};
-# END DEBUG
+#::logError("DbSearch: made it past spec check");
 
 	if ($g->{coordinate}) {
 		undef $f;
@@ -195,7 +286,7 @@ Vend::Util::logError
 
 	$f = $prospect if $prospect;
 
-#::logGlobal("f=$f limit=$limit_sub");
+#::logError("f=$f limit=$limit_sub");
 
 	eval {($return_sub, $delayed_return) = $s->get_return()};
 	if($@) {
@@ -207,135 +298,28 @@ Vend::Util::logError
 	$max_matches = int($g->{max_matches});
 
 	$g->{overflow} = 0;
+	my $qual;
 
-# DEBUG
-Vend::Util::logDebug
-('fields/specs: ' .  scalar @{$s->{fields}} . "/" .  scalar @{$s->{specs}} . "\n")
-	if ::debug(0x10);
-Vend::Util::logError
-('fields/specs: ' .  scalar @{$s->{fields}} . "/" .  scalar @{$s->{specs}} . "\n")
-    if $CGI::values{mv_search_debug};
-# END DEBUG
-
-	if($g->{dict_end}) {
-		if(!$g->{dict_order} && !$g->{dict_fold}) {
-			$dict_limit = sub {
-					$_[0] gt $g->{dict_end};
-			};
-		}
-		elsif(!$g->{dict_order}) {
-			$dict_limit = sub {
-					"\L$_[0]" gt "\L$g->{dict_end}";
-			};
-		}
-		elsif(!$g->{dict_fold}) {
-			$dict_limit = sub {
-					my($line) = @_;
-					my($end) = $g->{dict_end};
-					$line =~ tr/A-Za-z0-9_ //cd;
-					$end =~ tr/A-Za-z0-9_ //cd;
-					$line gt $end;
-			};
-		}
-		else {
-			$dict_limit = sub {
-					my($line) = lc @_;
-					my($end) = lc $g->{dict_end};
-					$line =~ tr/a-z0-9_ //cd;
-					$end =~ tr/a-z0-9_ //cd;
-					$line gt $end;
-			};
-		}
-	}
-
-    my $sort_string = $s->find_sort();
-	# If the string is set, append the joined searcfiles;
-	if($sort_string and !$Global::Windows) {
-		#$sort_string =~ s!\|\s*$!join ' ', @searchfiles, '|'!e;
-		@searchfiles = join ' ', 'cat', @searchfiles, '|', $sort_string;
-	}
-# DEBUG
-Vend::Util::logDebug
-("sort_string:  $sort_string\n")
-	if ::debug(0x10) ;
-# END DEBUG
-
-	local($/) = $g->{record_delim};
+#::logError("DbSearch: made it past return subroutines");
 
 	foreach $searchfile (@searchfiles) {
-		open(Vend::TextSearch::SEARCH, $searchfile)
-			or &{$g->{log_routine}}( "Couldn't open search file '$searchfile': $!"), next;
-		my $line;
-
-		# Get field names only if no sort (will throw it off) or
-		# not already defined
-        if($g->{head_skip} == 1) {
-            my $field_names;
-            chomp($field_names = <Vend::TextSearch::SEARCH>);
-            $g->{field_names} = [ split /\Q$index_delim/, $field_names]
-                unless defined $g->{field_names} || $sort_string;
-        }
-        elsif($g->{head_skip} > 1) {
-            while(<Vend::TextSearch::SEARCH>) {
-                last if $. >= $g->{head_skip};
-            }
-        }
-
-		if($g->{dict_look}) {
-# DEBUG
-Vend::Util::logDebug
-("Dict search:  look='$g->{dict_look}'\n")
-	if ::debug(0x10);
-Vend::Util::logDebug
-("Dict search:   end='$g->{dict_end}'\n")
-	if ::debug(0x10);
-# END DEBUG
-			look \*Vend::TextSearch::SEARCH,
-				$g->{dict_look}, $g->{dict_order}, $g->{dict_fold};
+		$searchfile =~ s/\..*//;
+#::logError("DbSearch: searching $searchfile");
+		my $db;
+		if (! $g->{mv_one_sql_table} and $db = Vend::Data::database_exists_ref($searchfile)) {
+			$dbref = $db->ref();
+			$g->{field_names} = [ $dbref->config('FIRST_COLUMN_NAME') || 'code', $dbref->columns() ];
+		}
+		if(! $qual and $g->{eq_specs}) {
+			$qual = ' WHERE ';
+			my $joiner = ' AND ';
+			$joiner = ' OR ' if $g->{or_search};
+			$qual .= join $joiner, @{$g->{eq_specs}};
 		}
 
-		if($g->{dict_end} && defined $limit_sub) {
-# DEBUG
-Vend::Util::logDebug
-("Dict search: with limit\n")
-	if ::debug(0x10);
-# END DEBUG
-			while(<Vend::TextSearch::SEARCH>) {
-				last if &$dict_limit($_);
-# DEBUG
-Vend::Util::logDebug
-("Dict search: found='$_'\n")
-	if ::debug(0x10);
-# END DEBUG
-				next unless ! defined $f or &$f();
-				next unless &$limit_sub($_);
-				(push @out, $searchfile and last)
-					if defined $return_file_name;
-				push @out, &$return_sub($_);
-			}
-		}
-		elsif($g->{dict_end}) {
-# DEBUG
-Vend::Util::logDebug
-("Dict search: NO limit\n")
-	if ::debug(0x10);
-# END DEBUG
-			while(<Vend::TextSearch::SEARCH>) {
-				last if &$dict_limit($_);
-# DEBUG
-Vend::Util::logDebug
-("Dict search: found='$_'\n")
-	if ::debug(0x10);
-# END DEBUG
-				next unless &$f();
-				(push @out, $searchfile and last)
-					if defined $return_file_name;
-				push @out, &$return_sub($_);
-			}
-		}
-		elsif(! defined $f and defined $limit_sub) {
-#::logGlobal("no f, limit");
-			while(<Vend::TextSearch::SEARCH>) {
+		if(! defined $f and defined $limit_sub) {
+#::logError("no f, limit");
+			while($_ = join "\t", $dbref->each_record($qual || undef) ) {
 				next unless &$limit_sub($_);
 				(push @out, $searchfile and last)
 					if defined $return_file_name;
@@ -343,8 +327,8 @@ Vend::Util::logDebug
 			}
 		}
 		elsif(defined $limit_sub) {
-#::logGlobal("f and limit");
-			while(<Vend::TextSearch::SEARCH>) {
+#::logError("f and limit");
+			while($_ = join "\t", $dbref->each_record($qual || undef) ) {
 				next unless &$f();
 #::logGlobal("matched f");
 				next unless &$limit_sub($_);
@@ -354,20 +338,20 @@ Vend::Util::logDebug
 			}
 		}
 		elsif (!defined $f) {
+#::logError("no f!!!!??!!");
 			&{$g->{error_routine}}($g->{error_page}, 'No search definition');
 			$g->{matches} = -1;
 			return undef;
 		}
 		else {
-#::logGlobal("just f");
-			while(<Vend::TextSearch::SEARCH>) {
+#::logError("just f");
+			while($_ = join "\t", $dbref->each_record($qual || undef) ) {
 				next unless &$f();
 				(push @out, $searchfile and last)
 					if defined $return_file_name;
 				push @out, &$return_sub($_);
 			}
 		}
-		close Vend::TextSearch::SEARCH;
 	}
 
 	if($delayed_return) {
@@ -393,18 +377,6 @@ Vend::Util::logDebug
 		}
         $#out = $g->{match_limit} - 1;
     }
-
-# DEBUG
-Vend::Util::logDebug
-("$g->{matches} matches\n")
-	if ::debug(0x10);
-Vend::Util::logError
-("$g->{matches} matches")
-	if $CGI::values{mv_search_debug};
-Vend::Util::logDebug
-("0 .. " . (scalar(@out) - 1) . "\n" )
-	if ::debug(0x10);
-# END DEBUG
 
 	return \@out unless $g->{return_reference};
 

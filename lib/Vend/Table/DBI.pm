@@ -336,7 +336,12 @@ sub substitute_arg {
 
 sub param_query {
     my($s, $text, $table, $config, @arg) = @_;
-   
+
+    if($s->[$CONFIG]{Read_only} and $text !~ /^\s*select\s+/i) {
+		::logError("Attempt to write read-only database $s->[$CONFIG]{name} with query '$text'");
+		return undef;
+	}
+
     $text = $s->substitute_arg($text, @arg) if @arg;
 
 	my $db = $s->[$DBI];
@@ -361,6 +366,12 @@ sub param_query {
 
 sub array_query {
 	my($s, $text, $table, $config, @arg) = @_;
+
+    if($s->[$CONFIG]{Read_only} and $text !~ /^\s*select\s+/i) {
+		::logError("Attempt to write read-only database $s->[$CONFIG]{name} with query '$text'");
+		return undef;
+	}
+
 	$text = $s->substitute_arg($text, @arg) if @arg;
 	my $db = $s->[$DBI];
     my $sth = $db->prepare($text)
@@ -378,7 +389,12 @@ sub array_query {
 
 sub hash_query {
     my($s, $text, $table, $config, @arg) = @_;
-   
+
+    if($s->[$CONFIG]{Read_only} and $text !~ /^\s*select\s+/i) {
+		::logError("Attempt to write read-only database $s->[$CONFIG]{name} with query '$text'");
+		return undef;
+	}
+
     $text = $s->substitute_arg($text, @arg) if @arg;
 
 	my $key = $s->[$KEY];
@@ -404,6 +420,11 @@ sub hash_query {
 
 sub html_query {
     my($s, $text, $table, $config, @arg) = @_;
+
+    if($s->[$CONFIG]{Read_only} and $text !~ /^\s*select\s+/i) {
+		::logError("Attempt to write read-only database $s->[$CONFIG]{name} with query '$text'");
+		return undef;
+	}
    
     $text = $s->substitute_arg($text, @arg) if @arg;
 
@@ -434,6 +455,12 @@ sub html_query {
 
 sub set_query {
 	my($s, $text, $table, $config, @arg) = @_;
+
+    if($s->[$CONFIG]{Read_only} and $text !~ /^\s*select\s+/i) {
+		::logError("Attempt to write read-only database $s->[$CONFIG]{name} with query '$text'");
+		return undef;
+	}
+
 	$config = {} unless ref $config;
 	$text = $s->substitute_arg($text, @arg) if @arg;
 	my $rc = $s->[$DBI]->do($text);
@@ -448,12 +475,13 @@ sub set_query {
 
 sub touch {return ''}
 
-# Now supported
+# Now supported, including qualification
 sub each_record {
-    my ($s) = @_;
+    my ($s, $qual) = @_;
+#::logError("qual=$qual");
     my ($table,$key,$db,$cols,$config,$each) = @$s;
     unless(defined $each) {
-        $each = $db->prepare("select * from $table")
+        $each = $db->prepare("select * from $table" . ($qual || '') )
             or die $DBI::errstr;
         push @$s, $each;
 		$each->execute();
@@ -530,6 +558,11 @@ sub field {
 
 sub set_field {
     my ($s, $key, $column, $value) = @_;
+
+    if($s->[$CONFIG]{Read_only}) {
+		::logError("Attempt to set $s->[$CONFIG]{name}::${column}::$key in read-only table");
+		return undef;
+	}
 	$key = $s->[$DBI]->quote($key)
 		unless exists $s->[$CONFIG]{NUMERIC}{$s->[$KEY]};
 	$value = $s->[$DBI]->quote($value)
@@ -558,6 +591,11 @@ sub record_exists {
 
 sub delete_record {
     my ($s, $key) = @_;
+
+    if($s->[$CONFIG]{Read_only}) {
+		::logError("Attempt to delete record '$key' from read-only database $s->[$CONFIG]{name}");
+		return undef;
+	}
 	$key = $s->[$DBI]->quote($key)
 		unless exists $s->[$CONFIG]{NUMERIC}{$s->[$KEY]};
     $s->[$DBI]->do("delete from $s->[$TABLE] where $s->[$KEY] = $key");

@@ -1873,7 +1873,6 @@ sub do_log {
 		}
 	}
 	elsif($op =~ /^text/) {
-		$data =~ interpolate_html($data);
 		Vend::Util::writefile($file, $data)
 				or return '';
 	}
@@ -1914,7 +1913,7 @@ sub do_parse_tag {
 		do_tag(join(" ", $op, $base, $file), $text);
 	}
 	elsif ($op eq 'export') {
-		do_export($base, $file, $type);
+		Vend::Data::export_database($base, $file, $type);
 	}
 	elsif (!$op) {
 		do_tag('', $text);
@@ -2103,7 +2102,7 @@ sub escape_scan {
 }
 
 sub escape_mv {
-	my ($joiner, $scan) = @_;
+	my ($joiner, $scan, $not_scan) = @_;
 
 	my @args;
 
@@ -2121,11 +2120,11 @@ sub escape_mv {
 	}
 	@args = grep $_, @args;
 	for(@args) {
-		s!/!__SLASH__!g;
+		s!/!__SLASH__!g unless defined $not_scan;
 		s!\0!__NULL__!g;
 		s!(\w\w=)(.*)!$1 . esc($2)!eg
 			or (undef $_, next);
-		s!__SLASH__!::!g;
+		s!__SLASH__!::!g unless defined $not_scan;
 	}
 	return join $joiner, grep(defined $_, @args);
 }
@@ -2152,7 +2151,7 @@ EOF
 	$arg = '' if ! $arg;
 	$arg = "mv_arg=$arg\n" if $arg && $arg !~ /\n/; 
 	$extra .= $arg . $opt->{'form'};
-	$extra = escape_mv('&', $extra);
+	$extra = escape_mv('&', $extra, 1);
 	return $href . '?' . $extra;
 }
 
@@ -2614,7 +2613,7 @@ my %Sort = (
 );
 
 
-my %Sort_field = (
+%Vend::Interpolate::Sort_field = (
 
 	none	=> sub { $_[0] cmp $_[1]			},
 	f	=> sub { (lc $_[0]) cmp (lc $_[1])	},
@@ -2631,7 +2630,7 @@ sub field_sort {
 	my(@b) = split /\t/, $b;
 	my ($r, $i);
 	for($i = 0; $i < @Flds; $i++) {
-		$r = &{$Sort_field{$Opts[$i]}}($a[$Flds[$i]], $b[$Flds[$i]]);
+		$r = &{$Vend::Interpolate::Sort_field{$Opts[$i]}}($a[$Flds[$i]], $b[$Flds[$i]]);
 		return $r if $r;
 	}
 }
@@ -2680,7 +2679,7 @@ sub tag_sort {
 		
         push @bases, $base;
         push @fields, $fld;
-        push @option, (defined $Sort_field{$opt} ? $opt : 'none');
+        push @option, (defined $Vend::Interpolate::Sort_field{$opt} ? $opt : 'none');
     }
 
 	if(defined $end) {
@@ -2691,17 +2690,17 @@ sub tag_sort {
     my $i;
     my $routine = 'sub { ';
     for( $i = 0; $i < @bases; $i++) {
-            $routine .= '&{$Sort_field{"' . $option[$i] . '"}}(' . "\n";
+            $routine .= '&{$Vend::Interpolate::Sort_field{"' . $option[$i] . '"}}(' . "\n";
             $routine .= "tag_data('$bases[$i]','$fields[$i]'," . '$a),' . "\n";
             $routine .= "tag_data('$bases[$i]','$fields[$i]'," . '$b) ) or ';
     }
-    $routine .= '0 or &{$Sort_field{"none"}}($a,$b); }';
+    $routine .= '0 or &{$Vend::Interpolate::Sort_field{"none"}}($a,$b); }';
 #print("Sort routine: $routine\n") if $Global::DEBUG;
     my $code = eval $routine;  
     die "Bad sort routine\n" if $@;
 
 	#Prime the sort? Prevent variable suicide??
-	&{$Sort_field{'n'}}('31', '30');
+	&{$Vend::Interpolate::Sort_field{'n'}}('31', '30');
 
 eval {
 
@@ -3983,7 +3982,7 @@ sub discount_price {
 
 	if(! $code) {
 		($code, $extra) = ($item->{'code'}, $item->{mv_discount});
-		$quantity = $item->{$quantity} unless $quantity;
+		$quantity = $item->{quantity} unless $quantity;
 		$Vend::Session->{discount} = {}
 			if $extra and !$Vend::Session->{discount};
 	}
@@ -4535,7 +4534,6 @@ sub tag_ups {
 
 	$code = 'u' unless $code;
 
-print("Called zone '$code' lookup with type='$type' zip='$zip' weight='$weight'\n") if $Global::DEBUG;
 	unless (defined $Vend::Database{$type}) {
 		logError("UPS lookup called, no type file loaded for '$type'");
 		return undef;
@@ -4557,14 +4555,12 @@ print("Called zone '$code' lookup with type='$type' zip='$zip' weight='$weight'\
 	# here we can adapt for pounds/kg
 	if ($zref->{mult_factor}) {
 		$weight = $weight * $zref->{mult_factor};
-print("Zone '$code' weight now $weight\n") if $Global::DEBUG;
 	}
 	$weight = ceil($weight);
 
 	$zip = substr($zip, 0, ($zref->{str_length} || 3));
 	
 	@fieldnames = split /\t/, $zdata->[0];
-print("Fields: @fieldnames Num" . scalar @{$zdata} . "\n") if $Global::DEBUG;
 	for($i = 2; $i < @fieldnames; $i++) {
 		next unless $fieldnames[$i] eq $type;
 		$point = $i;
@@ -4576,12 +4572,10 @@ print("Fields: @fieldnames Num" . scalar @{$zdata} . "\n") if $Global::DEBUG;
 		return undef;
 	}
 
-print("Column $point for $type\n") if $Global::DEBUG;
 	for(@{$zdata}[1..$#{$zdata}]) {
 		@data = split /\t/, $_;
 		next unless ($zip ge $data[0] and $zip le $data[1]);
 		$zone = $data[$point];
-print("Found match with $zip, $zone\n") if $Global::DEBUG;
 		return 0 unless $zone ||= 0;
 		last;
 	}

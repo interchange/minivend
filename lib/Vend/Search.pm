@@ -482,10 +482,11 @@ EOF
 EOF
 			}
 			elsif ($col =~ tr/:/,/) {
+				$col =~ tr/ \t//d;
 				$wild_card = 1;
 				$col =~ s/[^\d,.]//g;
 			$code .= <<EOF;
-my \$addl = join " ", (split m{$g->{index_delim}}, \$line)[$col];
+my \$addl = join " ", (split m{\Q$g->{index_delim}\E}, \$line)[$col];
 \$line .= qq{$g->{index_delim}} . \$addl;
 EOF
 			}

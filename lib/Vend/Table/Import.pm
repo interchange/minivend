@@ -1,6 +1,6 @@
 # Table/Import.pm: import a table
 #
-# $Id: Import.pm,v 1.21 1999/02/15 08:51:52 mike Exp mike $
+# $Id: Import.pm,v 1.24 1999/06/07 08:08:28 mike Exp mike $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1999 by Mike Heins <mikeh@minivend.com>
@@ -20,7 +20,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::Import;
-$VERSION = substr(q$Revision: 1.21 $, 10);
+$VERSION = substr(q$Revision: 1.24 $, 10);
 
 require Exporter;
 @ISA = qw(Exporter);

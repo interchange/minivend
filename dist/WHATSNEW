@@ -1,6 +1,92 @@
 
                   W H A T ' S   N E W 
 
+MiniVend 3.14 is a bug fix release with a couple of new features:
+
+    * You can now specify a database in minivend.cfg. It becomes
+      global and is available in all catalogs. It also remains connected
+      all of the time, so no connection overhead exists. Careful; 
+      it is writable by any catalog unless you use WRITE_CONTROL
+      defined below.
+
+    * Added write control to all databases including SQL. If you wish to
+      control writing of a global database, or to a certain catalog within
+      a series of subcatalogs, or make one read only, you can do so.
+
+      To enable write control:
+
+        Database   products  WRITE_CONTROL  1
+
+      Once that is done, you can make a database read only, which won't
+      allow writing even if [tag flag write]products[/tag] is specified:
+
+        Database   products  READ_ONLY  1
+
+      If you want to have control with [tag flag write]products[/tag]:
+
+        Database   products  WRITE_TAGGED  1
+
+      If you want to limit write to certain catalogs, you can set:
+
+        Database   products  WRITE_CATALOG  simple=0, sample=1
+
+      The "simple" catalog will not be able to write, while "sample"
+      will if [tag flag write]products[/tag] is enabled.
+
+      If you want a database to be always writable without having
+      to specify [tag flag write] ... [/tag], then you can
+      define:
+
+        Database   products  WRITE_ALWAYS  1
+
+	  The default behavior of SQL datbases is equivalent to
+	  WRITE_ALWAYS, while the default for GDBM_File, DB_File,
+	  and Memory databases is equivalent to:
+
+        Database   products  WRITE_CONTROL 1
+        Database   products  WRITE_TAGGED  1
+
+	  As a side effect, I also removed the server error if a write
+	  fails on a DBM database. It simply doesn't write and logs
+	  the problem.
+
+    * Added a DbSearch.pm module which adds a new search type called
+      "db". This searches a SQL database with MiniVend search types,
+      or searches a MiniVend database instead of the ASCII file.
+
+      If it is a SQL table being searched, you can specify a coordinated
+      search and any "==" or "eq" operators will be used to filter the
+      initial search return. Otherwise, all rows of the database are
+      scanned upon each search. This can get slow, so you won't want to
+      do this for large tables.
+
+      The major difference between this and the TextSearch type is that
+      you must set base_directory to the table name/identifier of the
+      default database being searched; it defaults to 'products', which
+      is probably not what you want. This sets the field specifications
+      for the SQL qualification, so you must be careful. You can search
+      multiple tables, which will work well if the column names and orders
+      are the same. It will not work well if they are different, so it will
+      be rare when you want to search multiple tables.
+
+	Bug fixes:
+
+	* Set default for NewReport to "yes", which prevents the occasional
+	  problem with returning a bogus error report if mv_order_report is
+	  not set.
+	
+	* Fixed some weirdness in parsing certain search parameters, notably
+	  mv_sql_query and index search specifications.
+
+	* Changed sort variables to globals so that sorting should be
+	  reliable. I hope.
+
+	* Fixed quantity problem for [price code].
+
+	* Made mv_order_subject work for order routing.
+
+	* Order tracking now can be done in order routing.
+
 MiniVend 3.12 is a major release with multiple new features,
 particularly in the area of user access control.
 

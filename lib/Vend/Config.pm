@@ -156,6 +156,7 @@ sub global_directives {
 	['Mall',	          'yesno',           'No'],
 	['MaxServers',       'integer',          10],
 	['GlobalSub',		 'subroutine',       ''],
+	['Database',		 'database',         ''],
 	['FullUrl',			 'yesno',            'No'],
 	['Locale',			 'locale',            ''],
 	['HitCount',		 'yesno',            'No'],
@@ -307,7 +308,7 @@ sub catalog_directives {
     ['Tracking',		 'warn',     	     ''],
     ['BackendOrder',	 undef,     	     ''],
     ['SalesTax',		 undef,     	     ''],
-    ['NewReport',     	 'yesno', 			 'No'],
+    ['NewReport',     	 'yesno', 			 'Yes'],
     ['Static',   	 	 'yesno',     	     'No'],
     ['StaticAll',		 'yesno',     	     'No'],
     ['StaticDepth',		 undef,     	     '1'],
@@ -1223,6 +1224,7 @@ sub parse_locale {
             $c->{$_} = $sethash->{$_};
         }
 		if($item eq 'Locale') {
+			$Vend::Cfg->{DefaultLocale} = $name;
 			$c->{mon_thousands_sep} = ','
 				unless defined $c->{mon_thousands_sep};
 			$c->{decimal_point} = '.'
@@ -1556,8 +1558,9 @@ sub parse_catalog {
 }
 
 my %Hash_ref = (  qw!
-							COLUMN_DEF   COLUMN_DEF
-							NUMERIC      NUMERIC
+							COLUMN_DEF    COLUMN_DEF
+							NUMERIC       NUMERIC
+							WRITE_CATALOG WRITE_CATALOG
 					! );
 
 my %Ary_ref = (   qw!
@@ -1679,18 +1682,23 @@ sub parse_config_db {
 sub parse_database {
 	my ($var, $value) = @_;
 	my ($c, $new);
-	unless (defined $value && $value) { 
+
+	if (! $value) {
 		$c = {};
 		return $c;
 	}
-	$c = $C->{'Database'};
+
+	$c = $C ? $C->{Database} : $Global::Database;
 
 	my($database,$remain) = split /[\s,]+/, $value, 2;
 	
-	if($database ne 'products') {
+	if(! $C) {
+		# Do nada
+	}
+	elsif($database ne 'products') {
 		$new = 1 if ! defined $c->{$database};
 	}
-	elsif( defined $c->{$database}->{",default"} ) {
+	elsif(defined $c->{$database}->{",default"} ) {
 		$new = 1 if ($C->{BaseCatalog} || ! defined $c->{$database}->{",initialized"});
 		$c->{$database}->{",initialized"} = 1;
 	}
