@@ -931,7 +931,14 @@ sub col_chunk {
 
 #::logDebug("$tag content length=" . length($value));
 
-	die "duplicate tag settor $tag" if exists $outhash{$tag};
+	if(exists $outhash{$tag}) {
+		my $col = $tag;
+		$col =~ s/^COLUMN_//;
+		my $msg = errmsg("Column '%s' defined twice, skipping second.", $col);
+		Vend::Tags->warnings($msg);
+		return;
+	}
+
 	$outhash{$tag} = $value;
 
 	if(@others) {
@@ -1243,6 +1250,7 @@ sub resolve_options {
 		mv_data_table
 		mv_update_empty
 		nodelete
+		no_meta
 		output_map
 		panel_height
 		panel_id
