@@ -133,18 +133,16 @@ sub display_options {
 
 	my $inv_func;
 
-	use constant {
-		SEP_CODE		=> 0,
-		SEP_GROUP		=> 1,
-		SEP_VALUE		=> 2,
-		SEP_LABEL		=> 3,
-		SEP_WIDGET		=> 4,
-		SEP_PRICE		=> 5,
-		SEP_WHOLE		=> 6,
-		CODE			=> 0,
-		DESCRIPTION		=> 1,
-		PRICE			=> 2,
-	};
+	use constant SEP_CODE		=> 0;
+	use constant SEP_GROUP		=> 1;
+	use constant SEP_VALUE		=> 2;
+	use constant SEP_LABEL		=> 3;
+	use constant SEP_WIDGET		=> 4;
+	use constant SEP_PRICE		=> 5;
+	use constant SEP_WHOLE		=> 6;
+	use constant CODE			=> 0;
+	use constant DESCRIPTION	=> 1;
+	use constant PRICE			=> 2;
 
 #::logDebug("ready to query options");
 	if($opt->{display_type} eq 'separate') {
