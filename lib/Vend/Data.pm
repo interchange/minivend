@@ -897,7 +897,11 @@ sub import_database {
 #::logDebug("ready to try opening db $table_name") if ! $db;
 		eval { 
 			if($MVSAFE::Safe) {
-				$db = $Vend::Interpolate::Db{$class_config->{Class}}->open_table( $obj, $obj->{db_file} );
+                if (exists $Vend::Interpolate::Db{$class_config->{Class}}) {
+				    $db = $Vend::Interpolate::Db{$class_config->{Class}}->open_table( $obj, $obj->{db_file} );
+                } else {
+                    die errmsg("no access for database %s", $table_name);
+                }
 			}
 			else {
 				$db = $class_config->{Class}->open_table( $obj, $obj->{db_file} );
