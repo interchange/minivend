@@ -873,7 +873,7 @@ EOF
 # / is not allowed unless $Global::NoAbsolute is set.
 #
 sub readfile {
-    my($file, $no) = @_;
+    my($file, $no, $loc) = @_;
     my($contents);
     local($/);
 
@@ -893,7 +893,7 @@ sub readfile {
 	$contents = <READIN>;
 	close(READIN);
 
-	if ($Vend::Cfg->{Locale} and $Vend::Cfg->{Locale}->{readfile}) {
+	if ($Vend::Cfg->{Locale} and ($loc or $Vend::Cfg->{Locale}->{readfile}) ) {
 		my $key;
 		$contents =~ s~\[L(\s+([^\]]+))?\]([\000-\377]*?)\[/L\]~
 						$key = $2 || $3;		

@@ -87,7 +87,7 @@ my %PosNumber =	( qw!
                 html_table       0
                 if               1
                 import           2
-                include          1
+                include          2
                 input_filter     1
                 index            1
                 label            1
@@ -169,7 +169,7 @@ my %Order =	(
 				'index'			=> [qw( table )],
 				import 			=> [qw( table type )],
 				input_filter 	=> [qw( name )],
-				include			=> [qw( file )],
+				include			=> [qw( file locale )],
 				item_list		=> [qw( name )],
 				label			=> [qw( name )],
 				log				=> [qw( file )],
@@ -453,7 +453,7 @@ my %Routine = (
 				include			=> sub {
 									&Vend::Interpolate::interpolate_html(
 										&Vend::Util::readfile
-											($_[0], $Global::NoAbsolute)
+											($_[0], $Global::NoAbsolute, $_[1])
 										  );
 									},
 				input_filter	=> \&Vend::Interpolate::input_filter,
