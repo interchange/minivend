@@ -564,11 +564,6 @@ my %form_action = (
 	cancel	=> sub {
 					put_session();
 					get_session();
-					undef $Vend::username;
-					undef $Vend::admin;
-					undef $Vend::groups;
-					undef $Vend::superuser;
-					undef $Vend::login_table;
 					init_session();
 					$CGI::values{mv_nextpage} = find_special_page('canceled')
 						if ! $CGI::values{mv_nextpage};

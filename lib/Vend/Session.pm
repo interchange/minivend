@@ -460,6 +460,11 @@ sub session_name {
 
 
 sub init_session {
+	undef $Vend::username;
+	undef $Vend::admin;
+	undef $Vend::groups;
+	undef $Vend::superuser;
+	undef $Vend::login_table;
     $Vend::Session = {
 		'ohost'		=> $CGI::remote_addr,
 		'arg'		=> $Vend::Argument,
