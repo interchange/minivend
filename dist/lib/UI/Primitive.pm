@@ -470,9 +470,11 @@ sub list_tables {
 }
 
 sub list_images {
-	my ($base) = @_;
+	my ($base, $suf) = @_;
 	return undef unless -d $base;
-	my $suf = '\.(GIF|gif|JPG|JPEG|jpg|jpeg|png|PNG)';
+#::logDebug("passed suf=$suf");
+	$suf = '\.(GIF|gif|JPG|JPEG|jpg|jpeg|png|PNG)'
+		unless $suf;
 	my @names;
 	my $wanted = sub {
 					return undef unless -f $_;
@@ -952,7 +954,15 @@ sub meta_display {
 		}
 		elsif ($record->{type} eq 'imagedir') {
 			my $dir = $record->{'outboard'} || $column;
-			my @files = list_images($dir);
+			my $suf;
+			if($record->{options}) {
+				$suf = $record->{options};;
+				if($suf !~ /[\.|]/) {
+					my @types = grep /\S/, split /[,\s\0]+/, $suf;
+					$suf = '\.(' . join("|", @types) . ')';
+				}
+			}
+			my @files = list_images($dir, $suf);
 			$record->{type} = 'combo';
 			$record->{passed} = join ",",
 									map { s/,/&#44;/g; $_} @files;
