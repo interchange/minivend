@@ -3168,10 +3168,13 @@ sub labeled_list {
             }
 				if $opt_value;
         }
-		else {
-			$opt_value = lc($::Values->{$opt_value}) || undef;
-			$opt_select = sub { return "\L$_[0]" eq $opt_value }
-				if $opt_value;
+		elsif(defined $::Values->{$opt_value} and length $::Values->{$opt_value} ) {
+			$opt_value = lc($::Values->{$opt_value});
+			$opt_select = ! $opt->{multiple} 
+						  ? sub { return "\L$_[0]" eq $opt_value }
+						  : sub { $opt_value =~ /^$_[0](?:\0|$)/i or  
+						  		  $opt_value =~ /\0$_[0](?:\0|$)/i
+								  };
 		}
 	}
 
@@ -3470,10 +3473,11 @@ sub html_table {
 		my $splittor = quotemeta $opt->{record_delim} || "\n";
 		my (@rows) = split /$splittor/, $ary;
 		$na = [ split /$delimiter/, shift @rows ] if $opt->{th};
+::logDebug("html_table rows: " . ::uneval($na));
 		$ary = [];
 		my $count = scalar @$na || -1;
 		for (@rows) {
-			push @$ary, [split /\Q$delimiter/, $_, $count];
+			push @$ary, [split /$delimiter/, $_, $count];
 		}
 	}
 
@@ -4047,6 +4051,7 @@ sub read_shipping {
 	foreach $row (@shipping) {
 		my $cost = $row->[COST];
 		my $o = get_option_hash($row->[OPT]);
+		$row->[OPT] = $o;
 		my $zone;
 		if ($zone = $o->{zone} or $cost =~ s/^\s*c\s+(\w+)\s*//) {
 			$zone = $1 if ! $zone;
@@ -4903,6 +4908,9 @@ sub shipping {
 		last SHIPFORMAT unless defined $final;
 		unless ($o->{free}) {
 			return '' if $final == 0;
+			$o->{adder} =~ s/\bx\b/$final/g;
+			$o->{adder} =~ s/\@\@TOTAL\@\\?\@/$final/g;
+			$o->{adder} = $ready_safe->reval($o->{adder});
 			$final += $o->{adder} if $o->{adder};
 			$final = POSIX::ceil($final) if is_yes($o->{round});
 			if($o->{at_least}) {
