@@ -444,11 +444,7 @@ my %Prefix = (
 	cgiurl       =>  sub {
 							return $ENV{MVC_CGIURL} if $ENV{MVC_CGIURL};
 							my $url = '';
-						 	if ($Windows) {
-								$url .= $Conf{cgibase} . '/' .
-										$catalog_name  . '.exe';
-							}
-							elsif ($Conf{cgibase} eq '') {
+							if ($Conf{cgibase} eq '') {
 								$url =	$Tilde if defined $Tilde;
 								$url .=	'/' .
 										$catalog_name .
@@ -973,7 +969,7 @@ EOF
 	}
 
 	$Cfg->WriteConfig("$Configfile.new")
-		and rename "$Configfile.new", $Configfile;
+		and File::Copy::copy "$Configfile.new", $Configfile;
 
 	print "#########     END BASE CONFIGURATION      #########\n\n";
 
@@ -1052,7 +1048,7 @@ if($Removeconfig) {
 }
 elsif ( ! prefix('nocopy') ) {
 	$Cfg->WriteConfig("$Configfile.new")
-		and rename "$Configfile.new", $Configfile;
+		and File::Copy::copy "$Configfile.new", $Configfile;
 }
 
 undef $Cfg;
@@ -1172,9 +1168,7 @@ SETLINKMODE: {
 	}
 	if ($Windows) {
 		$Conf{linkmode} = 'INET';
-		$prog = -f "$Conf{relocate}$Conf{vendroot}/win/tlink.exe"
-				? "$Conf{relocate}$Conf{vendroot}/win/tlink.exe"
-				: "$Conf{relocate}$ProgRoot/win/tlink.exe";
+		$prog = "$Conf{relocate}$Conf{vendroot}/src/tlink.pl";
 		last SETLINKMODE;
 	}
 	print <<EOF;
@@ -1784,8 +1778,8 @@ POSTCMD: {
 		my ($newcfgline, $mark, @out);
 		my ($tmpfile) = "minivend.cfg.$$";
 		if (-f 'minivend.cfg') {
-			rename ("minivend.cfg", $tmpfile)
-				or die "\nCouldn't rename minivend.cfg: $!\n";
+			File::Copy::copy ("minivend.cfg", $tmpfile)
+				or die "\nCouldn't copy minivend.cfg: $!\n";
 		}
 		else {
 			File::Copy::copy('minivend.cfg.dist', $tmpfile);
@@ -1940,7 +1934,7 @@ makecat [--options] name
 
 =head1 VERSION
 
-$Id: makecat.PL,v 1.4 2000/03/25 21:51:48 racke Exp $
+$Id: makecat.PL,v 1.7 2000/04/16 00:19:12 mike Exp $
 
 =head1 INTRODUCTION
 

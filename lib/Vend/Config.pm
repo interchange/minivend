@@ -1,6 +1,6 @@
 # Config.pm - Configure Minivend
 #
-# $Id: Config.pm,v 1.2 2000/03/28 05:04:45 mike Exp $
+# $Id: Config.pm,v 1.4 2000/04/12 15:07:04 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -101,7 +101,7 @@ BEGIN {
 	};
 }
 
-$VERSION = substr(q$Revision: 1.2 $, 10);
+$VERSION = substr(q$Revision: 1.4 $, 10);
 
 for( qw(search refresh cancel return secure unsecure submit control checkout) ) {
 	$Global::LegalAction{$_} = 1;
@@ -113,6 +113,7 @@ qw/
 		PriceCommas
 		PriceDivide
 		PriceField
+		PriceDefault
 		SalesTax
 		TaxShipping
 
@@ -139,6 +140,7 @@ qw/
 @Locale_directives_scalar = (
 qw/
 		Autoload
+		AutoEnd
 		CommonAdjust
 		DescriptionField
 		ImageDir
@@ -148,6 +150,7 @@ qw/
 		PriceDivide
 		PriceCommas
 		PriceField
+		PriceDefault
 		SalesTax
 		StaticPath
 		HTMLsuffix
@@ -236,7 +239,7 @@ sub global_directives {
     ['DumpStructure',	 'yesno',     	     'No'],
     ['DisplayErrors',    'yesno',            'No'],
     ['TcpPort',          'warn',             ''],
-    ['TcpMap',           'hash',             '7786 mv_admin 7787 "" 7788 "" 7789 ""'],
+    ['TcpMap',           'hash',             ''],
 	['Environment',      'array',            ''],
     ['TcpHost',           undef,             'localhost 127.0.0.1'],
 	['SendMailProgram',  'executable',		$Global::SendMailLocation
@@ -324,6 +327,7 @@ sub catalog_directives {
 	['SessionLockFile',  undef,     		 'etc/session.lock'],
 	['Database',  		 'database',     	 ''],
 	['Autoload',		 undef,		     	 ''],
+	['AutoEnd',			 undef,		     	 ''],
 	['Replace',			 'replace',     	 ''],
 	['Member',		  	 'variable',     	 ''],
 	['WritePermission',  'permission',       'user'],
@@ -414,6 +418,7 @@ sub catalog_directives {
     ['OnFly',		 	 undef,     	     ''],
     ['HTMLmirror',		 'yesno',            'No'],
     ['DescriptionField', undef,              'description'],
+    ['PriceDefault',	 undef,              'price'],
     ['PriceField',		 undef,              'price'],
 	['Shipping',         'locale',           ''],
 
@@ -1492,6 +1497,8 @@ sub parse_special {
 sub parse_hash {
 	my($item,$settings) = @_;
 	return {} if ! $settings;
+	$settings =~ s/^\s+//;
+	$settings =~ s/\s+$//;
 	my(@setting) = Text::ParseWords::shellwords($settings);
 
 	my $c;
@@ -1507,6 +1514,7 @@ sub parse_hash {
 	my $i;
 	for ($i = 0; $i < @setting; $i += 2) {
 		$c->{$setting[$i]} = $setting[$i + 1];
+#::logDebug("$item hash $setting[$i]=$setting[$i+1]");
 	}
 	$c;
 }
@@ -1532,7 +1540,17 @@ my %IllegalValue = (
 );
 
 
+my $Have_set_global_defaults;
 my %Default = (
+		TcpMap => sub {
+							shift;
+							return 1 if defined $Have_set_global_defaults;
+							$Have_set_global_defaults = 1;
+							my (@sets) = keys %{$Global::TcpMap};
+							return 1 if @sets;
+							$Global::TcpMap->{7786} = '-';
+							return 1;
+						},
 
 		ProductFiles => sub {
 							shift;

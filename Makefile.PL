@@ -13,6 +13,7 @@ use Config;
 use File::Copy;
 use File::Path;
 use File::Basename;
+use File::Find;
 use Data::Dumper;
 use Cwd;
 require 5.005;
@@ -26,7 +27,7 @@ my $Prompt_sub;
 my @mods_to_get;
 my $Lock_troubles;
 
-$VERSION = '4.03';
+$VERSION = '4.04';
 
 # See if we have the CPAN module
 my $Cpan = 0;
@@ -45,8 +46,13 @@ unless($@) {
 	$Cpan = 1;
 }
 
-my @extra_lib_dirs;
-my @extra_lib_files;
+my @os_hints;
+eval {
+	# gets package 'mvhints'
+	require 'hints.pl';
+	@os_hints = mvhints::get_hints();
+};
+
 my @chown_files = qw/
 						error.log
 						etc
@@ -84,9 +90,7 @@ if($TermRead) {
 	};
 }
 
-if($^O =~ /win32/i) {
-	die "Windows is only supported for a binary distribution.\n";
-}
+my $Windows = $^O =~ /win32/i ? 1 : 0;
 
 sub compare_file {
 	my($first,$second) = @_;
@@ -224,177 +228,13 @@ EOF
 	return CPAN::install($module);
 }
 
-sub initialize {
-    my %X;
-    $X{INSTALLDIRS}     = "perl";
-	$X{EXE_FILES}  = [qw(
-							scripts/compile_link
-							scripts/config_prog
-							scripts/configdump
-							scripts/dump
-							scripts/expire
-							scripts/expireall
-							scripts/localize
-							scripts/makecat
-							scripts/minivend
-							scripts/offline
-							scripts/restart
-							scripts/update
-						)];
-	$X{PL_FILES}  = {qw(
-							scripts/compile_link.PL scripts/compile_link
-							scripts/config_prog.PL scripts/config_prog
-							scripts/configdump.PL  scripts/configdump
-							scripts/dump.PL        scripts/dump
-							scripts/expire.PL      scripts/expire
-							scripts/expireall.PL   scripts/expireall
-							scripts/localize.PL    scripts/localize
-							scripts/makecat.PL     scripts/makecat
-							scripts/minivend.PL    scripts/minivend
-							scripts/offline.PL     scripts/offline
-							scripts/restart.PL     scripts/restart
-							scripts/update.PL      scripts/update
-						)};
+sub extra_libs {
 
-	if(! $MV::Default{force} and ! $MV::Default{PREFIX}) {
-		if($> == 0) {
-			$MV::Default{PREFIX} = '/usr/local/minivend';
-		}
-		else {
-			$MV::Default{PREFIX} = "$ENV{HOME}/mvend";
-		}
-	}
-	if($MV::Default{rpmbuilddir} or $MV::Default{RPMBUILDDIR}) {
-		$X{RPMBUILDDIR} = $MV::Default{rpmbuilddir} || $MV::Default{RPMBUILDDIR};
-		$MV::Default{RPMBUILDDIR} = $X{RPMBUILDDIR};
-	}
-	my $uid;
-	if($> == 0 and ! $MV::Default{MINIVEND_USER}) {
-		$uid = my_prompt(
-			qq{MiniVend cannot be run as root. Which user should run MiniVend? },
-			'minivend',
-		);
-		open(UID, ">_uid")
-			or die "Can't write uid file: $!\n";
-		print UID "$uid";
-		close UID;
-	}
-	else {
-		eval {
-			$uid = scalar getpwuid($>);
-		};
-	}
-	return %X if $MV::Default{nocopy};
-	if($uid) {
-		open(UID, ">_uid")
-			or die "Can't write uid file: $!\n";
-		print UID "$uid";
-		close UID;
-	}
-	for(@Config{
-				  qw/
-					  archlib
-					  archlibexp
-					  privlib
-					  privlibexp
-					  sitearch
-					  sitearchexp
-					  sitelib
-					  sitelibexp
-				  /
-		})
-	{
-		die "Can't install in Perl library!\n" if $MV::Default{PREFIX} eq $_;
-	}
-
-	my $realdir;
-
-	if(! $MV::Default{final}) {
-		&copyright_prompt();
-
-		$realdir = my_prompt(
-								"Where is your MiniVend to be installed? ",
-								$MV::Default{PREFIX},
-								);
-		print "\n";
-		$realdir =~ s:[\\/]\s*$::;
-	}
-	else {
-		$realdir = $MV::Default{final};
-	}
-
-	$X{INSTALLSCRIPT}	= "$realdir/bin";
-	$X{INSTALLBIN}		= "$realdir/bin";
-	$X{INSTALLARCHLIB}	= "$realdir";
-	$X{INSTALLPRIVLIB}	= "$realdir/lib";
-	if(! $MV::Default{final}) {
-		$X{INSTALLMAN1DIR}	= "$realdir/doc"
-			if ! $MV::Default{INSTALLMAN1DIR};
-		$X{INSTALLMAN3DIR}	= "$realdir/doc"
-			if ! $MV::Default{INSTALLMAN3DIR};
-	}
-
-	if (! -f 'pod/mvtags.pod') {
-		chdir 'lib'
-			or die "Cannot chdir to ./lib: $!\n";
-		system("$^X Vend/Tagref.pm > ../pod/mvtags.pod");
-		chdir '..'
-			or die "Cannot chdir back to ..: $!\n";
-	}
-	my @re_dir  = qw( simple/download );
-	my @re_copy = qw(	
-						../pod/mvtags.pod simple/download/mvtags.pod
-						../pod/mvdocs.pod simple/download/mvdocs.pod
-						../pod/mvfaq.pod simple/download/mvfaq.pod
-						);
-
-	if($MV::Default{final}) {
-		$ = 0;
-		for(glob "_*") {
-			File::Copy::copy($_, $realdir);
-		}
-		open(MANI, "MANIFEST")
-			or die "No MANIFEST?\n";
-		my (@files) = <MANI>;
-		close MANI;
-		@files = grep m:^dist/:, @files;
-		chomp(@files);
-		@files = map { s:^dist/::; $_} @files;
-
-		# New install_file routine
-		chdir 'dist';
-		for (@re_dir) {
-			mkdir $_, 0777;
-		}
-		while ($_ = shift @re_copy ) {
-			my $from = $_;
-			my $to = shift @re_copy;
-			push @files, $to;
-			File::Copy::copy($from, $to);
-		}
-		for (@files) {
-			install_file('.', $realdir, $_);
-		}
-		if(-f "$realdir/_uid" and $> == 0) {
-			open(UID, "$realdir/_uid")
-				or die "Can't open uid file: $!\n";
-			my $uid = <UID>;
-			close UID;
-			$MV::Default{MINIVEND_UID} = getpwnam($uid);
-			$MV::Default{MINIVEND_GID} = getgrnam($uid);
-			for(@chown_files) {
-				chown	$MV::Default{MINIVEND_UID},
-						$MV::Default{MINIVEND_GID},
-						"$realdir/$_";
-			}
-		}
-		chdir '..';
-		exit;
-	}
-
-
+	my ($realdir) = @_;
 	# Do the extra library checks
 
+	my @extra_lib_dirs;
+	my @extra_lib_files;
 	# We will use our own version of File::CounterFile always
 	push @extra_lib_dirs, 'File';
 	push @extra_lib_files, 'File/CounterFile.pm';
@@ -472,28 +312,6 @@ EOF
 		}
 	}
 
-	MODCHECK: {
-
-		last MODCHECK unless $Cpan;
-		eval {
-				require MD5;
-			};
-		push(@mods_to_get, 'MD5') if $@ and $Cpan;
-		eval {
-				require SQL::Statement;
-			};
-		push(@mods_to_get, 'SQL::Statement') if $@ and $Cpan;
-		eval {
-				require MIME::Base64;
-			};
-		push(@mods_to_get, 'MIME::Base64') if $@ and $Cpan;
-		eval {
-				require URI::URL;
-			};
-		push(@mods_to_get, 'URI::URL') if $@ and $Cpan;
-
-	}
-
 	COPYEXTRA: {
 		my $cpdir = '.';
 		mkdir $cpdir, 0777 unless -d $cpdir;
@@ -507,7 +325,275 @@ EOF
 				or die "Couldn't copy $_: $!\n";
 		}
 	}
+}
 
+sub mk_initp {
+	my ($ref) = @_;
+	local($Data::Dumper::Terse);
+	$Data::Dumper::Terse = 1;
+	open (INITP, ">scripts/initp.pl")
+		or die "Can't write initp.pl: $!\n";
+	print INITP '$MV::Self = ';
+	print INITP Dumper($ref);
+	print INITP ";\n1;";
+	close INITP;
+}
+
+sub initialize {
+    my %X;
+    $X{INSTALLDIRS}     = "perl";
+	$X{EXE_FILES}  = [qw(
+							scripts/compile_link
+							scripts/config_prog
+							scripts/configdump
+							scripts/dump
+							scripts/expire
+							scripts/expireall
+							scripts/localize
+							scripts/makecat
+							scripts/minivend
+							scripts/offline
+							scripts/restart
+							scripts/update
+						)];
+	$X{PL_FILES}  = {qw(
+							scripts/compile_link.PL scripts/compile_link
+							scripts/config_prog.PL scripts/config_prog
+							scripts/configdump.PL  scripts/configdump
+							scripts/dump.PL        scripts/dump
+							scripts/expire.PL      scripts/expire
+							scripts/expireall.PL   scripts/expireall
+							scripts/localize.PL    scripts/localize
+							scripts/makecat.PL     scripts/makecat
+							scripts/minivend.PL    scripts/minivend
+							scripts/offline.PL     scripts/offline
+							scripts/restart.PL     scripts/restart
+							scripts/update.PL      scripts/update
+						)};
+
+	if(! $MV::Default{force} and ! $MV::Default{PREFIX}) {
+		if($> == 0) {
+			$MV::Default{PREFIX} = '/usr/local/minivend';
+		}
+		else {
+			$MV::Default{PREFIX} = "$ENV{HOME}/mvend";
+		}
+	}
+	if($MV::Default{rpmbuilddir} or $MV::Default{RPMBUILDDIR}) {
+		$X{RPMBUILDDIR} = $MV::Default{rpmbuilddir} || $MV::Default{RPMBUILDDIR};
+		$MV::Default{RPMBUILDDIR} = $X{RPMBUILDDIR};
+	}
+
+	return %X if $MV::Default{nocopy};
+
+	my $uid;
+	if($> == 0 and ! $MV::Default{MINIVEND_USER} and ! $Windows) {
+		$uid = my_prompt(
+			qq{MiniVend cannot be run as root. Which user should run MiniVend? },
+			'minivend',
+		);
+		open(UID, ">_uid")
+			or die "Can't write uid file: $!\n";
+		print UID "$uid";
+		close UID;
+	}
+	elsif (! $Windows) {
+		eval {
+			$uid = scalar getpwuid($>);
+		};
+	}
+
+	if($uid) {
+		open(UID, ">_uid")
+			or die "Can't write uid file: $!\n";
+		print UID "$uid";
+		close UID;
+	}
+	for(@Config{
+				  qw/
+					  archlib
+					  archlibexp
+					  privlib
+					  privlibexp
+					  sitearch
+					  sitearchexp
+					  sitelib
+					  sitelibexp
+				  /
+		})
+	{
+		die "Can't install in Perl library!\n" if $MV::Default{PREFIX} eq $_;
+	}
+
+	my $realdir;
+
+	if(! $MV::Default{final}) {
+		&copyright_prompt();
+
+		$realdir = my_prompt(
+								"Where is your MiniVend to be installed? ",
+								$MV::Default{PREFIX},
+								);
+		print "\n";
+		$realdir =~ s:[\\/]\s*$::;
+		$MV::Default{final} = $realdir if $Windows;
+	}
+	else {
+		$realdir = $MV::Default{final};
+	}
+
+	$X{INSTALLSCRIPT}	= "$realdir/bin";
+	$X{INSTALLBIN}		= "$realdir/bin";
+	$X{INSTALLARCHLIB}	= "$realdir";
+	$X{INSTALLPRIVLIB}	= "$realdir/lib";
+	if(! $MV::Default{final}) {
+		$X{INSTALLMAN1DIR}	= "$realdir/doc"
+			if ! $MV::Default{INSTALLMAN1DIR};
+		$X{INSTALLMAN3DIR}	= "$realdir/doc"
+			if ! $MV::Default{INSTALLMAN3DIR};
+	}
+
+	if (! -f 'pod/mvtags.pod') {
+		chdir 'lib'
+			or die "Cannot chdir to ./lib: $!\n";
+		system("$^X Vend/Tagref.pm > ../pod/mvtags.pod");
+		chdir '..'
+			or die "Cannot chdir back to ..: $!\n";
+	}
+	my @re_dir  = qw( simple/download );
+	my @re_copy = qw(	
+						../pod/mvtags.pod simple/download/mvtags.pod
+						../pod/mvdocs.pod simple/download/mvdocs.pod
+						../pod/mvfaq.pod simple/download/mvfaq.pod
+						);
+
+	if($Windows) {
+		mk_initp(\%X);
+		my ($in, $out);
+		my $ref = delete $X{PL_FILES};
+		if(! -d 'bin') {
+			File::Path::mkpath('bin');
+		}
+		my (@f);
+		while ( ($in, $out) = each %$ref) {
+			system "$^X $in";
+			if($?) {
+				die "Error making $in into $out: $!\n";
+			}
+			my $targ = $out;
+			$targ =~ s:.*/::;
+			File::Copy::copy($out, 'bin');
+			push @f, "bin/$targ";
+			system "pl2bat.bat $out";
+			if($?) {
+				warn "PL2BAT did not succeed for $out.\n";
+			}
+			else {
+				File::Copy::copy("$out.bat", 'bin');
+				push @f, "bin/$targ.bat";
+			}
+		}
+		# Check for extra needed libraries
+		extra_libs($realdir);
+		my $wanted = sub {
+				return unless -f $_;
+				push @f, $File::Find::name;
+		};
+		File::Find::find($wanted, 'lib');
+		for (@f) {
+			install_file('.', $realdir, $_);
+		}
+	}
+	if($MV::Default{final}) {
+		$ = 0;
+		for(glob "_*") {
+			File::Copy::copy($_, $realdir);
+		}
+		open(MANI, "MANIFEST")
+			or die "No MANIFEST?\n";
+		my (@files) = <MANI>;
+		close MANI;
+		@files = grep m:^dist/:, @files;
+		chomp(@files);
+		@files = map { s:^dist/::; $_} @files;
+
+		# New install_file routine
+		chdir 'dist';
+		for (@re_dir) {
+			mkdir $_, 0777;
+		}
+		while ($_ = shift @re_copy ) {
+			my $from = $_;
+			my $to = shift @re_copy;
+			push @files, $to;
+			File::Copy::copy($from, $to);
+		}
+		for (@files) {
+			install_file('.', $realdir, $_);
+		}
+		for(@os_hints) {
+			my ($condition, $routine) = @$_;
+			unless (ref($condition) =~ /CODE/ and ref($routine) =~ /CODE/) {
+				warn <<EOF;
+OS hint condititon and routine must be code reference, is
+
+	condition: $condition
+	routine:   $routine
+
+Skipping.
+EOF
+				next;
+			}
+			next unless $condition->();
+			my $odir = cwd();
+			chdir $realdir
+				or die "Cannot chdir to $realdir: $!\n";
+			$routine->();
+
+		}
+		if(-f "$realdir/_uid" and $> == 0) {
+			open(UID, "$realdir/_uid")
+				or die "Can't open uid file: $!\n";
+			my $uid = <UID>;
+			close UID;
+			$MV::Default{MINIVEND_UID} = getpwnam($uid);
+			$MV::Default{MINIVEND_GID} = getgrnam($uid);
+			for(@chown_files) {
+				chown	$MV::Default{MINIVEND_UID},
+						$MV::Default{MINIVEND_GID},
+						"$realdir/$_";
+			}
+		}
+		chdir '..';
+		exit;
+	}
+
+
+	MODCHECK: {
+		last MODCHECK unless $Cpan;
+		eval {
+				require Digest::MD5;
+			};
+		push(@mods_to_get, 'Digest::MD5') if $@ and $Cpan;
+		eval {
+				require SQL::Statement;
+			};
+		push(@mods_to_get, 'SQL::Statement') if $@ and $Cpan;
+		eval {
+				require Safe::Hole;
+			};
+		push(@mods_to_get, 'Safe::Hole') if $@ and $Cpan;
+		eval {
+				require MIME::Base64;
+			};
+		push(@mods_to_get, 'MIME::Base64') if $@ and $Cpan;
+		eval {
+				require URI::URL;
+			};
+		push(@mods_to_get, 'URI::URL') if $@ and $Cpan;
+	}
+
+	local($);
 	$ = 0;
 
 	MODGET: {
@@ -534,13 +620,10 @@ EOF
 			or die "Couldn't return to original dir $odir: $!\n";
 	}
 
-	$Data::Dumper::Terse = 1;
-	open (INITP, ">scripts/initp.pl")
-		or die "Can't write initp.pl: $!\n";
-	print INITP '$MV::Self = ';
-	print INITP Dumper(\%X);
-	print INITP ";\n1;";
-	close INITP;
+	# Check for extra needed libraries
+	extra_libs($realdir);
+
+	mk_initp(\%X);
 	delete $X{RPMBUILDDIR};
     return \%X;
 }
@@ -624,26 +707,31 @@ EOF
 #	print "OPT: " . Dumper(\%MV::Default);
 	@ARGV = grep ! $delete{$_}, @saveargs;
 
-WriteMakefile(
-	NAME       => "MiniVend",
-	MAN3PODS => {
-					'pod/mvdocs.pod' => 'blib/man3/mvdocs.8',
-					'pod/mvtags.pod' => 'blib/man3/mvtags.8',
-					'pod/mvfaq.pod' => 'blib/man3/mvfaq.8',
-					},
-	DISTNAME => "minivend",
-	clean    => {
-	            FILES=> "lib/IniConf.pm _uid _db_storable _session_storable lib/File/CounterFile.pm scripts/initp.pl scripts/compile_link scripts/config_prog scripts/configdump scripts/dump scripts/expire scripts/localize scripts/expireall scripts/makecat scripts/minivend scripts/offline scripts/restart scripts/update dist/simple/download/mvdocs.pod dist/simple/download/mvtags.pod dist/simple/download/mvfaq.pod pod/mvtags.pod",
-	           },
+if($Windows) {
+	&initialize;
+}
+else {
+	WriteMakefile(
+		NAME       => "MiniVend",
+		MAN3PODS => {
+						'pod/mvdocs.pod' => 'blib/man3/mvdocs.8',
+						'pod/mvtags.pod' => 'blib/man3/mvtags.8',
+						'pod/mvfaq.pod' => 'blib/man3/mvfaq.8',
+						},
+		DISTNAME => "minivend",
+		clean    => {
+					FILES=> "lib/IniConf.pm _uid _db_storable _session_storable lib/File/CounterFile.pm scripts/initp.pl scripts/compile_link scripts/config_prog scripts/configdump scripts/dump scripts/expire scripts/localize scripts/expireall scripts/makecat scripts/minivend scripts/offline scripts/restart scripts/update dist/simple/download/mvdocs.pod dist/simple/download/mvtags.pod dist/simple/download/mvfaq.pod pod/mvtags.pod",
+				   },
 
-	dist     => {
-					CI => "ci -l -t-Initial",
-					SUFFIX   => ".gz",
-					DIST_DEFAULT => 'all tardist',
-					COMPRESS => "gzip -9f",
-					ZIP_FLAGS => '-pr9',
-				},
-	VERSION_FROM => "scripts/minivend.PL",
-	EXE_FILES  => [],
-	CONFIGURE  => \&initialize,
-);
+		dist     => {
+						CI => "ci -l -t-Initial",
+						SUFFIX   => ".gz",
+						DIST_DEFAULT => 'all tardist',
+						COMPRESS => "gzip -9f",
+						ZIP_FLAGS => '-pr9',
+					},
+		VERSION_FROM => "scripts/minivend.PL",
+		EXE_FILES  => [],
+		CONFIGURE  => \&initialize,
+	);
+}

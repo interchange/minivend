@@ -25,7 +25,7 @@ DOIT: {
 #
 # MiniVend version 4.0xxx
 #
-# $Id: minivend.PL,v 1.4 2000/03/28 04:28:06 mike Exp $
+# $Id: minivend.PL,v 1.7 2000/04/16 00:19:12 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -124,7 +124,7 @@ use vars qw($VERSION);
 require Exporter;
 
 BEGIN {
-	$VERSION = '4.03';
+	$VERSION = '4.04';
 }
 
 
@@ -188,35 +188,6 @@ BEGIN {
 			unless defined $Global::Default_database;
 	require Vend::Table::InMemory;
 }
-
-
-eval {
-	package Vend::Order;
-	require CCLib;
-	$Vend::CC2 = 1;
-	my $ver = $CCLib::VERSION || '2.1';
-	::logGlobal({}, "CyberCash module found (Version %s)", $ver )
-		unless $Vend::Quiet;
-};
-
-$Vend::CyberCash = ! $@;
-
-eval {
-	package Vend::Order;
-	require CCMckLib3_2 ;
-	import CCMckLib3_2 qw/InitConfig %Config $MCKversion/;
-	require CCMckDirectLib3_2;
-	import CCMckDirectLib3_2 qw/SendCC2_1Server doDirectPayment/;
-	require CCMckErrno3_2;
-	import CCMckErrno3_2 qw/MCKGetErrorMessage/;
-	$Vend::CC3 = 1;
-	$Vend::CC3server = 0;
-	my $ver = $CCMckLib3_2::VERSION || '3.x';
-	::logGlobal({}, "CyberCash module found (Version %s)", $ver )
-		unless $Vend::Quiet;
-};
-
-$Vend::CyberCash = $Vend::CyberCash || ! $@;
 
 
 use Vend::Util;
@@ -1189,7 +1160,7 @@ sub dispatch {
 
 	adjust_cgi();
 
-    my($sessionid, $path);
+    my($sessionid);
 	my(@path);
 	my($g, $action);
 
@@ -1473,14 +1444,18 @@ EOF
 	$CGI::pragma = 'no-cache'
 		if delete $Vend::Session->{scratch}{mv_no_cache};
 
-	$path = $Vend::Session->{last_url} = $CGI::path_info;
-	if(	defined $Vend::Session->{one_time_path_alias}{$path} ) {
-		$CGI::path_info = $path = delete $Vend::Session->{one_time_path_alias}{$path};
+	$Vend::FinalPath = $Vend::Session->{last_url} = $CGI::path_info;
+	if(	defined $Vend::Session->{one_time_path_alias}{$Vend::FinalPath} ) {
+		$CGI::path_info
+					= $Vend::FinalPath
+					= delete $Vend::Session->{one_time_path_alias}{$Vend::FinalPath};
 	} 
-	elsif( defined $Vend::Session->{path_alias}{$path}	) {
-		$CGI::path_info = $path = $Vend::Session->{path_alias}{$path};
+	elsif( defined $Vend::Session->{path_alias}{$Vend::FinalPath}	) {
+		$CGI::path_info
+					= $Vend::FinalPath
+					= $Vend::Session->{path_alias}{$Vend::FinalPath};
 	}
-    url_history($path) if $Vend::Cfg->{History};
+    url_history($Vend::FinalPath) if $Vend::Cfg->{History};
 
 	if($Vend::Cfg->{DisplayErrors} and $Global::DisplayErrors) {
 		$SIG{"__DIE__"} = sub {
@@ -1497,11 +1472,11 @@ EOF
 
 # LEGACY
 	ROUTINES: {
-		last ROUTINES unless index($path, '/process/') == 0;
-		while ($path =~ s:/process/(locale|language|currency)/([^/]*)/:/process/:) {
+		last ROUTINES unless index($Vend::FinalPath, '/process/') == 0;
+		while ($Vend::FinalPath =~ s:/process/(locale|language|currency)/([^/]*)/:/process/:) {
 			$Vend::Session->{scratch}->{"mv_$1"} = $2;
 		}
-		$path =~ s:/process/page/:/:;
+		$Vend::FinalPath =~ s:/process/page/:/:;
 	}
 	my $locale;
 	if($locale = $Vend::Session->{scratch}->{mv_language}) {
@@ -1526,21 +1501,17 @@ EOF
 # END LEGACY
 
 	my $macro;
-	if (
-		defined $Vend::Cfg->{Autoload} and
-		$macro = $Vend::Cfg->{Autoload}
-		)
-	{
+	if ($macro = $Vend::Cfg->{Autoload}) {
 		if($macro =~ /\[\w+/) {
 			interpolate_html($macro);
 		}
+		elsif ($macro =~ /^\w+$/) {
+			my $sub = $Vend::Cfg->{Sub}{$macro} || $Global::GlobalSub->{$macro};
+			$sub->();
+		}
 	}
 
-	if (
-		defined $Vend::Cfg->{Filter} and
-		$macro = $Vend::Cfg->{Filter}
-		)
-	{
+	if ($macro = $Vend::Cfg->{Filter}) {
 		for(keys %$macro) {
 			Vend::Interpolate::input_filter_do($_, { 'op' => $macro->{$_} } );
 		}
@@ -1573,28 +1544,27 @@ EOF
 
     # If the cgi-bin program was invoked with no extra path info,
     # just display the catalog page.
-    if (! $path || $path =~ m:^/+$:) {
-		$path = find_special_page('catalog');
+    if (! $Vend::FinalPath || $Vend::FinalPath =~ m:^/+$:) {
+		$Vend::FinalPath = find_special_page('catalog');
     }
 
-	$path =~ s:^/+::;
-	$path =~ s/\.html?$//;
-#::logDebug("path=$path");
-	$Vend::FinalPath = $path;
-    @path = split('/', $path, 2);
+	$Vend::FinalPath =~ s:^/+::;
+	$Vend::FinalPath =~ s/\.html?$//;
+#::logDebug("path=$Vend::FinalPath");
+
+    @path = split('/', $Vend::FinalPath, 2);
 	if (defined $CGI::values{mv_action}) {
 		$Vend::Action = 'process';
 		$CGI::values{mv_todo} = $CGI::values{mv_action}
 			if ! defined $CGI::values{mv_todo} and ! defined $CGI::values{mv_doit};
-		$CGI::values{mv_nextpage} = $path
+		$CGI::values{mv_nextpage} = $Vend::FinalPath
 			if ! defined $CGI::values{mv_nextpage};
 	}
 	else {
 		$Vend::Action = shift @path;
-		$Vend::FinalPath = join "", @path;
 	}
 
-#::logDebug("action=$Vend::Action path=$path");
+#::logDebug("action=$Vend::Action path=$Vend::FinalPath");
 	my ($sub, $status);
 	Vend::Interpolate::reset_calc();
 	if(defined $Vend::Cfg->{ActionMap}{$Vend::Action}) {
@@ -1603,8 +1573,8 @@ EOF
 		$CGI::values{mv_nextpage} = $Vend::FinalPath
 			if ! defined $CGI::values{mv_nextpage};
 	}
-	elsif ( ! defined ($sub = $action{$Vend::Action}) )  {
-		$Vend::FinalPath = $path;
+	elsif ( defined ($sub = $action{$Vend::Action}) )  {
+		$Vend::FinalPath = join "", @path;
 	}
 
 	eval {
@@ -1632,12 +1602,22 @@ EOF
 		::response($template);
 	}
 
-	$CGI::values{mv_nextpage} = $path
+	$CGI::values{mv_nextpage} = $Vend::FinalPath
 		if ! defined $CGI::values{mv_nextpage};
 
 	do_page() if $status;
 
 #::logDebug ("end dispatch: " . (join " ", times()) . "\n");
+
+	if(my $macro = $Vend::Cfg->{AutoEnd}) {
+		if($macro =~ /\[\w+/) {
+			interpolate_html($macro);
+		}
+		elsif ($macro =~ /^\w+$/) {
+			$sub = $Vend::Cfg->{Sub}{$macro} || $Global::GlobalSub->{$macro};
+			$sub->();
+		}
+	}
 
 	put_session() if $Vend::HaveSession;
 	close_database();
@@ -2082,10 +2062,40 @@ sub main_loop {
 	$Global::PIDfile = "$Global::ConfDir/minivend.pid";
 	$Vend::mode = 'serve';      # mode will be reset by options if appropriate
 	parse_options() or die usage() . "\n";
-	if($> == 0) {
+	if($> == 0 and ! $Global::Windows) {
 		die errmsg("The Minivend server must not be run as root.\n")
 			unless $ENV{MINIVEND_ROOT} =~ m{/blib$};
 	}
+
+	## Moved here to prevent unwanted messages
+	eval {
+		package Vend::Order;
+		require CCLib;
+		$Vend::CC2 = 1;
+		my $ver = $CCLib::VERSION || '2.1';
+		::logGlobal({}, "CyberCash module found (Version %s)", $ver )
+			unless $Vend::Quiet;
+	};
+
+	$Vend::CyberCash = ! $@;
+
+	eval {
+		package Vend::Order;
+		require CCMckLib3_2 ;
+		import CCMckLib3_2 qw/InitConfig %Config $MCKversion/;
+		require CCMckDirectLib3_2;
+		import CCMckDirectLib3_2 qw/SendCC2_1Server doDirectPayment/;
+		require CCMckErrno3_2;
+		import CCMckErrno3_2 qw/MCKGetErrorMessage/;
+		$Vend::CC3 = 1;
+		$Vend::CC3server = 0;
+		my $ver = $CCMckLib3_2::VERSION || '3.x';
+		::logGlobal({}, "CyberCash module found (Version %s)", $ver )
+			unless $Vend::Quiet;
+	};
+
+	$Vend::CyberCash = $Vend::CyberCash || ! $@;
+
 	delete $INC{'FindBin.pm'};
 	delete $INC{'Getopt/Long.pm'};
 	$Global::ErrorFile = "$Global::VendRoot/error.log"
@@ -2279,6 +2289,7 @@ Contributions to MiniVend have been made by:
     Brian Bullen           
     Bruce Albrecht         
     Christian Mueller
+	Christopher Thompson
     Don Grodecki           
     Frank Bonita           
     Gunnar Hellekson       

@@ -1,7 +1,7 @@
 #!/usr/bin/perl -wT
 # tlink.pl: runs as a cgi program and passes request to Vend server
 #
-#   $Id: tlink.pl,v 1.1.1.1 2000/03/09 19:08:20 mike Exp $
+#   $Id: tlink.pl,v 1.2 2000/04/16 00:18:27 mike Exp $
 #
 # Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -135,7 +135,7 @@ sub send_entity {
 $SIG{PIPE} = sub { die_page("signal"); };
 $SIG{ALRM} = sub { server_not_running(); exit 1; };
 
-alarm $LINK_TIMEOUT;
+eval { alarm $LINK_TIMEOUT; };
 
 my ($remote, $port, $iaddr, $paddr, $proto, $line);
 

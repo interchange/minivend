@@ -1,6 +1,6 @@
 # Error.pm - Handle MiniVend error pages and messages
 # 
-# $Id: Error.pm,v 1.1.1.1 2000/03/09 19:08:21 mike Exp $
+# $Id: Error.pm,v 1.2 2000/04/02 10:20:34 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -37,7 +37,7 @@ use strict;
 
 use vars qw/$VERSION/;
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.1.1.1 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.2 $ =~ /(\d+)\.(\d+)/);
 
 my $wantref = 1;
 
@@ -95,8 +95,9 @@ EOF
 		$out .= "$_: $Vend::Session->{$_}\n";
 	}
 
-	for(keys %$::Carts) {
-		$out .= scalar @{$::Carts->{$_}};
+	for(keys %{$Vend::Session->{carts}} ) {
+		next if ! $Vend::Session->{carts}->{$_};
+		$out .= scalar @{$Vend::Session->{carts}->{$_}};
 		$out .= " items in $_ cart.\n";
 	}
 	return $out;

@@ -1,3 +1,27 @@
+Minivend-4.04 changes:
+* Demo: Fixed COLSPAN=0 in logo bars -- it was killing Gecko rendering.
+* Demo: fixed email password function
+* Makefile.PL adjusts for BSD MaxServers
+* Added README notes about BSD and MaxServers.
+* Config.pm: added AutoEnd to match Autoload
+* Interpolate.pm: fixed bug in shipping which prevented old-style
+  geographic qualification from working -- thanks to Bob Jordan.
+* Order.pm: fixed multi-item order / mv_order_group problem
+* Session.pm: changed session retries to internal code. Thanks to
+  Jim Balster.
+* UserDB.pm: added "load" function to complement "save". Thanks to
+  Christopher Thompson.
+* Util.pm: changed Data::Dumper::Indent setting to localize
+* makecat now handles symlinked minivend.cfg
+* minivend executable: 
+   -- AutoEnd added 
+   -- adjusted path settings so that FinalPath can be set in Autoload
+   -- Added ability to call GlobalSub as Autoload when matches /^\w+$/
+   -- cleaned up macro calls (remove redundant/unneeded defined checks)
+* doc updates -- thanks to Jeff Carnahan, Hans-Joachim Leidinger, and Bill Randle.
+* Fixed major problems in [sort ....], now works
+* Added vestigial Windows install
+
 Minivend-4.03 changes:
 * MiniMate now a part of Minivend
 * Fixed partial update problems with SQL databases

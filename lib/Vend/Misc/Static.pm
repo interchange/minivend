@@ -1,6 +1,6 @@
 # Static.pm - MiniVend static page routines
 # 
-# $Id: Static.pm,v 1.1.1.1 2000/03/09 19:08:21 mike Exp $
+# $Id: Static.pm,v 1.2 2000/04/02 10:20:56 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -52,7 +52,9 @@ sub fake_scan {
 	my $c = { mv_search_immediate => 1 };
 	find_search_params($c,$path);
 	return undef if $c->{mv_more_matches};
-	return ::perform_search($c);
+	::perform_search($c);
+	$page = readin($CGI::values{mv_nextpage} || ::find_special_page('results'));
+	return ::interpolate_html($page, 1);
 }
 
 # STATICPAGE
@@ -118,7 +120,7 @@ sub build_page {
 					$Vend::Cfg->{StaticPage}{"scan/$search"}
 						=~ s/$Vend::Cfg->{StaticSuffix}$//o;
 					push @post, $Vend::Found_scan{$search};
-					Vend::Util::writefile(">$dir/$file", $newpage)
+					Vend::Util::writefile(">$dir/$file", $$newpage)
 						or die "Couldn't write $dir/$file: $!\n";
 					if($Vend::ScanName) {
 						eval {

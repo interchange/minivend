@@ -4,7 +4,7 @@ mvfaq - MiniVend FAQ
 
 =head2 VERSION
 
-Document version: $Id: mvfaq.pod,v 1.4 2000/03/28 05:37:15 mike Exp $
+Document version: $Id: mvfaq.pod,v 1.5 2000/04/02 10:21:09 mike Exp $
 
 This document describes MiniVend 4.0 and later.
 
@@ -84,7 +84,7 @@ ones.
 
 These modules are strongly recommended:
 
-    MD5
+    Digest::MD5
     MIME::Base64
     SQL::Statement
     URI::URL
@@ -2553,6 +2553,9 @@ of passing a parameter).
 =head1 CHANGES
 
 $Log: mvfaq.pod,v $
+Revision 1.5  2000/04/02 10:21:09  mike
+* minor updates
+
 Revision 1.4  2000/03/28 05:37:15  mike
 Minor pod warning fixes.
 

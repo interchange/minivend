@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# $Id: UserDB.pm,v 1.2 2000/03/18 16:04:49 mike Exp $
+# $Id: UserDB.pm,v 1.3 2000/04/12 15:07:04 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -8,7 +8,7 @@
 
 package Vend::UserDB;
 
-$VERSION = substr(q$Revision: 1.2 $, 10);
+$VERSION = substr(q$Revision: 1.3 $, 10);
 
 use vars qw! $VERSION @S_FIELDS @B_FIELDS @P_FIELDS %S_to_B %B_to_S!;
 
@@ -1275,6 +1275,14 @@ sub userdb {
 			return undef;
 		}
 		$status = $user->set_values();
+	}
+	elsif($function eq 'load') {
+		$user = new Vend::UserDB %options;
+		unless (defined $user) {
+			$Vend::Session->{failure} = "Unable to access user database.";
+			return undef;
+		}
+		$status = $user->get_values();
 	}
 	else {
 		$user = new Vend::UserDB %options;

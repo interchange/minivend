@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # Interpolate.pm - Interpret MiniVend tags
 # 
-# $Id: Interpolate.pm,v 1.5 2000/03/25 07:16:49 mike Exp $
+# $Id: Interpolate.pm,v 1.10 2000/04/16 00:18:43 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -32,7 +32,7 @@ package Vend::Interpolate;
 require Exporter;
 @ISA = qw(Exporter);
 
-$VERSION = substr(q$Revision: 1.5 $, 10);
+$VERSION = substr(q$Revision: 1.10 $, 10);
 
 @EXPORT = qw (
 
@@ -715,6 +715,8 @@ sub tag_data {
 						}
 						$out .= "$anchor</A>";
 				},
+	'tt' =>			sub { return '<TT>' . shift(@_) . '</TT>'; },
+	'pre' =>		sub { return '<PRE>' . shift(@_) . '</PRE>'; },
 	'bold' =>		sub { return '<B>' . shift(@_) . '</B>'; },
 	'italics' =>	sub { return '<I>' . shift(@_) . '</I>'; },
 	'strikeout' =>	sub { return '<strike>' . shift(@_) . '</strike>'; },
@@ -1290,7 +1292,13 @@ EOF
 		$value =~ s/"/&quot;/g;
 
 		$value eq '' and $default eq '' and $select = "CHECKED";
-		$default =~ /\b\Q$value\E\b/ and $select = "CHECKED" if length($value);
+
+		if(length $value) {
+			my $regex	= $opt->{contains}
+						? qr/\Q$value\E/ 
+						: qr/\b\Q$value\E\b/;
+			$default =~ $regex and $select = "CHECKED";
+		}
 
 		$label =~ s/ /&nbsp;/g if $xlt;
 
@@ -1359,10 +1367,13 @@ sub tag_accessories {
 		if "\L$type" eq 'hidden';
 	return qq|<INPUT TYPE="hidden" NAME="$name" VALUE="$attrib_value">$attrib_value|
 		if $type =~ /hidden/;
-	return qq|<TEXTAREA NAME="$name" ROWS=$1 COLS=$2>$attrib_value</TEXTAREA>|
-		if "\L$type" =~ /^textarea_(\d+)_(\d+)$/;
-	return qq|<INPUT TYPE=text NAME="$name" SIZE=$1 VALUE="$attrib_value">|
-		if "\L$type" =~ /^text_(\d+)$/;
+	if($type =~ /^text/i) {
+		HTML::Entities::encode($attrib_value);
+		return qq|<TEXTAREA NAME="$name" ROWS=$1 COLS=$2>$attrib_value</TEXTAREA>|
+			if "\L$type" =~ /^textarea_(\d+)_(\d+)$/;
+		return qq|<INPUT TYPE=text NAME="$name" SIZE=$1 VALUE="$attrib_value">|
+			if "\L$type" =~ /^text_(\d+)$/;
+	}
 
 	my ($default, $label, $select, $value, $run);
 	my @opts = split /\s*,\s*/, $data;
@@ -1520,7 +1531,12 @@ sub tag_perl {
 	$ready_safe->share(@share) if @share;
 
 	$MVSAFE::Safe = 1;
-	if($opt->{global} and $Global::AllowGlobal->{$Vend::Cfg->{CatalogName}}) {
+	if (
+		$opt->{global}
+			and
+		$Global::AllowGlobal->{$Vend::Cfg->{CatalogName}}
+		)
+	{
 		$MVSAFE::Safe = 0 unless $MVSAFE::Unsafe;
 	}
 
@@ -2412,39 +2428,29 @@ my (@Opts);
 my (@Flds);
 my %Sort = (
 
-	''	=> sub { $a cmp $b				},
-	none	=> sub { $a cmp $b				},
-	f	=> sub { (lc $a) cmp (lc $b)	},
-	fr	=> sub { (lc $b) cmp (lc $a)	},
+	''	=> sub { $_[0] cmp $_[1]				},
+	none	=> sub { $_[0] cmp $_[1]				},
+	f	=> sub { (lc $_[0]) cmp (lc $_[1])	},
+	fr	=> sub { (lc $_[1]) cmp (lc $_[0])	},
     l  => sub {
-            my ($a1,$a2) = split /[,.]/, $a, 2;
-            my ($b1,$b2) = split /[,.]/, $b, 2;
+            my ($a1,$a2) = split /[,.]/, $_[0], 2;
+            my ($b1,$b2) = split /[,.]/, $_[1], 2;
             return $a1 <=> $b1 || $a2 <=> $b2;
     },  
     lr  => sub {
-            my ($a1,$a2) = split /[,.]/, $a, 2;
-            my ($b1,$b2) = split /[,.]/, $b, 2;
+            my ($a1,$a2) = split /[,.]/, $_[0], 2;
+            my ($b1,$b2) = split /[,.]/, $_[1], 2;
             return $b1 <=> $a1 || $b2 <=> $a2;
     },      
-	n	=> sub { $a <=> $b				},
-	nr	=> sub { $b <=> $a				},
-	r	=> sub { $b cmp $a				},
+	n	=> sub { $_[0] <=> $_[1]				},
+	nr	=> sub { $_[1] <=> $_[0]				},
+	r	=> sub { $_[1] cmp $_[0]				},
 );
 
 @Sort{qw/rf rl rn/} = @Sort{qw/fr lr nr/};
 
 use vars qw/%Sort_field/;
 %Sort_field = %Sort;
-
-sub field_sort {
-	my(@a) = split /\t/, $a;
-	my(@b) = split /\t/, $b;
-	my ($r, $i);
-	for($i = 0; $i < @Flds; $i++) {
-		$r = &{$Vend::Interpolate::Sort_field{$Opts[$i]}}($a[$Flds[$i]], $b[$Flds[$i]]);
-		return $r if $r;
-	}
-}
 
 sub tag_sort_ary {
     my($opts, $list) = (@_); 
@@ -2455,6 +2461,7 @@ sub tag_sort_ary {
 	my $key = 0;
 
 	my ($start, $end, $num);
+	my $glob_opt = 'none';
 
     my @opts =  split /\s+/, $opts;
     my @option; my @bases; my @fields;
@@ -2462,8 +2469,9 @@ sub tag_sort_ary {
     for(@opts) {
         my ($base, $fld, $opt) = split /:/, $_;
 
-		if($base =~ /^([-\d]\d*)$/) {
+		if($base =~ /^(\d+)$/) {
 			$key = $1;
+			$glob_opt = $fld || $opt || 'none';
 			next;
 		}
 		if($base =~ /^([-=+])(\d+)-?(\d*)/) {
@@ -2493,18 +2501,18 @@ sub tag_sort_ary {
 			$routine .= '&{$Vend::Interpolate::Sort_field{"' .
 						$option[$i] .
 						'"}}(' . "\n";
-			$routine .= "tag_data('$bases[$i]','$fields[$i]', \$a->[$key]),\n";
-			$routine .= "tag_data('$bases[$i]','$fields[$i]', \$b->[$key]) ) or ";
+			$routine .= "tag_data('$bases[$i]','$fields[$i]', \$_[0]->[$key]),\n";
+			$routine .= "tag_data('$bases[$i]','$fields[$i]', \$_[1]->[$key]) ) or ";
 	}
-	$routine .= '0 or &{$Vend::Interpolate::Sort_field{none}}';
-	$routine .= '($a->[$key],$b->[$key]); }';
+	$routine .= qq!0 or &{\$Vend::Interpolate::Sort_field{"$glob_opt"}}!;
+	$routine .= '($_[0]->[$key],$_[1]->[$key]); }';
 #::logDebug("tag_sort_ary routine: $routine\n");
 
     my $code = eval $routine;  
     die "Bad sort routine\n" if $@;
 
 	#Prime the sort? Prevent variable suicide??
-	&{$Vend::Interpolate::Sort_field{'n'}}('31', '30');
+	#&{$Vend::Interpolate::Sort_field{'n'}}('31', '30');
 
 	use locale;
 	if($::Scratch->{mv_locale}) {
@@ -2512,7 +2520,7 @@ sub tag_sort_ary {
 			$::Scratch->{mv_locale});
 	}
 
-	@codes = sort {&$code} @$list;
+	@codes = sort {&$code($a, $b)} @$list;
 
 	if(defined $start and $start > 1) {
 		splice(@codes, 0, $start - 1);
@@ -2534,14 +2542,16 @@ sub tag_sort_hash {
 	my $key = 'code';
 
 	my ($start, $end, $num);
+	my $glob_opt = 'none';
 
     my @opts =  split /\s+/, $opts;
     my @option; my @bases; my @fields;
 
     for(@opts) {
 
-		if(/^(\w+)$/) {
+		if(/^(\w+)(:([flnr]+))?$/) {
 			$key = $1;
+			$glob_opt = $3 || 'none';
 			next;
 		}
 		if(/^([-=+])(\d+)-?(\d*)/) {
@@ -2577,18 +2587,18 @@ sub tag_sort_hash {
 			$routine .= '&{$Vend::Interpolate::Sort_field{"' .
 						$option[$i] .
 						'"}}(' . "\n";
-			$routine .= "tag_data('$bases[$i]','$fields[$i]', \$a->{$key}),\n";
-			$routine .= "tag_data('$bases[$i]','$fields[$i]', \$b->{$key}) ) or ";
+			$routine .= "tag_data('$bases[$i]','$fields[$i]', \$_[0]->{$key}),\n";
+			$routine .= "tag_data('$bases[$i]','$fields[$i]', \$_[1]->{$key}) ) or ";
 	}
-	$routine .= '0 or &{$Vend::Interpolate::Sort_field{none}}';
-	$routine .= '($a->{$key},$b->{$key}); }';
+	$routine .= qq!0 or &{\$Vend::Interpolate::Sort_field{"$glob_opt"}}!;
+	$routine .= '($a->{$key},$_[1]->{$key}); }';
 
 #::logDebug("tag_sort_hash routine: $routine\n");
     my $code = eval $routine;  
     die "Bad sort routine\n" if $@;
 
 	#Prime the sort? Prevent variable suicide??
-	&{$Vend::Interpolate::Sort_field{'n'}}('31', '30');
+	#&{$Vend::Interpolate::Sort_field{'n'}}('31', '30');
 
 	use locale;
 	if($::Scratch->{mv_locale}) {
@@ -2596,7 +2606,7 @@ sub tag_sort_hash {
 			$::Scratch->{mv_locale});
 	}
 
-	@codes = sort {&$code} @$list;
+	@codes = sort {&$code($a,$b)} @$list;
 
 	if(defined $start and $start > 1) {
 		splice(@codes, 0, $start - 1);
@@ -2607,90 +2617,6 @@ sub tag_sort_hash {
 	}
 #::logDebug("tag_sort_hash routine returns: " . ::uneval(\@codes));
 	return \@codes;
-}
-
-sub tag_sort_text {
-    my($opts, $list, $joiner) = (@_); 
-	my $hash;
-	my $key;
-    $opts =~ s/^\s+//; 
-    $opts =~ s/\s+$//; 
-#::logDebug("tag_sort_text: opts=$opts list:\n$list");
-	my @codes;
-	$list =~ s/^\s+//;
-	$list =~ s/\s+$//;
-	if(defined $joiner) {
-		@codes = split $joiner, $list;
-	}
-	else {
-		@codes = split /\s+/, $list;
-	}
-	$joiner = " " unless defined $joiner;
-
-	my ($start, $end, $num);
-
-    my @opts =  split /\s+/, $opts;
-    my @option; my @bases; my @fields;
- 
-    for(@opts) {
-        my ($base, $fld, $opt) = split /:/, $_;
-
-		if($base =~ /^(\w+)$/) {
-			$key = $1;
-			next;
-		}
-		if($base =~ /^([-=+])(\d+)-?(\d*)/) {
-			my $op = $1;
-			if    ($op eq '-') { $start = $2 }
-			elsif ($op eq '+') { $num   = $2 }
-			elsif ($op eq '=') {
-				$start = $2;
-				$end = ($3 || undef);
-			}
-			next;
-		}
-		
-        push @bases, $base;
-        push @fields, $fld;
-        push @option, (defined $Vend::Interpolate::Sort_field{$opt} ? $opt : 'none');
-    }
-
-	if(defined $end) {
-		$num = 1 + $end - $start;
-		$num = undef if $num < 1;
- 	}
-
-    my $i;
-    my $routine = 'sub { ';
-	for( $i = 0; $i < @bases; $i++) {
-			$routine .= '&{$Vend::Interpolate::Sort_field{"' . $option[$i] . '"}}(' . "\n";
-			$routine .= "tag_data('$bases[$i]','$fields[$i]'," . '$a),' . "\n";
-			$routine .= "tag_data('$bases[$i]','$fields[$i]'," . '$b) ) or ';
-	}
-	$routine .= '0 or &{$Vend::Interpolate::Sort_field{none}}($a,$b); }';
-    my $code = eval $routine;  
-    die "Bad sort routine\n" if $@;
-
-	#Prime the sort? Prevent variable suicide??
-	&{$Vend::Interpolate::Sort_field{'n'}}('31', '30');
-
-	use locale;
-	if($::Scratch->{mv_locale}) {
-		POSIX::setlocale(POSIX::LC_COLLATE(),
-			$::Scratch->{mv_locale});
-	}
-
-	@codes = sort {&$code} @codes;
-
-	if(defined $start and $start > 1) {
-		splice(@codes, 0, $start - 1);
-	}
-
-	if(defined $num) {
-		splice(@codes, $num);
-	}
-#::logDebug("sort routine returns: " . ::uneval(\@codes));
-	return join $joiner, @codes;
 }
 
 my %Prev;
@@ -3004,7 +2930,7 @@ sub sort_cart {
 		push @codes, $code;
 	}
 
-	$sort_order = tag_sort($options, \@codes);
+	$sort_order = tag_sort_hash($options, \@codes);
 
 	foreach $code (@$sort_order) {
 		push @out, @{$order{$code}};
@@ -4649,7 +4575,7 @@ sub shipping {
 					if $o->{qual};
 	}
 	elsif($lines[0][CRIT] =~ /[[\s]|__/) {
-		($field, $qual) = split /\s+/, interpolate_html($field), 2;
+		($field, $qual) = split /\s+/, interpolate_html($lines[0][CRIT]), 2;
 		if($qual =~ /{}/) {
 			logError("Bad qualification code '%s', returning 0", $qual);
 			goto SHIPFORMAT;

@@ -30,6 +30,18 @@ or comments, but does not have time to offer free individual support
 in most cases. See the Minivend website at http://www.minivend.com/
 for more information.
 
+--------------------------------------------------------------
+
+                        M I N I V E N D
+                                       
+   Minivend is a full-featured electronic catalog system (commonly known
+   as a shopping cart) with online ordering capability. It is a high-end
+   database access and retrieval system with SQL support via the Perl DBI.
+
+   A full list of its features is available at:
+
+        http://www.minivend.com/
+ 
 IMPORTANT NOTE:  Minivend 4.0 requires, repeat REQUIRES, Perl 5.005 or Perl 5.6.
 
 The information you need is in the following files:
@@ -70,89 +82,36 @@ Major files/directories in the distribution:
     test.pl     The installation test script.
 
     win/        Windows-specific files
-            
---------------------------------------------------------------
 
-                        M I N I V E N D
-                                       
-   Minivend is a full-featured electronic catalog system (commonly known
-   as a shopping cart) with online ordering capability. It is a high-end
-   database access and retrieval system with SQL support via the Perl DBI.
-   
-   Minivend is freely-redistributable under the GNU General Public
-   License -- you can download it via FTP.
+UNIX INSTALLATION
+------------------
+Here is the short version:
 
-    Minivend 4.0 Features
+    gzip -dc minivend-4.xx.tar.gz | tar xvf -
+    cd minivend-4*
+    perl Makefile.PL
+    make
+    make test && make install
 
-       * Users maintain a "shopping cart" for ordered items
-       * Multiple independent or shared catalogs allow one server
-         to run many storefronts or a "mall"
-       * SSL support means secure and practical credit card ordering
-       * PGP and GPG support for secure off-site mailing of orders
-       * Complete addressable database support with virtually
-         unlimited rows and columns
-       * Complete SQL support via DBI
-       * Catalogs can be of almost unlimited size with excellent
-         performance
-       * Multi-server mode for very high capacity on systems with
-         sufficient memory
-       * Cookie support allows browsers to leave catalog and come
-         back without losing session state
-       * Minimate web administration interface allows complete
-         database editing
-       * Complete user authentication and database with address
-         books and stored shopping carts
-       * Many, many, other features
+-- WHEN IN DOUBT, RE-START THE SERVER.  It won't take but a few
+   seconds, and changes in configurable options don't take effect
+   until it is done. You may even change a page and not see the
+   effect until the server is restarted.
 
-    Powerful search capability
+WINDOWS INSTALLATION
+--------------------
+Not yet. When is not yet determined, but it will not be soon.
+If you are very experienced, you might try installing the ZIP
+file with "perl Makefile.PL". But *at least* the following problems will
+be present:
 
-       * One-click scan and search -- build a whole search in a single HREF
-       * Pageable results, configurable in many ways
-       * Versatile built-in text search
-       * Complete Glimpse support
-       * Fast binary search
-       * Independent field search selection and return
-       * Range searching, numeric and alphanumeric
-       * Search sorting with reverse, numeric and case-insensitive options
-       * Search any file, build results from any database
+    1. You need to put "SessionType  DB_File" in catalog.cfg.
+    2. Minimate will not work (unless you can build Safe::Hole).
+    3. You probably need to use Apache since we no longer support
+       cygwin.dll and tlink.exe. If you can get tlink.pl running
+       on other web servers, patches are welcome.
 
-    Complete control of appearance
-
-       * Over 90 predefined tag functions
-       * Powerful user-definable tags
-       * Catalog pages automatically selected -- either built
-         "on the fly" from the database or pre-made for popular items
-       * Embedded Perl and conditional HTML allow complex and
-         flexible catalog pages to be completely built from the database
-       * ASP-like syntax available
-
-    Flexible Ordering Process
-
-        * Single- or multi-level order screens with configurable field
-          verification
-        * Multiple shopping carts per catalog, allows both buy
-          and sell operations
-        * Shipping calculation, mixed modes, with UPS table lookup
-        * Sales tax calculation, with fully independent non-taxable
-          item and taxed shipping
-        * Route orders to multiple fulfillment houses with
-          complete configurability
-        * PGP encryption of credit card information or
-          the entire emailed order
-        * Fully-configurable discounts with coupons or
-          across-the-board discounts
-        * Fully-configurable quantity pricing
-        * Fully-configurable item price adjustments
-        * Sophisticated back end order entry capability including CyberCash(R)
-        * Fully configurable order reports and receipts
-
-    Miscellaneous
-
-        * Automated installation and configuration
-        * Runs under Perl 5.005/5.6, Windows, and almost any UNIX
-        * Designed to be secure
-        * Static page build option for high performance
-        * Works well with all browsers
+Do not use it in a production system.
 
 -------------------------------------------------------------------
 
@@ -165,30 +124,15 @@ UNIX/Tru64. Its predecessor Minivend 3 also reportedly runs on SCO, AIX,
 and other Unix ports.  It should work on any UNIX or Win32 OS with Perl
 5.005 or higher.
 
+IMPORTANT NOTE FOR BSD USERS: Minivend has been known to segfault when
+reading sockets on Perl. This occurs more frequently on a busy system.
+The workaround is to set in minivend.cfg:
+
+    MaxServers   0
+    Housekeeping 1
+
 Windows does not support fork(), so the server runs in the foreground. There
 are other differences; the canonical installation is UNIX.
-
-UNIX INSTALLATION
-------------------
-Here is the short version:
-
-    gzip -dc minivend-4.xxx.tar.gz | tar xvf -
-    cd minivend-4*
-    perl Makefile.PL
-    make test && make install
-
--- WHEN IN DOUBT, RE-START THE SERVER.  It won't take but a few
-   seconds, and changes in configurable options don't take effect
-   until it is done. You may even change a page and not see the
-   effect until the server is restarted.
-
-WINDOWS INSTALLATION
---------------------
-
-    Not yet. You can manually create a software directory and
-    get things going if you know your way around Perl. But I 
-    don't recommend trying unless you are prepared for some
-    serious work.
 
 -------------------------------------------------------------------
 
@@ -225,14 +169,23 @@ at www.minivend.com.
 
                     K N O W N   P R O B L E M S
 
-BSDI, FreeBSD:
-       If installing as root, you should use this procedure:
+BSDI, FreeBSD, Net BSD:
+    You will need to make sure the following are in effect
+    in minivend.cfg:
 
-           perl Makefile.PL PREFIX=/usr/local/minivend
+        MaxServers 0
+        Housekeeping 1
+
+    Expect lots of crashes if you don't do this.
+
+Apache with SUEXEC:
+    VLINK/UNIX socket mode will not work well unless you do the
+    install as a normal user. If you are going to support multiple
+    users, you must use TLINK/INET mode.
 
 Windows:
-       Just a few things don't work the same as UNIX. See the
-       README-win.txt file for more information.
+    Many things won't work the same as UNIX. See the
+    README-win.txt file for more information.
 
 ---------------------------------------------------------------------
 

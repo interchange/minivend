@@ -418,6 +418,7 @@ extra/File/Spec/Win32.pm
 extra/HTML/Entities.pm
 extra/IniConf.pm
 extra/URI/URL.pm
+hints.pl
 lib/Vend/Cart.pm
 lib/Vend/Config.pm
 lib/Vend/Control.pm

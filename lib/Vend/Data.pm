@@ -1,6 +1,6 @@
 # Data.pm - Minivend databases
 #
-# $Id: Data.pm,v 1.1.1.1 2000/03/09 19:08:20 mike Exp $
+# $Id: Data.pm,v 1.2 2000/04/02 10:20:34 mike Exp $
 # 
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -1120,8 +1120,9 @@ CHAIN:
 				$price = $item->{mv_price} || $mod;
 				redo CHAIN;
 			}
-			elsif($mod =~ /^(\w*):([^:]+)(:(\S*))?$/) {
+			elsif($mod =~ /^(\w*):([^:]*)(:(\S*))?$/) {
 				my ($table,$field,$key) = ($1, $2, $4);
+				$field = $Vend::Cfg->{PriceDefault} if ! $field;
 				if($passed_key) {
 					(! $key   and $key   = $passed_key)
 						or 

@@ -1,6 +1,6 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.2 2000/03/28 04:27:22 mike Exp $
+# $Id: Server.pm,v 1.3 2000/04/02 10:20:34 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -28,7 +28,7 @@
 package Vend::Server;
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.2 $, 10);
+$VERSION = substr(q$Revision: 1.3 $, 10);
 
 use POSIX qw(setsid strftime);
 use Vend::Util;
@@ -966,14 +966,33 @@ sub server_both {
 
 	  foreach $port (keys %{$Global::TcpMap}) {
 		my $fh = gensym();
-#::logDebug("Trying to run server on $port, fh created: $fh");
-		
+		my $bind_addr;
+		my $bind_ip;
+#::logDebug("starting to parse port $port, fh created: $fh");
+		if ($port =~ s/^([-\w.]+):(\d+)$/$2/) {
+			$bind_ip  = $1;
+			$bind_addr = inet_aton($bind_ip);
+		}
+		else {
+			$bind_ip  = '0.0.0.0';
+			$bind_addr = INADDR_ANY;
+		}
+#::logDebug("Trying to run server on ip=$bind_ip port=$port");
+	    if(! $bind_addr) {
+			::logGlobal({},
+					"Could not bind to IP address %s on port %s: %s",
+					$bind_ip,
+					$port,
+					$!,
+				  );
+			next;
+		}
 		eval {
 			socket($fh, PF_INET, SOCK_STREAM, $proto)
 					|| die "socket: $!";
 			setsockopt($fh, SOL_SOCKET, SO_REUSEADDR, pack("l", 1))
 					|| die "setsockopt: $!";
-			bind($fh, sockaddr_in($port, INADDR_ANY))
+			bind($fh, sockaddr_in($port, $bind_addr))
 					|| die "bind: $!";
 			listen($fh,$so_max)
 					|| die "listen: $!";
@@ -985,8 +1004,8 @@ sub server_both {
 			$rin = '';
 			vec($rin, fileno($fh), 1) = 1;
 			$vector |= $rin;
-			$vec_map{$port} = fileno($fh);
-			$fh_map{$port} = $fh;
+			$vec_map{"$bind_ip:$port"} = fileno($fh);
+			$fh_map{"$bind_ip:$port"} = $fh;
 		}
 		else {
 		  ::logGlobal({},

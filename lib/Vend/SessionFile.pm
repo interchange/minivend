@@ -1,6 +1,6 @@
 # SessionFile.pm:  stores session information in files
 #
-# $Id: SessionFile.pm,v 1.2 2000/03/28 04:27:22 mike Exp $
+# $Id: SessionFile.pm,v 1.3 2000/04/02 10:20:34 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -20,22 +20,25 @@
 # MA  02111-1307  USA.
 
 
-# $Id: SessionFile.pm,v 1.2 2000/03/28 04:27:22 mike Exp $
+# $Id: SessionFile.pm,v 1.3 2000/04/02 10:20:34 mike Exp $
 
 package Vend::SessionFile;
 require Tie::Hash;
 @ISA = qw(Tie::Hash);
 
+use Symbol;
 use strict;
 use Vend::Util;
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.2 $, 10);
+$VERSION = substr(q$Revision: 1.3 $, 10);
 
 my $SessionDir;
 my $SessionFile;
 my $SessionLock;
 my %HaveLock;
+my $Lh;
+my $Fh;
 my $Last;
 my @Each;
 
@@ -58,9 +61,10 @@ sub FETCH {
 	return undef unless -f $SessionFile;
 	my $str;
 	unless ($HaveLock{$SessionFile} || $Global::Windows) {
-		open(SESSIONLOCK, "+>>$SessionLock")
+		$Lh = gensym();
+		open($Lh, "+>>$SessionLock")
 			or die "Can't open '$SessionLock': $!\n";
-		lockfile(\*SESSIONLOCK, 1, 1)
+		lockfile($Lh, 1, 1)
 			and $HaveLock{$SessionFile} = 1;
 	}
 	my $ref = Vend::Util::eval_file($SessionFile);
@@ -109,9 +113,10 @@ sub STORE {
     $SessionLock = $SessionFile . ".lock";
     unlink $SessionFile;
 	unless ($HaveLock{$SessionFile} || $Global::Windows) {
-		open(SESSIONLOCK, "+>>$SessionLock")
+		$Lh = gensym();
+		open($Lh, "+>>$SessionLock")
 			or die "Can't open '$SessionLock': $!\n";
-		lockfile(\*SESSIONLOCK, 1, 1)
+		lockfile($Lh, 1, 1)
 			and $HaveLock{$SessionFile} = 1;
 	}
 #::logDebug("storing in $SessionFile: " . ::uneval($ref));
@@ -120,9 +125,9 @@ sub STORE {
 	
 sub DESTROY {
 	my($self) = @_;
-	close(SESSION);
-	unlockfile(\*SESSIONLOCK);
-	close(SESSIONLOCK);
+	unlockfile($Lh)
+		and delete $HaveLock{$SessionFile};
+	close($Lh);
 	undef $self;
 }
 

@@ -2,7 +2,7 @@
 #
 # MiniVend version 4.0
 #
-# $Id: Order.pm,v 1.3 2000/03/25 07:16:49 mike Exp $
+# $Id: Order.pm,v 1.4 2000/04/12 15:07:04 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -33,7 +33,7 @@
 package Vend::Order;
 require Exporter;
 
-$VERSION = substr(q$Revision: 1.3 $, 10);
+$VERSION = substr(q$Revision: 1.4 $, 10);
 
 @ISA = qw(Exporter);
 
@@ -1709,7 +1709,7 @@ sub add_items {
 	$j = 0;
 	my $set;
 	foreach $code (@items) {
-	  
+	   undef $item;
        $quantity = defined $quantities[$j] ? $quantities[$j] : 1;
        ($j++,next) unless $quantity;
 	   $set = $quantity =~ s/^=//;

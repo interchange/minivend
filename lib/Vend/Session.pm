@@ -1,6 +1,6 @@
 # Session.pm - Minivend Sessions
 #
-# $Id: Session.pm,v 1.1.1.1 2000/03/09 19:08:20 mike Exp $
+# $Id: Session.pm,v 1.3 2000/04/12 15:07:04 mike Exp $
 # 
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -30,7 +30,7 @@ package Vend::Session;
 require Exporter;
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.1.1.1 $, 10);
+$VERSION = substr(q$Revision: 1.3 $, 10);
 
 @ISA = qw(Exporter);
 
@@ -318,7 +318,20 @@ sub read_session {
     my($s);
 
 #::logDebug ("read session id=$Vend::SessionID  name=$Vend::SessionName\n");
-	$s = $Vend::SessionDBM{$Vend::SessionName};
+	$s = $Vend::SessionDBM{$Vend::SessionName}
+		or $Global::Variable->{MV_SESSION_READ_RETRY}
+		and do {
+			my $i = 0;
+			my $tries = $Global::Variable->{MV_SESSION_READ_RETRY} + 0 || 5;
+			while($i++ < $tries) {
+				::logDebug("retrying session read on undef, try $i");
+				$s = $Vend::SessionDBM{$Vend::SessionName};
+				next unless $s;
+				::logDebug("Session re-read successfully on try $i");
+				last;
+			}
+		};
+		
 #::logDebug ("Session:\n$s\n");
 	return new_session() unless $s;
     $Vend::Session = ref $s ? $s : evalr($s);

@@ -3310,6 +3310,17 @@ returns true or false based on the value.
     [/else]
     [/if]
 
+If you want to use another tag to select the key, and it is not
+a looping tag construct, you must use named parameters:
+
+	[set code]99-102[/set]
+    [if type=data term="products::size::[scratch code]"]
+    There is size information.
+    [else]
+    No size information.
+    [/else]
+    [/if]
+
 =item discount
 
 Checks to see if a discount is present for an item.
@@ -7445,6 +7456,23 @@ the product code, but could be a key to any of the arbitrary
 databases. The value placed by the C<[item-code]> tag is set to
 the first field returned from the search.
 
+The basic structure looks like this:
+
+[search-region]
+[search-list]
+	your iterating code, once for each match
+[/search-list]
+[no-match] 
+	Text / tags to be output if no matches found (optional but recommended)
+[/no-match]
+[more-list]
+	More / paging area (optional)
+[/more-list]
+[/search-region]
+
+TIP FOR MV3 PORTS: A C<[search-list][/search-list]> must always be surrounded by a
+C<[search-region][/search-region]> pair. This is a change from Minivend 3.
+
 =over 4
 
 =item [search-list]
@@ -7454,23 +7482,45 @@ embedded in the search list, yielding a table or formatted
 list of items with part number, description, price, and  hyperlinks to
 order or go to its catalog page. 
 
-The set of tags for C<[item-list]> are available, with the exception
-of tags like C<[item-modifier]>, C<[modifier-name]>, C<[item-accessories]>,
-and others that access shopping-cart specific elements. Thse include:
+The example tags shown have an C<item-> prefix, which is the
+default. You can set any prefix you want with the C<prefix> parameter
+to C<[search-region]>:
 
-    [if-item-data table column] [/if-item-data]
-    [if-item-field column] [/if-item-field]
-    [item-code]
-    [item-data table column]
-    [item-discount]
-    [item-field column]
-    [item-price quantity* noformat*]
+	[search-region prefix=my]
+	[search-list]
+		SKU:   [my-code]
+		Title: [my-data products title]
+	[/search-list]
+	[/search-region]
+		
+The standard set of Minivend iterative MML tags are available. They are
+interpolated in this order:
 
-In fact, any of the MiniVend database access tags can be used,
-allowing you to pull data from any of the fields in any of
-your predefined databases. Along with the MiniVend conditional
-tags, very complex pages can be built for each individual item
-returned in the search.
+		[item-alternate N] true [else] false [/else] [/item-alternate]
+		[if-item-param named_field] true [else] false [/else] [/if-item-param]
+		[item-param named_field]
+		[if-item-pos N] true [else] false [/else] [/if-item-pos]
+		[item-pos N]
+		[if-item-field products_field] true [else] false [/else] [/if-item-field]
+		[item-field products_column]
+		[item-increment]
+		[item-accessories]
+		[item-code]
+		[item-description]
+		[if-item-data table column] true [else] false [/else] [/if-item-data]
+		[item-data table column]
+		[item-price N* noformat=1*]
+		[item-calc] [/item-calc]
+		[item-change marker]
+			[condition]variable text[/condition]
+			true
+			[else] false [/else]
+		[/item-change marker]
+		[item-last] condition [/item-last]
+		[item-next] condition [/item-next]
+
+NOTE: those that reference the shopping cart do not apply, i.e. [item-quantity],
+[item-modifier ...] and friends.
 
 =item [/search-list]
 
@@ -7492,58 +7542,8 @@ Sorts the search list return based on database fields. If no
 options are supplied, sorts according to the return code. See
 I<SORTING>.
 
-=item [sort]<options>[/sort]
-
-(This form of sort is deprecated, as it is difficult to use.
-Use the above method.)
-
-Placed inside the search list. Causes sorting of the search return
-based on the passed options. The fields that are there
-to sort are set by C<mv_return_fields>.
-
-The field options passed in either numeric or field name form. If
-they are field numbers, they are numbered as sent to the search list
-in the order specified by F<mv_return_fields>,
-starting from 0 and proceeding upwards. If column names, they are
-as found in the first record of the searched file (by default the
-ASCII source for the product database), F<except for the key or first field>.
-followed by a F<required> colon (:) and the options, if any.
-
-Accepts none, any, or combinations of the flags:
-
-  f   case-insensitive sort (folded) (mutually exclusive of n)
-  n   numeric order (mutually exclusive of f)
-  r   reverse sort
-
-The <options> are a field number and an optional flag or flags, in a
-similar fashion to the Unix sort command, and are interpolated for form
-values before being used. As an example, if you set up the following
-fields on your search form:
-
-  <INPUT TYPE="hidden" NAME="mv_return_fields" VALUE="0,title,artist,price">
-  <INPUT TYPE="radio" NAME="the_sort_field" VALUE="title"> Sort by Title
-  <INPUT TYPE="radio" NAME="the_sort_field" VALUE="artist"> Sort by Artist
-  <INPUT TYPE="radio" NAME="the_sort_option" VALUE=""> Forward sort
-  <INPUT TYPE="radio" NAME="the_sort_option" VALUE="r"> Reverse sort
-  
-  NOTE: The 0 refers to the database code/key used for [item-code]
-
-This would combine with the following search result page fragment
-to sort by either title or artist.
-
-    [search-list]
-      [sort]
-        [value the_sort_field]:[value the_sort_option]
-      [/sort]
-    <B>[item-field title]</B>, by [item-field artist]<BR>
-    [/search-list]
-
-The [value...] lines will end up looking like C<artist:r> or C<title:>. This
-could also be specified with C<2r> or C<1>.
-
-PERFORMANCE TIP: on heavily trafficked systems, it will pay to use only
-column numbers rather than named fields, as it reduces processing and may
-obviate an access to the searched file to find the field names.
+This is slow, and it is far better to pre-sort your return in the 
+search specification.
 
 =item [item-change marker]
 
@@ -7639,13 +7639,29 @@ and C<border_selected> values are integers indicating the border that
 should be put around images in the C<page_img> selection. The <border_selected>
 is used for the current page if set.
 
-As an example, if you use C<[more-list next.gif prev.gif page_num.cgi]>, the
-following will be the anchors:
+Examples:
 
-  Previous   <IMG SRC="prev.gif">
-  Page 1     <IMG SRC="/cgi-bin/page_num.cgi?1">
-  Page 2     <IMG SRC="/cgi-bin/page_num.cgi?2">
-  Next       <IMG SRC="next.gif">
+C<[more-list next.gif prev.gif page_num.cgi 3]> causes anchors of:
+
+     Previous   <IMG SRC="prev.gif" Border=3>
+     Page 1     <IMG SRC="/cgi-bin/page_num.cgi?1">
+     Page 2     <IMG SRC="/cgi-bin/page_num.cgi?2">
+     Next       <IMG SRC="next.gif" Border=3>
+
+C<[more-list next.gif prev.gif page_num.cgi]> causes anchors of:
+
+     Previous   <IMG SRC="prev.gif">
+     Page 1     <IMG SRC="/cgi-bin/page_num.cgi?1">
+     Page 2     <IMG SRC="/cgi-bin/page_num.cgi?2">
+     Next       <IMG SRC="next.gif">
+
+C<[more-list next.gif prev.gif 0 0]> causes anchors of:
+
+
+     Previous   <IMG SRC="prev.gif" Border=0>
+     Page 1     <IMG SRC="/cgi-bin/page_num.cgi?1">
+     Page 2     <IMG SRC="/cgi-bin/page_num.cgi?2">
+     Next       <IMG SRC="next.gif" Border=0>
 
 If you wish to set custom text for the "Previous" and "Next" usually
 used, then you can define the next_img, prev_img, and page_img with
@@ -7716,65 +7732,6 @@ targeted to a different window than the one set by SearchFrame (which is
 "_self" by default).
 
 =back
-
-=head2 Updating session variables after a search
-
-You may notice that if you set a scratch variable or reference a
-variable set in a search routine on the results page, the change does
-not stay in the user session.
-
-To change this, set the B<scratch> variable C<mv_put_session> on the page
-in question:
-
-    [set mv_put_session]Yes[/set]
-
-This setting is persistent, so it is recommended that you
-do it once at the beginning of the user session if you wish it to be the
-default. If you don't want it to be the default, reset it to the
-empty value (or zero) on another page:
-
-    [set mv_put_session][/set]
-
-=head2 Using a Search Cache
-
-Each catalog may maintain a search cache, which is enabled by specifying
-C<Yes> for the I<SearchCache> directive in F<catalog.cfg>. It operates
-by developing a MD5 key or 3-byte checksum of the combined parameters
-of a search.
-
-If your catalog frequently specifies category searches in a
-large catalog, speed of search return can be increased by a
-large factor, mostly by obviating the need for database lookups.
-
-If you have mostly dynamic session-based content based on user
-variables, you should not use SearchCache unless you want
-to give that up. MiniVend will not cache pages with dynamic
-content, and using cache slows down searches that don't cache.
-
-If you have the MD5 module installed on Perl, it will be used to generate
-the cache keys. This will guarantee a unique cache ID. If you don't
-have MD5 installed, a 32-bit checksum will be used to create the cache
-key. It is conceivable, indeed likely in a large catalog, that two
-separate searches could generate the same 32-bit checksum and return
-the same cached search.
-
-The search cache is invalidated when a user hits "RELOAD". It
-can also be invalidated by a C<[set mv_no_cache]1[/set]> scratch setting,
-which only takes effect for the next page.
-
-If you change your product database or any other files you search, you
-should reconfigure or the search returns may be wrong. You also may just
-remove all files in the tmp/ directory.
-
-Search caching is disabled on a client-by-client basis if the
-client browser does not have cookie capability, for the generated
-session numbers would be incorrect otherwise.
-
-Multiple page returns are also cached. If you C<[set mv_no_count]1[/set]>
-on the calling page, then the user's browser will keep track of the
-traveled links.
-
-The last search can be recalled with C<[page href="[data session last_search]"]>.
 
 =head1 THE ORDER PROCESS
 
@@ -8333,6 +8290,39 @@ the check of the email address if any of the previous checks failed.
 
 If you want to place multiple order profiles in the same file,
 separate them with __END__, which must be on a line by itself.
+
+
+User-defined check routines can be defined in a GlobalSub:
+
+	GlobalSub <<EOF
+	sub set_up_extra_check {
+		BEGIN {
+			package Vend::Order;
+			sub _pt_postcode {
+				# $ref is to Vend::Session->{'values'} hash
+				# $var is the passed name of the variable
+				# $val is current value of checked variable
+				my($ref, $var, $val) = @_;
+				
+				if ($ref->{country} =~ /^(PT|portugal)$/i) {
+					return $val =~ /^\d\d\d\d$/ ?  1 : 0;
+				}
+				else {
+					return 1;
+				}
+			}
+		}
+	}
+	EOF
+
+Now you can specify in an order profile:
+
+  postcode=pt_postcode
+
+There must be an underscore preceding the routine name in this
+case. Very elaborate checks are possible, of course. If some user
+takes on the polyglot it would be appreciated if they contribute
+the routines.
 
 =head2 Simple Order Report File
 
@@ -9312,10 +9302,10 @@ be directly after the list call:
         [item-price] [item-code]<BR>
     [/item-list]
  
-    [tag each products]
+    [loop search="ra=yes"]
     [sort products:category products:title]
     [loop-field category] [loop-field title] <BR>
-    [/tag]
+    [/loop]
 
 All sort situations -- C<[search list]> , C<[loop list]> , C<[tag each table]>, and
 C<[item-list]>, take options of the form:
@@ -12248,10 +12238,10 @@ document notation in minivend.cfg.
 With this in effect, the internal HTTP server would map the following
 addresses:
 
-    http://www.minivend.com:7786   mv_admin
-    http://www.minivend.com:7787   simple
-    http://www.minivend.com:7788   sample
-    http://www.minivend.com:7789   search
+    *:7786   mv_admin
+    *:7787   simple
+    *:7788   sample
+    *:7789   search
 
 NOTE: This does not pertain to the use of C<tlink>, which still
 relies on the CGI SCRIPT_PATH.
@@ -12260,6 +12250,17 @@ To enable this, the SCRIPT_PATH aliases /simple, /sample, etc. must
 be set in the C<Catalog> directive. This would look like:
 
   Catalog  simple  /home/minivend/catalogs/simple /cgi-bin/simple /simple
+
+If you want to bind to specific IP addresses, add them in the same
+fashion that you would an Apache Listen directive:
+
+	TcpMap <<EOF
+		127.0.0.1:7786         -
+		www.minivend.com:7787  -
+	EOF
+
+NOTE: As usual, the EOF should be at the beginning of a line with no leading
+or trailing whitespace.
 
 =head2 TemplateDir
 
@@ -14241,6 +14242,8 @@ testing and feature content. They include:
     Bob Jordan         
     Brian Bullen       
     Bruce Albrecht     
+    Christian Mueller
+	Christopher Thompson
     Don Grodecki       
     Frank Bonita       
     Gunnar Hellekson   

@@ -1,6 +1,6 @@
 # Util.pm - Minivend utility functions
 #
-# $Id: Util.pm,v 1.2 2000/03/18 16:04:49 mike Exp $
+# $Id: Util.pm,v 1.4 2000/04/12 15:07:04 mike Exp $
 # 
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -74,7 +74,7 @@ use Config;
 use Fcntl;
 use subs qw(logError logGlobal);
 use vars qw($VERSION @EXPORT @EXPORT_OK);
-$VERSION = substr(q$Revision: 1.2 $, 10);
+$VERSION = substr(q$Revision: 1.4 $, 10);
 
 BEGIN {
 	eval {
@@ -854,7 +854,7 @@ sub vendUrl {
 		unless $::Scratch->{mv_no_count};
 
     $r .= '/' . $path;
-	$r .= '.html' if $::Scratch->{mv_add_dot_html};
+	$r .= '.html' if $::Scratch->{mv_add_dot_html} and $r !~ /\.html?/;
 	push @parms, "$::VN->{mv_session_id}=$id"			 	if defined $id;
 	push @parms, "$::VN->{mv_arg}=" . hexify($arguments)	if defined $arguments;
 	push @parms, "$::VN->{mv_pc}=$ct"                 	if defined $ct;
@@ -983,13 +983,10 @@ sub dump_structure {
 	$name =~ s/\.cfg$//;
 	$name .= '.structure';
 	open(UNEV, ">$name") or die "Couldn't write structure $name: $!\n";
-	if(defined $Data::Dumper::Indent) {
-		$save = $Data::Dumper::Indent;
-		$Data::Dumper::Indent = 2;
-	}
+	local($Data::Dumper::Indent);
+	$Data::Dumper::Indent = 2;
 	print UNEV uneval($ref);
 	close UNEV;
-	$Data::Dumper::Indent = $save if defined $save;
 }
 
 # Do an internal HTTP authorization check
