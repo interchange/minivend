@@ -232,10 +232,24 @@ sub commify {
     return $_;
 }
 
+my %safe_locale = ( 
+						C     => 1,
+						en_US => 1,
+						en_UK => 1,
+					);
+
 sub safe_sprintf {
+	# need to supply $fmt as a scalar to prevent prototype problems
 	my $fmt = shift;
+
+	# query the locale
 	my $save = POSIX::setlocale (&POSIX::LC_NUMERIC);
-	return sprintf($fmt, @_) if $save eq 'C';
+
+	# This should be faster than doing set every time....but when
+	# is locale C anymore? Should we set this by default?
+	return sprintf($fmt, @_) if $safe_locale{$save};
+
+	# Need to set.
 	POSIX::setlocale (&POSIX::LC_NUMERIC, 'C');
 	my $val = sprintf($fmt, @_);
 	POSIX::setlocale (&POSIX::LC_NUMERIC, $save);
@@ -249,7 +263,7 @@ sub picture_format {
 	$sep	= ',' unless defined $sep;
 	$pic =~ /(#+)\Q$point/;
 	my $len = length($1);
-	$amount = safe_sprintf('%.' . $len . 'f', $amount);
+	$amount = sprintf('%.' . $len . 'f', $amount);
 	$amount =~ tr/0-9//cd;
 	my (@dig) = split //, $amount;
 	$pic =~ s/#/pop(@dig)/eg;
