@@ -642,8 +642,9 @@ sub start {
 			$Vend::StatusLine .= <<EOF if $attr->{target};
 Window-Target: $attr->{target}
 EOF
+			$attr->{status} ||= '302 moved';
 			$Vend::StatusLine .= <<EOF;
-Status: 302 moved
+Status: $attr->{status}
 Location: $attr->{href}
 EOF
 			$$buf = '';
