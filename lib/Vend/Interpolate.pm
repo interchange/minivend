@@ -2985,7 +2985,7 @@ sub mvtime {
 		$now = $neg ? $now - $diff : $now + $diff;
 	}
 
-	$fmt ||= '%c';
+	$fmt ||= $opt->{format} || $opt->{fmt} || '%c';
     my $out = $opt->{gmt} ? ( POSIX::strftime($fmt, gmtime($now)    ))
                           : ( POSIX::strftime($fmt, localtime($now) ));
 	$out =~ s/\b0(\d)\b/$1/g if $opt->{zerofix};
