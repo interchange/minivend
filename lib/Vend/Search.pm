@@ -367,7 +367,7 @@ sub more_alpha {
 
 	# determine position of sort field within results
 	for ($i = 0; $i < @{$s->{mv_return_fields}}; $i++) {
-		last if $s->{mv_return_fields}->[$i] == $s->{mv_sort_field}->[0];
+		last if $s->{mv_return_fields}->[$i] eq $s->{mv_sort_field}->[0];
 	}
 	$sfpos = $i;
 	

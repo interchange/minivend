@@ -4618,9 +4618,6 @@ sub tag_sql_list {
 	if($opt->{ma}) {
 		# Find the sort field and alpha options....
 		Vend::Scan::parse_profile_ref($object, $opt);
-		# Contents of mv_return_fields must be of the same type
-		# (numeric here) as the contents of mv_sort_field
-		@{$object->{mv_return_fields}} = map {$nh->{$_}} @{$object->{mv_return_fields}};
 		# We need to turn the hash reference into a search object
 		$object = new Vend::Search (%$object);
 		# Delete this so it will meet conditions for creating a more
@@ -4733,15 +4730,6 @@ sub region {
 		$obj->{mv_cache_key} = generate_key(substr($page,0,100));
 		$obj->{mv_first_match} = $opt->{fm} if $opt->{fm};
 		$obj->{mv_search_page} = $opt->{sp} if $opt->{sp};
-
-		# We have an mv_more_alpha in a [query], need a numeric sort field that
-		# relates to the field. [search-region] and [loop] would have
-		# been caught elsewhere
-		if($opt->{ma} and $obj->{mv_sort_field} and $obj->{mv_field_hash}) {
-			my @ary = map { $obj->{mv_field_hash}{$_} } @{$obj->{mv_sort_field}};
-			$obj->{mv_sort_field} = \@ary;
-		}
-
 		$obj->{prefix} = $opt->{prefix} if $opt->{prefix};
 		my $out = delete $obj->{mv_results};
 		Vend::Search::save_more($obj, $out);
