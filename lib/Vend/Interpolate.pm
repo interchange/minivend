@@ -3571,32 +3571,32 @@ sub tag_more_list {
 		$decade_div = $q->{mv_more_decade} > 1 ? $q->{mv_more_decade} : 10;
 	}
 
-	my ($b, $e, @b, @e);
+	my ($begin, $end);
 	if(defined $decade_div and $pages > $decade_div) {
 		if($current > $decade_div) {
-			$b = ( int ($current / $decade_div) * $decade_div ) + 1;
+			$begin = ( int ($current / $decade_div) * $decade_div ) + 1;
 			$list .= " ";
-			$list .= more_link($b - $decade_div, $decade_prev);
+			$list .= more_link($begin - $decade_div, $decade_prev);
 		}
 		else {
-			$b = 1;
+			$begin = 1;
 		}
-		if($b + $decade_div <= $pages) {
-			$e = $b + $decade_div;
-			$decade_next = more_link($e, $decade_next);
-			$e--;
+		if($begin + $decade_div <= $pages) {
+			$end = $begin + $decade_div;
+			$decade_next = more_link($end, $decade_next);
+			$end--;
 		}
 		else {
-			$e = $pages;
+			$end = $pages;
 			undef $decade_next;
 		}
-#::logDebug("more_list: decade found pages=$pages current=$current b=$b e=$e next=$next last=$last decade_div=$decade_div");
+#::logDebug("more_list: decade found pages=$pages current=$current begin=$begin end=$end next=$next last=$last decade_div=$decade_div");
 	}
 	else {
-		($b, $e) = (1, $pages);
+		($begin, $end) = (1, $pages);
 		undef $decade_next;
 	}
-#::logDebug("more_list: pages=$pages current=$current b=$b e=$e next=$next last=$last decade_div=$decade_div");
+#::logDebug("more_list: pages=$pages current=$current begin=$begin end=$end next=$next last=$last decade_div=$decade_div");
 
 	if ($q->{mv_alpha_list}) {
 		for my $record (@{$q->{mv_alpha_list}}) {
@@ -3605,7 +3605,7 @@ sub tag_more_list {
 			$list .= more_link_template($letters, $arg, $form_arg) . ' ';
 		}
 	} else {
-		foreach $inc ($b .. $e) {
+		foreach $inc ($begin .. $end) {
 			last if $page_anchor eq 'none';
 			$list .= more_link($inc, $page_anchor);
 		}
