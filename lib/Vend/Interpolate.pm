@@ -2165,8 +2165,12 @@ sub tag_value_extended {
 	};
 	::logError("value-extend $var: bad index") if $@;
 
-	if($opt->{filter}) {
-		for(@ary) {
+	for(@ary) {
+		# Eliminate any Interchange tags
+		s~<([A-Za-z]*[^>]*\s+[Mm][Vv]\s*=\s*)~&lt;$1~g;
+		s/\[/&#91;/g;
+		# Apply any filters specified
+		if($opt->{filter}) {
 			$_ = filter_value($opt->{filter}, $_, $var);
 		}
 	}
