@@ -142,7 +142,7 @@ sub search {
 #::logDebug("searching $searchfiles[0], keys  after=" . join ",", grep /backup/, keys %{$Vend::Cfg->{Database}});
 	if(! $dbref) {
 		return $s->search_error(
-			"your search file a valid database reference, was '$searchfiles[0]'."
+			"search file '$searchfiles[0]' is not a valid database reference."
 			);
 	}
 	$s->{dbref} = $dbref;
