@@ -3263,6 +3263,22 @@ sub parse_tag {
 	}
 
 	if($p eq 'Routine' or $p eq 'PosRoutine') {
+		if (defined $c->{Source}->{$tag}->{$p}){
+			config_error(
+				errmsg(
+					"Duplicate usertag %s found",
+					$tag,
+				)
+			);
+		}
+		if (defined $C && defined $Global::UserTag->{Source}->{$tag}->{$p}){
+			config_warn(
+				errmsg(
+					"Local usertag %s overrides global definition",
+					$tag,
+				)
+			);
+		}
 
 		my $sub;
 		$c->{Source}->{$tag}->{$p} = $val;
