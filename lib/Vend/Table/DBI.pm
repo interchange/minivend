@@ -1414,13 +1414,12 @@ sub row_hash {
 sub field_settor {
     my ($s, $column) = @_;
 	$s = $s->import_db() if ! defined $s->[$DBI];
+	my $q = "update $s->[$TABLE] SET $column = ? where $s->[$KEY] = ?";
+	my $sth = $s->[$DBI]->prepare($q)
+		or Carp::croak errmsg("Unable to prepare query for field_settor: %s", $q);
     return sub {
         my ($key, $value) = @_;
-		$value = $s->quote($value)
-			unless exists $s->[$CONFIG]{NUMERIC}{$column};
-		$key = $s->quote($key)
-			unless exists $s->[$CONFIG]{NUMERIC}{$s->[$KEY]};
-        $s->[$DBI]->do("update $s->[$TABLE] SET $column=$value where $s->[$KEY] = $key");
+        $sth->execute($value, $key);
     };
 }
 
