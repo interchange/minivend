@@ -280,7 +280,7 @@ sub fcntl_lock {
                 return 0;
             }
             else {
-                die "Could not lock file: $!\n";
+                die "Could not fcntl_lock file: $!\n";
             }
         }
         return 1;
