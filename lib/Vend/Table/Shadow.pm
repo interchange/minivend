@@ -364,7 +364,7 @@ sub _map_column {
 		$map = $mapentry->{$locale};
 		if (exists $map->{lookup_table}) {
 			my ($db_lookup, $lookup_key);
-			::logDebug ("Lookup $column with key $key in $map->{lookup_table}");
+#::logDebug ("Lookup $column with key $key in $map->{lookup_table}");
 			$db_lookup = Vend::Data::database_exists_ref($map->{lookup_table})
 				or die "unknown lookup table $map->{lookup_table} in mapping for column $column of $s->[$TABLE] for locale $locale";
 			$db = Vend::Data::database_exists_ref($map->{table})
