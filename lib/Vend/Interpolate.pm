@@ -5771,6 +5771,26 @@ sub subtotal {
     return $subtotal;
 }
 
+# figures any credits the customer may have
+# that can be applied to this order
+
+sub credit {
+    my $credit = 0;
+    if (defined $Vend::Session->{assigned}{credit}
+	&& $Vend::Session->{assigned}{credit} > 0) {
+	$credit = $Vend::Session->{assigned}{credit};
+    }
+    elsif ($Vend::Cfg->{CreditField}) {
+	# credit field from userdb should always be put in scratch space
+	# using 'Userdb default scratch' to avoid hacking by nefarious customers
+	if ($Scratch->{$Vend::Cfg->{CreditField}} > 0) {
+	    $credit = $Scratch->{$Vend::Cfg->{CreditField}};
+	}
+    }
+    return $credit;
+}
+
+
 
 # Returns the total cost of items ordered.
 
@@ -5798,6 +5818,7 @@ sub total_cost {
 		$total += subtotal();
 		$total += $shipping;
 		$total += salestax();
+		$total -= credit();
 	}
 	$Vend::Items = $save if defined $save;
 	$Vend::Session->{latest_total} = $total;
