@@ -369,7 +369,8 @@ sub set_field {
 	else {
 		$row[$s->[$KEY_INDEX]] = $key;
 	}
-    $row[$s->column_index($column)] = $value;
+    $row[$s->column_index($column)] = $value
+		if $column;
     $s->set_row(@row);
 	$value;
 }

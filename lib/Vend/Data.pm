@@ -277,10 +277,7 @@ sub set_field {
 
 	# Create it if it doesn't exist
 	unless ($db->record_exists($key)) {
-		my @fields;
-		my $count = scalar $db->columns();
-		@fields = ('') x $count;
-		$db->set_row($key, @fields);
+		$db->set_row($key);
 	}
 	elsif ($append) {
 		$value = $db->field($key, $field_name) . $value;
