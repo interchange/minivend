@@ -3070,6 +3070,7 @@ my %tagCanon = ( qw(
 	addattr  		addAttr
 	attralias		attrAlias
 	cannest			canNest
+	description  	Description
 	documentation	Documentation
 	endhtml			endHTML
 	gobble			Gobble
