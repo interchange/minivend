@@ -3816,10 +3816,10 @@ sub parse_delimiter {
 sub parse_yesno {
 	my($var, $value) = @_;
 	$_ = $value;
-	if (m/^y/i || m/^t/i || m/^1/) {
+	if (m/^y/i || m/^t/i || m/^1/ || m/^on/i) {
 		return 1;
 	}
-	elsif (m/^n/i || m/^f/i || m/^0/) {
+	elsif (m/^n/i || m/^f/i || m/^0/ || m/^of/i) {
 		return 0;
 	}
 	else {
