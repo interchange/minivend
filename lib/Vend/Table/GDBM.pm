@@ -83,6 +83,7 @@ sub open_table {
 		undef $config->{Transactions};
 		$config->{_Auto_number} = 1 if $config->{AUTO_NUMBER};
 		$flags = GDBM_WRITER;
+		$flags |= GDBM_NOLOCK if $config->{IC_LOCKING};
 		if(! defined $config->{AutoNumberCounter}) {
 			eval {
 				my $dot = $config->{HIDE_AUTO_FILES} ? '.' : '';
