@@ -127,15 +127,6 @@ sub search {
 #::logDebug("Called RefSearch, object=" . ::uneval($s));
 	@specs = @{$s->{mv_searchspec}};
 
-	if(ref $s->{mv_range_look}) {
-		unless( scalar(@{$s->{mv_range_look}}) == scalar(@{$s->{mv_range_min}}) and
-				scalar(@{$s->{mv_range_look}}) == scalar(@{$s->{mv_range_max}}) ) {
-			$s->{mv_search_warning}
-				= "Must have min and max values for range -- aborting range look.";
-			undef $s->{mv_range_look};
-		}
-	}
-
 	@pats = $s->spec_check(@specs);
 
 	if ($s->{mv_coordinate}) {
