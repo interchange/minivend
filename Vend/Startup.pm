@@ -1,6 +1,6 @@
 # Startup.pm:  startup Vend program and process command line arguments
 #
-# $Id: Startup.pm,v 1.23 1996/01/30 23:34:55 amw Exp $
+# $Id: Startup.pm,v 1.25 1996/02/01 23:09:53 amw Exp $
 #
 package Vend::Startup;
 
@@ -34,12 +34,11 @@ require Vend::Http;
 use Vend::lock;
 use Vend::Log;
 use Vend::Page;
-use Vend::Require;
 use Vend::Server;
 use Vend::Session;
 use Vend::Uneval;
 
-my $Vend_version = "0.3.4";
+my $Vend_version = "0.3.5";
 
 my $Running_as_cgi_bin;
 my $Mode;
@@ -55,7 +54,6 @@ sub parse_options {
                "version",
                "help",
                "test",
-               "expire",
                "dump-sessions",
                "server",
                "debug")
@@ -73,8 +71,6 @@ sub parse_options {
 	exit 0;
     } elsif ($Vend::Startup::opt_test) {
 	$Mode = 'test';
-    } elsif ($Vend::Startup::opt_expire) {
-	$Mode = 'expire';
     } elsif ($Vend::Startup::opt_dump_sessions) {
 	$Mode = 'dump-sessions';
     } elsif ($Vend::Startup::opt_server) {
@@ -97,9 +93,11 @@ absolutely no warranty for Vend; see the file COPYING for details.
 
 Command line options:
 
-     -test            report problems
+     -debug           used with -server, stay in foreground
+     -dump-sessions   display session information for debugging purposes
+     -server          run in the background as a server
+     -test            load catalog pages and report problems
      -version         display program version
-     -expire          expire old sessions
 END
 }
 
@@ -147,8 +145,6 @@ my @Modules;
 sub startup {
     my ($initialize) = @_;
 
-    local $SIG{'__DIE__'} = \&expound_error;
-
     # Were we called from an HTTPD server as a cgi-bin program?
     $Running_as_cgi_bin = defined($ENV{'GATEWAY_INTERFACE'});
 
@@ -175,14 +171,12 @@ sub startup {
         or die "Could not chdir to '".App_directory()."': $!\n";
     umask $Umask;
 
-    # my $vdb_class = "Vdb_" . Database;
-    # require "$vdb_class.pm";
-
     @Modules = split(/\s+/, Modules);
-    foreach (@Modules) {
-        s!::!/!g;
-        print "Loading $_\n" if ($Mode eq 'test');
-        Require("$_.pm");
+    my $module;
+    foreach $module (@Modules) {
+        $module =~ s!::!/!g;
+        print "Loading $module\n" if ($Mode eq 'test');
+        require "$module.pm";
     }
 
     # read_config_file($config_file);
@@ -203,9 +197,13 @@ sub startup {
         $http->populate(\%ENV);
         dispatch($http);
     }
-    elsif ($Mode eq 'server')        { run_server($Vend::Startup::opt_debug) }
-    elsif ($Mode eq 'expire')        { expire_sessions() }
-    elsif ($Mode eq 'dump-sessions') { dump_sessions() }
+    elsif ($Mode eq 'server') {
+        run_server($Vend::Startup::opt_debug);
+    }
+    elsif ($Mode eq 'dump-sessions') {
+        initialize_session();
+        dump_sessions();
+    }
     else {
         die "Unknown mode: $Mode\n";
     }
@@ -312,6 +310,12 @@ sub become_daemon {
     setsid();
 }
 
+sub initialize_session {
+    initialize_Session(Database,
+                       Data_directory,
+                       Session_expire,
+                       $File_creation_mask);
+}
 
 sub run_server {
     my ($debug) = @_;
@@ -325,10 +329,7 @@ sub run_server {
         run_daemon_server();
     }
 
-    initialize_Session(Database,
-                       Data_directory,
-                       Session_expire,
-                       $File_creation_mask);
+    initialize_session();
     run_module_init_functions();
 
     my $next = server(Data_directory . "/socket", $debug);

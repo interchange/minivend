@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # setup:  read configuration file and install application
 #
-# $Id: setup,v 1.22 1996/01/30 23:34:53 amw Exp $
+# $Id: setup,v 1.23 1996/02/01 23:09:52 amw Exp $
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -19,7 +19,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-my $Version = "0.3.4";
+my $Version = "0.3.5";
 
 use Getopt::Long;
 # use strict;

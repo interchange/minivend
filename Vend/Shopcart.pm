@@ -1,6 +1,6 @@
 # Shopcart.pm: utility functions for the shopping cart
 #
-# $Id: Shopcart.pm,v 1.1 1996/01/30 23:09:24 amw Exp $
+# $Id: Shopcart.pm,v 1.2 1996/02/01 23:08:51 amw Exp $
 #
 package Vend::Shopcart;
 
@@ -82,6 +82,7 @@ to return if the key is not present.
 
 sub create_table_placeholders {
     my ($name, $table, $na) = @_;
+    $na = "NA" unless defined $na;
 
     my $column;
     foreach $column ($table->columns()) {

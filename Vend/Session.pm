@@ -1,6 +1,6 @@
 # Session.pm:  tracks session information between requests
 #
-# $Id: Session.pm,v 1.8 1995/10/31 14:14:40 amw Exp $
+# $Id: Session.pm,v 1.9 1996/02/01 23:08:07 amw Exp $
 #
 package Vend::Session;
 
@@ -24,9 +24,8 @@ require Exporter;
 @ISA = qw(Exporter);
 @EXPORT = qw(Session Value
              initialize_Session session_id
-             open_session new_session close_session expire_sessions
+             open_session new_session close_session
              dump_sessions);
-             # Lists
 
 use Carp;
 use strict;
