@@ -3087,10 +3087,19 @@ sub resolve_static {
 sub tag_page {
     ($page, $arg, $opt) = @_;
 
-#::logDebug("tag_page opt=" . ::uneval($opt));
-	return '<A HREF="' . form_link(@_) . '">' if defined $opt and $opt->{form};
+	my $extra;
+	if($extra = ($opt ||= {})->{extra} || '') {
+		$extra =~ s/^(\w+)$/class=$1/;
+		$extra = " $extra";
+	}
 
-	if ($opt->{search}) {
+	my $url;
+	my $urlroutine = $opt->{secure} ? \&secure_vendUrl : \&vendUrl;
+
+	if($opt->{form}) {
+		$url = form_link(@_);
+	}
+	elsif ($opt->{search}) {
 		$page = escape_scan($opt->{search});
 	}
 	elsif ($page eq 'scan') {
@@ -3098,13 +3107,10 @@ sub tag_page {
 		undef $arg;
 	}
 
-	$urlroutine = $opt->{secure} ? \&secure_vendUrl : \&vendUrl;
+	resolve_static(), $url = $urlroutine->($page)
+		unless $url;
 
-	resolve_static();
-
-	my $extra = $opt->{extra} ? " $opt->{extra}" : '';
-
-    return '<a href="' . $urlroutine->($page,$arg || undef) . qq!"$extra>!;
+    return qq{<a href="$url"$extra>};
 }
 
 # Returns an href which will call up the specified PAGE.
