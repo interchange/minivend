@@ -1227,7 +1227,7 @@ sub resolve_options {
 		link_no_blank
 		link_row_qual
 		link_auto_number
-		link_row_blank
+		link_rows_blank
 		link_sort
 		link_table
 		link_template
