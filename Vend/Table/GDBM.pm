@@ -1,6 +1,6 @@
 # Table/GDBM.pm: access a table stored in a GDBM file
 #
-# $Id: GDBM.pm,v 1.7 1996/03/12 16:16:49 amw Exp $
+# $Id: GDBM.pm,v 1.8 1996/03/14 20:41:00 amw Exp $
 #
 package Vend::Table::GDBM;
 
@@ -211,7 +211,13 @@ sub each_record {
 
 sub record_exists {
     my ($s, $key) = @_;
-    $s->[$DBM]->exists("k$key");
+    # guess what?  The GDBM "exists" function got renamed to "EXISTS" 
+    # in 5.002.
+    my $r = eval { $s->[$DBM]->EXISTS("k$key") };
+    if ($@) {
+        $r = $s->[$DBM]->exists("k$key");
+    }
+    return $r;
 }
 
 sub delete_record {

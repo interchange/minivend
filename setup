@@ -1,6 +1,6 @@
 # setup: sets up a Vend storefront.
 #
-# $Id: setup,v 1.27 1996/03/12 16:46:08 amw Exp $
+# $Id: setup,v 1.28 1996/03/14 20:49:28 amw Exp $
 #
 # Copyright 1996 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -18,7 +18,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-my $Version = "0.3.7";
+my $Version = "0.3.8";
 
 use Getopt::Long;
 use strict;

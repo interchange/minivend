@@ -1,6 +1,6 @@
 # Cgi: creates the "cgi" program that runs Vend as a cgi-bin program
 #
-# $Id: Cgi.pm,v 1.1 1996/02/26 21:19:57 amw Exp $
+# $Id: Cgi.pm,v 1.3 1996/03/14 22:35:57 amw Exp $
 #
 package Vend::Cgi;
 
@@ -22,6 +22,13 @@ package Vend::Cgi;
 
 use strict;
 use Vend::Application;
+
+my $Use_setuid_wrapper;
+
+sub configure {
+    my ($class, $config) = @_;
+    $Use_setuid_wrapper = $config->{'Use_setuid_wrapper'};
+}
 
 sub setup {
     my $C = app_config();
@@ -59,7 +66,8 @@ Vend::Dispatch::dispatch(\$http);
 END
 
     close(OUT);
-    chmod 04755, $fn or die "Can't chmod '$fn': $!\n";
+    chmod ($Use_setuid_wrapper ? 0755 : 04755), $fn
+        or die "Can't chmod '$fn': $!\n";
 }
 
 1;

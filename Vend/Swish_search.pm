@@ -1,6 +1,6 @@
 # Swish_search: search catalog pages using Swish program
 #
-# $Id: Swish_search.pm,v 1.1 1996/03/12 16:43:25 amw Exp $
+# $Id: Swish_search.pm,v 1.2 1996/03/14 20:40:13 amw Exp $
 #
 package Vend::Swish_search;
 
@@ -20,6 +20,10 @@ package Vend::Swish_search;
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+require Exporter;
+@ISA = qw(Exporter);
+@EXPORT = qw(swish_search);
+
 use strict;
 use Vend::Option_1 qw(combine defaults);
 use Vend::Strip;
@@ -30,7 +34,7 @@ sub configure {
     my ($class, $config) = @_;
 
     $Options = combine($config,
-                      qw(Data_directory Html Stripped_directory Swish_index_file
+                      qw(Data_directory Html_extension Stripped_directory Swish_index_file
                          Swish_conf_file Swish_program
                          Bin_directory Perl_program Vend_lib App_directory
                          Config_file));
@@ -39,7 +43,7 @@ sub configure {
     my $data = $Options->{Data_directory} || '';
 
     defaults($Options,
-             Html => '.html',
+             Html_extension => '.html',
              Stripped_directory => "$data/stripped",
              Swish_index_file => "$data/index.swish",
              Swish_conf_file => "$app/swish.conf",
@@ -81,7 +85,7 @@ END
 
 sub create_swish_index {
     write_stripped_pages($Options->{'Stripped_directory'},
-                         $Options->{'Html'});
+                         $Options->{'Html_extension'});
 
     my $cmd = $Options->{'Swish_program'};
     $cmd .= " -c $Options->{'Swish_conf_file'}";
@@ -97,14 +101,14 @@ sub xsystem {
     my $r = system($cmd);
 }
 
-sub search {
+sub swish_search {
     my ($words, $options, $callback) = @_;
 
     $options =
         combine($options,
                 $Options,
                 qw(Swish_tags Swish_index_file Swish_max_hits Swish_program
-                   Stripped_directory));
+                   Stripped_directory Html_extension));
 
     my $args = "-w";
     while ($words =~ m/(\w+)/g) {
@@ -129,6 +133,7 @@ sub search {
         }
         if (($rank, $fn, $title, $size) = m/^(\d+) (\S+) \"([^\"]+)\" (\d+)/) {
             $fn =~ s,^$options->{'Stripped_directory'}/,,;
+            $fn =~ s,\Q$options->{'Html_extension'}\E$,,;
             &$callback($rank, $fn, $title, $size);
         }
     }

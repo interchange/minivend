@@ -1,3 +1,20 @@
+Thu Mar 14 22:35:57 1996  Andrew Wilcox  <awilcox@world.std.com>
+
+    * Vend/Startup.pm, setup: Version 0.3.8.
+
+    * Vend/Cgi.pm (setup):
+    New 'Use_setuid_wrapper' option keeps the "cgi" program from
+      being installed setuid.
+
+Thu Mar 14 20:49:32 1996  Andrew Wilcox  <awilcox@world.std.com>
+
+    * Vend/Table/GDBM.pm: (record_exists):
+        Guess what?  The GDBM "exists" function got renamed to "EXISTS"
+        in 5.002.
+
+    * Vend/Swish_search.pm: Use Html_extension as the name of the Html option.
+    Strip the html extension off of the search result file name.
+
 Tue Mar 12 16:46:13 1996  Andrew Wilcox  <awilcox@world.std.com>
 
     * Vend/Startup.pm, setup: Version 0.3.7.
