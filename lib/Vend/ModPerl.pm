@@ -67,6 +67,9 @@ sub handler {
 		}
 	}
 
+	select STDERR;
+	$| = 1;
+	undef *STDOUT;
 	tie *OUT, 'Apache';
 	my $http = new Vend::Server \*OUT, \%env, \$entity;
 	return NOT_FOUND unless $http;
