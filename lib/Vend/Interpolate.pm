@@ -2490,6 +2490,8 @@ sub tag_perl {
 
 	$body =~ tr/\r//d if $Global::Windows;
 
+	$Items = $Vend::Items;
+
 	if(! $MVSAFE::Safe) {
 		$result = eval($body);
 	}
@@ -3609,6 +3611,8 @@ sub tag_calc {
 					"Attempt to interpolate perl/ITL from RPC, no permissions."
 					);
 	}
+
+	$Items = $Vend::Items;
 
 	if($MVSAFE::Safe) {
 		$result = eval($body);
