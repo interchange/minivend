@@ -1985,6 +1985,7 @@ my %Hash_ref = (  qw!
 my %Ary_ref = (   qw!
 							NAME         NAME
 							BINARY       BINARY 
+							POSTCREATE   POSTCREATE 
 					! );
 
 sub parse_config_db {

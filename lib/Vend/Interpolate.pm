@@ -2079,7 +2079,7 @@ sub tag_value_extended {
 	eval {
 		@ary = @ary[$ready_safe->reval( $index eq '*' ? "0 .. $#ary" : $index )];
 	};
-	logError("value-extend $var: bad index") if $@;
+	::logError("value-extend $var: bad index") if $@;
 
 	if($opt->{filter}) {
 		for(@ary) {

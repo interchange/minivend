@@ -480,7 +480,7 @@ sub get_limit {
 	my $limit_sub;
 	my $range_code = '';
 	my $rd = $s->{mv_record_delim} || '\n';
-	my $code       = "sub {\nmy \$line = shift; chomp \$line; \$line =~ tr/$rd//d; ::logDebug(\$line);\n";
+	my $code       = "sub {\nmy \$line = shift; chomp \$line; \$line =~ tr/$rd//d;\n";
 	my $join_key;
 	$join_key = defined $s->{mv_return_fields} ? $s->{mv_return_fields}[0] : 0;
 	$join_key = 0 if $join_key eq '*';

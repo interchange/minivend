@@ -192,6 +192,17 @@ sub create {
 		or warn "DBI: Create table '$tablename' failed: $DBI::errstr\n";
 	::logError("table %s created: %s" , $tablename, $query );
 
+	if(ref $config->{POSTCREATE}) {
+		for(@{$config->{POSTCREATE}} ) {
+			$db->do($_) 
+				or ::logError(
+								"DBI: Post creation query '%s' failed: %s" ,
+								$_,
+								$DBI::errstr,
+					);
+		}
+	}
+
 	$db->do("create index ${tablename}_${key} on $tablename ($key)")
 		or ::logError("table %s index failed: %s" , $tablename, $DBI::errstr);
 
