@@ -457,6 +457,9 @@ sub create {
 	if(! defined $config->{EXTENDED}) {
 		## side-effects here -- sets $config->{NUMERIC},
 		## $config->{_Numeric_ary}, reads GUESS_NUMERIC
+
+		$config->{_Auto_number} = $config->{AUTO_SEQUENCE} || $config->{AUTO_NUMBER};
+		
 		if(! $config->{NAME}) {
 			$config->{NAME} = list_fields($db, $tablename, $config);
 		}
