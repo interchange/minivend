@@ -1252,7 +1252,7 @@ sub menu {
 	}
 
 	my @transform;
-	my @ordered_transform = qw/page_class indicator_class localize entities nbsp/;
+	my @ordered_transform = qw/full_interpolate page_class indicator_class localize entities nbsp/;
 	my %ordered;
 	@ordered{@ordered_transform} = @ordered_transform;
 
