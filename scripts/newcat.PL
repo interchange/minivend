@@ -80,6 +80,7 @@ use Config;
 use File::Find;
 use File::Copy;
 use File::Path;
+use Sys::Hostname;
 use Vend::MakeCat;
 use Vend::Util;
 use Vend::Config;
@@ -575,9 +576,7 @@ if ($> == 0) {
 									if $Servers->{$_}{Master}
 							}
 						}
-						my $host = `hostname`;
-						chomp $host;
-						return $host || $Config{myhostname};
+						return Sys::Hostname::hostname() || $Config{myhostname};
 					},
 	samplehtml   =>  sub {
 						return $ENV{MVC_SAMPLEHTML} if $ENV{MVC_SAMPLEHTML};

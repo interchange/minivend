@@ -28,6 +28,7 @@ use Cwd;
 use File::Find;
 use File::Copy;
 use File::Basename;
+use Sys::Hostname;
 use Vend::Util;
 require Safe;
 $Safe = new Safe;
@@ -2142,7 +2143,7 @@ sub conf_parse_http {
 		}
 		
 		if($handle eq ' ') {
-			$servname = `hostname` unless $servname;
+			$servname = Sys::Hostname::hostname() unless $servname;
 			$servname =~ s/\s+$//;
 			$main = $servname;
 			$servers->{$servname} = {} if ! $servers->{$servname};

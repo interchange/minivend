@@ -79,6 +79,7 @@ use Config;
 use File::Find;
 use File::Copy;
 use File::Path;
+use Sys::Hostname;
 use Vend::MakeCat;
 use Vend::Util;
 use Getopt::Long;
@@ -476,9 +477,7 @@ my %Prefix = (
 							get_id(); },
 	interchangegroup=>  '',
     servername => sub {
-						my $host = `hostname`;
-						chomp $host;
-						return $host || $Config{myhostname};
+						return Sys::Hostname::hostname() || $Config{myhostname};
 					},
     linkmode     =>  'UNIX',
     documentroot =>  $ENV{MVC_DOCUMENTROOT} || $DocrootDefault,
