@@ -475,16 +475,14 @@ sub substitute_image {
 
 	if ( $::Pragma->{path_adjust} ) {
 		my $dir = $Vend::Cfg->{StaticPath};
-
+#::logDebug("have a dir for path_adjust, $dir");
 		if ($dir) {
-			$$text =~ s#(<a\s+[^>]*?href=")(/[^"]+)#
-						$1 . $dir . $2#ige;
-			$$text =~ s#(<i\w+\s+[^>]*?src=")(/[^"]*)#
-						$1 . $dir . $2#ige;
-	        $$text =~ s#(<body\s+[^>]*?background=")(/[^"]+)#
-						$1 . $dir . $2#ige;
-	        $$text =~ s#(<t(?:[dhr]|able)\s+[^>]*?background=")(/[^"]+)#
-						$1 . $dir . $2#ige;
+			$$text =~ s{(<a(?:rea)?\s+[^>]*?href=)"(/[^"]+)"} {$1'$dir$2'}ig;
+			$$text =~ s{(<link\s+[^>]*?href=)"(/[^"]+)"}      {$1'$dir$2'}ig;
+			$$text =~ s{(<i\w+\s+[^>]*?src=)"(/[^"]*)"}       {$1'$dir$2'}ig;
+	        $$text =~ s{(<body\s+[^>]*?background=)"(/[^"]+)"}{$1'$dir$2'}ig;
+	        $$text =~ s{(<t(?:[dhr]|able)\s+[^>]*?background=)"(/[^"]+)"}
+					   {$1'$dir$2'}ig;
 		}
 	}
 
@@ -971,6 +969,10 @@ sub tag_data {
 					return $val 
 						unless $val =~ m:(\d+)[-/]+(\d+)[-/]+(\d+):;
 					my ($yr, $mon, $day) = ($3, $1, $2);
+
+					my $time;
+					$val =~ /:(\d+)$/
+						and $time = $1;
 					if(length($yr) < 4) {
 						$yr =~ s/^0//;
 						$yr = $yr < 50 ? $yr + 2000 : $yr + 1900;
@@ -978,6 +980,8 @@ sub tag_data {
 					$mon =~ s/^0//;
 					$day =~ s/^0//;
 					$val = sprintf("%d%02d%02d", $yr, $mon, $day);
+					return $val unless $time;
+					$val .= sprintf('%04d', $time);
 					return $val;
 				},
 	'checkbox' =>		sub {
@@ -2074,6 +2078,8 @@ sub tag_options {
 								attribute => 'mv_sku',
 								price_data => $ref->[6],
 								price => $opt->{price},
+								extra => $opt->{extra},
+								js => $opt->{js},
 								item => $phony,
 							},
 							$phony || undef,
@@ -2140,6 +2146,8 @@ sub tag_options {
 								price_data => $price,
 								price => $opt->{price},
 								item => $item,
+								extra => $opt->{extra},
+								js => $opt->{js},
 								default => undef,
 							},
 							$item || undef,
@@ -2180,6 +2188,8 @@ sub tag_options {
 								price_data => $ref->[6],
 								price => $opt->{price},
 								item => $item,
+								extra => $opt->{extra},
+								js => $opt->{js},
 								default => undef,
 							},
 							$item || undef,
@@ -3553,6 +3563,15 @@ sub form_link {
 		$Vend::Session->{$aloc}{$href} = $opt->{alias};
 	}
 
+	if($opt->{form} eq 'auto') {
+		my $form = '';
+		my %skip = qw/form 1 href 1 reparse 1/;
+		while( my ($k, $v) = each %$opt) {
+			next if $skip{$k};
+			$form .= "$k=$v\n";
+		}
+		$opt->{form} = $form;
+	}
 
 	$href = 'process' unless $href;
 	$href =~ s:^/+::;
@@ -5226,7 +5245,7 @@ sub tag_tree {
 			$row->{mv_level} = $level;
 			$row->{mv_spacing} = $level * $mult;
 			$row->{mv_spacer} = $opt->{spacer} x $row->{mv_spacing}
-				if $opt->{mv_spacer};
+				if $opt->{spacer};
 			$row->{mv_increment} = $increment++;
 			push(@rows, $row);
 			my $code = $row->{$keyfield};
