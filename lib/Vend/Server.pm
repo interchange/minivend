@@ -591,7 +591,7 @@ sub respond {
 			push (@paths, @{$ref->{alias}}) if defined $ref->{alias};
 			if ($Global::FullUrl) {
 				# remove domain from script
-				for (@paths) { s:^[^/]+/:/: ; }
+				for (@paths) { s:^[^/]+/:/: or $_ = '/'; }
 			}
 		}
 
