@@ -254,7 +254,10 @@ sub search {
 		if(! defined $f and defined $limit_sub) {
 #::logDebug("no f, limit, dbref=$dbref");
 			local($_);
-			while($_ = join "\t", $dbref->each_nokey($qual || undef) ) {
+			while ($_ = join "\t",
+						map { s/\t/ /g; $_ }
+						$dbref->each_nokey($qual || undef)
+					) {
 				next unless &$limit_sub($_);
 				push @out, &$return_sub($_);
 			}
@@ -262,7 +265,10 @@ sub search {
 		elsif(defined $limit_sub) {
 #::logDebug("f and limit, dbref=$dbref");
 			local($_);
-			while($_ = join "\t", $dbref->each_nokey($qual || undef) ) {
+			while ($_ = join "\t",
+						map { s/\t/ /g; $_ }
+						$dbref->each_nokey($qual || undef)
+					) {
 				next unless &$f();
 				next unless &$limit_sub($_);
 				push @out, &$return_sub($_);
@@ -274,7 +280,10 @@ sub search {
 		else {
 #::logDebug("f and no limit, dbref=$dbref");
 			local($_);
-			while($_ = join "\t", $dbref->each_nokey($qual || undef) ) {
+			while ($_ = join "\t",
+						map { s/\t/ /g; $_ }
+						$dbref->each_nokey($qual || undef)
+					) {
 				next unless &$f();
 				push @out, &$return_sub($_);
 			}
