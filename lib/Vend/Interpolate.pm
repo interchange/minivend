@@ -984,8 +984,8 @@ sub tag_data {
 					$value =~ s/^\s+//;
 					my @opts = split /[\r\n]+/, $value;
 					for(@opts) {
-						s/^\s+//g;
-						s/\s+$//g;
+						s/^\s+//;
+						s/[,\s]+$//;
 						s/,/&#44;/g;
 					}
 					return join ",", @opts;
