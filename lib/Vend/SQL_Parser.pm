@@ -112,7 +112,6 @@ sub new {
 
 sub errdie {
 	my $self = shift;
-	my $msg = ::errmsg(@_);
 	my $sub;
 	if($self->{log} eq 'debug')     { $sub = \&Vend::Util::logDebug;  }
 	elsif($self->{log} eq 'global') { $sub = \&Vend::Util::logGlobal; }
@@ -214,7 +213,6 @@ sub limit {
 sub order {
 	my $s = shift;
 	return @{$s->{order}} if $s->{order};
-	my @try;
 	my @col;
 
 	my $st = $s->{order_by}
