@@ -1781,7 +1781,7 @@ sub dispatch {
 
 	unless (defined $Global::Selector{$CGI::script_name}) {
 		my $msg = get_locale_message(
-						403,
+						404,
 						"Undefined catalog: %s",
 						$CGI::script_name,
 						);
