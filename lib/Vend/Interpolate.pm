@@ -31,7 +31,6 @@ $VERSION = substr(q$Revision$, 10);
 
 @EXPORT = qw (
 
-cache_html
 interpolate_html
 subtotal
 tag_data
@@ -609,8 +608,6 @@ sub interpolate_html {
 	return $parse->{OUT} if defined $wantref;
 	return ${$parse->{OUT}};
 }
-
-*cache_html = \&interpolate_html;
 
 my $Filters_initted;
 
