@@ -130,6 +130,31 @@ sub display_options_matrix {
 	my @out;
 	my $out;
 	
+    my $inv_func;
+    if($opt->{inventory}) {
+        my ($tab, $col) = split /:+/, $opt->{inventory};
+        MAKEFUNC: {
+            my $idb = dbref($tab)
+                or do {
+                    logError("Bad table %s for inventory function.", $tab);
+                    last MAKEFUNC;
+                };
+            $idb->test_column($col)
+                or do {
+                    logError(
+                        "Bad column %s in table %s for inventory function.",
+                        $col,
+                        $tab,
+                    );
+                    last MAKEFUNC;
+                };
+            $inv_func = sub {
+                my $key = shift;
+                return $idb->field($key, $col);
+            };
+        }
+    }
+
 	my $rsort = find_sort($opt, $db, $loc);
 
 	if($opt->{display_type} eq 'separate') {

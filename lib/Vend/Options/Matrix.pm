@@ -133,7 +133,30 @@ sub display_options {
 	# Will be different based on whether separate or not....
 	my $rsort;
 
-	my $inv_func;
+    my $inv_func;
+    if($opt->{inventory}) {
+        my ($tab, $col) = split /:+/, $opt->{inventory};
+        MAKEFUNC: {
+            my $idb = dbref($tab)
+                or do {
+                    logError("Bad table %s for inventory function.", $tab);
+                    last MAKEFUNC;
+                };
+            $idb->test_column($col)
+                or do {
+                    logError(
+                        "Bad column %s in table %s for inventory function.",
+                        $col,
+                        $tab,
+                    );
+                    last MAKEFUNC;
+                };
+            $inv_func = sub {
+                my $key = shift;
+                return $idb->field($key, $col);
+            };
+        }
+    }
 
 	use constant SEP_CODE		=> 0;
 	use constant SEP_GROUP		=> 1;
