@@ -3304,11 +3304,13 @@ sub get_configdb {
 		config_warn("Bad $var '%s': %s", $table, $err);
 		return '';
 	}
-	$db = Vend::Data::import_database($db);
-	if(! $db) {
-		my $err = $@;
-		config_warn("Bad $var '%s': %s", $table, $err);
-		return '';
+	eval {
+		$db = Vend::Data::import_database($db);
+	};
+	if($@ or ! $db) {
+		my $err = $@ || errmsg("Unable to import table '%s' for config.", $table);
+		delete $C->{Database}{$table};
+		die $err;
 	}
 	return ($db, $table);
 }
