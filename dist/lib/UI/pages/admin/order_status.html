@@ -115,7 +115,10 @@
 	mv_todo=back
 	order=[cgi code]
 	[tag flag write]orderline transactions[/tag]
-	[update-order-status order-number="[cgi code]"]
+	[update-order-status
+		order-number="[cgi code]"
+		cancel-order="[if cgi ship_all eq 2]1[/if]"
+	]
 	[if scratch ship_notice_username]
 	[email-raw][include etc/ship_notice][/email-raw]
 	[/if]
