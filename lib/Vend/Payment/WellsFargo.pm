@@ -463,7 +463,7 @@ sub wellsfargo {
         Ecom_payment_card_expdate_year	=> $actual->{mv_credit_card_exp_year},
         Ecom_payment_card_expdate_month	=> $actual->{mv_credit_card_exp_month},
         Ecom_payment_card_number	=> $actual->{mv_credit_card_number},
-        Ecom_payment_card_type		=> "\U$Vend::Session->{values}->{mv_credit_card_type}",
+        Ecom_payment_card_type		=> "\U$::Values->{mv_credit_card_type}",
         Ecom_payment_card_verification	=> 123,
     );
 

@@ -211,11 +211,9 @@ sub Values {
 	shift;
 	open_soap_session();
 	my $putref;
-	my $ref = $Vend::Session->{values};
+	my $ref = $::Values ||= {};
 #::logDebug("ref from session is " . ::uneval($ref));
 	if($putref = shift) {
-		$ref = $Vend::Session->{values} = {}
-			if ! ref($ref);
 		%{$ref} = %{$putref};
 	}
 	close_soap_session();

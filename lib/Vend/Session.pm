@@ -294,11 +294,8 @@ sub write_session {
 	my $time = time;
     $Vend::Session->{'time'} = $time;
 	delete $Vend::Session->{values}->{mv_credit_card_number};
-    my $save = $Vend::Session->{'user'};
-    undef $Vend::Session->{'user'};
-    #undef $Vend::Session->{'arg'};
+    my $save = delete $Vend::Session->{'user'};
 	for(@Vend::TmpScratch) {
-#::logDebug ("delete TmpScratch=$_");
 		delete $::Scratch->{$_};
 	}
 	$Vend::Session->{username} = $Vend::username;
@@ -403,7 +400,7 @@ sub read_session {
 
 	$Vend::Session->{arg}  = $Vend::Argument;
 
-    $::Values	= $Vend::Session->{'values'};
+    $::Values	= $Vend::Session->{values};
     $::Scratch	= $Vend::Session->{scratch};
     $::Carts	= $Vend::Session->{carts};
     $Vend::Interpolate::Tmp ||= {};
@@ -458,7 +455,7 @@ sub init_session {
     };
 	$Vend::Session->{shost} = $CGI::remote_addr
 		if $CGI::secure;
-	$::Values     = $Vend::Session->{'values'};
+	$::Values     = $Vend::Session->{values};
 	$::Scratch	  = $Vend::Session->{scratch};
 	$::Scratch->{mv_locale} ||= $Vend::Cfg->{DefaultLocale};
 	$::Carts	  = $Vend::Session->{carts};
@@ -554,8 +551,8 @@ sub check_save {
 
 	$time = $time || time();
 
-	if(defined $Vend::Session->{'values'}->{mv_expire_time}) {
-		$expire = $Vend::Session->{'values'}->{mv_expire_time};
+	if(defined $::Values->{mv_expire_time}) {
+		$expire = $::Values->{mv_expire_time};
 		unless($expire =~ /^\d{6,}$/) {
 			$expire = Vend::Config::time_to_seconds($expire);
 		}

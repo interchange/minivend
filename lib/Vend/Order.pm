@@ -1222,7 +1222,7 @@ sub _email_only {
 
 # Contributed by Ton Verhagen -- April 15, 2000
 sub _isbn {
-	# $ref is to Vend::Session->{'values'} hash (well, actually ref to %CGI::values)
+	# $ref is to $::Values hash (well, actually ref to %CGI::values)
 	# $var is the passed name of the variable
 	# $val is current value of checked variable
 	# This routine will return 1 if isbn is ok, else returns 0
