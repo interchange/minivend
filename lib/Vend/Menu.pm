@@ -1471,7 +1471,7 @@ sub menu {
 			my $page_name = $Global::Variable->{MV_PAGE};
 			my $dir = Vend::Tags->var('MV_MENU_DIRECTORY', 2) || 'include/menus';
 			while($page_name =~ s:/[^/]+$::) {
-				my $fn = "$dir/$page_name.txt";
+				my $fn = "$dir/auto/$page_name.txt";
 #::logDebug("page name=$page_name, testing for $fn");
 				if(-f $fn) {
 					$opt->{file} = $fn;
