@@ -1054,7 +1054,7 @@ sub check_order {
 	if($Final and ! scalar @{$Vend::Items}) {
 		$status = 0;
 		$::Values->{"mv_error_items"}       =
-			$Vend::Session->{error}{items}  =
+			$Vend::Session->{errors}{items}  =
 				errmsg(
 					"You might want to order something! No items in cart.",
 				);
