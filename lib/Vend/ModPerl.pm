@@ -2,7 +2,7 @@
 #
 # $Id$
 #
-# Copyright (C) 2002 Red Hat, Inc. <interchange@redhat.com>
+# Copyright (C) 2002 Red Hat, Inc. and Jon Jensen <jon@icdevgroup.org>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@ use Apache::Request ();
 use Apache::URI ();
 use Apache::Server ();
 use Vend::Server;
+use Vend::Util;
 
 use strict;
 
@@ -41,6 +42,12 @@ sub handler {
 
 	@Global::argv = ();
 	Vend::Server::reset_vars();
+
+	if($Global::ShowTimes) {
+		@Vend::Times = times();
+		::logDebug("begin connection. Summary time set to zero");
+	}
+
 	$::Instance = {};
 	my (%env, $entity);
 	%env = %ENV;
@@ -54,15 +61,22 @@ sub handler {
 
 	# not handling MV3-style requests or TolerateGet compatibility yet
 	my $apr = Apache::Request->new($r);
-	for ($apr->param) {
-		Vend::Server::store_cgi_kv($_, $apr->param($_));
+	for my $k ($apr->param) {
+		for my $v ($apr->param($k)) {
+			Vend::Server::store_cgi_kv($k, $v);
+		}
 	}
 
-	undef *STDOUT;
 	tie *OUT, 'Apache';
 	my $http = new Vend::Server \*OUT, \%env, \$entity;
 	return NOT_FOUND unless $http;
+
+	# Can log all CGI inputs
+	log_http_data($http) if $Global::Logging;
+
+	show_times("begin dispatch") if $Global::ShowTimes;
 	::dispatch($http);
+	show_times("end connection") if $Global::ShowTimes;
 	undef $::Instance;
 	undef $Vend::Cfg;
 	return OK;
