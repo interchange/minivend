@@ -3108,6 +3108,8 @@ my %tagCanon = ( qw(
 
 	group			Group
 	actionmap		ActionMap
+	arraycode		ArrayCode
+	hashcode		HashCode
 	coretag  		CoreTag
 	filter			Filter
 	formaction		FormAction
@@ -3163,14 +3165,16 @@ my %tagBool = ( qw!
 
 my %current_dest;
 my %valid_dest = qw/
-                    actionmap  ActionMap
-                    coretag    UserTag
-                    filter     Filter
-                    formaction FormAction
-                    itemaction ItemAction
-                    ordercheck OrderCheck
-                    usertag    UserTag
-                    widget     Widget
+					actionmap        ActionMap
+					coretag          UserTag
+					filter           Filter
+					formaction       FormAction
+					itemaction       ItemAction
+					ordercheck       OrderCheck
+					usertag          UserTag
+					hashcode         HashCode
+					arraycode        ArrayCode
+					widget           Widget
 				/;
 
 sub finalize_mapped_code {
@@ -3205,6 +3209,13 @@ sub finalize_mapped_code {
 	}
 }
 
+my %Compiled = qw/
+					Routine     Routine
+					PosRoutine  PosRoutine
+					HashCode    Routine
+					ArrayCode   Routine
+				/;
+
 sub parse_mapped_code {
 	my ($var, $value) = @_;
 
@@ -3234,9 +3245,9 @@ sub parse_mapped_code {
 
 	my $c = $repos->{$dest};
 
-	if($p eq 'Routine') {
-		$c->{Routine} ||= {};
-		parse_action($var, "$tag $val", $c->{Routine});
+	if($Compiled{$p}) {
+		$c->{$Compiled{$p}} ||= {};
+		parse_action($var, "$tag $val", $c->{$Compiled{$p}} ||= {});
 	}
 	elsif(defined $tagAry{$p}) {
 		my(@v) = Text::ParseWords::shellwords($val);
