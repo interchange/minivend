@@ -210,8 +210,39 @@ my %Parse = (
 								my $msg = errmsg("%s set failed.", $var);
 								return ($value, $var, $msg);
 							},
-);
+	future => sub {
+							my($name, $value, $code) = @_;
+							my $message;
 
+							my @code = Text::ParseWords::shellwords($code);
+							if($code =~ /(["']).+?\1$/) {
+								$message = pop(@code);
+							}
+							my $adjust = join " ", @code;
+							if(! $message) {
+								$message = errmsg(
+											"Date must be in the future at least %s",
+											$adjust,
+											);
+							}
+							if($value =~ /\0/) {
+								$value = Vend::Interpolate::filter_value(
+											'date_change',
+											$value,
+										);
+							}
+							my $current = Vend::Interpolate::mvtime(
+													undef,
+													{ adjust => $adjust },
+													"%Y%m%d%H%M",
+													);
+#::logDebug("current time: $current input value=$value");
+							if($value lt $current) {
+								return (0, $name, $message);
+							}
+							return (1, $name, '');
+						},
+);
 
 sub _update {
 	$Update = is_yes($_[1]);
