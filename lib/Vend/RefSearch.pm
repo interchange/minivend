@@ -251,8 +251,13 @@ sub search {
 	if($s->{mv_unique}) {
 		my %seen;
 		@out = grep ! $seen{$_->[0]}++, @out;
-		$s->{matches} = scalar(@out);
 	}
+
+	if($s->{mv_max_matches} > 0) {
+		splice @out, $s->{mv_max_matches};
+	}
+
+	$s->{matches} = scalar(@out);
 
 	## This is the normal return point unless RefSearch called by program
 	## or ITL
