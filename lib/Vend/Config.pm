@@ -3007,7 +3007,7 @@ sub parse_database {
 		}
 		if    ($d->{'type'} eq '8')	{ $d->{Class} = 'DBI'						}
 		elsif ($d->{'type'} eq '9') { $d->{Class} = 'LDAP'						}
-		else 						{ $d->{Class} = $Global::Default_database	}
+		else 						{ $d->{Class} ||= $Global::Default_database	}
 
 		if($C->{DatabaseDefault}) {
 			while ( my($k, $v) = each %{$C->{DatabaseDefault}}) {
