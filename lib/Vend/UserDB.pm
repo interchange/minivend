@@ -401,7 +401,7 @@ sub log {
 	logData( ($self->{OPTIONS}{logfile} || $Vend::Cfg->{LogFile}),
 						$time,
 						$self->{USERNAME},
-						$CGI::remote_host,
+						$CGI::remote_host || $CGI::remote_addr,
 						$msg,
 						);
 	return;
