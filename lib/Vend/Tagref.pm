@@ -2105,11 +2105,8 @@ The two-letter abbreviations are mapped with these letters:
   sq  mv_sql_query
   st  mv_searchtype
   su  mv_substring_match
-  td  mv_table_cell
   tf  mv_sort_field
-  th  mv_table_header
   to  mv_sort_option
-  tr  mv_table_row
   un  mv_unique
   va  mv_value
 
