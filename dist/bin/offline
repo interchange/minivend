@@ -2,7 +2,7 @@
 #
 # offline - MiniVend database builder and indexer
 #
-# $Id: offline,v 1.6 1998/03/21 12:17:29 mike Exp mike $
+# $Id: offline,v 1.7 1998/05/06 08:35:19 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -48,6 +48,7 @@ $Global::ConfigFile = 'minivend.cfg';
 $Global::ErrorFile = "$Global::VendRoot/error.log";
 
 use lib "$Global::VendRoot/lib";
+use Vend::Util qw/logError/;
 
 my $DEBUG = 0;
 
@@ -81,13 +82,13 @@ BEGIN {
 		import DB_File;
 		$Global::DB_File = 1;
 	}
-	else {
+	elsif(! $Global::DBI) {
 		die "No DBM defined! Offline import not necessary.\n";
 	}
 }
 
 use Vend::Config;
-use Vend::Offline;
+use Vend::Data;
 
 my $USAGE = <<EOF;
 usage: offline -c catalog [-d offline_dir]
@@ -151,63 +152,29 @@ chdir $dir or die "Couldn't change directory to $dir: $!\n";
 
 $Vend::Cfg = config($name, $dir, 'config', $subconfig || undef);
 
+$Vend::Cfg->{ProductDir} =
+		$Vend::Cfg->{DataDir} =  $directory || $Vend::Cfg->{OfflineDir};
+
 open_database();
 
-use FileHandle;
+my $db;
+my $obj;
 
-if(@Indices) {
-	print "In index build with " . (join " ", @Indices) . "\n" if $DEBUG;
-	my ($name, $file, $pos, $handle, $key, $val, $p, @fields);
-	my $index = {};
-	for(@Indices) {
-		@fields = split /\s*,\s*/, $_;
-		$name = $fields[0];
-		$file = "$Vend::Cfg->{OfflineDir}/$name.idx";
-		print "$file = '" . (join " ", @fields) . "'\n" if $DEBUG;
-
-		$handle = new FileHandle ">$file";
-		die "Couldn't write $file: $!"
-			unless defined $handle;
-		for(@fields) {
-			$pos = column_exists($_);
-			die "Unknown products field '$_'. Aborting."
-				unless defined $pos;
-			$_ = $pos;
+foreach $db (keys %Vend::Database) {
+	eval {
+		$obj = database_exists_ref($db)
+			or warn "Trouble importing $db: $!\n";
+		$obj->ref;
+		};
+	if($@) {
+		my $k; my $v;
+		my $msg = "Trouble importing $db: $@\n\n";
+		while( ($k, $v) = each %{$Vend::Cfg->{Database}{$db}} ) {
+			$msg .= sprintf "%15s: %s\n", $k, $v;
 		}
-		print "$file = '" . (join " ", @fields) . "'\n" if $DEBUG;
-		$index->{$name} = {
-							fields => [@fields],
-							file => $file,
-							handle => $handle,
-						};
+		warn "$msg\n";
 	}
-
-	$p = database_ref();
-
-	my @index = sort keys %$index;
-	my ($idx, $fld, $output, @out);
-
-    while( ($key,@fields) = $p->each_record() ) {
-        foreach $idx (@index) {
-			$handle = $index->{$idx}->{'handle'};
-			@out = @fields[@{$index->{$idx}->{'fields'}}];
-			$output = join $delimiter, @out, $key;
-			$output .= "\n";
-			print $handle $output;
-		}
-    }
-	undef $handle;
-	for(@index) { undef $index->{$_}->{'handle'} }
-	for(@index) {
-		$file = $index->{$_}->{'file'};
-		system "cat $file | sort -t'$delimiter' > $file.new";
-		if($?) {
-			die "Couldn't sort $file properly: $!\n";
-		}
-		unlink $file				or die "Couldn't unlink $file: $!\n";
-		rename "$file.new", $file	or die "Couldn't rename $file.new: $!\n";
-	}
-
+	print "Done with $db.\n";
 }
 
 close_database();

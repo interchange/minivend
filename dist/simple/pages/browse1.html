@@ -70,9 +70,25 @@ Price: $[loop-price]
 
 [/tag]
 
-[if scratch not_shown]
-<H2> No more to show. </H2>
+[if scratch not_shown][set name=highest interpolate=1][scratch prev][/set][tag op=header interpolate=1]
+Status: 302 moved
+Location: [area href=browse1 arg="1:[scratch chunk]"]
+[/tag]
+[else]
+<P>
+[/else]
 [/if]
+[if scratch prev]
+[page href=browse1 arg="[scratch prev]:[scratch chunk]"]<B>Previous</B></A>&nbsp;&nbsp;
+[elsif scratch highest]
+<H3>(now back at beginning)</H3>
+[page href=browse1 arg="[scratch highest]:[scratch chunk]"]<B>Previous</B></A>&nbsp;&nbsp;
+[/elsif]
+[/if]
+[if !scratch not_shown]
+[page href=browse1 arg="[scratch next]:[scratch chunk]"]<B>Next</B></A>
+[/if]
+
 <P>
 [if scratch prev]
 [page href=browse1 arg="[scratch prev]:[scratch chunk]"]<B>Previous</B></A>&nbsp;&nbsp;

@@ -238,6 +238,51 @@ GlobalSub sub test_global_sub { return 'Test of global subroutine OK.' }
 #
 # UserBuild
 
+## Default: none
+#
+# Custom tag for every catalog served by this MiniVend.
+#
+# UserTag
+
+# [loc locale*] message [/loc]
+#
+# This tag is the equivalent of [L] ... [/L] localization, except
+# it works with contained tags
+#
+
+UserTag loc hasEndTag   1
+UserTag loc Interpolate 1
+UserTag loc Order locale
+UserTag loc Routine <<EOF
+sub {
+    my ($locale, $message) = @_;
+    return $message unless $Vend::Cfg->{Locale};
+    my $ref;
+    if($locale) {
+        return $message
+            unless defined $Vend::Cfg->{Locale_repository}{$locale};
+        $ref = $Vend::Cfg->{Locale_repository}{$locale}
+    }
+    else {
+        $ref = $Vend::Cfg->{Locale};
+    }
+    return defined $ref->{$message} ? $ref->{$message} : $message;
+}
+EOF
+
+
 Variable TEST_VARIABLE Test of global variable OK.
+
+UserTag  db-date  Order format 
+UserTag  db-date  Routine <<EOF
+sub {
+    my ($format) = @_;
+    $format = '%A %d %b %Y';
+
+    my $mtime = (stat('products/products.asc'))[9];
+    return POSIX::strftime($format, localtime($mtime));
+
+}
+EOF
 
 #include userdb.cfg

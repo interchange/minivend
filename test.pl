@@ -30,6 +30,12 @@ mkdir ("$ENV{MINIVEND_ROOT}/etc", 0777);
 mkdir ("$ENV{MINIVEND_ROOT}/pages", 0777);
 mkdir ("$ENV{MINIVEND_ROOT}/products", 0777);
 mkdir ("$ENV{MINIVEND_ROOT}/session", 0777);
+if( $ENV{PERL5LIB} ) {
+	$ENV{PERL5LIB} .= ":$cur_dir/extra";
+}
+else {
+	$ENV{PERL5LIB} = "$cur_dir/extra";
+}
 
 open(CONFIG, ">$ENV{MINIVEND_ROOT}/products/products.asc")
 	or die "open: $!\n";

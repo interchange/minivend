@@ -1,6 +1,6 @@
 # Table/Msql.pm: access a table stored in an Msql Database
 #
-# $Id: Msql.pm,v 1.10 1998/01/31 05:23:31 mike Exp $
+# $Id: Msql.pm,v 1.11 1998/05/02 03:08:13 mike Exp $
 #
 
 # Basic schema
@@ -24,7 +24,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::Msql;
-$VERSION = substr(q$Revision: 1.10 $, 10);
+$VERSION = substr(q$Revision: 1.11 $, 10);
 
 use Carp;
 use strict;
@@ -464,6 +464,8 @@ sub inc_field {
     $sth = $s->[2]->query("update $s->[0] SET $column='$value' where $s->[1] = '$key'");
 	$value;
 }
+
+sub test_record { 1 }
 
 sub record_exists {
     my ($s, $key) = @_;

@@ -1,6 +1,6 @@
 # Data.pm - Minivend databases
 #
-# $Id: Data.pm,v 1.33 1998/03/14 23:46:21 mike Exp $
+# $Id: Data.pm,v 1.38 1998/06/01 17:02:06 mike Exp $
 # 
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -52,7 +52,7 @@ read_shipping
 set_field
 
 );
-@EXPORT_OK = qw(update_productbase);
+@EXPORT_OK = qw(update_productbase column_index);
 
 use strict;
 use Carp;
@@ -78,9 +78,7 @@ BEGIN {
 	elsif($Global::DB_File) {
 		require Vend::Table::DB_File;
 	}
-	else {
-		require Vend::Table::InMemory;
-	}
+	require Vend::Table::InMemory;
 }
 
 my $New_database_dbm; 
@@ -174,7 +172,7 @@ sub update_productbase {
 
 	if(defined $_[0]) {
 		return unless ( defined $Vend::Productbase{$_[0]} or
-						$_[0] eq 'pricing' );
+						$_[0] eq $Vend::Cfg->{PriceDatabase} );
 	}
 # DEBUG
 #Vend::Util::logDebug
@@ -190,8 +188,8 @@ sub update_productbase {
 		$Vend::Basefinder{$Vend::Database{$_}} = $_;
 		push @Vend::Productbase, $Vend::Database{$_};
 	}
-	$Vend::Cfg->{Pricing} = $Vend::Database{pricing}
-		if $Vend::Database{pricing};
+	$Vend::Cfg->{Pricing} = $Vend::Database{$Vend::Cfg->{PriceDatabase}}
+		if $Vend::Database{$Vend::Cfg->{PriceDatabase}};
 	$Products = $Vend::Productbase[0];
 
 }
@@ -215,7 +213,7 @@ sub product_price {
 		$price = database_field($base,$code,$Vend::Cfg->{PriceField})
 				/ $Vend::Cfg->{PriceDivide};
 	}
-	return international_number($price) if $Vend::Cfg->{Locale};
+	#return international_number($price) if $Vend::Cfg->{Locale};
 	return $price;
 }
 
@@ -230,9 +228,17 @@ sub database_field {
     my ($db, $key, $field_name) = @_;
     $db = database_exists_ref($db) or return '';
 	$db = $db->ref;
-    return '' unless $db->record_exists($key);
+    return '' unless $db->test_record($key);
     return '' unless defined $db->test_column($field_name);
     return $db->field($key, $field_name);
+}
+
+sub database_row {
+    my ($db, $key, $field_name) = @_;
+    $db = database_exists_ref($db) or return '';
+	$db = $db->ref;
+    return '' unless $db->test_record($key);
+    return $db->row_hash($key);
 }
 
 sub increment_field {
@@ -280,8 +286,6 @@ sub set_field {
 sub product_field {
     my ($field_name, $code, $base) = @_;
 	my ($db);
-    #return "NA" unless $db = product_code_exists_ref($code, $base || undef);
-    #return "NA" unless defined $db->test_column($field_name);
     return "" unless $db = product_code_exists_ref($code, $base || undef);
     return "" unless defined $db->test_column($field_name);
     return $db->field($code, $field_name);
@@ -369,6 +373,11 @@ sub sql_query {
 	return '';
 }
 
+sub column_index {
+    my ($field_name) = @_;
+    return $Products->column_index($field_name);
+}
+
 sub column_exists {
     my ($field_name) = @_;
     return $Products->test_column($field_name);
@@ -427,6 +436,7 @@ sub create_database_gdbm {
 
 sub close_database {
 	my($db, $name);
+	undef $Products;
 	while( ($name)	= each %Vend::Database ) {
     	$Vend::Database{$name}->close_table()
 			unless defined $Vend::Cfg->{SaveDatabase}->{$name};
@@ -448,8 +458,16 @@ sub database_ref {
 
 # Read in the shipping file.
 
+sub make_three {
+	my $zone = shift;
+	while ( length($zone) < 3 ) {
+		$zone = "0$zone";
+	}
+	return $zone;
+}
+
 sub read_shipping {
-    my($code, $desc, $min, $criterion, $max, $cost);
+    my($code, $desc, $min, $criterion, $max, $cost, $mode);
 
 	my $file = File::Spec->catfile($Vend::Cfg->{ProductDir}, "shipping.asc");
     open(Vend::SHIPPING, $file) or do {
@@ -462,39 +480,13 @@ sub read_shipping {
 	$Vend::Cfg->{Shipping_min} = {};
 	$Vend::Cfg->{Shipping_max} = {};
 	$Vend::Cfg->{Shipping_cost} = {};
-	UPSZONE: {
-		if($Vend::Cfg->{UpsZoneFile}) {
-			my @zone = split(/[\r\n]+/, readfile($Vend::Cfg->{'UpsZoneFile'}) );
-			unless (@zone) {
-				logError("Bad UPS zone file, UPS lookup disabled.");
-				last UPSZONE;
-			}
-			if($zone[0] !~ /\t/) {
-				@zone = grep /\S/, @zone;
-				@zone = grep /^[^"]/, @zone;
-				$zone[0] =~ s/[^\w,]//g;
-				$zone[0] =~ s/^\w+/low,high/;
-				for(@zone) {
-					s/^\s*(\d+)\s*,/$1,$1,/;
-					s/^\s*(\d+)-(\d+),/$1,$2,/;
-					s/\s*,\s*/\t/g;
-				}
-			}
-			$Vend::Cfg->{UPSzone} = \@zone;
-# DEBUG
-#Vend::Util::logDebug
-#("\nZone fields: $zone[0]")
-#	if ::debug(0x4);
-# END DEBUG
-		}
-	}
 	my %seen;
-	my $append = '0000';
+	my $append = '00000';
     while(<Vend::SHIPPING>) {
 		chomp;
 		next unless /\S/;
-		($code, $desc, $criterion, $min, $max, $cost) = split(/\t/);
-		$code = defined $seen{$code} ? $code . $append++ : $code; 
+		($mode, $desc, $criterion, $min, $max, $cost) = split(/\t/);
+		$code = defined $seen{$mode} ? $mode . $append++ : $mode; 
 		$seen{$code} = 1;
 # DEBUG
 #Vend::Util::logDebug
@@ -506,8 +498,89 @@ sub read_shipping {
 		$Vend::Cfg->{Shipping_min}->{$code} = $min;
 		$Vend::Cfg->{Shipping_max}->{$code} = $max;
 		$Vend::Cfg->{Shipping_cost}->{$code} = $cost;
+		if ($cost =~ s/^\s*c\s+(\w+)\s*//) {
+			my $zone = $1;
+			next if defined $Vend::Cfg->{Shipping_zone}{$zone};
+			my $ref;
+			if ($cost =~ /^{[\000-\377]+}$/ ) {
+				eval { $ref = eval $cost };
+			}
+			else {
+				$ref = {};
+				my($name, $file, $length, $multiplier) = split /\s+/, $cost;
+				$ref->{zone_name} = $name || undef;
+				$ref->{zone_file} = $file if $file;
+				$ref->{mult_factor} = $multiplier if defined $multiplier;
+				$ref->{str_length} = $length if defined $length;
+			}
+			if ($@
+				or ref($ref) !~ /HASH/
+				or ! $ref->{'zone_name'}) {
+				logError("Bad shipping configuration for mode $code, skipping.");
+				$Vend::Cfg->{Shipping_cost}->{$code} = 0;
+				next;
+			}
+			$ref->{zone_key} = $zone;
+			$ref->{str_length} = 3 unless defined $ref->{str_length};
+			$ref->{zone_file} = $Vend::Cfg->{ProductDir} . "/" . $ref->{zone_name}
+					unless defined $ref->{zone_file};
+			$Vend::Cfg->{Shipping_zone}{$zone} = $ref;
+		}
+		elsif ($cost =~ s/^\s*g\s+//) {
+			$Vend::Cfg->{Shipping_options}->{mv_global} = {}
+				unless defined $Vend::Cfg->{Shipping_options}{mv_global};
+			if ($cost =~ /\bpricedivide[\s=]*(\d*)/i) {
+				my $set = length($1) ? $1 : 1;
+				$Vend::Cfg->{Shipping_options}{mv_global}{PriceDivide} = $set;
+			}
+		}
+		elsif ($cost =~ s/^\s*o\s+//) {
+			$Vend::Cfg->{Shipping_options}->{$mode} = {}
+				unless defined $Vend::Cfg->{Shipping_options}{$mode};
+			if ($cost =~ /\bpricedivide[\s=]*(\d*)/i) {
+				my $set = length($1) ? $1 : 1;
+				$Vend::Cfg->{Shipping_options}{$mode}{PriceDivide} = $set;
+			}
+		}
     }
     close Vend::SHIPPING;
+	if($Vend::Cfg->{UpsZoneFile} and ! defined $Vend::Cfg->{Shipping_zone}{'u'} ) {
+		$Vend::Cfg->{Shipping_zone}{'u'} = {
+				zone_file	=> $Vend::Cfg->{UpsZoneFile},
+				zone_key	=> 'u',
+				zone_name	=> 'UPS',
+				};
+	}
+	UPSZONE: {
+		my $zone;
+		foreach $zone (keys %{$Vend::Cfg->{Shipping_zone}}) {
+			my $ref = $Vend::Cfg->{Shipping_zone}{$zone};
+			my @zone = split(/[\r\n]+/, readfile($ref->{zone_file}) );
+			unless (@zone) {
+				logError("Bad shipping file for zone '$zone', lookup disabled.");
+				next;
+			}
+			if($zone[0] !~ /\t/) {
+				@zone = grep /\S/, @zone;
+				@zone = grep /^[^"]/, @zone;
+				$zone[0] =~ s/[^\w,]//g;
+				$zone[0] =~ s/^\w+/low,high/;
+				@zone = grep /,/, @zone;
+				$zone[0] =~	s/\s*,\s*/\t/g;
+				for(@zone[1 .. $#zone]) {
+					s/^\s*(\w+)\s*,/make_three($1) . ',' . make_three($1) . ','/e;
+					s/^\s*(\w+)\s*-\s*(\w+),/make_three($1) . ',' . make_three($2) . ','/e;
+					s/\s*,\s*/\t/g;
+				}
+			}
+			$ref->{zone_data} = \@zone;
+# DEBUG
+#Vend::Util::logDebug
+#("\nZone fields: $zone[0]")
+#	if ::debug(0x4);
+# END DEBUG
+		}
+	}
 	1;
 }
 
@@ -562,8 +635,8 @@ sub read_salestax {
 sub read_pricing {
     my($code, @breaks);
 	if($Vend::Cfg->{PriceBreaks} || $Vend::Cfg->{PriceAdjustment}) {
-		die "No pricing database defined, PriceBreaks or PriceAdjustment enabled.\n"
-			 unless $Vend::Cfg->{Database}->{pricing};
+		die "No price database '$Vend::Cfg->{PriceDatabase}' defined, PriceBreaks or PriceAdjustment enabled.\n"
+			 unless $Vend::Cfg->{Database}->{$Vend::Cfg->{PriceDatabase}};
 	}
 	return ( build_item_price(), build_quantity_price() );
 }
@@ -662,22 +735,35 @@ sub import_database {
 # END DEBUG
 
 	my ($delimiter, $record_delim, $change_delimiter, $cacheable);
+	my ($base,$path,$tail,$dir,$database_txt);
 
 	$delimiter = $Vend::Cfg->{Delimiter};
 
 	croak "import_database: No database name!\n"
 		unless $database;
 
-	my $dir;
 
-    my $database_txt = $database;
-
-	my ($base,$path,$tail) = fileparse $database_txt, '\.[^/.]+$';
 # DEBUG
 #Vend::Util::logDebug
 #("start=$database_txt path='$path' base='$base' tail='$tail'\n")
 #	if ::debug(0x4);
 # END DEBUG
+
+	my $database_dbm;
+	my $db;
+	my $create_sub;
+
+	my $no_import = defined $Vend::Cfg->{NoImport}->{$name};
+
+	$base = $obj->{'name'};
+	$dir = $obj->{'dir'} if defined $obj->{'dir'};
+  IMPORT: {
+	last IMPORT if $no_import;
+	last IMPORT if defined $obj->{IMPORT_ONCE} and $obj->{'dir'};
+
+    $database_txt = $database;
+
+	($base,$path,$tail) = fileparse $database_txt, '\.[^/.]+$';
 
 	if(File::Spec->file_name_is_absolute($database_txt)) {
 		$dir = $path;
@@ -687,11 +773,7 @@ sub import_database {
 		$database_txt = File::Spec->catfile($dir,$database_txt);
 	}
 
-	my $database_dbm;
-	my $db;
-	my $create_sub;
-	my $no_import = defined $Vend::Cfg->{NoImport}->{$name};
-
+	$obj->{'dir'} = $dir;
 	if($type == 8) {
 		$New_table_sql = $base;
 		$New_name_sql = $name;
@@ -724,6 +806,11 @@ sub import_database {
     	$create_sub = \&create_database_msql;
 		$change_delimiter = $obj->{DELIMITER} if defined $obj->{DELIMITER};
 	}
+	elsif ($obj->{MEMORY}) {
+    	$New_database_dbm = File::Spec->catfile($dir,"$base.mem");
+    	$create_sub = \&create_database_mem;
+		$cacheable = 1;
+	}
     elsif($Global::GDBM) {
     	$database_dbm = File::Spec->catfile($dir,"$base.gdbm");
     	$New_database_dbm = File::Spec->catfile($dir,"new_$base.gdbm");
@@ -745,15 +832,13 @@ sub import_database {
 		undef $database_dbm;
 		delete $Vend::ForceImport{$name};
 	}
-  IMPORT: {
 	last IMPORT if $no_import;
-	last IMPORT if defined $Vend::Cfg->{NoImport}->{$name};
     if (! defined $database_dbm
 		or ! -e $database_dbm
         or file_modification_time($database_txt) >
             file_modification_time($database_dbm)) {
 		
-        warn "Importing $base table from $database_txt\n";
+        warn "Importing $obj->{'name'} table from $database_txt\n";
 
 		$type = 1 unless $type;
 		($delimiter, $record_delim) = find_delimiter($change_delimiter || $type);
@@ -808,6 +893,9 @@ sub import_database {
 		$db->close_table() if defined $db;
     	$db = Vend::Table::Msql->open_table(
 				{Catalog => $Vend::Cfg->{MsqlDB}}, $base);
+	}
+    elsif($obj->{MEMORY}) {
+		# do nothing
 	}
     elsif($Global::GDBM) {
 		$db->close_table if defined $db;
@@ -1036,9 +1124,9 @@ $code .= <<'EOF';
 							 $item->{$_}, $_ ) || 0;
 	$price = 0 if $adder =~ s/^=//;
 	$price = 0 if $adder =~ /^\s*\[/
-				 && $Vend::Session->{'item_code'}     = $item->{'code'}
-				 && $Vend::Session->{'item_quantity'} = $item->{'quantity'}
-				 && $adder = interpolate_html($adder);
+				 and $Vend::Session->{'item_code'}     = $item->{'code'}
+				 and $Vend::Session->{'item_quantity'} = $item->{'quantity'}
+				 and $adder = interpolate_html($adder);
 	$price += $adder;
 EOF
 ###
@@ -1103,7 +1191,7 @@ sub item_field {
 }
 
 sub item_subtotal {
-	return item_price($_[0]) * $_[0]->{quantity};
+	item_price($_[0]) * $_[0]->{quantity};
 }
 
 1;

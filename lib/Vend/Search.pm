@@ -25,7 +25,7 @@
 #
 package Vend::Search;
 
-$VERSION = substr(q$Revision: 1.16 $, 10);
+$VERSION = substr(q$Revision: 1.19 $, 10);
 $DEBUG = 0;
 
 my $Joiner;
@@ -36,501 +36,6 @@ if($ =~ /win32/i) {
 else {
 	$Joiner = ':';
 }
-
-=head1 NAME
-
-Search.pm - provide framework for multiple searches
-
-=head1 SYNOPSIS
-
-    use Search::TextSearch;
-    use Search::Glimpse;
-
-=cut
-
-=head1 DESCRIPTION
-
-This module is a base class interfacing to search engines. It defines an
-interface that can be used by any of the Search search modules, such as
-Search::Glimpse or Search::TextSearch, which are the standard ones included
-with the module.
-
-It exports no routines, just provides methods for the other classes.
-
-=head2 Search Comparisons
-
-                         Text           Glimpse 
-                        -------        --------
- Speed                   Medium        Dependent on uniqueness of terms
- Requires add'l software No            Yes   
- Search individually     Yes           Yes
-  for fields               
- Search multiple files   Yes           Yes
- Allows spelling errors  No            Yes
- Fully grouped matching  No            No
-
-
-=head1 Methods
-
-Only virtual methods are supported by the Search::Base class. Those search
-modules that inherit from it may export static methods if desired. There are
-the L<Global Parameter Method>, L<Column Setting Functions>, and 
-L<Row Setting Functions>. L<SEE ALSO> Search::Glimpse, Search::TextSearch.
-
-=head2 Global Parameter Method
-
-    $s->global(param,val); 
-    $status = $s->global(param); 
-    %globals = $s->global();
-
-Allows setting of the parameters that are global to the search. The standard
-ones are listed below.
-
-=over 4
-
-=item base_directory
-
-Those engines which look for matches in index files can read this
-to get the base directory of the images.
-
-=item case_sensitive
-
-This is a global version of the I<cases> field. If set, the search
-engine should return only matches which exactly match, including
-distinction between lower- and upper-case letters.  The default is not
-set, to ignore case.
-
-=item error_page
-
-A page or filename to be displayed when a user error occurs.
-Passed along with a single string parameter to the error_routine,
-as in:
-  
-     &{$self->{global}->{error_routine}}
-        ($self->{global}->{error_page}, $msg);
-
-=item error_routine
-
-Reference to a subroutine which will send errors to the user. The
-default is '\&croak'.
-
-=item exact_match
-
-Strings sent as match specifications will have double quotes put around
-them, meaning the words must be found in the order they are put in. Any
-double quotes contained in the string will be silently deleted.
-
-=item first_match
-
-The number of the first match returned in a of I<more_matches>. This
-tells the calling program where to start their increment.
-
-=item head_skip
-
-Used for the TextSearch module to indicate lines that should be skipped
-at the beginning of the file. Allows a header to be skipped if
-it should not be searched.
-
-=item index_delim
-
-The delimiter character to terminate the return code in an ascii
-index file. In Search::Glimpse and Search::TextSearch, the default
-is "\t", or TAB.  This is also the default for {return_delim}
-if that is not set.
-
-If field-matching is being used, this the character/string used
-for splitting the fields.  If properly escaped, and {return_delim}
-is used for joining fields, it can be a regular expression -- Perl
-style.
-
-=item index_file
-
-A specification of an index file (or files) to search.  The usage
-is left to the module -- it could, for example, be an anonymous array
-(as in Search::TextSearch) or wild-card specification for multiple indices
-(as in Search::Glimpse).
-
-=item log_routine
-
-A reference to a subroutine to log an error or status indication.
-By default, it is '\&Carp::carp';
-
-=item match_limit
-
-The number of matches to return.  Not to be confused with max_matches,
-at which number the search will terminate. Additional matches will be
-stored in the file pointed to by I<save_dir>, I<session_id>, and I<search_mod>.
-The default is 50.
-
-=item matches
-
-Set by the search routine to indicate the number of matches in the
-last search. If the engine can return the total number of matches
-(without the data) then that is the result.
-
-=item min_string
-
-The minimum size of search string that is supported. Using a size of less
-than 4 for Glimpse, for example, is not wise.  
-
-=item next_pointer
-
-The pointer to the next list of matches. This is for engines that
-can return only a subset of the elements starting from an element.
-For making a next match list.
-
-=item next_url
-
-The base URL that should be used to invoke the I<more_matches>
-function. Provided as an object-contained scratchpad value for
-the calling routine -- it will not be used or modified by Search::Base.
-
-There are a couple of useful ways to use this to invoke the 
-proper I<more_matches> search that are shown in the example
-search CGI provided with this module set. Both involve setting
-the next_url and combining it with a random I<session_id> and
-I<search_mod>.
-
-=item or_search
-
-If set, the search engine should return matches which match any of the
-search patterns.  The default is not set, requiring matches to all
-of the keywords for a match return.
-
-=item overflow
-
-Set by the search routine if it matched the maximum number before reaching
-the end of the search. Set to undef if not supported.
-
-=item record_delim 
-
-This sets the type of record that will be searched. For the
-Search::TextSearch module, this is the same as Perl -- in fact,
-the default is to use $/ (at the time of object creation) as
-the default.
-
-For the Search::Glimpse module, the following mappings occur:
-
-    $/ = "\n"        Glimpse default
-    $/ = "\n\n"      -d '$$'
-    $/ = ""          -d '$$'
-    $/ = undef       -d 'NeVAiRbE'
-    anything else    passed on as is (-d 'whatever')
-
-One useful pattern is '^From ', which will make each email
-message in a folder a separate record.
-
-If you are doing this, and expect to be doing field returns,
-it will probably be useful to set "\n\n" or "\n" as the
-default I<index_delim>. If used in combination with the obscure
-anonymous hash definition of I<return_fields>, you can
-search and return mail headers on each message that matches.
-
-=item return_delim
-
-The delimiter character to join fields that are cut out of
-the matched line/paragraph/page. The default is to set it
-to be the same as {index_delim} if not explicitly set.
-
-=item return_fields 
-
-The fields that will be returned from the line/paragraph/page
-matched.  This is not to be confused with the I<fields> setting --
-it will not affect the matching, only the returned fields.
-The default (when it is undefined) is to return only the first
-field.  There are several options for this field.
-
-If the value is an ARRAY reference, an integer list of the columns to be
-returned is assumed.
-
-If the value is a HASH reference, then all words found AFTER the
-I<key> of the hash (with assumed but not required whitespace as a separator)
-up to the I<value> of the item (used as a delimiter).  The following  example
-will print the value of the From:, Reply-to: and Date: headers from any
-message in your (UNIX) system mailbox that contains 'foobar'.
-
-    $s = new Search::TextSearch
-            return_fields => {
-                            From: => "\n",
-                            Reply-To: => "\n",
-                            Date: => "\n",
-                            },
-            record_delim    => "\nFrom ",
-            search_file     => $ENV{MAIL};
-
-    print $s->search('foobar');
-
-=item return_file_name
-
-All return options will be ignored, and the file names of any matches
-will be returned instead. The limit match-to-field routines are still
-enabled for Search::TextSearch, but not for Glimpse, since the 'glimpse B<-l>'
-option is used for that.
-
-=item save_dir
-
-The directory that search caches (for the I<more_matches> function)
-will be saved in.  Only applies to file save mode.
-
-=item search_mod
-
-This is used to develop a unique search save id for a user with
-a consistent I<session_id>.  For the I<more_matches> function.
-
-=item search_port
-
-The port (passed to glimpse with the B<-K> option) that is to be
-used for a network-attached search server.
-
-=item search_server
-
-The host name of a network-attached search server, passed to glimpse
-with the B<-J> option.
-
-=item session_id
-
-This is used to determine the save file name or hash key used to
-cache a search (for the I<more_matches>) function.
-
-=item speed
-
-The speed of search desired, in an integer value from one to 10. Those engines
-that have a faster method to search (possibly at a cost of comprensivity) can
-adjust their routines accordingly.
-
-=item spelling_errors
-
-Those engines that support "tolerant matching" can honor this parameter
-to set the number of spelling errors that they will allow for.
-I<This can slow search dramatically on big databases.> Ignored by
-search engines that don't have the capability.
-
-=item substring_match
-
-If set, the search engine should return partial, or substring, matches.
-The default is not set, to indicate whole word matching.
-I<This can slow search dramatically on big databases.> 
-
-=item uneval_routine
-
-A reference to a subroutine to save the search parameters to a cache.
-By default, it is '\&uneval', the routine supplied with Search::Base.
-
-=back
-
-=head1 METHODS
-
-=head2 Virtual methods provided
-
-=item more_matches
-
-Given a file with return codes from previous searches, one per line,
-returns an array with the correct matches in the array.  Opens the
-file in directory I<save_dir>, with session information appended
-(the I<session_id> and I<search_mod>), and returns I<match_limit> matches,
-starting at I<next_pointer>.
-
-=item search
-
-This is the main method defined in the individual search engine.
-You can submit a single parameter for a quick search, which will
-be interpreted as the one and only search specification, overriding
-any settings residing in the I<specs> array.  Options can be specified
-at object creation, or separately with the I<global> method. Or a
-I<search_spec> can be specified, which will temporarily override
-the setting in I<specs> (for that invocation only).
-
-Otherwise, the parameters are named search options as documented
-above.  Examples:
-
-    # Simple search with default options for 'foobar' in the named file
-    $s = new Search::TextSearch search_file => '/var/adm/messages');
-    @found = $s->search('foobar');
-
-    # Search for 'foobar' in /var/adm/messages, return only fields 0 and 2
-    # where fields are separated by spaces
-    $s = new Search::TextSearch;
-    @found = $s->search( search_file   => '/var/adm/messages',
-                         search_spec   => 'foobar',
-                         return_fields => [0,2],
-                         return_delim  => ' ',
-                         index_delim   => '\s+'                 );
-
-    # Search for 'foobar' in any file containing 'messages' in
-    # the default glimpse index, return the file names
-    $s = new Search::Glimpse;
-    @found = $s->search( search_spec   => 'foobar',
-                         search_file   => 'messages',
-                         return_file_name  => 1,       );
-
-    # Same as above except use glimpse index located in /var directory
-    $s = new Search::Glimpse;
-    @found = $s->search( search_spec       => 'foobar',
-                         base_directory    => '/var',
-                         search_file       => 'messages',
-                         return_file_name  => 1,       );
-
-    # Search all files in /etc
-    # Return file names with  lines that have 'foo' in field 1
-    # and 'bar' in field 3, with case sensitivity
-    # (using the default field delimiter of \t)
-    $s = new Search::TextSearch;
-    $s->rowpush('foo', 1);
-    $s->rowpush('bar', 3);
-    chop(@files = `ls /etc`);
-    @found = $s->search( search_file   => [@files],
-                         case_sensitive  => 1,
-                         return_file_name  => 1,       );
-
-    # Same as above using direct access to specs/fields
-    $s = new Search::TextSearch;
-    $s->specs('foo', 'bar');
-    $s->fields(1, 3);
-    chop(@files = `ls /etc`);
-    @found = $s->search( search_file   => [@files],
-                         case_sensitive  => 1,
-                         return_file_name  => 1,       );
-    # Repeat search with above settings, except for specs,
-    # if less than 4 matches are found
-    if(@found < 4) {
-        @found = $s->search('foo');
-    }
-
-
-=head2 Column Setting Methods
-
-Column setting functions allow the setting of a series of columns of
-match criteria:
-
-    $search->specs('foo', 'foo bar', 'foobar');
-    $search->fields(1, 3, 4);
-
-This is an example for the I<specs> and I<fields> match criteria, which
-are the search specifications and  the the fields to search,
-respectively. Similar functions are provided for I<mods>, I<links>,
-I<cases>, I<negates>, I<open_parens>, and I<close_parens>.
-
-For the included Search::Glimpse and Search::TextSearch modules, an item will
-match the above example only if field (or column) 1 contains 'foo',
-field 3 contains 'foo' and/or 'bar', and field 4 contains foobar.  The
-setting of the case_sensitive, or_search, and substring_match terms will
-be honored as well.
-
-For simple searches, only one term need be set, and the grouping
-functions I<links>, I<open_parens>, and I<close_parens> are ignored.
-In most cases, if the setting for a particular column is not defined
-for a row, the value in the global setting is used.
-
-=over 4
-
-=item specs
-
-The search text, raw, per field. This is the only item that
-necessarily needs to be set to do a search.
-
-If more than one specification is present, there are three forms of
-behavior supported by the included Search::TextSearch and Search::Glimpse
-modules. First, if there are multiple search specifications, they are
-combined together, just as they would if separated by spaces (and not
-quoted).  Second, if the number of specs matches the number of
-I<fields>, each spec must match the field that it is associated with
-(subject to the I<or_search> and I<case_sensitive> settings within that
-field). Last, if there are more I<fields> than I<specs>, only the columns
-in I<fields> are searched for the combined specs.
-
-=item fields
-
-The column B<numbers> to search, where a column is a field separated by
-I<index_delim>. In the Search::TextSearch and Search::Glimpse modules,
-this becomes operative in one of two ways. If the number of I<specs>
-match the number of fields, each specification is separately checked
-against its associated field.  If the number of fields is different from
-the number of I<specs>, all specs are applied, but only to the text in
-the specified fields.  Both first match on all of the text in the row,
-then filter the match with another routine that checks for matches in
-the specified fields.
-
-=item mods        
-
-Modifies the match criteria. Recognized modifications might be:
-
-    start   Matches when the field starts with the spec
-    sub     Match substrings.
-
-Not supported in the included modules.
-
-=item links
-
-The link to the previous row. If there are two I<fields> to search, with
-two different I<specs>, this determines whether the search is AND, OR,
-or NEAR.  For engines that support it, NEAR matches with in
-$self->global('near') words of the previous word (forward only). Not
-supported in the included modules.
-
-=item cases
-
-For advanced search engines that support full associative
-case-sensitivity.  Determines whether the particular match in this set
-will be case-sensitive or not.  If the search engine doesn't support
-independent case-sensitivity (like the Search::TextSearch and Search::Glimpse
-modules), the value in I<or_search> will be used. Not supported in
-the included modules.
-
-=item negates
-
-Negates the sense of the match for that term.  Allows searches like 
-"spec1 AND NOT spec2" or "NOT spec1 AND spec2". Not supported in
-the included modules.
-
-=item open_parens
-
-Determines whether a logical parentheses will be placed on the left 
-of the term. Allows grouping of search terms for more expressive matching,
-i.e. "(AUTHOR Shakespeare AND TYPE Play ) NOT TITLE Hamlet". Not supported in
-the included modules.
-
-=item close_parens
-
-Determines whether a logical parentheses will be placed on the right
-of the term. Not supported in the included modules.
-
-=back
-
-=head2 Row Setting Methods
-
-Row setting functions allow the setting of all columns in a row.
-
-    $query->rowpush($field,$spec,$case,$mod,$link,$left,$right);
-    ($field,$spec,$case,$mod,$link,$left,$right) = $query->rowpop();
-    @oldvals = $query->rowset(n,$field,$spec,$case,$mod,$link,$left,$right);
-
-You can ignore the trailing parameters for a simple search. For example:
-
-    $field = 'author';
-    $spec = 'forsythe';
-    $limit = 25;
-    $query = new Search::Glimpse;
-    $query->rowpush($field,$spec);
-    @rows = $query->search( match_limit => 25 );
-
-This searches the field 'author' for the name 'forsythe', with all other
-options at their defaults (ignore case, match substrings, not negated, no
-links, no grouping), and will return 25 matches (sets the matchlimit global).
-For a more complex search, you can add the rest of the parameters as needed.
-
-=over 4
-
-=back
-
-=head1 SEE ALSO
-
-glimpse(1), Search::Glimpse(3L), Search::TextSearch(3L)
-
-=head1 AUTHOR
-
-Mike Heins, <mikeh@iac.net>
-
-=cut
 
 use Carp;
 use strict;
@@ -545,7 +50,9 @@ sub new {
 	$s->{global} = {
 		all_chars			=> 1,
 		base_directory		=> $Vend::Cfg->{'ProductDir'},
+		begin_string		=> 0,
 		case_sensitive		=> 0,
+		#column_ops			=> undef,
 		coordinate			=> 0,
 		error_page			=> $Vend::Cfg->{'Special'}->{'badsearch'},
 		error_routine		=> \&main::display_special_page,
@@ -554,7 +61,7 @@ sub new {
 		record_delim		=> $/,
 		head_skip			=> 1,
 		index_delim			=> "\t",
-		index_file			=> '',
+		#index_file			=> '',
 		log_routine			=> \&Vend::Util::logError,
 		match_limit			=> 50,
 		max_matches			=> 2000,
@@ -563,23 +70,23 @@ sub new {
 		negate      		=> 0,
 		or_search			=> 0,
 		return_all			=> 0,
-		range_look			=> '',
-		range_min			=> '',
-		range_max			=> '',
-		range_alpha			=> '',
-		return_delim		=> undef,
-		return_fields		=> undef,
+		#range_look			=> '',
+		#range_min			=> '',
+		#range_max			=> '',
+		#range_alpha			=> '',
+		#return_delim		=> undef,
+		#return_fields		=> undef,
 		return_file_name	=> '',
-		save_context		=> undef,
+		#save_context		=> undef,
 		save_dir			=> '',
 		search_file			=> 'products.asc',
 		search_mod			=> '',
-		sort_command		=> 'sort',
+		sort_command		=> '',
 		sort_crippled		=> 0,
-		sort_field			=> '',
-		sort_option			=> '',
-		session_id			=> '',
-		session_key			=> '',
+		#sort_field			=> '',
+		#sort_option			=> '',
+		#session_id			=> '',
+		#session_key			=> '',
 		spelling_errors		=> 0,
 		substring_match		=> 0,
 		uneval_routine		=> \&Vend::Util::uneval,
@@ -596,22 +103,9 @@ sub new {
 
 	$s->{fields}      = [];	# The columns to search, by number
 
-	$s->{mods}        = [];	# i.e. whole_word -> whole words
+	$s->{cases}       = [];	# set for NOT
 
-	$s->{links}       = []; # Can contain 'and', 'or',
-							# 'near',
-							# undef defaults to AND
-
-	$s->{cases}       = [];	# set for case-sensitive
 	$s->{negates}     = [];	# set for NOT
-
-	$s->{open_parens} = [];	# Associated with searchfields
-							# Open parentheses to stop association
-							# with left-hand column.
-
-	$s->{close_parens}= [];	# Associated with searchfields
-							# Close parentheses to stop association
-							# with right-hand column.
 
 	bless $s, $class;
 
@@ -632,29 +126,8 @@ sub global {
 }
 
 
-sub set_param {
-
-	my($self,$term,@fields) = @_;
-
-	unless (defined $self->{$term}) {
-		my $caller = caller();
-		my $name = sub {caller()};
-		&{$self->{'global'}->{error_routine}}
-			($self->{'global'}->{error_page},
-			"$caller calling $name: accessed non-existent array $term.");
-	}
-
-	if(@fields) {
-		@{$self->{$term}} = @fields;
-	}
-	else {
-		@{$self->{$term}};
-	}
-
-}
-
 sub debug {
-	return unless $Vend::Search::DEBUG;
+	return unless $DEBUG;
 	my $s = shift;
 	print @_;
 }
@@ -663,99 +136,14 @@ sub version {
 	$Vend::Search::VERSION;
 }
 
-sub fields {
-	my ($self,@fields) = @_;
-	$self->set_param('fields', @fields);
-}
-
-sub specs {
-	my ($self,@specs) = @_;
-	$self->set_param('specs',@specs);
-}
-
-sub cases {
-	my ($self,@cases) = @_;
-	$self->set_param('cases',@cases);
-}
-
-sub negates {
-	my ($self,@negates) = @_;
-	$self->set_param('negates',@negates);
-}
-
-sub links {
-	my ($self,@links) = @_;
-	$self->set_param('links',@links);
-}
-
-sub mods {
-	my ($self,@mods) = @_;
-	$self->set_param('mods',@mods);
-}
-
-sub open_parens {
-	my ($self,@open_parens) = @_;
-	$self->set_param('open_parens',@open_parens);
-}
-
-sub close_parens {
-	my ($self,@close_parens) = @_;
-	$self->set_param('close_parens',@close_parens);
-}
-
-sub rowpush {
-	my $self = shift;
-	my @out;
-
-	for(field_order()) {
-		push @out, push(@{$self->{$_}}, shift @_);
-	}
-	@out;
-}
-
-sub rowpop {
-	my $self = shift;
-	my @out;
-
-	for(field_order()) {
-		push @out, pop(@{$self->{$_}});
-	}
-	@out;
-}
-
-sub rowset {
-	my $self = shift;
-	my $col = shift;
-	my @out;
-	my $val;
-
-	for(field_order()) {
-		$val = splice(@{$self->{$_}},$col,1,shift);
-		push @out, $val;
-	}
-	@out;
-}
-
-sub field_order {
-	qw(
-		specs
-		fields
-		mods
-		cases
-		links 
-		negates
-		open_parens
-		close_parens
-	);
-}
-
 sub more_matches {
 	my($self,$session,$next,$last,$mod) = @_;
 	my $g = $self->{'global'};
+	$g->{more_in_progress} = $Joiner;
 	my @out;
 	my $count = 0;
 	my ($filemod,$first,$save);
-	my $id = $session || $g->{session_id};
+	my $id = $g->{session_key} || $g->{session_id};
 	$mod = defined $mod ? $mod : 1;
 	$g->{search_mod} = $mod;
 	$id = ref $id ? $$id : $id;
@@ -832,19 +220,16 @@ sub get_return {
 	my ($return_sub);
 
 	if(!defined $g->{return_fields}) {
-# DEBUG
-#Vend::Util::logDebug
-#("Got to return_fields default")
-#	if ::debug(0x10);
-# END DEBUG
 		$return_sub = sub { substr($_[0], 0, index($_[0], $g->{index_delim})) };
 	}
+	elsif ( ref($g->{return_fields}) =~ /^ARRAY/ ) {
+		$return_sub = sub {
+			chomp($_[0]);
+			return join $g->{return_delim},
+						(split /\Q$g->{index_delim}/, $_[0])[@{$g->{return_fields}}];
+		};
+	}
 	elsif ( ref($g->{return_fields}) =~ /^HASH/ ) {
-# DEBUG
-#Vend::Util::logDebug
-#("Got to return_fields HASH")
-#	if ::debug(0x10);
-# END DEBUG
 		$return_sub = sub {
 			my($line) = @_;
 			my($key,$val);
@@ -858,42 +243,86 @@ sub get_return {
 			join $g->{index_delim}, @return;
 		};
 	}
-	elsif ( ref($g->{return_fields}) =~ /^ARRAY/ ) {
-# DEBUG
-#Vend::Util::logDebug
-#("Got to return_fields ARRAY")
-#	if ::debug(0x10);
-# END DEBUG
-# DEBUG
-#Vend::Util::logDebug
-#("ret: '$g->{return_delim}' ind: '$g->{index_delim}'")
-#	if ::debug(0x10);
-# END DEBUG
-		$return_sub = sub {
-			chomp($_[0]);
-			return join $g->{return_delim},
-						(split /\Q$g->{index_delim}/, $_[0])[@{$g->{return_fields}}];
-		};
-	}
 	elsif( $g->{return_fields} ) {
-# DEBUG
-#Vend::Util::logDebug
-#("Got to return_fields SCALAR")
-#	if ::debug(0x10);
-# END DEBUG
 		$return_sub = sub { substr($_[0], 0, index($_[0], $g->{return_fields})) };
 	}
 	else {
-# DEBUG
-#Vend::Util::logDebug
-#("Got to return_fields ALL")
-#	if ::debug(0x10);
-# END DEBUG
 		$return_sub = sub { @_ };
 	}
 
+	# We will pick out the return fields later if sorting
+	if($g->{sort_field} and ! $g->{sort_command}) {
+		return ( sub {@_}, $return_sub);
+	}
+
+	return $return_sub;
 }
 
+my %numopmap  = (
+				'!=' => [' != '],
+				'!~' => [' !~ m{', '}'],
+				'<'  => [' < '],
+				'<=' => [' <= '],
+				'<>' => [' != '],
+				'='  => [' == '],
+				'==' => [' == '],
+				'=~' => [' =~ m{', '}'],
+				'>'  => [' > '],
+				'>=' => [' >= '],
+				'em' => [' =~ m{^', '$}'],
+				'eq' => [' == '],
+				'ge' => [' >= '],
+				'gt' => [' > '],
+				'le' => [' <= '],
+				'lt' => [' < '],
+				'ne' => [' != '],
+				'rm' => [' =~ m{', '}'],
+				'rn' => [' !~ m{', '}'],
+				'like' => [' =~ m{LIKE', '}i'],
+				'LIKE' => [' =~ m{LIKE', '}i'],
+);
+               
+
+my %stropmap  = (
+				'!=' => [' ne q{', '}'],
+				'!~' => [' !~ m{', '}'],
+				'<'  => [' lt q{', '}'],
+				'>'  => [' gt q{', '}'],
+				'<=' => [' le q{', '}'],
+				'<>' => [' ne q{', '}'],
+				'='  => [' eq q{', '}'],
+				'==' => [' eq q{', '}'],
+				'=~' => [' =~ m{', '}'],
+				'>=' => [' ge q{', '}'],
+				'eq' => [' eq q{', '}'],
+				'ge' => [' ge q{', '}'],
+				'gt' => [' gt q{', '}'],
+				'le' => [' le q{', '}'],
+				'lt' => [' lt q{', '}'],
+				'ne' => [' ne q{', '}'],
+				'em' => [' =~ m{^', '$}i'],
+				'rm' => [' =~ m{', '}i'],
+				'rn' => [' !~ m{', '}i'],
+				'like' => [' =~ m{LIKE', '}i'],
+				'LIKE' => [' =~ m{LIKE', '}i'],
+);
+               
+
+sub map_ops {
+	my($s, $count) = @_;
+	my $g = $s->{'global'};
+	my $c = $g->{column_op} or return ();
+	my $i;
+	my $op;
+	for($i = 0; $i < $count; $i++) {
+		next unless $c->[$i];
+		$c->[$i] =~ tr/ 	//;
+		$c->[$i] = $g->{numeric}[$i]
+				? $numopmap{$c->[$i]}
+				: $stropmap{$c->[$i]};
+	}
+	@{$g->{column_op}};
+}
 
 # Returns a screening function based on the search specification.
 # The $f is a reference to previously created search function which does
@@ -903,67 +332,132 @@ sub get_limit {
 	my $g = $s->{'global'};
 	my ($code,$limit_sub);
 	my $range_code = '';
+	my ($sub);
+	my $joiner = $g->{or_search} ? '1 if' : 'undef unless';
+	my $ender = $g->{or_search} ? 'return undef;' : 'return 1;';
+	my $fields = join ",", @{$s->{'fields'}};
 
 	if ( ref $g->{range_look} )  {
-		$range_code = <<'EOF';
-return undef unless $s->range_check($g->{index_delim},$_[0]);
+		$range_code = <<EOF;
+return $joiner \$s->range_check(qq{$g->{index_delim}},\$_[0]);
 EOF
 	}
-
 	if ( $g->{coordinate} )
 	{
-		 $code .= <<'EOF';
+		 undef $f;
+		 $code .= <<EOF;
 sub {
-	my @fields = (split /\Q$g->{index_delim}/, $_[0])[@{$s->{'fields'}}];
+	my \@fields = (split /\\Q$g->{index_delim}/, \$_[0])[$fields];
 EOF
-		my @specs = @{$s->{'specs'}};
+		my @specs;
+		# For a limiting function, can't if or_search
+		my $candidate = $g->{or_search} ? undef : '';
+
+		my $field_count = @specs = @{$s->{'specs'}};
+
 		my @cases = ref $g->{case_sensitive}
 						?	@{$g->{case_sensitive}}
-						:	($g->{case_sensitive}) x scalar @specs;
+						:	($g->{case_sensitive}) x $field_count;
 		my @bounds = ref $g->{substring_match}
 						?	@{$g->{substring_match}}
-						:	($g->{substring_match}) x scalar @specs;
+						:	($g->{substring_match}) x $field_count;
+		my @ops;
+		@ops = $s->map_ops($field_count);
 		my @negates = ref $g->{negate}
 						?	@{$g->{negate}}
-						:	($g->{negate}) x scalar @specs;
-		my ($i, $start, $term);
-		for($i = 0; $i < scalar @specs; $i++) {
-			if($negates[$i]) {
-				$start = '!~ m{';
+						:	($g->{negate}) x $field_count;
+		my @begin = ref $g->{begin_string}
+						?	@{$g->{begin_string}}
+						:	($g->{begin_string}) x $field_count;
+		my ($i, $start, $term, $like);
+		for($i = 0; $i < $field_count; $i++) {
+			if($ops[$i]) {
+				$start = $ops[$i][0];
+				($term  = $ops[$i][1] || '')
+					and $cases[$i]
+					and $term =~ s/i$//
+					and defined $candidate
+					and $candidate = 1;
 			}
 			else {
-				$start = '=~ m{';
+				$start = $negates[$i] ? '!~ m{' : '=~ m{';
+				$start .=  '^' if $begin[$i];
+				if($bounds[$i]) {
+					$term = '}';
+				}
+				else {
+					$term = '\b}';
+					$start .= '\b' unless $begin[$i];
+				}
+				$term .= 'i' unless $cases[$i];
 			}
-			if($bounds[$i]) {
-				$term = '}';
-			}
-			else {
-				$term = '\b}';
-				$start .= '\b';
-			}
-			$term .= 'i' unless $cases[$i];
-
+			if ($start =~ s/LIKE$//) {
+				$specs[$i] =~ s/^(%)?([^%]*)(%)?$/$2/;
+				# Substitute if only one present
+				# test $1
+				undef $like;
+				if($1 ne $3) {
+					$specs[$i] = $1
+								? $specs[$i] . '$'
+								: '^' . $specs[$i];
+					$like = 1;
+				}
+			 }
+			 if(defined $candidate and ! $like) {
+				undef $f if $candidate;
+			 	$f = "sub { return 1 if \\\$_ $start$specs[$i]$term ; return 0}"
+					if ! defined $f and $start =~ m'=~';
+				undef $candidate if $candidate;
+			 }
 			 $code .= <<EOF;
-		return undef unless \$fields[$i] $start$specs[$i]$term;
+		return $joiner \$fields[$i] $start$specs[$i]$term;
 EOF
 		}
+#::logGlobal("coordinate search func is: $f");
+# DEBUG
+Vend::Util::logDebug
+("coordinate search\ncode is: $code\nfunc is:\n$f")
+	if ::debug(0x10);
+# END DEBUG
+		$f = eval $f if $f;
+		die($@) if $@;
 		$code .= <<EOF;
 $range_code
-return 1;
+$ender
 }
 EOF
+#::logGlobal("coordinate search\ncode is: $code\n");
 	}
 	elsif ( @{$s->{'fields'}} )  {
-		 $code = <<'EOF';
+		if(! $g->{begin_string}) {
+			$sub = $f;
+		}
+		elsif (! $g->{or_search} ) {
+			$sub = create_search_and(
+						$g->{index_delim},		# Passing non-reference first
+						$g->{case_sensitive},	# means beginning of string search
+						$g->{substring_match},
+						$g->{negate},
+						@{$s->{'specs'}});
+		}
+		else {
+			$sub = create_search_or(
+						$g->{index_delim},
+						$g->{case_sensitive},
+						$g->{substring_match},
+						$g->{negate},
+						@{$s->{'specs'}});
+		}
+		$code = <<'EOF';
 sub {
 	my $line = $_[0];
 EOF
 		 $code .= $range_code;
-		 $code .= <<'EOF';
-	my @fields = (split /\Q$g->{index_delim}/, $_[0])[@{$s->{'fields'}}];
-	my $field = join $g->{index_delim}, @fields;
-	$_ = $field;
-	return($_ = $line) if &$f();
+		 $code .= <<EOF;
+	my \@fields = (split /\\Q$g->{index_delim}/, \$_[0])[$fields];
+	my \$field = join q{$g->{index_delim}}, \@fields;
+	\$_ = \$field;
+	return(\$_ = \$line) if &\$sub();
 	return undef;
 }
 EOF
@@ -973,13 +467,14 @@ EOF
 		$code = <<EOF;
 sub {
 	$range_code
-	return 1;
+	$ender
 }
 EOF
 	}
 	# If there is to be no limit_sub
 	else {
-		return undef;
+		die("no limit and no search") unless defined $f;
+		return ($f);
 	}
 	$limit_sub = eval $code;
 	die "Bad code: $@" if $@;
@@ -1004,15 +499,15 @@ sub range_check {
 	my $g = $s->{'global'};
 	my @fields = (split /\Q$index_delim/, $line)[@{$g->{range_look}}];
 # DEBUG
-#Vend::Util::logDebug
-#("range_look: '" . join("','", @fields) . "'\n")
-#	if ::debug(0x10);
-#Vend::Util::logDebug
-#("range_min:  '" . join("','", @{$g->{range_min}}) . "'\n")
-#	if ::debug(0x10);
-#Vend::Util::logDebug
-#("range_max:  '" . join("','", @{$g->{range_max}}) . "'\n")
-#	if ::debug(0x10);
+Vend::Util::logDebug
+("range_look: '" . join("','", @fields) . "'\n")
+	if ::debug(0x10);
+Vend::Util::logDebug
+("range_min:  '" . join("','", @{$g->{range_min}}) . "'\n")
+	if ::debug(0x10);
+Vend::Util::logDebug
+("range_max:  '" . join("','", @{$g->{range_max}}) . "'\n")
+	if ::debug(0x10);
 # END DEBUG
 	my $i = 0;
 	for(@fields) {
@@ -1036,13 +531,15 @@ sub range_check {
 }
 
 sub create_search_and {
-	shift(@_);	# Toss the object reference
 
-	my ($case, $bound, $negate);
+	my ($case, $bound, $negate, $begin);
 
+	$begin = shift(@_);
+	$begin = ref $begin ? '' : "(?:^|\Q$begin\E)";
 	$case = shift(@_) ? '' : 'i';
 	$bound = shift(@_) ? '' : '\b';
 	$negate = shift(@_) ? '$_ !~ ' : '';
+	$begin = $bound if ! $begin;
 
 	# We check for no patterns earlier, so we just want true for
 	# empty search string
@@ -1061,12 +558,18 @@ EOCODE
 
 	my $i = 0;
     for $pat (@_) {
-	$code .= <<EOCODE;
-    return 0 unless $negate m{$bound$pat$bound}$case;
+		$code .= <<EOCODE;
+    return 0 unless $negate m{$begin$pat$bound}$case;
 EOCODE
+		$begin = $bound;
     } 
 
     $code .= "}\n";
+# DEBUG
+Vend::Util::logDebug
+("create search: $code")
+	if ::debug(0x10);
+# END DEBUG
 
     my $func = eval $code;
     die "bad pattern: $@" if $@;
@@ -1075,11 +578,15 @@ EOCODE
 } 
 
 sub create_search_or {
-	shift(@_);	# Toss the object reference
+	my ($case, $bound, $negate, $begin);
 
-	my ($case)  = shift(@_) ? '' : 'i';
-	my ($bound) = shift(@_) ? '' : '\b';
-	my ($negate) = shift(@_) ? '$_ !~ ' : '';
+	$begin = shift(@_);
+	$begin = ref $begin ? '' : "(?:^|\Q$begin\E)";
+
+	$case  = shift(@_) ? '' : 'i';
+	$bound = shift(@_) ? '' : '\b';
+	$negate = shift(@_) ? '$_ !~ ' : '';
+	$begin = $bound if ! $begin;
 
 	# We check for no patterns earlier, so we just want true for
 	# empty search string
@@ -1097,11 +604,17 @@ EOCODE
 
     for $pat (@_) {
 	$code .= <<EOCODE;
-    return 1 if $negate m{$bound$pat$bound}$case;
+    return 1 if $negate m{$begin$pat$bound}$case;
 EOCODE
     } 
 
     $code .= "}\n";
+
+# DEBUG
+Vend::Util::logDebug
+("create search: $code")
+	if ::debug(0x10);
+# END DEBUG
 
     my $func = eval $code;
     die "bad pattern: $@" if $@;
@@ -1130,7 +643,7 @@ sub find_sort {
 	
 	return '' unless ref $g->{sort_field};
 
-	my $sort_string = $g->{sort_command};
+	my $sort_string = $g->{sort_command} or return '';
 	$sort_string .= " -t'$g->{index_delim}'";
 	if($g->{sort_crippled}) {
 		$sort_string .= " -$g->{sort_option}[0]"
@@ -1157,6 +670,7 @@ sub dump_options {
 	}
 	return &{$self->{'global'}->{uneval_routine}}($self->{'global'});
 }
+
 
 sub save_more {
 	my($s, $out) = @_;
@@ -1185,7 +699,7 @@ sub save_more {
 	elsif(ref $g->{save_hash}) {
 		$g->{save_hash}->{"~$id"} = $save
 				if defined $save;
-		my $id = $g->{session_id} . $Joiner . $g->{search_mod};
+		my $id = $g->{session_key} . $Joiner . $g->{search_mod};
 		$g->{save_hash}->{$id} = join "\n", @$out;
 	}
 	else {
@@ -1206,6 +720,86 @@ push(@fields, $+) while $text =~ m{
    | \s+                            ## any whitespace
 	    }gx;
 	@fields;
+}
+
+my (@Opts);
+my (@Flds);
+
+use vars qw/ %Sort_field /;
+%Sort_field = (
+
+	none	=> sub { $_[0] cmp $_[1]			},
+	f	=> sub { (lc $_[0]) cmp (lc $_[1])	},
+	fr	=> sub { (lc $_[1]) cmp (lc $_[0])	},
+	n	=> sub { $_[0] <=> $_[1]			},
+	nr	=> sub { $_[1] <=> $_[0]			},
+	r	=> sub { $_[1] cmp $_[0]			},
+	rf	=> sub { (lc $_[1]) cmp (lc $_[0])	},
+	rn	=> sub { $_[1] <=> $_[0]			},
+);
+
+sub sort_search_return {
+    my ($s, $target) = @_;
+	my $g = $s->{'global'};
+
+	@Flds	= @{$g->{sort_field}};
+
+    if(ref $g->{sort_option}) {
+		@Opts	= @{$g->{sort_option}};
+	}
+	else {
+		@Opts = ($g->{sort_option}) x scalar @Flds;
+	}
+
+	my $last = 'none';
+	my $i;
+	my $max = 0;
+	for($i = 0; $i < @Flds; $i++) {
+		$max = $Flds[$i] if $Flds[$i] > $max;
+		if (! $Opts[$i]) {
+			$Opts[$i] = $last;
+			next;
+		}
+		$Opts[$i] = lc $Opts[$i];
+		$Opts[$i] = 'none' unless defined $Sort_field{$Opts[$i]};
+		$last = $Opts[$i];
+	}
+#::logGlobal("Flds: @Flds\nOpts: @Opts\n");
+
+	$max += 2;
+	my $f_string = join ",", @Flds;
+	my $code = <<EOF;
+sub {
+	my \@a = (split /$g->{return_delim}/, \$a, $max)[$f_string];
+	my \@b = (split /$g->{return_delim}/, \$b, $max)[$f_string];
+	my \$r;
+EOF
+	for($i = 0; $i < @Flds; $i++) {
+		$code .= <<EOF;
+	\$r = &{\$Vend::Search::Sort_field{'$Opts[$i]'}}(\$a[$i], \$b[$i]) and return \$r;
+EOF
+	}
+	$code .= "return 0\n}\n";
+
+	my $routine;
+	$routine = eval $code;
+	die "Bad sort routine:\n$code\n$@" if ! $routine or $@;
+eval {
+
+	use locale;
+	if($Vend::Session->{scratch}->{mv_locale}) {
+		POSIX::setlocale(POSIX::LC_COLLATE(),
+			$Vend::Session->{scratch}->{mv_locale});
+	}
+
+};
+#::logGlobal("Routine is $routine:\n$code");
+
+	# Prime sort routine
+	sort { $routine } ('30','31') or 1;
+
+	@$target = sort { &$routine } @$target;
+
 }
 
 1;

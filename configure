@@ -2,7 +2,7 @@
 
 cat <<EOF
 
- MiniVend Version 3.0 Configuration
+ MiniVend Version 3.0x Configuration
 
  Copyright 1996-1998 Michael J. Heins, <mikeh@minivend.com>
 
@@ -91,6 +91,14 @@ do
 		fi
 	done
 done
+
+if test ! -f .cpan.tried
+then
+echo
+echo "If you get a CPAN error, rerun the configuration and it"
+echo "should go away."
+echo
+fi
 
 if test -f dist/minivend.cfg.dist
 then

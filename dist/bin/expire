@@ -2,7 +2,7 @@
 #
 # MiniVend session expiration
 #
-# $Id: expire,v 1.8 1998/03/21 12:16:11 mike Exp mike $
+# $Id: expire,v 1.10 1998/06/06 08:35:56 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -82,7 +82,7 @@ BEGIN {
 		$Global::DB_File = 1;
 	}
 	else {
-		require Vend::Table::InMemory;
+		die "Can't use expire without DBM sessions.\n";
 	}
 }
 
@@ -90,15 +90,23 @@ use Vend::Session;
 use Vend::Config qw(get_catalog_default parse_time);
 
 my $USAGE = <<EOF;
-usage: expire -c catalog [-e 'SessionExpire']
+usage: expire [-r] -c catalog [-e 'SessionExpire']
            or
-       expire [-e 'SessionExpire'] sessionfile [sessionfile.lock]
+       expire [-r] [-e 'SessionExpire'] sessionfile [sessionfile.lock]
 
-      ('SessionExpire' is a time notation like '4 hours' or '2 days')
+ OPTIONS
+      -c catalog  specify a catalog from minivend.cfg
+
+      -e time     vary expire time from default in catalog.cfg.
+                  time is a string like '4 hours' or '2 days'
+
+      -r          reorganize database and recover lost disk space,
+                  only works with GDBM
 EOF
 
 my $catalog;
 my $expiretime;
+my $reorg;
 
 $Vend::Cfg = {};
 
@@ -113,6 +121,11 @@ if($ARGV[0] eq '-c') {
 elsif($ARGV[0] eq '-e') {
 	shift(@ARGV);
 	$expiretime = shift(@ARGV);
+	redo GETOPT;
+}
+elsif($ARGV[0] eq '-r') {
+	shift(@ARGV);
+	$reorg = 1 if $Global::GDBM;
 	redo GETOPT;
 }
 else {
@@ -202,7 +215,7 @@ $Vend::Cfg->{SessionExpire} = parse_time('SessionExpire', $expiretime);
 
 die $USAGE unless defined $Vend::Cfg->{SessionLockFile};
 
-get_session();
-expire_sessions();
-release_session();
+get_session() unless $reorg;
+expire_sessions($reorg);
+release_session() unless $reorg;
 

@@ -645,7 +645,7 @@ $dir\\minivend
 
 You may also use the shortcuts that should be present in that folder.
 EOF
-	$Makecat = ! $Windows ? "$Initial{VendRoot}/bin/makecat simple" : "$dir\\makecat simple";
+	$Makecat = ! $Windows ? "$Initial{VendRoot}/bin/makecat" : "$dir\\makecat";
 	if($Windows) {
 		$Makecat    =~ s:/:\\:g;
 		$Runcommand =~ s:/:\\:g;

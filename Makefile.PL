@@ -6,25 +6,19 @@ BEGIN {
 		require FindBin;
 		chdir $FindBin::RealBin;
 	};
-
 }
 
-use lib './lib';
 use Config;
 
-# Turn off compression warning, provide facility for future
-# warning suppression
-BEGIN { $SIG{"__WARN__"} = sub { warn $_[0] if $DOWARN } }
-use Archive::Tar;
-BEGIN { $DOWARN = 1 }
-
 use File::Copy;
+use File::Path;
+use File::Basename;
 use Cwd;
-require 5.003;
+require 5.004;
 
 use strict;
 
-use vars (qw($VERSION));
+use vars (qw($VERSION $DOWARN));
 
 my $TermRead;
 my $Prompt_sub;
@@ -32,16 +26,32 @@ my @mods_to_get;
 my $Lock_troubles;
 my $Windows;
 
+$VERSION = '3.09';
+
 # See if we have the CPAN module
 my $Cpan = 0;
 my $CpanInit;
-eval { 	require CPAN::Config;
-		require CPAN;
-		import CPAN;
+eval { 	
+		die if $ =~ /win32/i;
+		unless( -f ".cpan.tried") {
+			open TMP, ">.cpan.tried" and close TMP;
+			require CPAN::Config;
+			require CPAN;
+			import CPAN;
+		}
+		unlink ".cpan.tried";
 };
 unless($@) {
 	$Cpan = 1;
 }
+
+my (@extra_lib_dirs);
+my (@extra_lib_files);
+
+
+# Now we can use the libraries
+use lib './lib';
+
 
 my $origdir = fastcwd();
 
@@ -79,6 +89,7 @@ if($Config{osname} eq 'solaris') {
 }
 elsif($Config{osname} =~ /win32/i) {
 	$Windows = 1;
+
 	eval { require 5.004; };
 	if($@) {
 				print <<EOF;
@@ -97,7 +108,9 @@ elsif(	$Config{osname} =~ /linux/i		and
 		$Config{POSIX_cflags} !~ /STRUCT_TM_HASZONE/	and
 		! defined $ENV{MINIVEND_BADPOSIX})
 {
-			print <<EOF;
+	if (! -f ".linux.warned") {
+		system "touch .linux.warned";
+		print <<EOF;
 
 This looks like a broken version of Perl for Linux, as often
 happens with improperly built GLIBC Perls. RedHat Linux 5.0 has
@@ -105,32 +118,101 @@ this problem. If your Perl is built properly and does not dump
 core when calling POSIX::strftime, then set the environment
 variable MINIVEND_BADPOSIX to 0.
 
-MiniVend will normally compensate for this automatically,
-but if one thing is broken others may be. If you have problems
-with MiniVend, go to www.redhat.com and get the latest Perl RPM.
+If it is built improperly, you will soon find out, for this
+installation will stop. If it does, then you can re-run and
+we will limp along as best we can, though it is recommended 
+that you update your Perl.
 
 EOF
-	 my_prompt(" ", 'press RETURN to continue');
+		 print "Trying strftime, if we stop re-run configure.\n";
+		 require POSIX;
+		 POSIX::strftime("%c", 0,0,0,1,1,97);
+		 print "\nYour perl appears to be OK. Good.\n";
+	 }
+	 elsif( -f 'core') {
+		unlink 'core';
+		system "echo REMOVE_THIS_FILE_IF_YOU_UPDATE_PERL > dist/.linux.badposix";
+		print <<EOF;
+Compensating for badly-built GLIBC Perl. Please update Perl as soon as 
+possible. Once you do so, you can remove the file "linux.badposix".
+
+EOF
+		$ENV{MINIVEND_BADPOSIX} = 1;
+	}
+}
+
+sub compare_file {
+	my($first,$second) = @_;
+	return 0 unless -s $first == -s $second;
+	local $/;
+	open(FIRST, $first) or return undef;
+	open(SECOND, $second) or (close FIRST and return undef);
+	binmode(FIRST);
+	binmode(SECOND);
+	$first = '';
+	$second = '';
+	while($first eq $second) {
+		read(FIRST, $first, 1024);
+		read(SECOND, $second, 1024);
+		last if length($first) < 1024;
+	}
+	close FIRST;
+	close SECOND;
+	$first eq $second;
+}
+
+sub install_file {
+	my ($srcdir, $targdir, $filename) = @_;
+	my $srcfile  = $srcdir . '/' . $filename;
+	my $targfile = $targdir . '/' . $filename;
+	my $mkdir = File::Basename::dirname($targfile);
+	my $extra;
+	my $perms;
+
+	if(! -d $mkdir) {
+		File::Path::mkpath($mkdir)
+			or die "Couldn't make directory $mkdir: $!\n";
+	}
+
+	if (! -f $srcfile) {
+		die "Source file $srcfile missing.\n";
+	}
+	else {
+		$perms = (stat(_))[2] & 0777;
+	}
+
+	if( ! $Windows and -f $targfile and ! compare_file($srcfile, $targfile) ) {
+		open (GETVER, $targfile)
+			or die "Couldn't read $targfile for version update: $!\n";
+		while(<GETVER>) {
+			/VERSION\s+=.*?\s+([\d.]+)/ or next;
+			$extra = $1;
+			$extra =~ tr/0-9//cd;
+			last;
+		}
+		$extra = 'old' unless $extra;
+		while (-f "$targfile.$extra") {
+			$extra .= '~';
+		}
+		rename $targfile, "$targfile.$extra"
+			or die "Couldn't rename $targfile to $targfile.$extra: $!\n";
+	}
+
+	File::Copy::copy($srcfile, $targfile)
+		or die "Copy of $srcfile to $targfile failed: $!\n";
+	chmod $perms, $targfile;
+
 }
 
 sub copyright_prompt {
 
-	print <<'EOF';
+	print <<EOF;
 
- MiniVend V3.07
+ MiniVend V$VERSION
  
- Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
+ Copyright 1996-1998 by Michael J. Heins <mikeh\@minivend.com>
 
- MiniVend is free as long as the organization or individual
- using it does not employ uninvited commercial email
- solicitations, commonly known as SPAM. Any organization
- sending SPAM (or causing it to be sent) may not use MiniVend
- for a period of one year after any SPAM incident. If use
- is not discontinued immediately upon written notice to the
- organization, a $1,000 per day license fee will be charged
- until such time as MiniVend use is discontinued. The author
- of MiniVend, Michael J. Heins, shall be the sole judge of
- what constitutes a SPAM incident.
+ MiniVend is free under the terms of the GNU General Public License.
 
 EOF
 }
@@ -220,20 +302,8 @@ sub initialize {
 					);
 		if(defined $Lock_troubles) {
 				print <<EOF;
-Since you are on Solaris, you need either to update to Perl 5.004
-or obtain the File::Lock module from CPAN. "make test" will fail if
-you don't have one of the above.
-
-If you have the CPAN module installed, MiniVend will try to get and
-install File::Lock for you. If that succeeds, quit and re-run the
-install.
-
-If that fails, expect to fail the test. Try a 'make install' anyway. We
-will then make one more attempt to install the module from a local copy.
-
-If the last-ditch try  fails, you will have to get File::Lock and install
-it before you can go further.
-
+Since you are on Solaris, you need to update to Perl 5.004.
+Sorry.
 EOF
 		}
 		my $mvdir;
@@ -271,6 +341,36 @@ EOF
 	die "Shouldn't get here unless a 'make install'!?!\n"
 		unless $install;
 
+	# Do the extra library checks
+	eval {
+		require File::Spec;
+	};
+	if ($@) {
+		push @extra_lib_dirs, 'File', 'File/Spec';
+		my (@f) = glob 'extra/File/Spec/*';
+		for (@f) { s:extra/:: }
+		push @extra_lib_files, 'File/Spec.pm', @f;
+	}
+
+	# We will use our own version of File::CounterFile always
+	push @extra_lib_dirs, 'File';
+	push @extra_lib_files, 'File/CounterFile.pm';
+
+	eval {
+		require IniConf;
+	};
+	if ($@) {
+		push @extra_lib_files, 'IniConf.pm';
+	}
+
+	eval {
+		require HTML::Entities;
+	};
+	if ($@) {
+		push @extra_lib_dirs, 'HTML';
+		push @extra_lib_files, 'HTML/Entities.pm';
+	}
+
 
 MODCHECK: {
 
@@ -280,14 +380,11 @@ MODCHECK: {
 			require MD5;
 		};
 	push(@mods_to_get, 'MD5') if $@ and $Cpan;
+	eval {
+			require SQL::Statement;
+		};
+	push(@mods_to_get, 'SQL::Statement') if $@ and $Cpan;
 
-	eval {require 5.004};
-	if($@ and $Config{osname} =~ /solaris/i) {
-		eval {
-				require File::Lock;
-			};
-		push(@mods_to_get, 'File::Lock') if $@ and $Cpan;
-	}
 }
 
 
@@ -349,24 +446,44 @@ EOF
 	}
 }
 
-	# Would like to use module, but changes mode to read only!
-	#ExtUtils::Install::install( {'dist', $realdir }, 1);
+	COPYEXTRA: {
+		my $cpdir = $Windows ? '.' : $realdir;
+		mkdir $cpdir, 0777 unless -d $cpdir;
+		mkdir "$cpdir/lib", 0777 unless -d "$cpdir/lib";
+		for(@extra_lib_dirs) {
+			next if -d "$cpdir/lib/$_";
+			mkdir "$cpdir/lib/$_", 0777 or die "mkdir $cpdir/lib/$_: $!\n";
+		}
+
+		for(@extra_lib_files) {
+			File::Copy::copy ("extra/$_", "$cpdir/lib/$_")
+				or die "Couldn't copy $_: $!\n";
+		}
+	}
 
 	my @files;
 	my @winfiles;
-	my $tar = Archive::Tar->new();
+	my $tar;
+
 	my $origdir = cwd();
 	open(MANIFILE, 'MANIFEST')
 		or die "Couldn't open MANIFEST: $!\n";
 	@files = <MANIFILE>;
 	close MANIFILE;
 	chomp(@files);
+	for(@extra_lib_files) {
+		push @files, "lib/$_";
+	}
+	$ = 0;
 	if($Windows) {
-
 		my $dll_source 	 = "win/cygwin.dll";
-		my $dll_dir      = $ENV{SYSTEMROOT} || "c:/windows/system";
+		my $dll_dir;
+		for( $ENV{SYSTEMROOT}, qw! c:/windows d:/windows e:/windows f:/windows !) {
+			-d $_ and $dll_dir = $_;
+		}
+		$dll_dir      .= '/system';
 		$dll_dir =~ s:\\:/:g;
-		my $dll_location = $dll_dir . "/system/cygwin.dll";
+		my $dll_location = $dll_dir . "/cygwin.dll";
 	DLL: {
 		unless(-f $dll_location) {
 			if (-f $dll_source and -d $dll_dir) {
@@ -448,35 +565,21 @@ EOF
 		push @winfiles, 'lib/POSIX.pm';
 		push @winfiles, 'Start MiniVend Server.pif';
 		push @winfiles, 'Make MiniVend Catalog.pif';
-		$tar->add_files(@winfiles);
+		for (@winfiles) {
+			install_file('.', $realdir, $_);
+		}
 	}
 
 	@files = grep m:^dist/:, @files;
 	@files = map { s:^dist/::; $_} @files;
 
-	if (-d $realdir) {
-		for(@files) {
-			next unless -f "$realdir/$_";
-			unlink "$realdir/$_" or die "Couldn't unlink $realdir/$_: $!";
-		}
-	}
-	else {
-		mkdir $realdir, 0777 or die "mkdir $realdir: $!\n";
+	# New install_file routine
+	chdir 'dist';
+	for (@files) {
+		install_file('.', $realdir, $_);
 	}
 
-	# Work around Archive::Tar error?
-	if(-f 'bad_tar_pm') {
-		# From before Archive::Tar
-		system "(cd dist; tar cf - *) | (cd $realdir; tar xf -)";
-		die "File copy failed: $!\n" if $?;
-	}
-	else {
-		chdir 'dist';
-		$tar->add_files(@files);
-		chdir $realdir;
-		$tar->extract(@files,@winfiles);
-		chdir $origdir;
-	}
+	$ = 0;
 
 	MODGET: {
 		last MODGET unless $Cpan;
@@ -495,7 +598,7 @@ EOF
 		chdir $origdir;
 	}
 
-	my $perl = $Config{perlpath};
+	my $perl = $Windows ? 'perl' : $Config{perlpath};
 	chdir $realdir;
 	system "$perl configure.pl -v $realdir $perl";
     exit;

@@ -1,6 +1,6 @@
 # Table/GDBM.pm: access a table stored in a GDBM file
 #
-# $Id: GDBM.pm,v 1.5 1997/09/05 07:32:30 mike Exp $
+# $Id: GDBM.pm,v 1.8 1998/06/01 17:07:17 mike Exp $
 #
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -20,10 +20,20 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::GDBM;
-$VERSION = substr(q$Revision: 1.5 $, 10);
+$VERSION = substr(q$Revision: 1.8 $, 10);
 use Carp;
 use strict;
 use GDBM_File;
+
+use vars qw($SQL);
+
+# See if we can do SQL queries
+BEGIN {
+	eval {
+		require SQL::Statement;
+		$SQL = 1;
+	};
+}
 
 my @Hex_string;
 {
@@ -130,7 +140,7 @@ sub open_table {
 
 sub close_table {
     my ($s) = @_;
-
+	return unless $Vend::Foreground;
     untie %{$s->[$TIE_HASH]} or die "Could not close '$s->[$FILENAME]': $!\n";
 }
 
@@ -151,6 +161,15 @@ sub column_index {
     my $i = $s->[$COLUMN_INDEX]{$column};
     croak "There is no column named '$column'" unless defined $i;
     return $i;
+}
+
+sub row_hash {
+    my ($s, $key) = @_;
+    my $line = $s->[$TIE_HASH]{"k$key"};
+    croak "There is no row with index '$key'" unless defined $line;
+	my %row;
+    @row{ @{$s->[$COLUMN_NAMES]}} = map(unstuff($_), split(/\t/, $line, 9999));
+	return \%row;
 }
 
 sub row {
@@ -242,6 +261,8 @@ sub record_exists {
     my $r = $s->[$DBM]->EXISTS("k$key");
     return $r;
 }
+
+*test_record = \&record_exists;
 
 sub delete_record {
     my ($s, $key) = @_;

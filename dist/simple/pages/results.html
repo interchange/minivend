@@ -5,7 +5,7 @@
 </HEAD>
 [body 1]
 <H2>
-<IMG SRC="search.gif" ALT="SEARCH">
+[page srchform]<IMG BORDER=0 SRC="search.gif" ALT="SEARCH"></A>
 Search Results
 </H2>
 
@@ -14,15 +14,18 @@ Search Results
 [more-list]
 	Matches [matches] of
 [/more-list]
-[value mv_search_match_count]
-	titles found</H2>
+[value name=mv_search_match_count send=1]
+	title[if value mv_search_match_count != 1]s[/if] found</H2>
+[more-list]
+[more]
+[/more-list]
 <P>
 [search-list]
 [sort][value sort_field1] [value sort_field2] [value sort_field3][/sort]
 <B>[item_increment].</B>
 <I>[item-field title]</I><BR>
 <B>[item-field artist]</B><BR>
-[page [item-code]]<IMG BORDER=0 SRC="details.gif">[/page]
+[page href="[item-code]" send=1]<IMG BORDER=0 SRC="details.gif">[/page]
 [order [item-code]]<IMG BORDER=0 SRC="ordernow.gif">[/order]
 <B>Our Price [item-price]</B><p>
 <HR>

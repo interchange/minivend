@@ -117,6 +117,7 @@ EOM
 }
 
 if (defined $Trysu) {
+	exec "su -c $0 $name" or
 	exec <<EndOfExec or die "Couldn't exec: $!\n";
 su $name <<EOF
 $0

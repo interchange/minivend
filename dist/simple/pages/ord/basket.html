@@ -10,7 +10,7 @@
 <input type="hidden" name="mv_orderpage" value="ord/basket">
 <input type="hidden" name="mv_checkout" value="ord/checkout">
 <input type="hidden" name="mv_nextpage" value="catalog">
-<IMG SRC="__SMLOGO__" ALT="- __COMPANY__ Logo -">
+[page href=""]<IMG BORDER=0 SRC="__SMLOGO__" ALT="__COMPANY__ Logo" ALIGN="CENTER"></A>
 <TABLE BORDER=0>
 <CAPTION><FONT SIZE=7>Shopping Cart Contents</FONT><BR></CAPTION>
 <TR>
@@ -27,13 +27,20 @@
 	<TH BGCOLOR="#00F0F0" WIDTH=90 VALIGN=BOTTOM ALIGN=center>
 	Price
 	</TH>
+	<TH BGCOLOR="#00F0F0" WIDTH=90 VALIGN=BOTTOM ALIGN=center>
+	Extension
+	</TH>
 </TR>
+[if items]
+[then]
 [item-list]
 <TR>
 <P>
 	<TD BGCOLOR="#FFFFFF" VALIGN=TOP align=center>
 	[item-code]<FONT SIZE="-2"><BR><INPUT TYPE=checkbox NAME="[quantity-name]"
-			   VALUE=0 onClick="document.forms[0].submit()"> </FONT><FONT SIZE="-1">remove</FONT></TD>
+			   onClick="document.forms[0].action='[process-target]',
+			   			document.forms[0].submit()"
+			   VALUE=0> </FONT><FONT SIZE="-1">remove</FONT></TD>
 	<TD BGCOLOR="#FFFFFF" VALIGN=TOP MARGINWIDTH=12 MARGINHEIGHT=12>
 	[page [item-code]][item-description]</A>
 	<BR><FONT SIZE="-1">
@@ -43,7 +50,8 @@
 		<BR><B>Order this fine accessory:</B><BR>
 		[loop-field title]
 		<INPUT TYPE="CHECKBOX" NAME="mv_order_item"
-			onClick="document.forms[0].submit()"
+			onClick="document.forms[0].action='[process-target]',
+					document.forms[0].submit()"
 			VALUE="[loop-code]">
 			<INPUT TYPE="HIDDEN" NAME="mv_order_quantity" VALUE="1">
 		[/if]
@@ -63,16 +71,26 @@
 			</FONT>
 		[/if]
 	</TD>
+	<TD BGCOLOR="#FFFFFF" VALIGN=TOP ALIGN=RIGHT>
+		[item-subtotal]
+	</TD>
 </TR>
 [/item-list]
+[/then]
+[else]
+	<TR><TD ALIGN=CENTER COLSPAN=5 BGCOLOR="#FFFFFF">
+		<H3>No items at the moment.</H3>
+	</TD></TR>
+[/else]
+[/if]
 [if discount ALL_ITEMS]
 <TR>
-<TD ALIGN=CENTER BGCOLOR="#00F0F0" COLSPAN=4>
+<TD ALIGN=CENTER BGCOLOR="#00F0F0" COLSPAN=5>
 <FONT COLOR=RED>All items are discounted by 30 percent!</FONT>
 </TR>
 [/if]
 <TR>
-<TD BGCOLOR="#00F0F0" COLSPAN=3 ALIGN=RIGHT VALIGN=CENTER>
+<TD BGCOLOR="#00F0F0" COLSPAN=4 ALIGN=RIGHT VALIGN=CENTER>
 <input type="submit"
 	onClick="document.forms[0].action='[process-target]'"
 	name="mv_submit" value="Recalculate">
@@ -82,7 +100,7 @@
 <TD BGCOLOR="#FFFFFF" ALIGN=RIGHT VALIGN=CENTER>[subtotal]</TD>
 </TR>
 <TR>
-<TD BGCOLOR="#00F0F0" COLSPAN=4 ALIGN=CENTER>
+<TD BGCOLOR="#00F0F0" COLSPAN=5 ALIGN=CENTER>
 <input type="submit" name="mv_todo" value="Check out">
 <input type="submit"
 	onClick="document.forms[0].action='[process-target]'"

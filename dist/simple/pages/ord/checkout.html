@@ -1,11 +1,58 @@
 <HTML>
 <HEAD>
 <TITLE>Check Out of __COMPANY__</TITLE>
-</HEAD>
-[body 1]
 
+[set checkout_profile]
+name=required
+address=required
+city=required
+country=required
+state=state
+zip=zip
+email=required
+phone_day=phone
+email=email
+&fatal = yes
+
+[if value fax_order]
+&set = mv_payment Call Us
+[elsif config CreditCardAuto]
+&set = mv_payment Credit Card ([default mv_credit_card_type])
+mv_credit_card_info=required
+[/elsif]
+[else]
+&set = mv_payment Credit Card ([default mv_credit_card_type])
+[/else]
+[/if]
+
+&final = yes
+&set=mv_email [value email]
+
+[/set]
+
+</HEAD>
+<BODY MV="body 1 TEXT=GREEN">
+
+[if base=data
+	term="country::shipmodes::[default country US]"
+	op="=~" comp="[default mv_shipmode upsg]"]
+[then]
+	[default name="country" default=US set=1]
+	[default name="mv_shipmode" default=upsg set=1]
+[/then]
+[else]
+	[perl values]
+		$ship = tag_data('country', 'shipmodes', $Safe{'values'}{country});
+		$out .= $ship;
+		$ship =~ s/\s+.*//;
+		$Safe{'values'}{mv_shipmode} = $ship;
+		return '';
+	[/perl]
+[/else]
+[/if]
+	
 <CENTER>
-<IMG SRC="__SMLOGO__" ALT="[ __COMPANY__ Logo ]">
+[page href=""]<IMG BORDER=0 SRC="__SMLOGO__" ALT="__COMPANY__ Logo" ALIGN="CENTER"></A>
 </CENTER>
 
 <FORM ACTION="[process-target secure=1]" METHOD="POST">
@@ -21,7 +68,7 @@
 <TR>
 	<TD VALIGN=TOP MARGINWIDTH=12 MARGINHEIGHT=12>
 	<FONT SIZE="-2"><INPUT TYPE=checkbox NAME="[quantity-name]"
-                        VALUE=0 onClick="document.forms[0].submit()"> remove</FONT>
+                        VALUE=0 onClick="this.form.submit()"> remove</FONT>
 	<INPUT TYPE="hidden" NAME="[quantity-name]" value="[item-quantity]">
 	</TD>
 	<TD VALIGN=TOP MARGINWIDTH=12 MARGINHEIGHT=12>
@@ -115,7 +162,7 @@ be saved, but no checkout will happen until you order something!</I>
 		</TD>
 		<TD ALIGN=CENTER VALIGN=BOTTOM>
 		State/Province<BR>
-		<INPUT onChange="document.forms[0].submit()"
+		<INPUT onChange="this.form.submit()"
 			TYPE="text" NAME="state" VALUE="[value state]" size=8>
 		</TD>
 		<TD ALIGN=RIGHT>
@@ -150,7 +197,23 @@ be saved, but no checkout will happen until you order something!</I>
 		<B>Country</B>
 		</TD>
 		<TD ALIGN=RIGHT>
-			[help country_select]
+		[if value country eq 'US']
+		<SELECT NAME=country onChange="this.form.submit()">
+			<OPTION VALUE="US"> United States
+			<OPTION VALUE="CA"> Canada
+			<OPTION VALUE="AD"> Other (select to change)
+		</SELECT>
+		[else]
+		<SELECT MV="loop"
+			MV.PREPEND="[sort country:name]"
+			MV.SEARCH="ra=yes/se=./fi=country.asc/ml=1000"
+			onChange="this.form.submit()"
+			MV.OPTION="country"
+			NAME="country">
+			<OPTION VALUE="[loop-code]"> [loop-data country name] 
+		</SELECT>
+		[/else]
+		[/if]<BR>
 		</TD>
 	</TR>
 	</TABLE>
@@ -196,15 +259,26 @@ be saved, but no checkout will happen until you order something!</I>
 </TD></TR></TABLE>
 
 <P>
-<SELECT NAME="mv_shipmode">
-[compat][loop __SHIPMODES__ ]
-    <OPTION VALUE="[loop-code]" [selected mv_shipmode [loop-code]]> [shipping-desc [loop-code]] [shipping [loop-code]]
-    [/loop][/compat]
-</SELECT>
-<P>
+<TABLE WIDTH=500>
+<TR><TD>
+	<SELECT MV=loop
+		MV.SEARCH="fi=country.asc/se=[default country US]/sf=selector/rf=shipmodes"
+		MV.OPTION="mv_shipmode"
+		onChange="this.form.submit()"
+		NAME="mv_shipmode">
+    <OPTION VALUE="[loop-code]"> [shipping-desc [loop-code]] [shipping [loop-code]]
+	</SELECT>
+</TD>
+<TD ALIGN=RIGHT><INPUT TYPE=submit VALUE="Update"></TD>
+</TR>
+
+<TR>
+<TD COLSPAN=2 ALIGN=CENTER>
 [if session ship_message]
-<BR>Note: [data session ship_message]<BR>
+<BR><B>Note:</B> [data session ship_message]<BR>
 [/if]
+</TD>
+</TR></TABLE>
 
 <TABLE WIDTH=500><TR><TD BGCOLOR="#00F0F0">
 <FONT SIZE="+2">Credit Card Information</FONT>
@@ -320,47 +394,3 @@ mv_subroutine=userdb
 <P>
 <CENTER>[buttonbar 0]</CENTER>
 </body> </html>
-
-
-[set checkout_profile]
-name=required
-address=required
-city=required
-country=required
-[perl values config]
-$state      = $Safe{'values'}->{state};
-$country    = $Safe{'values'}->{country};
-$zip        = $Safe{'values'}->{zip};
-$state_ok   = $state =~ /^\s*[A-Za-z][A-Za-z]\s*$/;
-$country    =~ s/\W//g;
-$zip_ok     = ($zip =~ /^\s*\d\d\d\d\d(-\d\d\d\d)?\s*$/);
-$us         = ($country =~ /^(usa?|unitedstates)$/i);
-
-if (! $us) {
-    return '';
-}
-
-$out = <<EOF;
-&set = mv_Not_a_state $state_ok
-&set = mv_Not_a_zip_code $zip_ok
-EOF
-return $out;
-[/perl]
-email=required
-phone_day=phone
-email=email
-&fatal = yes
-[if value fax_order]
-&set = mv_payment Call Us
-[elsif config CreditCardAuto]
-&set = mv_payment Credit Card ([default mv_credit_card_type])
-mv_credit_card_info=required
-[/elsif]
-[else]
-&set = mv_payment Credit Card ([default mv_credit_card_type])
-[/else]
-[/if]
-&final = yes
-&set=mv_email [value email]
-[/set]
-

@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 #
-# MiniVend version 2.03
+# MiniVend version 3.08
 #
-# $Id: Cart.pm,v 1.9 1998/01/31 05:14:12 mike Exp $
+# $Id: Cart.pm,v 1.12 1998/05/02 03:02:04 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -36,7 +36,7 @@ require Exporter;
 @EXPORT_OK = qw(create add set);
 
 
-$VERSION = substr(q$Revision: 1.9 $, 10);
+$VERSION = substr(q$Revision: 1.12 $, 10);
 $DEBUG   = 0;
 
 use Carp;
@@ -123,11 +123,11 @@ sub toss_cart {
 	my (@master);
     DELETE: for (;;) {
         foreach $i (0 .. $#$s) {
-            if ($s->[$i]->{'quantity'} == 0) {
-				push (@master, $s->[$i]->{mv_mi})
-					if defined $s->[$i]->{mv_mi} && ! $s->[$i]->{mv_si};
+            if ($s->[$i]->{'quantity'} <= 0) {
 				next if defined $s->[$i]->{mv_control} and
 								$s->[$i]->{mv_control} =~ /\bnotoss\b/;
+				push (@master, $s->[$i]->{mv_mi})
+					if $s->[$i]->{mv_mi} && ! $s->[$i]->{mv_si};
                 splice(@$s, $i, 1);
                 next DELETE;
             }
@@ -137,16 +137,17 @@ sub toss_cart {
 
 	return 1 unless @master;
 	my $mi;
-	my @save;
-
+	my %save;
+	my @items;
 	# Brute force delete for subitems of any deleted master items
 	foreach $mi (@master) {
         foreach $i (0 .. $#$s) {
-            push(@save, $i)
-				unless $s->[$i]->{'mv_mi'} and $s->[$i]->{'mv_mi'} eq $mi;
+            $save{$i} = 1
+				unless $s->[$i]->{'mv_si'} and $s->[$i]->{'mv_mi'} eq $mi;
         }
 	}
-	@$s = @$s[@save];
+	@items = @$s;
+	@{$s} = @items[sort {$a <=> $b} keys %save];
     1;
 }
 

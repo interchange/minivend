@@ -61,25 +61,45 @@ options:
 
 	-F    Force make of catalog with defaults
 	-f    Configuration file (default is $0.cfg)
-	-i    Display info about <catalogname>
+	-i    Interactive edit of configuration
 	-r    Reconfigure defaults
 
 EOF
 
 use vars qw($opt_i $opt_F $opt_f $opt_r);
-getopts('rf') or die "Couldn't get options: $@\n$USAGE\n";
+getopts('rfFi') or die "Couldn't get options: $@\n$USAGE\n";
 
-my $catalog_name = shift || (prompt ("Catalog name? "));
+my $Interactive = $opt_i;
+
+my $catalog_name = shift;
+unless($catalog_name) {
+   $Interactive = 1;
+   print <<EOF;
+
+Select a short, mnemonic name for the catalog. This will be
+used to set the defaults for naming the catalog, executable,
+and directory, so you will have to type in this name frequently.
+
+If you are doing the demo for the first time, you might use "simple".
+
+EOF
+   $catalog_name = prompt ("Catalog name? ");
+}
+
 die "$USAGE\n" unless $catalog_name;
 
-$Vend::MakeCat::Force = 1 if $opt_F;
+if ($opt_F) {
+	$Vend::MakeCat::Force = 1;
+	open(LOGOUT, ">>makecat.log") or die "write makecat.log: $!\n";
+	select LOGOUT;
+}
+
 my $Reconfigure = 0;
 $Reconfigure = 1 if $opt_r;
 my $Configfile = $opt_f || "$0.cfg";
 my $Servername;
 my $Servers;
-my $CgiDefault		= $ENV{MVC_CGIDIR} || undef;
-my $DocrootDefault	= $ENV{MVC_DOCROOT} || undef;
+my $Done_defaults;
 
 print <<EOF;
 makecat -- MiniVend catalog installation program.
@@ -88,14 +108,32 @@ makecat -- MiniVend catalog installation program.
 
 EOF
 
+READCONFIG: {
+	my $cfgfile = "$catalog_name.cfg";
+
+	last READCONFIG unless -f $cfgfile;
+	open(READCONFIG, $cfgfile) or die "read $cfgfile: $!\n";
+
+	while(<READCONFIG>) {
+			next unless /^\s*[A-Z]\w*\s+\S/;
+			chomp;
+			($var, $val) = split " ", $_, 2;
+			$ENV{"MVC_$var"} = $val;
+	}
+	close READCONFIG;
+}
+
+my $CgiDefault		= $ENV{MVC_CGIDIR} || undef;
+my $DocrootDefault	= $ENV{MVC_DOCUMENTROOT} || undef;
+
 my $Windows;
 if($Config{osname} =~ /win32/i) {
 	$Windows = 1;
 	$ENV{HOME}		= $ENV{HOME} || $ENV{MINIVEND_ROOT} || '';
 	$ENV{MVC_ENCRYPTOR} = $ENV{MVC_ENCRYPTOR} || 'none';
-	$CgiDefault		= 'c:/webshare/scripts';
-	$CgiUrlDefault	= '/scripts';
-	$DocrootDefault = 'c:/webshare/wwwroot';
+	$CgiDefault		=  $ENV{MVC_CGIDIR} || 'c:/webshare/scripts';
+	$CgiUrlDefault	=  $ENV{MVC_CGIURL} || '/scripts';
+	$DocrootDefault =  $ENV{MVC_DOCUMENTROOT} || 'c:/webshare/wwwroot';
 }
 else {
 	$ENV{MVC_ENCRYPTOR} = $ENV{MVC_ENCRYPTOR} || 'none';
@@ -199,25 +237,30 @@ my %Prefix = (
 	minivenduser =>  sub {  return 'everybody' if $Windows;
 							get_id(); },
 	minivendgroup=>  '',
-    documentroot =>  $DocrootDefault,
-	cgidir       =>  $CgiDefault,
-	cgibase      =>  $CgiUrlDefault,
-	demotype     =>  'simple',
-    catuser      =>  sub { $isroot ? '' : $Conf{'minivenduser'} },
-    mailorderto  =>  sub {  return 'webmaster' if $Windows;
+    documentroot =>  $ENV{MVC_DOCUMENTROOT} || $DocrootDefault,
+	cgidir       =>  $ENV{MVC_CGIDIR} || $CgiDefault,
+	cgibase      =>  $ENV{MVC_CGIBASE} || $CgiUrlDefault,
+	demotype     =>  $ENV{MVC_DEMOTYPE} || 'simple',
+    catuser      => 
+						sub { $isroot ? '' : $Conf{'minivenduser'} },
+    mailorderto  => 
+						sub {  return 'webmaster' if $Windows;
 							if($Conf{servername} =~ s:(/~[^/]+)$:: ) {
 								$Tilde = $1;
 							}
     						$Conf{catuser} },
-	catroot      =>  sub {
+	catroot      =>   sub {
+							return $ENV{MVC_CATROOT} if $ENV{MVC_CATROOT};
 							my $dir = $Conf{basedir} . "/" . $catalog_name;
 							return $dir if $Windows;
 							my $userdir = (getpwnam($Conf{catuser}))[7];
 							$dir =~ s/\~/$userdir/;
 							return $dir;
 							},
-	cgiurl       =>  sub { my $url = '';
-							if ($Windows) {
+	cgiurl       =>  sub {
+							return $ENV{MVC_CGIURL} if $ENV{MVC_CGIURL};
+							my $url = '';
+						 	if ($Windows) {
 								$url .= $Conf{cgibase} . '/' .
 										$catalog_name  . '.exe';
 							}
@@ -232,25 +275,51 @@ my %Prefix = (
 							}
 							$url;
 						  },
-	imagedir     =>  sub { $Conf{samplehtml} . '/' . 'images' },
-	imageurl     =>  sub {  my $url = '';
+	imagedir     => sub {
+							return $ENV{MVC_IMAGEDIR} if $ENV{MVC_IMAGEDIR};
+				 			return prefix('samplehtml') . '/' . 'images'
+						},
+	imageurl     => sub {
+							my $url = '';
+							return $ENV{MVC_IMAGEURL} if $ENV{MVC_IMAGEURL};
 	                        if(defined $Tilde) {
 								$url = $Tilde;
 							}
 							$url .= '/' . $catalog_name . '/' . 'images';
 							$url;
 						},
-	samplehtml   =>  sub { $Conf{documentroot} . '/' . $catalog_name },
+	samplehtml   =>  sub {
+						return $ENV{MVC_SAMPLEHTML} if $ENV{MVC_SAMPLEHTML};
+						$Conf{documentroot} . '/' . $catalog_name;
+						},
+
+);
+
+sub strip_trailing_slash {
+	my $url = shift;
+	$url =~ s:/+\s*$::;
+	return $url;
+}
+
+my %Postprocess = (
+
+	cgibase			=> \&strip_trailing_slash,
+	documentroot	=> \&strip_trailing_slash,
+	imagedir		=> \&strip_trailing_slash,
+	samplehtml		=> \&strip_trailing_slash,
+	catroot			=> \&strip_trailing_slash,
 
 );
 
 sub prefix {
-	return $Conf{$p} if $Conf{$p};
-	if(ref $Prefix{$_[0]}) { 
-		return &{ $Prefix{$_[0]} };
+	my $parm = shift;
+	return $Conf{$parm} if $Conf{$parm};
+	return $ENV{"MVC_\U$parm"} if $ENV{"MVC_\U$parm"};
+	if(ref $Prefix{$parm}) { 
+		return &{ $Prefix{$parm} };
 	}
 	else {
-		return $Prefix{$_[0]};
+		return $Prefix{$parm};
 	}
 }
 
@@ -266,23 +335,37 @@ my %History = (
 					},
 
 	cgidir       =>  sub {
-						if(defined $Servers->{$Servername}) {
-							return values %{$Servers->{$Servername}->{scriptalias}}
-							 if defined $Servers->{$Servername}->{scriptalias};
+						if(	defined $Servers->{$Servername} and
+							$Servers->{$Servername}->{scriptalias}
+							 ) {
+							my @return;
+							@return = values %{$Servers->{$Servername}{scriptalias}};
+							unshift @return, $ENV{MVC_CGIDIR} if $ENV{MVC_CGIDIR};
+							return @return;
 						}
-						else {
-							return (@_);
-						}
+						return (@_);
 					},
 
 	cgibase      =>  sub {
 						if(defined $Servers->{$Servername}) {
-							return keys %{$Servers->{$Servername}->{scriptalias}}
-							 if defined $Servers->{$Servername}->{scriptalias};
+							my $ref = $Servers->{$Servername}{scriptalias};
+							return @_ unless defined $ref;
+							if($Conf{cgidir}) {
+								my ($k,$v);
+								for (keys %$ref) {
+									$k = $_;
+									$v = $ref->{$_};
+									$v =~ s:[/\s]+$::;
+									next unless $v eq $Conf{cgidir};
+									$k =~ s:[/\s]+$::;
+									return $k;
+								}
+							}
+							else {
+								return keys %$ref;
+							}
 						}
-						else {
-							return (@_);
-						}
+						return (@_);
 					},
     mailorderto  =>	 sub {
 						my(@return) = @_;
@@ -432,6 +515,8 @@ my @Servers;
 FINDCONF: {
 
 	last FINDCONF if $Windows;
+	last FINDCONF if $Vend::MakeCat::Force;
+	last FINDCONF if $ENV{MVC_SERVERNAME};
 	my $httpdconf;
 	print <<EOF unless @conf;
 
@@ -517,6 +602,8 @@ EOF
 
 ##############
 SETDEFAULTS: {
+	last SETDEFAULTS if $Done_defaults;
+	$Done_defaults = 1;
 	unless ($Reconfigure) {
 		my @parms = $Cfg->Parameters('base');
 		for(@parms) {
@@ -662,6 +749,9 @@ EOF
 			$i = 0 if $i < 0;
 			redo;
 		}
+		if(defined $Postprocess{$p}) {
+			$Conf{$p} = &{$Postprocess{$p}}($Conf{$p});
+		}
 		$Cfg->setval('base', $p, $Conf{$p});
 	}
 
@@ -673,6 +763,135 @@ EOF
 }
 #############
 
+	my $demo_template = <<"EndOfTemplate";
+# The server name, something like: www.company.com
+#                                  www.company.com:8000
+#                                  www.company.com/~yourname
+#
+SERVERNAME     $Conf{'servername'}
+
+EndOfTemplate
+
+	$demo_template .= <<'EndOfTemplate';
+# The ID for this store, which you just put in as the catalog name.
+# Might be used as the basis for a or a lot of different things. We
+# will use it to set:
+#
+#   -- the default name of the CGI link program (vlink or tlink)
+#   -- the ID of the catalog
+#   -- the directory name
+#
+# and some other things.
+#
+STOREID        __STOREID__
+
+# The base template. You only should change this if you have made your
+# own template or downloaded one (like "sample" from ftp.minivend.com/pub).
+#
+DEMOTYPE        simple
+
+# A path to the store logo image, regular and small. Just the image, should
+# be something like:
+#
+LOGO            artstore.gif
+SMLOGO          artsmall.gif
+
+# The shipping modes to select -- these are defined in shipping.asc
+#
+SHIPMODES       upsg upsb upsr
+
+# What your beginning order number should be. MUST CONTAIN ONLY LETTERS
+# AND NUMBERS --- NO DASHES OR UNDERSCORES.
+#
+ORDPREFIX       __STOREID__00000
+
+# Company/division name, address, contact info
+COMPANY         The Art Store
+ADDRESS         123 Any St.
+CITY            Yourtown, USA 00000
+PHONE           (513) 555-5555
+TOLLFREE        (888) 555-5555
+FAX             (513) 555-5556
+
+# Your email address for information inquiries here. You will be asked
+# separately for and address where orders will be sent.
+EMAILINFO      __STOREID__
+
+# Encryption program for encrypting credit card numbers.
+ENCRYPTOR       none
+
+# The rest are the entries that are done normally by the catalog configuation
+# script. You can set defaults by uncommenting and editing them, or
+# use the normal defaults by not editing them.
+
+EndOfTemplate
+
+DEMOSETUP: {
+
+	my %extra;
+	for ( qw/
+				ADDRESS CITY COMPANY DEMOTYPE EMAILINFO ENCRYPTOR
+				FAX LOGO ORDPREFIX PHONE SERVERNAME SHIPMODES
+				SMLOGO STOREID TOLLFREE
+			/
+		)
+	{
+		next if defined $ENV{"MVC_$_"};
+		$demo_template =~ /^$_\s+(.*)/m;
+		$ENV{"MVC_$_"} = $1;
+	}
+
+}
+
+if($Interactive) {
+
+	my $key; 
+	my (@keys) = $Cfg->val('global', 'askconfig');
+	foreach $key (@keys) {
+		$demo_template .= Vend::MakeCat::description($key);
+		$demo_template .= sprintf "%-15s %s\n\n", uc $key, prefix(lc $key);
+	}
+
+	my $cfgfile = "$catalog_name.cfg";
+	
+	my $end = $Windows ? "\r\n" : "\n";
+	unless (-f $cfgfile) {
+			open WRITE, ">$cfgfile" or die "create $cfgfile: $!\n";
+			my @lines;
+			@lines = split /\n/, $demo_template;
+			for(@lines) {
+					s/__STOREID__/$catalog_name/g;
+					print WRITE "$_\n";
+			}
+			close WRITE;
+	}
+
+	print <<EOF;
+
+You are in interactive mode.
+
+You can now edit the store configuration. When you save the file,
+you will get a chance to abort the catalog make.
+
+EOF
+
+	$ans = prompt("Press ENTER to edit...");
+
+	$editor = $ENV{VISUAL} || $ENV{EDITOR} || ($Windows ? 'notepad' : 'vi');
+
+	system "$editor $cfgfile";
+
+	$ans = prompt("Continue and make the catalog? ", 'y');
+
+	chomp $ans;
+	$ans = 'y' unless $ans;
+
+	exit unless $ans =~ /^\s*y/i;
+
+	undef $Interactive;
+	goto READCONFIG;
+
+}
 
 # Set server
 
@@ -687,7 +906,7 @@ EOF
 SETSERVER: {
 	sethistory(@Servers);
 	print description('servername');
- 	$Servername = $Cfg->val('base', 'servername');
+ 	$Servername = $ENV{MVC_SERVERNAME} || $Cfg->val('base', 'servername');
 	$Servername =
 		$Conf{servername} =
 			prompt("Server name? ", ($Servername || $Servers[0]));
@@ -708,6 +927,7 @@ SETSERVER: {
 		else {
 			$val = $Cfg->val("catalog $catalog_name", $p) || prefix($p);
 		}
+		$val = $ENV{"MVC_\U$val"} if defined $ENV{"MVC_\U$val"};
 		if (! $isroot and defined $IfRoot{$p}) {
 			$Conf{$p} = $val;
 			next;
@@ -822,7 +1042,6 @@ $Conf{'perl'} = $Config{perlpath};
 # Now change to the directory defined as VendRoot
 chdir $Conf{vendroot}
 	or die "Couldn't change directory to $Conf{vendroot}: $!\n";
-
 
 $warn = 0;
 $msg = q# supposed to be a directory, not a file. Can't continue.#;
@@ -1040,7 +1259,7 @@ sub substitute {
 		return $Conf{$MacroString{"__MVC_$parm"}}
 			if defined $MacroString{"__MVC_$parm"};
 	}
-	return "__MVC_$parm";
+	return "__MVC_${parm}__";
 }
 
 sub wanted {
@@ -1102,7 +1321,7 @@ sub wanted {
 		print do_msg("Moving link program to $cginame");
 
 		File::Copy::copy("$Conf{catroot}/executable", $cginame)
-			or die "Couldn't copy link executable from $prog to $cginame: $!\n";
+			or die "\nCouldn't copy link executable from $prog to $cginame: $!\n";
 		unlink "$Conf{catroot}/executable";
 
 		if($isroot) {
@@ -1138,26 +1357,33 @@ EOF
 							$mode |= 044;
 							$mode |= 011 if -d $_;
 							chmod( $mode, $_)
-								or die "chmod $_ to $mode: $!\n";
+								or die "\nchmod $_ to $mode: $!\n";
 							chown($catuid, $catgid, $_)
-								or die "chown $_: $!\n";
+								or die "\nchown $_: $!\n";
 							
 						 };
-	
+	my $ok = 0;
 	unless($Conf{samplehtml} eq 'NONE') {
 		print do_msg("Moving HTML files to $Conf{samplehtml}");
 		eval {
-			chdir 'html';
+			chdir 'html' or ++$ok and die "\nchdir html: $!\n";
 			copy_current_to_dir($Conf{samplehtml});
 			chdir '..';
-			File::Path::rmtree('html');
+			File::Path::rmtree('html'); 
 		};
-		if($@) {
-			die "Couldn't move HTML files $Conf{samplehtml}: $@\n";
+
+
+		if($@ and !$ok) {
+			die "\nCouldn't move HTML files to $Conf{samplehtml}: $@\n";
+		}
+		elsif ($ok) {
+			warn "\nHTML dir copy error: $!\nTrying to continue.\n";
+		}
+		else {
+			File::Find::find( $chg_to_catuser, $Conf{samplehtml})
+				if $isroot;
 		}
 
-		File::Find::find( $chg_to_catuser, $Conf{samplehtml})
-			if $isroot;
 
 		print "done.\n";
 	}
@@ -1165,24 +1391,28 @@ EOF
 	unless($Conf{imagedir} eq 'NONE') {
 		print do_msg("Moving image files to $Conf{imagedir}");
 		eval {
-			chdir 'images';
+			chdir 'images' or ++$ok and die "chdir images: $!\n";
 			copy_current_to_dir($Conf{imagedir});
 			chdir '..';
 			File::Path::rmtree('images');
 		};
-	
-		if($@) {
-			die "Couldn't move HTML files $Conf{imagedir}: $@\n";
+			
+		if($@ and !$ok) {
+			die "\nCouldn't move image files $Conf{imagedir}: $@\n";
+		}   
+		elsif ($ok) {
+			warn "\nImage dir copy error: $!\nTrying to continue.\n";
 		}
-
-		File::Find::find($chg_to_catuser, $Conf{imagedir})
-			if $isroot;
-
+		else {
+			File::Find::find($chg_to_catuser, $Conf{imagedir})
+				if $isroot;
+		}
+ 
 		print "done.\n";
 	}
 
 	chdir $Conf{vendroot}
-		or die "Couldn't change directory to $VendRoot: $!\n";
+		or die "\nCouldn't change directory to $VendRoot: $!\n";
 
 	$yes = prompt "Add catalog to minivend.cfg? ", 'y';
 
@@ -1193,13 +1423,13 @@ EOF
 		my ($tmpfile) = "minivend.cfg.$$";
 		if (-f 'minivend.cfg') {
 			rename ("minivend.cfg", $tmpfile)
-				or die "Couldn't rename minivend.cfg: $!\n";
+				or die "\nCouldn't rename minivend.cfg: $!\n";
 		}
 		else {
 			File::Copy::copy('minivend.cfg.dist', $tmpfile);
 		}
 		open(CFG, $tmpfile)
-			or die "Couldn't open $tmpfile: $!\n";
+			or die "\nCouldn't open $tmpfile: $!\n";
 		while(<CFG>) {
 			$mark = $. if /^#?\s*catalog\s+/i;
 			warn "\nDeleting old configuration $catalog_name.\n"
@@ -1268,6 +1498,34 @@ It is best done with:
 	$start_string
 
 EOF
+	CHECKEXPIRE: {
+		my $dbm;
+		my $message;
+		eval { require GDBM_File; $dbm = 1; };
+		eval { require DB_File;   $dbm = 1; };
+
+		if(! $Windows and $dbm) {
+
+			print <<EOF;
+For session expiration, you might want to place a line like this in your
+crontab:
+
+44 4 * * * $Conf{vendroot}/bin/expire -c $Conf{catalogname}
+
+It will prevent the session database from getting too large.
+
+EOF
+
+		}
+		else {
+			print <<EOF;
+Remember to expire your session databases on a regular basis (see
+the documentation for details).
+
+EOF
+		}
+	}
+
 	print "Good luck with MiniVend!\n" if defined $newconfig;
 
 __END__

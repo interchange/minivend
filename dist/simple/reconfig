@@ -10,7 +10,7 @@
 #
 # Value for simple demo might be '/cgi-bin/simple'
 #
-$Script    = '__MVC_CGIURL';
+$Script    = '__MVC_CGIURL__';
 
 # Replace this with the DIRECTORY containing the CGI calling an
 # individual catalog -- makecat will do this for you if you

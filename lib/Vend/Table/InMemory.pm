@@ -1,6 +1,6 @@
 # Table/InMemory.pm: store a table in memory
 #
-# $Id: InMemory.pm,v 1.10 1997/09/05 07:32:30 mike Exp $
+# $Id: InMemory.pm,v 1.12 1998/05/06 08:32:16 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -19,7 +19,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::InMemory;
-$VERSION = substr(q$Revision: 1.10 $, 10);
+$VERSION = substr(q$Revision: 1.12 $, 10);
 use Carp;
 use strict;
 
@@ -64,8 +64,12 @@ sub row {
     my ($s, $key) = @_;
     my $a = $s->[2]{$key};
     croak "There is no row with index '$key'" unless defined $a;
-    return @$a;
+	my %row;
+	@row{ @{$s->[0]} } = @$a;
+    return \%row;
 }
+
+*row_hash = \&row;
 
 sub field_accessor {
     my ($s, $column) = @_;
@@ -131,6 +135,8 @@ sub record_exists {
     my ($s, $key) = @_;
     return exists($s->[2]{$key});
 }
+
+*test_record = \&record_exists;
 
 sub delete_record {
     my ($s, $key) = @_;

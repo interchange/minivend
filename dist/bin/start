@@ -98,7 +98,11 @@ as a the user name you configured in when you set up the catalogs.
 If you are starting the server from /etc/rc.local or another
 startup file, you can use this:
 
-su $name <<EOF
+su -c $VendRoot/bin/start $name
+
+or if that fails:
+
+	su -c $name <<EOF
 $VendRoot/bin/start
 EOF
 
@@ -117,10 +121,9 @@ EOM
 }
 
 if (defined $Trysu) {
+	exec "su -c $0 $name" or
 	exec <<EndOfExec or die "Couldn't exec: $!\n";
-su $name <<EOF
-$0
-EOF
+su -c $0 $name
 EndOfExec
 
 }

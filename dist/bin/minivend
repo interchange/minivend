@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 #
-# MiniVend version 3.07
+# MiniVend version 3.09
 #
-# $Id: minivend,v 1.24 1998/03/21 12:24:00 mike Exp mike $
+# $Id: minivend,v 1.29 1998/06/06 08:36:52 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -15,18 +15,11 @@
 #
 # See the file 'Changes' for information.
 #
-# This program is free software; most users can redistribute it
+# This program is free software; you can redistribute it
 # and/or modify it under the terms of the GNU General Public
 # License as published by the Free Software Foundation; either
 # version 2 of the License, or (at your option) any later
-# version. The only exception is that any organization employing
-# uninvited commercial email solicitations, commonly known as
-# SPAM, may not use MiniVend for a period of one year after any
-# SPAM incident. Failure to discontinue use immediately upon
-# written notice will cause the charge of a $10,000 per day license
-# fee until such time as MiniVend use is discontinued. The author
-# of MiniVend, Michael J. Heins, shall be the sole judge of what
-# constitutes a SPAM incident.
+# version. 
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -75,8 +68,25 @@ if($Config{osname} =~ /win32/i) {
 #$ENV{PGPPATH} = '/usr/local/pgp';
 
 # Uncomment AND SET next line to work around bad POSIX strftime
-# routines.
-#$ENV{MINIVEND_BADPOSIX} = 1;
+# routines if on a Linux system with bad STRUCT_HAS_TZ.
+if(-f "$Global::VendRoot/linux.badposix") {
+	$ENV{MINIVEND_BADPOSIX} = 1;
+}
+
+# If you set this to true, you can create an alias that doesn't begin
+# with a / and do a direct database query with vlink. For example:
+#
+# Catalog simple /home/minivend/simple /cgi-bin/simple simple
+#
+# then:
+#
+# % bin/vlink simple products title 00-0011
+# 
+# or 
+#
+# % bin/vlink simple scan sf=category/se=Impressionists/rf=0,title,artist
+#  
+$Global::AllowQuery = 1;
 
 # The following will stay until this is fixed in RedHat Linux.
 # Set the above to 0 if your version won't dump core on strftime.
@@ -119,10 +129,10 @@ use vars qw($VERSION);
 # END DEBUG
 
 sub debug {
-	return $_[0] & $Global::DEBUG;
+	return ($_[0] || 0) & $Global::DEBUG;
 }
 
-$VERSION = '3.07';
+$VERSION = '3.09';
 use strict;
 use Fcntl;
 
@@ -153,7 +163,7 @@ BEGIN {
 		last AUTO if 
 			(defined $ENV{MINIVEND_DBFILE} and $Global::DB_File = 1);
 		last AUTO if 
-			(defined $ENV{MINIVEND_NODBM} and $Global::Msql == 1);
+			(defined $ENV{MINIVEND_NODBM});
 		eval {require GDBM_File and $Global::GDBM = 1} ||
 		eval {require DB_File and $Global::DB_File = 1};
 	}
@@ -204,6 +214,7 @@ use Vend::PageBuild;
 # END STATICPAGE
 
 my $H;
+my $wantref = 1;
 sub http {
 	$H;
 }
@@ -236,15 +247,16 @@ sub response {
 	my ($type,$output,$debug) = @_;
 	#$Vend::content_type = $type;
 	return 1 if $Vend::BuildingPages;
-	check_html(\$output) if defined $Vend::CheckHTML;
+	my $out = ref $output ? $output : \$output;
+	check_html($out) if defined $Vend::CheckHTML;
 	if (defined $Vend::DebugHTML) {
-		$output .= "\n<!-- DEBUG\n" .
+		$$out .= "\n<!-- DEBUG\n" .
 					$Vend::DebugHTML .
 					"\nEND DEBUG -->\n";
 		undef $Vend::DebugHTML;
 	}
 	my $content = $Vend::ContentType || "text/$type";
-	http()->respond($content,$output,$debug);
+	http()->respond($content,$out,$debug);
 }
 
 ## INTERFACE ERROR
@@ -258,10 +270,10 @@ sub interaction_error {
 
     logError ("Difficulty interacting with browser: $msg");
 
-    $page = readin($Vend::Cfg->{'Special'}->{'interact'});
+    $page = readin($Vend::Cfg->{Special}->{'interact'});
     if (defined $page) {
 		$page =~ s#\[message\]#$msg#ig;
-		response('html',interpolate_html($page));
+		response('html',interpolate_html($page, $wantref));
     }
 	else {
 		logError("Missing special page: interact");
@@ -297,13 +309,13 @@ EOF
 }
 
 sub expect_form {
+	return 1 if $Global::TolerateGet;
+
     if ( uc($CGI::request_method) ne 'POST') {
 		interaction_error("Request method '$CGI::request_method' for form submission is not POST\n");
 		logError(minidump());
 		return 0;
     }
-
-	return 1 if $Global::TolerateGet;
 
     if ( lc($CGI::content_type) ne 'application/x-www-form-urlencoded') {
 		interaction_error("Content type '$CGI::content_type' for form submission" .
@@ -322,7 +334,7 @@ sub expect_form {
 # Display the initial catalog page.
 
 sub do_catalog {
-    do_page($Vend::Cfg->{'Special'}->{'catalog'});
+    do_page($Vend::Cfg->{Special}->{'catalog'});
 }
 
 
@@ -337,7 +349,7 @@ sub display_special_page {
     $page = readin($name);
     die "Missing special page: $name\n" unless defined $page;
     $page =~ s#\[subject\]#$subject#ig;
-    return response('html',interpolate_html($page));
+    return response('html',interpolate_html($page, $wantref));
 }
 
 # Displays the catalog page NAME.  If the file is not found, displays
@@ -351,7 +363,7 @@ sub display_page {
 	if($Vend::Cfg->{'ExtraSecure'} and
 		$Vend::Cfg->{AlwaysSecure}->{$name}
 		and !$CGI::secure) {
-		$name = $Vend::Cfg->{'Special'}->{'violation'};
+		$name = $Vend::Cfg->{Special}->{'violation'};
 	}
 
     $page = readin($name);
@@ -361,12 +373,12 @@ sub display_page {
 	}
 
     if (defined $page) {
-		response('html',interpolate_html($page));
+		response('html',cache_html($page, $wantref));
 		return 1;
     } else {
 		logData($Vend::Cfg->{'LogFile'}, format_log_msg('page not found'))
 			if defined $Vend::Cfg->{CollectData}->{nopage};
-		display_special_page($Vend::Cfg->{'Special'}->{'missing'}, $name);
+		display_special_page($Vend::Cfg->{Special}->{'missing'}, $name);
 		return 0;
     }
 }
@@ -378,11 +390,12 @@ sub cache_page {
 	my $pagedir = $Vend::Cfg->{ScratchDir} . '/PageCache';
 	my $pagename =  generate_key($name,$arg);
 
-	if($page = readfile("$pagedir/$pagename.html")) {
+	if($CGI::pragma !~ /no-cache/i
+		and $page = readfile("$pagedir/$pagename.html")) {
 # DEBUG
 #Vend::Util::logDebug ("Hit cache $pagename\n") if ::debug(0x80);
 # END DEBUG
-    	response('html', $page);
+    	response('html', \$page);
 		return 1;
 	}
 
@@ -392,9 +405,13 @@ sub cache_page {
 		$page = fly_page($name, $arg);
 	}
 
+	$Vend::PageCacheCopy = '';
+
     if (defined $page) {
-    	$page = cache_html($page);
+		my $complete;
+    	($page, $complete) = cache_html($page, $wantref);
 		if(defined $Vend::CachePage) {
+			my $out = $complete || $page;
 			logData($Vend::Cfg->{'LogFile'}, format_log_msg('add to page cache'))
 				if defined $Vend::Cfg->{CollectData}->{cache};
 			open PAGECACHE, ">$pagedir/$pagename.html"
@@ -402,7 +419,7 @@ sub cache_page {
 					logGlobal "Page cache failure: $!";
 					die "Page cache failure: $!\n";
 				};
-			print PAGECACHE $page;
+			print PAGECACHE $$out;
 			close PAGECACHE;
 		}
 		put_session();
@@ -412,7 +429,7 @@ sub cache_page {
 	else {
 		logData($Vend::Cfg->{'LogFile'}, format_log_msg('page not found'))
 			if defined $Vend::Cfg->{CollectData}->{nopage};
-		return display_special_page($Vend::Cfg->{'Special'}->{'missing'}, $name);
+		return display_special_page($Vend::Cfg->{Special}->{'missing'}, $name);
     }
 }
 
@@ -443,7 +460,7 @@ sub do_page {
 
 sub do_order
 {
-    my($code,$path,$catalog) = @_;
+    my($code,$path,$catalog,$quantity) = @_;
     my($i, $found, $item, $save, %att);
 	
 # DEBUG
@@ -455,9 +472,11 @@ sub do_order
 
     my $base = product_code_exists_tag($code, $catalog || undef);
 
+	$quantity = $quantity =~ /^[-+](\d+)$/ ? $quantity : 1;
+
     if (! $base ) {
 		logError("Attempt to order missing product code: $code");
-		display_special_page($Vend::Cfg->{'Special'}->{'noproduct'}, $code);
+		display_special_page($Vend::Cfg->{Special}->{'noproduct'}, $code);
 		return;
     }
 
@@ -490,17 +509,20 @@ sub do_order
 			if ($cart->[$i]->{'code'} eq $code) {
 				next unless $cart->[$i]->{mv_ib} eq $base;
 				$found = $i;
+				$cart->[$i]->{'quantity'} += $quantity
+					if $quantity =~ /^[-+]/;
 			}
 		}
 
 	} # INC
 
     # And if not found or separate, start with a single quantity.
-    if ($found == -1) {
-		$item = {'code' => $code, 'quantity' => 1, mv_ib => $base};
+    if ($found == -1 and $quantity > 0) {
+		$quantity =~ s/^[-+]//;
+		$item = {'code' => $code, 'quantity' => $quantity, mv_ib => $base};
 		if($Vend::Cfg->{UseModifier}) {
 			foreach $i (@{$Vend::Cfg->{UseModifier}}) {
-				$item->{$i} = '';
+				$item->{$i} = delete($Vend::Session->{scratch}{"mv_${i}_$code"}) || '';
 			}
 		}
 		push @$cart, $item;
@@ -526,6 +548,7 @@ EOF
 		logGlobal $msg;
 	}
 
+	toss_cart($cart);
     order_page($page);		# display the order page
     put_session();
 }
@@ -534,15 +557,33 @@ EOF
 ## DO SEARCH
 
 sub do_search {
+	my $more = shift;
 	my($c) = \%CGI::values;
-
-	if($Vend::Cfg->{SearchCache} and $CGI::cookie) {
-		my($key,$page) = check_search_cache($c);
-		return response('html',$page) if defined $page;
-		$c->{mv_cache_key} = $key if defined $key;
+#::logGlobal($more);
+	if ($more) {
+		$c = { mv_more_matches => $more };
+		$Vend::Session->{last_search} = "scan/MM=$more";
+		$more =~ s/[^a-zA-Z0-9].*//;
+		$c->{mv_cache_key} = $more;
+	}
+	else {
+		create_last_search($c);
 	}
 
-	my $status = perform_search($c,@_);
+	if($Vend::Cfg->{SearchCache} and $CGI::cookie) {
+		my($key,$page) = check_search_cache($Vend::Session->{last_search});
+		if (defined $page and $CGI::pragma !~ /no-cache/i) {
+			put_session if $Vend::Session->{scratch}->{mv_put_session};
+			return response('html',$page);
+		}
+		$c->{mv_cache_key} = $key unless defined $c->{mv_cache_key}
+	}
+	else {
+		$c->{mv_cache_key} = generate_key($Vend::Session->{last_search})
+			unless defined $c->{mv_cache_key};
+	}
+
+	my $status = perform_search($c);
 	put_session if $Vend::Session->{scratch}->{mv_put_session};
 	return $status;
 }
@@ -551,14 +592,27 @@ sub do_scan {
 	my($argument,$path) = @_;
 	my ($key,$page);
 
-	if($Vend::Cfg->{SearchCache} and $CGI::cookie) {
-		($key,$page) = check_scan_cache($path);
-		return response('html',$page) if defined $page;
+	my $c = {};
+	find_search_params($c,$path);
+
+	if($key = $c->{mv_more_matches}) {
+		$Vend::Session->{last_search} = "scan/MM=$key";
+		$key =~ s/[^a-zA-Z0-9].*//;
+		$c->{mv_cache_key} = $key;
+		undef $key;
+	}
+	else {
+		$key = generate_key(create_last_search($c));
+		$c->{mv_cache_key} = $key;
 	}
 
-	my($c) = { mv_cache_key => $key || '' };
-
-	find_search_params($c,$path);
+	if($Vend::Cfg->{SearchCache} and $CGI::cookie) {
+		($key,$page) = check_search_cache($Vend::Session->{last_search},$key);
+		if (defined $page and $CGI::pragma !~ /no-cache/i) {
+			put_session if $Vend::Session->{scratch}->{mv_put_session};
+			return response('html',$page);
+		}
+	}
 
 	my $status = perform_search($c,$argument);
 	put_session if $Vend::Session->{scratch}->{mv_put_session};
@@ -969,6 +1023,9 @@ sub update_user {
 	my($key,$value);
     # Update the user-entered fields.
 
+	if ($value = delete $Vend::Session->{scratch}{mv_UseModifier}) {
+		$Vend::Cfg->{UseModifier} = [split /[\s\0,]+/, $value];
+	}
 	if (defined $CGI::values{'mv_order_item'} and 
 		$value = $CGI::values{'mv_order_item'} ) {
 		my $quantities = $CGI::values{mv_order_quantity} ||= '';
@@ -1046,7 +1103,7 @@ sub update_user {
 # Currently called from ROUTINES and action=subroutine
 sub do_sub {
 	my($args, $path) = @_;
-	my($routine, @args) = split /\//, $args;
+	my($routine, @args) = split m:/:, $args;
 
 	for(@args) {
 		s/\%([0-9a-fA-F][0-9a-fA-F])/chr( hex ($1) )/ge;
@@ -1115,7 +1172,7 @@ sub do_process {
     $todo = $CGI::values{'mv_todo'};
 
     $nextpage = $CGI::values{'mv_nextpage'} || $Vend::Session->{'page'};
-    $orderpage = $CGI::values{'mv_orderpage'} || $Vend::Cfg->{'Special'}->{'order'};
+    $orderpage = $CGI::values{'mv_orderpage'} || $Vend::Cfg->{Special}->{'order'};
     $ordered_items = $CGI::values{'mv_order_item'};
 
 	# Maybe we have an imagemap input, if not, use $doit
@@ -1180,7 +1237,7 @@ sub do_process {
 			display_page($next) unless $final;
 		}
 		else {
-			$next = $CGI::values{'mv_failpage'} || $Vend::Cfg->{'Special'}->{'needfield'};
+			$next = $CGI::values{'mv_failpage'} || $Vend::Cfg->{Special}->{'needfield'};
 			display_special_page($next, $missing);
 			last CHECK_ORDER;
 		}
@@ -1189,7 +1246,7 @@ sub do_process {
 
 		($status, $missing) = check_required($values);
 		if (!$status) {
-			display_special_page($Vend::Cfg->{'Special'}->{'needfield'}, $missing);
+			display_special_page($Vend::Cfg->{Special}->{'needfield'}, $missing);
 			put_session();
 			return;
 		}
@@ -1217,9 +1274,9 @@ sub do_process {
 	    	display_special_page($Vend::Cfg->{'ReceiptPage'});
 		}
 		elsif ($ok) {
-	    	display_special_page($Vend::Cfg->{'Special'}->{'confirmation'});
+	    	display_special_page($Vend::Cfg->{Special}->{'confirmation'});
 		} else {
-	    	display_special_page($Vend::Cfg->{'Special'}->{'failed'});
+	    	display_special_page($Vend::Cfg->{Special}->{'failed'});
 		}
 
 		# Remove the items
@@ -1235,12 +1292,12 @@ sub do_process {
 	elsif ($todo eq 'set') {
 		update_user();
 		update_data();
-		display_page($Vend::Session->{'values'}->{mv_nextpage} || $nextpage);
+		display_page($nextpage);
     }
 	elsif ($todo eq 'return') {
 		update_user();
 		update_quantity() || return; #Return on error
-		display_page($Vend::Session->{'values'}->{mv_nextpage} || $nextpage);
+		display_page($nextpage);
     }
 	elsif ($todo eq 'checkout') {
 		update_user();
@@ -1253,18 +1310,19 @@ sub do_process {
 	}
 	elsif ($todo eq 'control') {
 		update_user();
-		do_page($Vend::Session->{'values'}->{mv_nextpage} || $nextpage);
+		do_page($nextpage);
 		return;
 	}
 	elsif ($todo eq 'secure') {
 		if ($CGI::secure) {
 			$Vend::Session->{'secure'} = 1;
 			update_user();
-			do_page($Vend::Session->{'values'}->{mv_nextpage} || $nextpage);
+			update_quantity() || return; #Return on error
+			do_page($nextpage);
 			return;
 		}
 		else {
-			do_page($Vend::Cfg->{'Special'}->{'violation'});
+			do_page($Vend::Cfg->{Special}->{'order_security'});
 			return;
 		}
     }
@@ -1282,7 +1340,7 @@ sub do_process {
 		get_session();
 		init_session();
 		$Vend::Session->{'frames'} = $frames;
-		display_page($Vend::Cfg->{'Special'}->{'canceled'});
+		display_page($Vend::Cfg->{Special}->{'canceled'});
     }
 	else {
 		interaction_error(
@@ -1431,7 +1489,7 @@ sub config_named_catalog {
 					);
     };
 # DEBUG
-#$Global::DEBUG = $Global::DebugMode;
+$Global::DEBUG = $Global::DebugMode || 0;
 # END DEBUG
     if($@) {
 		my $msg = $@;
@@ -1461,6 +1519,7 @@ EOF
 			}
 		}
 # END STATICPAGE
+		$Vend::Cfg = $c;	
 		if($c->{ClearCache}) {
 			for('PageCache', 'SearchCache') {
 				next unless $c->{$_};
@@ -1471,7 +1530,6 @@ EOF
 				eval { logError("Cleared $dir") };
 			}
 		}
-		$Vend::Cfg = $c;	
 		read_accessories();
 		read_salestax();
 		read_shipping();
@@ -1914,14 +1972,15 @@ sub map_cgi {
     my($host, $ip, $user);
 
     $CGI::request_method = http()->Method;
-    die "REQUEST_METHOD is not defined" unless defined $CGI::request_method;
+    die "REQUEST_METHOD is not defined" unless defined $CGI::request_method
+		or @Global::argv;
 
     $CGI::path_info = http()->Path_Info;
 
 	# The great and final AOL fix
 	#
-    $host = http()->Client_Hostname;
-    $ip   = http()->Client_IP_Address;
+    $host = $CGI::remote_host = http()->Client_Hostname;
+    $ip   = $CGI::remote_addr = http()->Client_IP_Address;
 
 	if($Global::DomainTail and $host) {
 		$host =~ s/.*?([-A-Za-z0-9]+\.[A-Za-z]+)$/$1/;
@@ -1953,6 +2012,7 @@ sub map_cgi {
     #$CGI::content_length = http()->Content_Length;
     $CGI::content_type = http()->Content_Type;
     $CGI::reconfigure_catalog = http()->Reconfigure;
+    $CGI::pragma = http()->Pragma;
     $CGI::query_string = http()->Query;
     $CGI::referer = http()->Referer;
 	unless ($Global::FullUrl) {
@@ -1969,9 +2029,11 @@ sub map_cgi {
 	elsif ($Global::TolerateGet) {
 		my $idx = index($CGI::query_string,'&');
 		if($idx > 0) {
-			logError("Triggered TolerateGet: \n" . minidump());
+			logError("Triggered TolerateGet: \n" . minidump())
+				if $Vend::Cfg->{DisplayErrors};
 			$CGI::request_method = 'POST';
 			$CGI::post_input = $CGI::query_string;
+			$CGI::query_string = '';
 		}
 	}
 	parse_post();
@@ -1995,6 +2057,29 @@ sub dispatch {
     my($sessionid, $argument, $path, $rest);
 	my(@path);
 	my($g, $action);
+
+	if($Global::AllowQuery and @Global::argv > 1) {
+#::logGlobal("Argv: '" . (join "','", @Global::argv) . "'");
+		$CGI::script_name = shift @Global::argv;
+		$CGI::script_name =~ m:^/: and  die "Can't db_query from web: $CGI::script_name";
+		$Vend::Cfg = $Global::Selector{$CGI::script_name} || die "Bad script.\n";
+		chdir $Vend::Cfg->{'VendRoot'}
+			or die "Couldn't change to $Vend::Cfg{'VendRoot'}: $!\n";
+		set_file_permissions();
+		umask $Vend::Cfg->{'Umask'};
+		open_database();
+		$H->{response_made} = 1;
+		if( index($Global::argv[0], '[') eq 0) {
+			response('',Vend::Interpolate::interpolate_html(join "", @Global::argv));
+		}
+		elsif($Global::argv[0] eq 'scan') {
+			response('', Vend::Interpolate::tag_search($Global::argv[1]) . "\n");
+		}
+		else {
+			response('', Vend::Interpolate::tag_data(@Global::argv) . "\n");
+		}
+		return 1;
+	}
 
 	unless (defined $Global::Standalone) {
 		unless (defined $Global::Selector{$CGI::script_name}) {
@@ -2079,6 +2164,10 @@ EOF
 	umask $Vend::Cfg->{'Umask'};
 	open_database();
 
+	$Vend::OnlyProducts = defined $Vend::Cfg->{ProductFiles}->[1]
+						  ? undef
+						  : $Vend::Cfg->{ProductFiles}->[0];
+
     if (defined $CGI::query_string && $CGI::query_string ne '') {
 		($sessionid, $argument, $rest) = split(/;/, $CGI::query_string);
 		if ($CGI::cookie =~ /\bMV_SESSION_ID=(\w{8})
@@ -2087,12 +2176,15 @@ EOF
 										\d{1,3}\.
 										\d{1,3}\.
 										\d{1,3})
-									|	(\w+) )     # A user name
-									
+									# A user name or domain
+									|	([A-Za-z0-9][-\@A-Za-z.0-9]+) )
 									\b/x) {
 			$sessionid = $1 unless defined $rest && $rest eq 'RESET';
-			$CGI::cookiehost = $3 || '';
-			$CGI::cookieuser = $4 || '';
+			$CGI::cookiehost = $3 || undef;
+			$CGI::cookieuser = $4 || undef;
+		}
+		else {
+			$sessionid =~ /^\w{8}$/ or undef $sessionid;
 		}
 		$argument =~ s/%([A-Fa-f0-9]{2})/chr(hex($1))/eg
 			if $Vend::Cfg->{NewEscape};
@@ -2108,12 +2200,13 @@ EOF
 										\d{1,3}\.
 										\d{1,3}\.
 										\d{1,3})
-									|	(\w+) )     # A user name
+									# A user name or domain
+									|	([A-Za-z0-9][-\@A-Za-z.0-9]+) )
 									\b/x)
 		{
             $sessionid = $1;
-            $CGI::cookiehost = $3 || '';
-            $CGI::cookieuser = $4 || '';
+            $CGI::cookiehost = $3 || undef;
+            $CGI::cookieuser = $4 || undef;
         }
 	}
 # DEBUG
@@ -2160,20 +2253,22 @@ EOF
 # DEBUG
 #Vend::Util::logDebug("session name='$Vend::SessionName'\n");
 # END DEBUG
-	$Vend::Session->{id} = $Vend::SessionID;
-	$Vend::Session->{arg} = $Vend::Argument;
-	$Vend::Session->{source} = $rest if defined $rest && $rest =~ /[A-Za-z]/;
-	$Vend::Session->{user} = $CGI::user;
+	$Vend::Session->{'id'} = $Vend::SessionID;
+	$Vend::Session->{'arg'} = $Vend::Argument;
+	$Vend::Session->{'source'} = $rest
+		if ! $Vend::Session->{source} &&
+			 $rest && $rest =~ /[A-Za-z]/;
+	$Vend::Session->{'user'} = $CGI::user;
+	$CGI::pragma = 'no-cache'
+		if delete $Vend::Session->{scratch}{mv_no_cache};
 
     $Vend::Session->{prev_url} = $Vend::Session->{last_url}
 		if defined $Vend::Session->{last_url};
     $path = $Vend::Session->{last_url} = $CGI::path_info;
-    $Vend::Session->{last_search} = $path
-		if $path =~ m!^/scan!;
-	
+
 	ROUTINES: {
 		last ROUTINES unless index($path, '/process/') == 0;
-		while ($path =~ s:/process/(locale|language)/([^/]+)/:/process/:) {
+		while ($path =~ s:/process/(locale|language)/([^/]*)/:/process/:) {
 			$Vend::Session->{scratch}->{"mv_$1"} = $2;
 		}
 		if($path =~ s:/process/subroutine/(.*):/process:) {
@@ -2191,24 +2286,16 @@ EOF
 		$locale = $Vend::Session->{scratch}->{mv_locale}	and
 		defined $Vend::Cfg->{Locale_repository}->{$locale}
 	)
-	{
-			$Vend::Cfg->{Locale} = $Vend::Cfg->{Locale_repository}->{$locale};
-			for(qw/	PriceField		DescriptionField 
-					PageDir			ImageDir
-					TaxShipping		SalesTax
-					CommonAdjust	PriceCommas		PriceDivide/) {
-				$Vend::Cfg->{$_} = $Vend::Cfg->{Locale}->{$_}
-					if defined $Vend::Cfg->{Locale}->{$_};
-			} 
-			for(qw/	PriceAdjustment UseModifier /) {
-				@{$Vend::Cfg->{$_}} = split (/\s+/, $Vend::Cfg->{Locale}->{$_})
-					if $Vend::Cfg->{Locale}->{$_};
-			} 
+	{ Vend::Util::setlocale(); }
+	
+	if($Vend::Cfg->{Autoload}) {
+		do_sub($Vend::Cfg->{Autoload});
+		$path = $Vend::Session->{return_value} if $Vend::Session->{return_value};
 	}
 
     # If the cgi-bin program was invoked with no extra path info,
     # just display the catalog page.
-    if (!defined $path || $path eq '' || $path eq '/') {
+    if (! $path || $path =~ m:^/+$:) {
 		do_catalog();
 		release_session() if $Vend::HaveSession;
 		close_database();
@@ -2229,11 +2316,12 @@ EOF
     if    ($action eq 'process')  { do_process();              }
     elsif ($action eq 'scan')     { do_scan($argument,@path);  } 
     elsif ($action eq 'search')   { do_search($argument);      } 
-    elsif ($action eq 'order')    { do_order($argument,@path); }
+    elsif ($action eq 'order')    { $path[2] = $rest;
+									do_order($argument,@path); }
     elsif ($action eq 'subroutine') { do_sub($argument,@path) }
     elsif ($action eq 'obtain')   {
 									my($catalog,$page) = split '/', $path[0], 2;
-									do_order($argument,$page,$catalog);
+									do_order($argument,$page,$catalog,$rest);
 								  } 
     else {
 		# will try the on-the-fly page if it fails
@@ -2471,8 +2559,7 @@ sub usage {
 
 MiniVend comes with ABSOLUTELY NO WARRANTY.  This is free software, and
 you are welcome to redistribute and modify it under the terms of the
-GNU General Public License. (Unless you SPAM, in which case you may
-not use MiniVend at all).
+GNU General Public License.
 
 Command line options:
 
@@ -2738,4 +2825,3 @@ if ($@) {
 		print "$msg\n";
 	}
 }
-

@@ -2,7 +2,7 @@
 #
 # MiniVend version 1.04
 #
-# $Id: Order.pm,v 1.19 1998/03/14 23:46:48 mike Exp $
+# $Id: Order.pm,v 1.20 1998/05/02 03:03:22 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -30,7 +30,7 @@
 package Vend::Order;
 require Exporter;
 
-$VERSION = substr(q$Revision: 1.19 $, 10);
+$VERSION = substr(q$Revision: 1.20 $, 10);
 $DEBUG = 0;
 
 @ISA = qw(Exporter);
@@ -54,6 +54,7 @@ use Text::ParseWords;
 my @Errors = ();
 my $Fatal = 0;
 my $Final = 0;
+my $Success;
 
 sub _fatal {
 	$Fatal = ( defined($_[1]) && ($_[1] =~ /^[yYtT1]/) ) ? 1 : 0;
@@ -61,6 +62,10 @@ sub _fatal {
 
 sub _final {
 	$Final = ( defined($_[1]) && ($_[1] =~ /^[yYtT1]/) ) ? 1 : 0;
+}
+
+sub _return {
+	$Success = ( defined($_[1]) && ($_[1] =~ /^[yYtT1]/) ) ? 1 : 0;
 }
 
 sub _format {
@@ -76,6 +81,7 @@ sub _format {
 
 my %Parse = (
 
+	'&return'       =>	\&_return,
 	'&fatal'       	=>	\&_fatal,
 	'&format'		=> 	\&_format,
 	'&final'		=>	\&_final,
@@ -583,22 +589,52 @@ sub check_order {
 				if defined $message and $message;
  			undef $Vend::Session->{'values'}->{"mv_error_$var"};
 		}
+		($status = $Success and last) if defined $Success;
 		last if $Fatal && ! $status;
 	}
 	my $errors = join "\n", @Errors;
-	$errors = '' unless defined $errors;
+	$errors = '' unless defined $errors and ! $Success;
 	return ($status, $Final, $errors);
 }
 
-sub _column {
-	return undef unless defined $_[1];
-	my @fields = split /\s*[,\0]\s*/, $_[1];
-	my $col;
-	for(@fields) {
-		($_ = column_exists($_) + 1)
-			unless /^\d+$/;
+my $state = <<EOF;
+AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD
+MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA PR RI
+SC SD TN TX UT VT VA WA WV WI WY DC 
+EOF
+
+my $province = <<EOF;
+AB BC MB NB NF NS NT ON PE QC SK YT YK
+EOF
+
+sub _state_province {
+	my($ref,$var,$val) = @_;
+	if( (_state(@_))[0] or (_province(@_))[0] ) {
+		return (1, $var, '');
 	}
-	\@fields;
+	else {
+		return (undef, $var, "'$val' not a two-letter state or province code");
+	}
+}
+
+sub _state {
+	my($ref,$var,$val) = @_;
+	if( $state =~ /\b$val\b/i) {
+		return (1, $var, '');
+	}
+	else {
+		return (undef, $var, "'$val' not a two-letter state code");
+	}
+}
+
+sub _province {
+	my($ref,$var,$val) = @_;
+	if( $province =~ /\b$val\b/i) {
+		return (1, $var, '');
+	}
+	else {
+		return (undef, $var, "'$val' not a two-letter province code");
+	}
 }
 
 sub _array {
@@ -610,9 +646,29 @@ sub _yes {
 	return( defined($_[2]) && ($_[2] =~ /^[yYtT1]/));
 }
 
+sub _postcode {
+	_zip(@_) or _ca_postcode(@_);
+}
+
+sub _ca_postcode {
+	my($ref,$var,$val) = @_;
+	$val =~ s/\W_//;
+	defined $val
+		and
+	$val =~ /^[ABCEGHJKLMNPRSTVXYabceghjklmnprstvxy]\d[A-Za-z]\d[A-Za-z]\d$/
+}
+
+sub _zip {
+	my($ref,$var,$val) = @_;
+	defined $val and $val =~ /^\s*\d{5}(?:[-]\d{4})?\s*$/;
+}
+
+*_us_postcode = \&_zip;
+
 sub _phone {
 	my($ref,$var,$val) = @_;
-	defined $val and $val =~ /\d{3}.*\d{3}/;
+	defined $val and $val =~ /\d{3}.*\d{3}/
+		and return (1, $var, '');
 }
 
 sub _phone_us {

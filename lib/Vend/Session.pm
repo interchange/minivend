@@ -1,6 +1,6 @@
 # Session.pm - Minivend Sessions
 #
-# $Id: Session.pm,v 1.20 1998/01/31 05:22:11 mike Exp $
+# $Id: Session.pm,v 1.27 1998/06/06 08:23:08 mike Exp mike $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
@@ -24,7 +24,7 @@ package Vend::Session;
 require Exporter;
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.20 $, 10);
+$VERSION = substr(q$Revision: 1.27 $, 10);
 
 @ISA = qw(Exporter);
 
@@ -47,6 +47,7 @@ use Carp;
 use Fcntl;
 use Vend::Util;
 
+require Vend::SessionDB;
 
 BEGIN {
 	if($Global::GDBM) {
@@ -62,17 +63,22 @@ BEGIN {
 	}
 }
 
-my ($Session_open, $File_sessions);
+my ($Session_open, $File_sessions, $DB_sessions, $DB_object);
 
 
 # Selects based on initial config
 if($Global::GDBM) {
 	$File_sessions = 0;
 	$Session_open = sub {
-		 tie(%Vend::SessionDBM, 'GDBM_File',
+		$DB_object = tie(%Vend::SessionDBM,
+			'GDBM_File',
 			$Vend::Cfg->{'SessionDatabase'} . ".gdbm",
-			&GDBM_WRCREAT, $Vend::Cfg->{'FileCreationMask'})
-		or die "Could not tie to $Vend::Cfg->{'SessionDatabase'}: $!\n";
+			&GDBM_WRCREAT,
+			$Vend::Cfg->{'FileCreationMask'}
+			);
+		die "Could not tie to $Vend::Cfg->{'SessionDatabase'}: $!\n"
+			unless defined $DB_object;
+print ("db object=$DB_object\n");
 	};
 }
 elsif($Global::DB_File) {
@@ -131,6 +137,16 @@ sub put_session {
 
 sub open_session {
 	return 1 if defined $Vend::SessionOpen;
+	if($Vend::Cfg->{SessionDB}) {
+		$Session_open = sub {
+			return 1 if $DB_sessions;
+			tie(%Vend::SessionDBM,
+				'Vend::SessionDB',
+				$Vend::Cfg->{SessionDB})
+			or die "Could not tie to $Vend::Cfg->{SessionDB}: $!\n";
+			$DB_sessions = 1;
+		};
+	}
 	unless($File_sessions) {
 		open(Vend::SessionLock, "+>>$Vend::Cfg->{'SessionLockFile'}")
 			or die "Could not open '$Vend::Cfg->{'SessionLockFile'}': $!\n";
@@ -167,7 +183,6 @@ sub new_session {
     }
 	$CGI::cookie = '';
     $Vend::SessionName = $name;
-	#add_session_marker();
     init_session();
 	return if $File_sessions;
 	write_session();
@@ -184,56 +199,6 @@ sub check_override {
 	die "Security violation. Check error log $Global::ErrorFile\n";
 }
 
-sub save_session {
-	my($source,$dest,$name) = @_;
-	my($s,$d,$found);
-# DEBUG
-#Vend::Util::logDebug
-#("save session id=$Vend::SessionID  name=$Vend::SessionName\n")
-#	if ::debug(0x20);
-# END DEBUG
-	$dest = $dest || $Vend::SessionID;
-	$name = $name || time;
-	open_session();
-	unless ($File_sessions) { 
-		$found = defined $Vend::SessionDBM{$source};
-	}
-	else {
-		$found = exists $Vend::SessionDBM{$source};
-	}
-
-	unless($found) {
-		close_session();
-		return '';
-	}
-
-	$s = eval $Vend::SessionDBM{$source};
-    die "Could not eval '$s' from session dbm: $@\n" if $@;
-	
-	unless ($File_sessions) { 
-		$found = defined $Vend::SessionDBM{$dest};
-	}
-	else {
-		$found = exists $Vend::SessionDBM{$dest};
-	}
-
-	if ($found) {
-		$d = eval $Vend::SessionDBM{$dest};
-		die "Could not eval '$d' from session dbm: $@\n" if $@;
-	}
-	else {
-		$d = {};
-	}
-
-	$d->{$name} = $s;
-
-	$Vend::SessionDBM{$dest} = uneval($d);
-
-	close_session();
-}
-
-
-
 sub close_session {
 # DEBUG
 #Vend::Util::logDebug
@@ -241,11 +206,15 @@ sub close_session {
 #	if ::debug(0x20);
 # END DEBUG
 	return 1 if ! defined $Vend::SessionOpen;
-    untie %Vend::SessionDBM
-		or die "Could not close $Vend::Cfg->{'SessionDatabase'}: $!\n";
+
+	unless($DB_sessions) {
+		untie %Vend::SessionDBM
+			or die "Could not close $Vend::Cfg->{'SessionDatabase'}: $!\n";
+	}
 	
 	return 1 if $File_sessions;
 
+	undef $DB_object;
 	unlockfile(\*Vend::SessionLock)
 		or die "Could not unlock '$Vend::Cfg->{'SessionLockFile'}': $!\n";
     close(Vend::SessionLock)
@@ -263,13 +232,12 @@ sub write_session {
 	my $time = time;
     $Vend::Session->{'time'} = $time;
     undef $Vend::Session->{'user'};
-    undef $Vend::Session->{'arg'};
+    #undef $Vend::Session->{'arg'};
 	undef $Vend::Session->{'items'};
 	undef $Vend::Session->{'values'}->{mv_change_frame};
-    $s = uneval($Vend::Session);
+    $s = uneval_fast($Vend::Session);
     $Vend::SessionDBM{$Vend::SessionName} = $s or 
 		die "Data was not stored in DBM file\n";
-		#if $Vend::SessionDBM{$Vend::SessionName} ne $s;
 }
 
 sub unlock_session {
@@ -356,7 +324,7 @@ sub read_session {
 #	if ::debug(0x20);
 # END DEBUG
 	return new_session($Vend::SessionID) unless $s;
-    $Vend::Session = eval($s);
+    $Vend::Session = evalr($s);
     die "Could not eval '$s' from session dbm: $@\n" if $@;
 
 	$Vend::Session->{host} = $CGI::host;
@@ -365,6 +333,7 @@ sub read_session {
 	# don't match
 	check_override();
 
+	$Vend::Session->{'arg'} = $Vend::Argument;
 	$Vend::Session->{override_check} = $Vend::Session->{'time'};
 
     $Vend::Items	= $Vend::Session->{'items'}
@@ -381,6 +350,12 @@ sub session_name {
 
 	if(defined $CGI::user and $CGI::user) {
 		$host = escape_chars($CGI::user);
+	}
+	elsif(defined $CGI::cookieuser) {
+		$host = $CGI::cookieuser;
+	}
+	elsif(defined $CGI::cookiehost) {
+		$host = $CGI::cookiehost;
 	}
 	else {
 		$host = $CGI::host;
@@ -414,9 +389,10 @@ sub init_session {
 	'version' => 1,
 	'frames' => $Vend::Cfg->{FramesDefault},
 	'login' => '',
+	'arg' => $Vend::Argument,
 	'browser' => $CGI::useragent,
 	'referer' => $CGI::referer,
-	'scratch' => {},
+	'scratch' => { 'mv_no_cache' => 1 },
 	'values' => {},
 	'carts' => {main => []},
     };
@@ -426,39 +402,6 @@ sub init_session {
 	$Vend::Session->{'values'}->{'mv_shipmode'} = $Vend::Cfg->{'DefaultShipping'};
 }
 
-sub remove_session_marker {
-	my ($id) = @_;
-	my ($name);
-	if(defined $id) {
-		$id =~ /^(\w{8}):(.*)/;
-		$id = $1; $name = $2;
-	}
-	else {
-		$id = $Vend::SessionID;
-		$name = $Vend::SessionName;
-	}
-
-	return undef unless $name and $id;
-
-	my $s = eval $Vend::SessionDBM{$id};
-    die "Could not eval '$s' from session dbm: $@\n" if $@;
-	delete $s->{$name};
-	$Vend::SessionDBM{$id} = uneval $s;
-}
-
-sub add_session_marker {
-	my $s = eval $Vend::SessionDBM{$Vend::SessionID};
-    die "Could not eval '$s' from session dbm: $@\n" if $@;
-# DEBUG
-#Vend::Util::logDebug
-#("Add session marker id=$Vend::SessionID  name=$Vend::SessionName\n")
-#	if ::debug(0x20);
-# END DEBUG
-	$s = {} unless $s;
-	$s->{$Vend::SessionName} = {};
-	$Vend::SessionDBM{$Vend::SessionID} = uneval $s;
-}
-
 sub dump_sessions {
 	my($called) = @_;
     my($session_name, $s);
@@ -466,17 +409,17 @@ sub dump_sessions {
 	my $pretty;
 
 	eval {	require Data::Dumper;
-			import Data::Dumper 'DumperX';
 			$Data::Dumper::Indent = 3;
 			$Data::Dumper::Terse = 1; };
 	$pretty = $@ ? 0 : 1;
     open_session();
     while(($session_name, $s) = each %Vend::SessionDBM) {
+		next if $session_name eq 'dumpprog:DUMP';
 		if(defined $called) {
 			next unless $session_name =~ /$called/;
 		}
-		if ($pretty) {
-			my $ref = eval $s;
+		if ($pretty or defined $Storable::VERSION) {
+			my $ref = evalr $s;
 			$s = uneval($ref);
 		}
 		print "$session_name $s\n\n";
@@ -484,7 +427,14 @@ sub dump_sessions {
     close_session();
 }
 
+sub reorg {
+	return unless $DB_object;
+	GDBM_File::reorganize($DB_object);
+	GDBM_File::sync($DB_object);
+}
+
 sub expire_sessions {
+	my ($reorg) = @_;
     my($time, $session_name, $s, $session, @delete);
 
     $time = time;
@@ -500,19 +450,18 @@ sub expire_sessions {
 
 		# Session markers
 		if ($session_name =~ /^\w{8}$/) {
-			$session = eval ($s);
+			$session = evalr ($s);
 			die "Could not eval '$s' from session dbm: $@\n" if $@;
 			next if keys %$session;   # Don't remove if has session marker
 			push @delete, $session_name;
 		}
 
-		$session = eval($s);
+		$session = evalr($s);
 		die "Could not eval '$s' from session dbm: $@\n" if $@;
 		next if check_save($session,$time);
 		if ( (! defined $session) ||
 			 $time - $session->{'time'} > $Vend::Cfg->{'SessionExpire'}) {
 			push @delete, $session_name;
-			remove_session_marker($session_name);
 		}
     }
     foreach $session_name (@delete) {
@@ -529,6 +478,7 @@ sub expire_sessions {
 		}
 		closedir(Vend::DELDIR);
     }
+	reorg() if $reorg;
     close_session();
 }
 

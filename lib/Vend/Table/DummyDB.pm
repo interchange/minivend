@@ -1,6 +1,6 @@
 # Table/DummyDB.pm: Autoloader for MiniVend Databases
 #
-# $Id: DummyDB.pm,v 1.9 1998/01/31 05:23:23 mike Exp $
+# $Id: DummyDB.pm,v 1.10 1998/05/02 03:07:10 mike Exp $
 #
 #
 # Copyright 1996-1997 by Mike Heins <mikeh@iac.net>
@@ -44,6 +44,8 @@ sub record_exists {
 	wantarray ? ($result, $db) : $result;
 }
 
+*test_record = \&record_exists;
+
 sub import_db {
 	my($self) = @_;
 	my $db = Vend::Data::import_database(
@@ -58,7 +60,7 @@ sub field {
 
 	my $db = $self->import_db();
 
-	return '' unless $db->record_exists($key);
+	return '' unless $db->test_record($key);
 	return '' unless defined $db->test_column($field_name);
 	return $db->field($key, $field_name);
 }
@@ -66,6 +68,18 @@ sub field {
 sub ref {
     my ($self) = @_;
 	return $self->import_db();
+}
+
+sub column_index {
+    my ($self, $field_name) = @_;
+	my $db = $self->import_db();
+    return $db->column_index($field_name);
+}
+
+sub column_exists {
+    my ($self, $field_name) = @_;
+	my $db = $self->import_db();
+    return $db->column_exists($field_name);
 }
 
 sub test_column {

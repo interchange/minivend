@@ -1,6 +1,6 @@
 # Config.pm - Configure Minivend
 #
-# $Id: Config.pm,v 1.41 1998/03/21 12:11:46 mike Exp mike $
+# $Id: Config.pm,v 1.47 1998/06/06 08:11:22 mike Exp mike $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
@@ -30,19 +30,45 @@ require Exporter;
 
 
 use strict;
-use vars qw($VERSION $C %SetGlobals);
+use vars qw(
+			$VERSION $C %SetGlobals
+			@Locale_directives_ary @Locale_directives_scalar
+			);
 use Carp;
 use Safe;
 use Fcntl;
-use Text::ParseWords;
 use Vend::Parse;
 use Vend::Util;
 
-$VERSION = substr(q$Revision: 1.41 $, 10);
+$VERSION = substr(q$Revision: 1.47 $, 10);
 
 for( qw(search refresh cancel return secure unsecure submit control checkout) ) {
 	$Global::LegalAction{$_} = 1;
 }
+
+@Locale_directives_scalar = (
+qw/
+		Autoload
+		CommonAdjust
+		DescriptionField
+		ImageDir
+		PageDir
+		PriceCommas
+		PriceDatabase
+		PriceDivide
+		PriceField
+		SalesTax
+		StaticPath
+		TaxShipping
+
+/   );
+
+@Locale_directives_ary = (
+qw/
+	PriceAdjustment
+	ProductFiles
+	UseModifier
+/   );
 
 my %DumpSource = (qw(
 					Random				1
@@ -159,10 +185,12 @@ sub catalog_directives {
 	['SecureURL',        'url',              undef],
 	['OrderReport',      'valid_page',       'etc/report'],
 	['ScratchDir',       'relative_dir',     'etc'],
+	['SessionDB',  		 undef,     		 ''],
 	['SessionDatabase',  'relative_dir',     'session'],
 	['SessionLockFile',  undef,     		 'etc/session.lock'],
 	['Database',  		 'database',     	 ''],
 	['Database',  		 'database',     	 'products products.asc 1'],
+	['Autoload',		 undef,		     	 ''],
 	['Sub',			  	 'variable',     	 ''],
 	['SubArgs',			 'variable',     	 ''],
 	['Replace',			 'replace',     	 ''],
@@ -203,7 +231,7 @@ sub catalog_directives {
     ['MixMatch',		 'yesno',     	     'No'],
     ['AlwaysSecure',	 'boolean',  	     ''],
 	['Password',         undef,              ''],
-    ['NewEscape',	 	 'yesno',     	     'No'],
+    ['NewEscape',	 	 'yesno',     	     'Yes'],
     ['ExtraSecure',		 'yesno',     	     'No'],
     ['Cookies',			 'yesno',     	     'Yes'],
 	['CookieDomain',     undef,              ''],
@@ -269,6 +297,7 @@ sub catalog_directives {
     ['DescriptionTrim',  'warn',             ''],
     ['DescriptionField', undef,              'description'],
     ['PriceField',		 undef,              'price'],
+    ['PriceDatabase',	 undef,              'pricing'],
     ['ItemLinkValue',    undef,              'More Details'],
 	['FinishOrder',      undef,              'Finish Incomplete Order'],
 	['Shipping',         'locale',           ''],
@@ -1152,6 +1181,7 @@ sub parse_special {
 			noproduct		noproduct
 			notfound		notfound
 			order			order
+			order_security	order_security
 			search			search
 			violation		violation
 			)
@@ -1722,25 +1752,35 @@ sub save_variable {
 }
 
 my %tagCanon = ( qw(
-     alias        	 Alias
-     order           Order
-     posnumber       PosNumber
-     posroutine      PosRoutine
-     required        Required
-     routine         Routine
-     cannest         canNest
-     hasendtag       hasEndTag
-     interpolate     Interpolate
-     isendanchor     isEndAnchor
-     invalidatecache InvalidateCache
+
+	alias			Alias
+	attralias		attrAlias
+	cannest			canNest
+	endhtml			endHTML
+	hasendtag		hasEndTag
+	implicit		Implicit
+	inserthtml		insertHTML
+	insidehtml		insideHTML
+	interpolate		Interpolate
+	invalidatecache	InvalidateCache
+	isendanchor		isEndAnchor
+	lookaheadhtml	lookaheadHTML
+	order			Order
+	posnumber		PosNumber
+	posroutine		PosRoutine
+	replaceattr		replaceAttr
+	replacehtml		replaceHTML
+	required		Required
+	routine			Routine
+
 ));
 
 
 my %tagAry 	= ( qw! Order 1 Required 1 ! );
+my %tagHash	= ( qw! replaceAttr 1 Implicit 1 attrAlias 1 ! );
 my %tagBool = ( qw!
 				hasEndTag	1
 				Interpolate 1
-				Implicit 	1
 				canNest		1
 				isEndAnchor	1
 				isOperator	1
@@ -1819,6 +1859,13 @@ sub parse_tag {
 		my(@v) = quoted_string($val);
 		$c->{$p}{$tag} = [] unless defined $c->{$p}{$tag};
 		push @{$c->{$p}{$tag}}, @v;
+	}
+	elsif(defined $tagHash{$p}) {
+		my(%v) = quoted_string($val);
+		$c->{$p}{$tag} = {} unless defined $c->{$p}{$tag};
+		for (keys %v) {
+		  $c->{$p}{$tag}{$_} = $v{$_};
+		}
 	}
 	elsif(defined $tagBool{$p}) {
 		$c->{$p}{$tag} = 1

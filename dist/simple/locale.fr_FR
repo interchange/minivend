@@ -1,5 +1,6 @@
 Locale fr_FR <<EOF
 {
+'PriceDivide', 0.1694,
 'mon_decimal_point', ',',
 'mon_thousands_sep', '.',
 'currency_symbol', 'fr',
@@ -9,20 +10,20 @@ Locale fr_FR <<EOF
 'Hello',
 'Bonjour',
 
-'The Art Store Home Page',
-'Le Home Page De Mémoire D\'Art',
+'__COMPANY__ Home Page',
+'La Home Page De Mémoire D\'Art',
 
 'Welcome to',
 'Bienvenue &agrave; la m&eacute;moire d\'art',
 
 'We have reproductions of some the great are of all ages.',
-'Nous avons des reproductions de certains que les grands sont de tous les &acirc;ges.',
+'Nous avons des reproductions des plus grands tableaux de tous les temps',
 
 'Browse',
 'Parcourez',
 
 'if you like -- or try',
-'si vous aimez -- ou essayez',
+'notre catalogue -- ou essayez',
 
 'searching',
 'de rechercher',
@@ -31,16 +32,19 @@ Locale fr_FR <<EOF
 'votre artiste pr&eacute;f&eacute;r&eacute;.',
 
 'Search for your<BR>favorite!',
-'Recherchez le votre<BR>favori!',
+'Cherchez votre artiste<BR>favori!',
 
 'To use the search feature, just press the link to your left.  That will',
-'Pour utiliser le dispositif de recherche, presse juste le lien vers votre gauche.',
+'Pour utiliser le dispositif de recherche, pressez juste le lien vers votre gauche.',
 
 'send you to a frame that will let you search on artist, title, or museum.',
 'Cela vous enverra &agrave; une trame qui vous laissera rechercher sur l\'artiste, le titre, ou le mus&eacute;e.',
 
+'Category',
+'Cat&eacute;gorie',
+
 'Select by<BR>category!',
-'Choisissez pr&egrave;s<BR>cat&eacute;gorie!',
+'Selection par<BR>catégorie!',
 
 'Renaissance',
 'La Renaissance',
@@ -49,7 +53,7 @@ Locale fr_FR <<EOF
 'Impressionnistes',
 
 'Surrealists',
-'Surrealists',
+'Surréalistes',
 
 'Americana',
 'Americana',
@@ -58,7 +62,7 @@ Locale fr_FR <<EOF
 'Contemporain',
 
 'Either way, just press the order button for an item you like!  Our',
-'L\'une ou l\'autre voie, presse juste le bouton de commande pour un &eacute;l&eacute;ment que vous aimez!',
+'Quelque soit votre mode de recherche, appuyez sur le bouton commande pour selectionner une oeuvre. Celle ci sera automatiquement ajoutée à un bon de commande électonique que vous n\'aurez qu\'à compléter. C\'est aussi simple que cela !',
 
 'electronic order form will automatically add it to your list. Fill out',
 'Notre forme de commande &eacute;lectronique l\'ajoutera automatiquement &agrave; votre liste.',
@@ -71,3 +75,4 @@ Locale fr_FR <<EOF
 EOF
 
 Locale en_US default en_US
+Locale en_US PriceDivide 1

@@ -27,9 +27,7 @@ package Vend::MakeCat;
 use Cwd;
 use File::Find;
 use File::Copy;
-BEGIN { $SIG{"__WARN__"} = sub { warn $_[0] if $DOWARN } }
-use Archive::Tar;
-BEGIN { $DOWARN = 1 }
+use File::Basename;
 
 require Exporter;
 @ISA = qw(Exporter);
@@ -56,7 +54,7 @@ sethistory
 use strict;
 
 use vars qw($Force $Error $History $VERSION);
-$VERSION = substr(q$Revision: 1.8 $, 10);
+$VERSION = substr(q$Revision: 1.11 $, 10);
 
 $Force = 0;
 $History = 0;
@@ -115,8 +113,8 @@ EOF
 #
 EOF
 	cgidir     =>  <<EOF,
-# The location of the normal CGI directory. This is a UNIX
-# file name, not a script alias.
+# The location of the normal CGI directory. This is a
+# file path, not a script alias.
 #
 # If all of your CGI programs must end in .cgi, this is
 # should be the same as your HTML directory.
@@ -144,7 +142,7 @@ EOF
 EOF
 	documentroot    =>  <<EOF,
 # The base directory for HTML for this (possibly virtual) domain.
-# This is a UNIX directory name, not a URL -- it is your HTML
+# This is a directory path name, not a URL -- it is your HTML
 # directory.
 #
 EOF
@@ -177,7 +175,7 @@ EOF
 # 
 EOF
 	imagedir   =>  <<EOF,
-# Where the sample images should be installed. A UNIX directory
+# Where the image files should be copied. A directory path
 # name, not a URL.
 #
 EOF
@@ -307,6 +305,72 @@ sub get_ids {
 	return ($name,$group);
 }
 
+my $Windows = ($ =~ /win32/i ? 1 : 0);
+
+sub compare_file {
+    my($first,$second) = @_;
+    return 0 unless -s $first == -s $second;
+    local $/;
+    open(FIRST, $first) or return undef;
+    open(SECOND, $second) or (close FIRST and return undef);
+    binmode(FIRST);
+    binmode(SECOND);
+    $first = '';
+    $second = '';
+    while($first eq $second) {
+        read(FIRST, $first, 1024);
+        read(SECOND, $second, 1024);
+        last if length($first) < 1024;
+    }
+    close FIRST;
+    close SECOND;
+    $first eq $second;
+}
+
+sub install_file {
+    my ($srcdir, $targdir, $filename) = @_;
+    my $srcfile  = $srcdir . '/' . $filename;
+    my $targfile = $targdir . '/' . $filename;
+    my $mkdir = File::Basename::dirname($targfile);
+    my $extra;
+    my $perms;
+
+    if(! -d $mkdir) {
+        File::Path::mkpath($mkdir)
+            or die "Couldn't make directory $mkdir: $!\n";
+    }
+
+    if (! -f $srcfile) {
+        die "Source file $srcfile missing.\n";
+    }
+    else {
+        $perms = (stat(_))[2] & 0777;
+    }
+
+    if( ! $Windows and -f $targfile and ! compare_file($srcfile, $targfile) ) {
+        open (GETVER, $targfile)
+            or die "Couldn't read $targfile for version update: $!\n";
+        while(<GETVER>) {
+            /VERSION\s+=.*?\s+([\d.]+)/ or next;
+            $extra = $1;
+            $extra =~ tr/0-9//cd;
+            last;
+        }
+        $extra = 'old' unless $extra;
+        while (-f "$targfile.$extra") {
+            $extra .= '~';
+        }
+        rename $targfile, "$targfile.$extra"
+            or die "Couldn't rename $targfile to $targfile.$extra: $!\n";
+    }
+
+    File::Copy::copy($srcfile, $targfile)
+        or die "Copy of $srcfile to $targfile failed: $!\n";
+    chmod $perms, $targfile;
+
+}
+
+
 sub copy_current_to_dir {
     my($target_dir, $exclude_pattern) = @_;
     my $orig_dir = cwd();
@@ -320,22 +384,9 @@ sub copy_current_to_dir {
     };
     File::Find::find($wanted, '.');  
 
-	if (-f "$::VendRoot/bad_tar_pm") {
-		my $f = "/tmp/mv_bad_tar_pm";
-		open(TARCAT, "> $f") or die "Can't fork: $!\n";
-		for(@files) { print TARCAT "$_\n" }
-		close TARCAT;
-		system "cat $f | xargs tar cf - | (cd $target_dir; tar xf -)";
-		unlink $f;
-		die "File copy failed: $!\n" if $?;
-		return 1;
+	for(@files) {
+		install_file('.', $target_dir, $_);
 	}
-
-    my $tar = Archive::Tar->new();   
-    $tar->add_files(@files);
-    chdir $target_dir   or die "Can't change directory to $target_dir: $!\n";
-    $tar->extract(@files);
-    chdir $orig_dir     or die "Can't change directory to $orig_dir: $!\n";
 }
 
 use vars q!$Prompt_sub!;
@@ -524,11 +575,16 @@ sub conf_parse_http {
 
 		undef $servname;
 		@data = split /[\r\n]+/, $virtual->{$handle};
+		my $port = $handle;
+		$port =~ s/.*:(\d+).*/$1/ or $port = '';
 		@data = grep /^\s*[^#]/, @data;
 		for(@data) {
 			next unless /^\s*servername\s+(.*)/i;
 			$servname = $1;
-			if(defined $servers->{$servname}) {
+			if(defined $servers->{$servname} and $port) {
+				$servname .= ":$port";
+			}
+			elsif(defined $servers->{$servname} and $port) {
 				$Error = "Server $servname defined twice.";
 				return undef;
 			}

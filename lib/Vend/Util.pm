@@ -1,6 +1,6 @@
 # Util.pm - Minivend utility functions
 #
-# $Id: Util.pm,v 1.28 1998/03/21 12:12:58 mike Exp mike $
+# $Id: Util.pm,v 1.35 1998/06/06 08:13:37 mike Exp mike $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
@@ -31,6 +31,7 @@ copyref
 currency
 check_security
 dump_structure
+evalr
 file_modification_time
 format_log_msg
 is_no
@@ -60,6 +61,7 @@ tag_item_quantity
 tainted
 trim_desc
 uneval
+uneval_fast
 us_number
 vendUrl
 
@@ -72,7 +74,7 @@ use Config;
 use Fcntl;
 use subs qw(logError logGlobal);
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.28 $, 10);
+$VERSION = substr(q$Revision: 1.35 $, 10);
 
 BEGIN {
 	eval {
@@ -86,7 +88,9 @@ BEGIN {
 	}
 }
 
-my $Uneval_routine;
+my $Eval_routine;
+my $Pretty_uneval;
+my $Fast_uneval;
 
 ### END CONFIGURABLE MODULES
 
@@ -158,6 +162,22 @@ sub strftime {
 	);
 	$fmt =~ s/%(.)/&{$strf{$1}}() || "%$1"/eg;
 	return $fmt;
+}
+
+sub find_close {
+    my ($chunk, $open, $close) = @_;
+	$open = '(' if ! defined $open;
+	$close = ')' if ! defined $close;
+    my $first = index($chunk, ']');
+    return undef if $first < 0;
+    my $int = index($chunk, '[');
+    my $pos = 0;
+    while( $int > -1 and $int < $first) {
+        $pos   = $int + 1;
+        $first = index($chunk, ']', $first + 1);
+        $int   = index($chunk, '[', $pos);
+    }
+    return substr($chunk, 0, $first);
 }
 
 sub find_close_square {
@@ -263,7 +283,7 @@ sub format_log_msg {
 	my(@params);
 
 	# IP, Session, REMOTE_USER (if any) and time
-    push @params, ($CGI::host || '-');
+    push @params, ($CGI::remote_host || $CGI::remote_addr || '-');
 	push @params, ($Vend::SessionName || '-');
 	push @params, ($CGI::user || '-');
 	push @params, logtime();
@@ -326,8 +346,34 @@ sub us_number {
 	return $_;
 }
 
+sub setlocale {
+	my ($locale, $persist) = @_;
+	$locale = $Vend::Session->{'scratch'}{mv_locale} unless defined $locale;
+    if ( not defined $Vend::Cfg->{Locale_repository}{$locale}) {
+        Vend::Util::logError("attempt to set non-existant locale '$locale'");
+        return '';
+    }
+    $Vend::Cfg->{Locale}
+         = $Vend::Cfg->{Locale_repository}{$locale};
+
+	for(@Vend::Config::Locale_directives_scalar) {
+		$Vend::Cfg->{$_} = $Vend::Cfg->{Locale}->{$_}
+			if defined $Vend::Cfg->{Locale}->{$_};
+	}
+
+	for(@Vend::Config::Locale_directives_ary) {
+		@{$Vend::Cfg->{$_}} = split (/\s+/, $Vend::Cfg->{Locale}->{$_})
+			if $Vend::Cfg->{Locale}->{$_};
+	}
+
+	$Vend::Session->{scratch}{mv_locale} = $locale      if $persist;
+    return '';
+}
+
 sub currency {
-	my($amount) = @_;
+	my($amount, $noformat, $convert) = @_;
+	$amount = $amount / $Vend::Cfg->{PriceDivide} if $convert;
+	return $amount if $noformat;
 	my $loc;
 	my $sep;
 	my $dec;
@@ -411,6 +457,7 @@ my $Md;
 my $Keysub;
 
 eval {require MD5 };
+
 if(! $@) {
 	$Md = new MD5;
 	$Keysub = sub {
@@ -424,7 +471,9 @@ else {
 	$Keysub = sub {
 		my $out = '';
 		for(@_) {
-			$out .= unpack "%32c*", join "", @_;
+			$out .= unpack "%32c*", $_;
+			$out .= unpack "%32c*", substr($_,5);
+			$out .= unpack "%32c*", substr($_,-1,5);
 		}
 		$out;
 	};
@@ -437,10 +486,15 @@ sub generate_key { &$Keysub(@_) }
 # Returns a string representation of an anonymous array, hash, or scaler
 # that can be eval'ed to produce the same value.
 # uneval([1, 2, 3, [4, 5]]) -> '[1,2,3,[4,5,],]'
-# Uses either uneval or Data::Dumper::DumperX
+# Uses either Storable::freeze or Data::Dumper::DumperX or uneval 
+# in 
 
 sub uneval {
-	&{$Uneval_routine}(@_);
+	&{$Pretty_uneval}(@_);
+}
+
+sub uneval_fast {
+	&{$Fast_uneval}(@_);
 }
 
 sub uneval_it {
@@ -471,6 +525,18 @@ sub uneval_it {
     $s;
 }
 
+
+# See if Storable is installed with XSUB. But since it is
+# not as reliable, require that an environment var be set.
+# If it is, session writes will be about 5X faster
+eval {
+	die unless $ENV{MINIVEND_STORABLE};
+	require Storable;
+	import Storable 'freeze';
+	$Fast_uneval = \&Storable::freeze;
+	$Eval_routine = \&Storable::thaw;
+};
+
 # See if Data::Dumper is installed with XSUB
 # If it is, session writes will be about 25-30% faster
 eval {
@@ -478,16 +544,22 @@ eval {
 		import Data::Dumper 'DumperX';
 		$Data::Dumper::Indent = 0;
 		$Data::Dumper::Terse = 1;
+		$Pretty_uneval = \&Data::Dumper::DumperX;
+		$Fast_uneval = \&Data::Dumper::DumperX
+			unless defined $Fast_uneval;
 };
 
-if($@) {
-	$Uneval_routine = \&uneval_it;
-}
-else {
-	$Uneval_routine = \&Data::Dumper::DumperX;
-}
 
-# W
+$Fast_uneval = \&uneval_it
+		unless defined $Fast_uneval;
+$Pretty_uneval  = \&uneval_it
+		unless defined $Pretty_uneval;
+
+sub evalr {
+	return undef unless $_[0];
+	return &{$Eval_routine}(@_) if defined $Eval_routine;
+	return eval $_[0];
+}
 
 sub writefile {
     my($file, $data) = @_;
@@ -664,7 +736,7 @@ sub readin {
 		$contents =~ s~\[L(\s+([^\]]+))?\]([\000-\377]*?)\[/L\]~
 						$key = $2 || $3;		
 						defined $Vend::Cfg->{Locale}->{$key}
-						?  ($Vend::Cfg->{Locale}->{$key})	: $key ~eg;
+						?  ($Vend::Cfg->{Locale}->{$key})	: $3 ~eg;
 	}
     $contents;
 }
@@ -709,7 +781,7 @@ sub readfile {
 		$contents =~ s~\[L(\s+([^\]]+))?\]([\000-\377]*?)\[/L\]~
 						$key = $2 || $3;		
 						defined $Vend::Cfg->{Locale}->{$key}
-						?  ($Vend::Cfg->{Locale}->{$key})	: $key ~eg;
+						?  ($Vend::Cfg->{Locale}->{$key})	: $3 ~eg;
 	}
     $contents;
 }
@@ -740,7 +812,10 @@ sub vendUrl
 	}
 
     $r .= '/' . $path . '?' . $Vend::SessionID .
-	';' . ($arguments || '') . ';' . ++$Vend::Session->{pageCount};
+	';' . ($arguments || '') . ';';
+	++$Vend::Session->{pageCount};
+	$r .= $Vend::Session->{pageCount}
+		unless $Vend::Session->{scratch}->{mv_no_count};
     $r;
 }    
 
@@ -754,9 +829,12 @@ sub secure_vendUrl
 		if defined $arguments && $Vend::Cfg->{NewEscape};
 
     $r = $Vend::Cfg->{SecureURL} . '/' . $path . '?' . $Vend::SessionID .
-	';' . ($arguments || '') . ';' . ++$Vend::Session->{pageCount};
+	';' . ($arguments || '') . ';';
+	++$Vend::Session->{pageCount};
+	$r .= $Vend::Session->{pageCount}
+		unless $Vend::Session->{scratch}->{mv_no_count};
     $r;
-}    
+}
 
 my $debug = 0;
 my $use = undef;
@@ -892,8 +970,9 @@ sub tag_nitems {
     my($cart, $total, $i);
 
 	
-	if(ref $Vend::Session->{carts}->{$ref}) {
-		 $cart = $Vend::Session->{carts}->{$ref};
+	if($ref) {
+		 $cart = $Vend::Session->{carts}->{$ref}
+		 	or return 0;
 	}
 	else {
 		$cart = $Vend::Items;
@@ -927,10 +1006,11 @@ sub check_security {
 	my($item, $reconfig) = @_;
 
 	my $msg;
+	my $besthost = $CGI::remote_host || $CGI::remote_addr;
 	if(! $reconfig) {
 		return 1 if $CGI::user;
         logGlobal <<EOF;
-auth error host=$CGI::host script=$CGI::script_name page=$CGI::path_info
+auth error host=$besthost ip=$CGI::remote_addr script=$CGI::script_name page=$CGI::path_info
 EOF
         return '';  
 	}
@@ -945,8 +1025,11 @@ EOF
 	}
 
 	# Check if host IP is correct when MasterHost is set to something
-	if ($Vend::Cfg->{MasterHost} and
-		$Vend::Cfg->{MasterHost} !~ /\b$CGI::host\b/)
+	if (	$Vend::Cfg->{MasterHost}
+				and
+		(	$CGI::remote_host !~ /^($Vend::Cfg->{MasterHost})$/
+				and
+			$CGI::remote_addr !~ /^($Vend::Cfg->{MasterHost})$/	)	)
 	{
 		logGlobal <<EOF;
 ALERT: Attempt to $msg at $CGI::script_name from:
@@ -979,7 +1062,8 @@ EOF
 		logGlobal <<EOF;
 ALERT: Attempt to $CGI::script_name $msg at with improper user name:
 
-	REMOTE_ADDR  $CGI::host
+	REMOTE_HOST  $CGI::remote_host
+	REMOTE_ADDR  $CGI::remote_addr
 	REMOTE_USER  $CGI::user
 	USER_AGENT   $CGI::useragent
 	SCRIPT_NAME  $CGI::script_name
@@ -1134,9 +1218,9 @@ sub append_field_data {
 sub logDebug {
 	return unless $Global::DEBUG;
 	my ($msg, $level) = @_;
-	return unless ! $level or $level & $Global::DEBUG;
+	return if $level and $level & $Global::DEBUG;
 	$msg = (caller)[0] . " >>> $msg" if ::debug($Global::DHASH{CALLER});
-	if(::debug($Global::DHASH{COMMENT})) {
+	if(::debug($Global::DHASH{COMMENT} || 0)) {
 		$Vend::DebugHTML .= $msg;
 	}
 	if(::debug(0x1800) ) {
@@ -1146,7 +1230,10 @@ sub logDebug {
 }
 
 sub logGlobal {
-    my($msg) = @_;
+    my($msg) = shift;
+	if(@_) {
+		$msg .= "'" . (join "','", @_) . "'";
+	}
 	my(@params);
 
 	print "$msg\n" if $Vend::Foreground and ! $Vend::Log_suppress;

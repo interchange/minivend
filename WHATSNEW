@@ -1,6 +1,338 @@
 
                   W H A T ' S   N E W 
 
+MiniVend 3.09 is a release that optimizes speed and adds features
+that allow operation with some HTML editors.
+
+    * SQL optimizations make dramatic differences in table
+      construction speed. MiniVend now uses internal structures to
+      maintain SQL column headings. This means that if you change
+      your SQL table structure, you must restart Minivend, but you
+      gain quite a bit of speed.
+
+      [if-data]/[item-data], [(if-)?loop-data], and [(if-)?sql-data]
+      tags are optimized across rows in the corresponding iterative
+      list. This means that two selects are done where dozens might
+      have been done before. Speed really increases.
+
+      This optimization works for [if-field]/[item-field] and friends
+      as well if there is only one products table (i.e. you didn't
+      set ProductFiles). If you have more than one, you should use
+      [item-data products ...] instead of [item-field ...] for best
+      speed when appropriate.
+
+    * To improve page response time, you can specify a SEND=1
+      attribute to any new-syntax MiniVend tag -- it sends the
+      output that has accumulated to that point. If you have named
+      your link program to begin with nph- (i.e. nph-simple instead
+      of simple) the program will start sending output immediately.
+      This can greatly improve apparent response time on large search
+      or loop lists.
+
+      The nph-executable can also be optionally used with an
+      alias:
+
+      Catalog simple /catalogs/simple /cgi-bin/simple /cgi-bin/nph-simple
+
+      If you reduce your vlink buffer size to 512 bytes, this will
+      improve likelihood of immediate response at some cost in CPU
+      utilization. (This change requires editing vlink.c and compiling --
+      don't worry about it if you don't know how to do that.)
+
+    * Search cache is *much* improved.  Paging and caching should now
+      be completely reliable. If the user hits reload, it will refresh the
+      page, as Pragma: no-cache is honored. Search paging is cached as well.
+      You can invalidate the cache for the next page only with 
+      [set mv_no_cache]1[/set].
+
+    * You can encase a set of links in:
+
+        [set mv_no_count]1[/set]
+        [page whatever]A page[/page]
+        [page whereever]Also a page[/page]
+        [set mv_no_count]0[/set]
+
+      The link count will be updated but not appended, making links
+      repeatable. This allows the browser to highlight visited links,
+      especially nice for paged searches.
+
+    * The last search can be reproduced with the [data session last_search]
+      via [page href="[data session last_search]"]. This includes
+      links to different pages of a multi-page search return.
+
+    * If you don't have the MD5 module for some reason (get it!)
+      MV does some better cache key generation with checksums,
+      reducing the likelihood of a collision.
+
+    * Fixed spurious "ClearCache" error at startup.
+
+    * MiniVend tags can now be contained within HTML tags, allowing MV
+      to work somewhat with most any HTML editor. The problem before was
+      that tags could not be placed between table rows with certain HTML
+      editors (like FrontPage and Netscape Composer). It is triggered by
+      including MV="tag arg arg.." as the *first* attribute of the HTML tag.
+      (Actually it can be later in the tag if no ] or > characters intervene.)
+      For example:
+
+        <TABLE>
+        <TR MV="loop" MV.search="ml=2000/se=Impressionists/sf=category">
+        <TD> [loop-field title] </TD>
+        <TD> [loop-code] </TD>
+        </TR>
+        </TABLE>
+
+      will display:
+
+        Sunflowers       00-341 
+        The Starry Night 00-342 
+
+      Arguments can be combined with tags if there is whitespace
+      in the first mv="tag arg.." call:
+
+        <TABLE>
+        <TR MV="loop 1 2 3">
+        <TD> [loop-code] </TD>
+        <TD> row </TD>
+        </TR>
+        </TABLE>
+
+      will display:
+
+        1 row
+        2 row
+        3 row
+
+      There are some differences in operations depending on the tag --
+      for instance, <A MV="page somepage" HREF="some_other_page.html">
+      will replace the instance of HREF with its own HREF. This allows
+      hrefs to work both for static HTML and MiniVend pages.
+
+      Also, <TR MV="if value whatever"> will pair with the matching
+      </TR>, but also "look ahead" for an [elsif ...] and [else] in
+      the next table rows (or tag set -- could be <LI MV="if ...">
+      </LI>, etc).
+
+      The <PRE MV="perl"> </PRE> combination will work for
+      cognitively-challenged HTML editors like Netscape Composer -- it
+      will retranslate the entities that it auto-translates. And you can
+      use <PARAM MV="if whatever"> </PARAM> <PARAM MV="else"> </PARAM> --
+      Netscape and Microsoft editors won't auto-delete those when they
+      read the file.  ( I really have learned to hate Netscape Composer
+      during the testing of this -- when loading a page, it deletes many
+      things it doesn't understand, without asking or even *telling* you.
+      Sheesh. Microsoft FrontPage, much to my surprise, is much better --
+      it allows you to add extended attributes keeps them in the tag. There
+      might be hope for it yet. In fact, look for me to add a "MiniVend"
+      menu for the FrontPage editor in the release.)
+
+      A special case comes with <SELECT ...> since the <OPTION> tag doesn't
+      support extended attributes (at least in FrontPage) there is now an
+      attribute MV.OPTION=varname for the loop tag. It has the effect of
+      SELECTED to the <OPTION> which is has the same value as the loop-code.
+      It will work limited circumstances like:
+
+        <SELECT MV=loop MV.ARG="__SHIPMODES__" MV.OPTION="mv_shipmode">
+            <OPTION VALUE="[loop-code]">
+                [shipping-desc [loop-code]] [shipping [loop-code]
+        </SELECT>
+
+      or
+      
+        <SELECT MV=loop NAME=country
+            MV.SEARCH="se=./ra=yes/fi=country.txt">
+            MV.OPTION="country" >
+                                    <OPTION> [loop-code]
+        </SELECT>
+
+      Bear in mind this is very preliminary editor support, there will
+      be lots of anomalies and deficiencies. More shall be revealed....
+
+    * Now can test for more than one condition via [and ...] and
+      [or ...]. This works like:
+
+        [if value whatever]
+        [or value whomever]
+        [and value however]
+            Do it. 2 out of 3 is enough.
+        [/if]
+
+      The last condition pertains, and there is no parentheses,
+      so you can't do [if ...][and ....][or ...]. But you could
+      still do:
+
+        [if value whomever]
+        [and value whatever]
+            Do it. 2 out of 3 is enough.
+        [elsif value whomever]
+        [and value however]
+            Do it. 2 out of 3 is enough.
+        [/elsif]
+        [/if]
+
+    * If conditions not containing an operator now have the 
+      comparison optimized away, removing a call to Safe. This
+      means much faster compares for things like [if value whatever]
+      and [if data table::column::row], where there is no equality
+      or regex pattern check.
+
+    * UPS-style lookup now can have up to 27 zones, can handle
+      alphanumeric postal codes (i.e. Canada), can use more than
+      three significant digits, can multiply weights by a factor
+      for pound/kg conversion, and is much better documented.
+
+    * [body ...] tag now accepts additional arguments to modify
+      a preset scheme. [body 1 TEXT=GREEN] will send the preset
+      scheme "1" with an additional parameter. Also can put in
+      an HTML body tag with <BODY MV="body 1 TEXT=GREEN"> to make
+      HTML editor processing easier.
+
+    * SQL search type can now be specified in a profile, a demi-bug
+      fixed.
+
+    * Greatly improved independent field matching that supports
+      the standard Perl operators plus "em" for exact match. Full
+      case sensitivity is included.
+
+    * When doing independent field matching a suitable qualifying
+      search is made when available. This greatly speeds searches
+      that depend on several conditions.
+
+    * [subtotal], [total-cost], [salestax], [shipping], and [price]
+      tags now all have a "noformat" option which just returns a raw
+      number.
+
+    * [price ...] tag fixed to fit documented behavior.
+
+    * Precision error in [salestax] fixed. Salestax and shipping
+      now use Locale->frac_digits places of precision (normally 2). Be
+      careful if you use frac_digits less than 2 -- if you want
+      even-dollar pricing you could instead use price_picture for
+      currency formatting and keep frac_digits at 2.
+
+    * [random], [rotate], [calc] and [currency] tags now auto-interpolate in
+       new mode.
+
+    * UPS-style lookup now can be used in up to 27 originating zones
+      in one catalog, non-numeric lookups are allowed, and lookups can
+      be more than three characters in length.
+
+    * Shipping can now be set to use the PriceDivide setting for
+      currency rate conversion, either global or individual.
+
+    * A new import format, Lotus Notes/structured text, is added.
+      Very useful for editing databases by hand.
+
+    * UseModifier can be set in scratch variables with a simple
+      [set mv_UseModifier]size color[/set], so you can have any number
+      of options for an item without having to set them all.
+
+    * Added order profile checks for "state", "province",
+      "province_or_state", "postcode", "ca_postcode", and "zip". Sorry,
+      only US/Canada supported, but you can add a check yourself
+      in a GlobalSub:
+
+GlobalSub <<EOF
+sub set_up_extra_check {
+    BEGIN {
+        package Vend::Order;
+        sub _pt_postcode {
+            # $ref is to Vend::Session->{'values'} hash
+            # $var is the passed name of the variable
+            # $val is current value of checked variable
+            my($ref, $var, $val) = @_;
+            
+            if ($ref->{country} =~ /^(PT|portugal)$/i) {
+                return $val =~ /^\d\d\d\d$/ ?  1 : 0;
+            }
+            else {
+                return 1;
+            }
+        }
+    }
+}
+EOF
+
+      Now you can specify in an order profile:
+
+          postcode=pt_postcode
+      
+      There must be an underscore preceding the routine name in this
+      case. Very elaborate checks are possible, of course. If some user
+      takes on the polyglot it would be appreciated if they contribute
+      the routines.
+
+      To you MiniVend hackers out there, this is a general technicque you can
+      use to override MV subroutines. For the most part, I try to keep the
+      same call interface, and this should make updates *much* easier.
+
+    * You can set a form variable value with the new "set" attribute
+      for the [value ...] and [default ...] tags. 
+         
+      Set the variable name to "Mike Heins" and do not return a value:
+
+         [value name=name set="Mike Heins"]
+
+      Set the country to "US", but only if not already defined, and return
+      the value:
+
+         [default name=country default=US set=1]
+      
+      New syntax only, for safety reasons.
+
+    * Added a -r option to the "expire" script. When using GDBM
+      sessions (and only GDBM) this will recover disk space and
+      shrink a large session file.
+
+
+MiniVend 3.08 is a maintenance release, but as usual adds a few
+features:
+
+    * Syntax of [search] tag much improved. Added auto
+      search for loop tag, allowing specification with
+      [loop search="se=searchstring/sf=searchfield"].
+      Use of search profiles is improved.
+
+    * Microsoft did not fix Excel in Office '97 as earlier
+      reported -- its TAB-delimited exports still surround
+      any field containing a comma with quotes. A new import
+      parameter has been added to deal with this.
+
+    * ProductFiles added to the list of directives updated
+      with a locale change.
+
+    * "display" option added to [item-accessories ...] tag,
+      to display only the *label* for the selected option.
+
+    * Radio and check box options added to [item-accessories ...]
+      tag. These display checkbox or radio groups for options. Can
+      also group boxes in tables, including columns if passed a
+      numerical parameter.
+
+    * Can now select options based on database field keyed
+      on something besides item code.
+
+    Fixes for:
+
+    * MiniVend used MakeMaker to install some distributed copies
+      of non-core Perl modules (and a modified Carp.pm). If you
+      installed with the parameter UNINST=1 then it would remove
+      the module.  That is bad news, and it is fixed. The module
+      Carp.pm was removed from the distribution, and other modules
+      are installed only by copying if appropriate versions are
+      not available, and are only installed in a private library
+      directory.
+
+    * Continuing "tar" problems with makecat. The system tar
+      program is now used for UNIX machines.
+
+    * Bad domain passing in a cookie. This should remove the
+      last problems with proxy servers losing sessions, providing
+      the secure server and regular HTTP server are in the same
+      domain for cookie purposes.
+
+    * Update of shopping cart caused loss of session only when
+      in master item/sub-item mode. Fixed.
+
 MiniVend 3.07 is a major release adding complete POSIX-style
 I18N features and many other tag language enhancements.
 

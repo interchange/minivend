@@ -1,6 +1,6 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.36 1998/03/14 23:47:56 mike Exp $
+# $Id: Server.pm,v 1.42 1998/06/06 08:13:11 mike Exp mike $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
@@ -24,7 +24,7 @@ require Vend::Http;
 @ISA = qw(Vend::Http::CGI);
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.36 $, 10);
+$VERSION = substr(q$Revision: 1.42 $, 10);
 
 use Vend::Util qw(strftime);
 use POSIX qw(setsid);
@@ -58,7 +58,7 @@ sub create_cookie {
 }
 
 sub respond {
-
+	# $body is now a reference
     my ($s, $content_type, $body) = @_;
     my $fh = $s->{fh};
 
@@ -68,7 +68,7 @@ sub respond {
 	select($oldfh);
 
 	if($s->{response_made}) {
-		print $fh $body;
+		print $fh $$body;
 		return 1;
 	}
 
@@ -125,7 +125,7 @@ sub respond {
     }
 
     print $fh "\r\n";
-    print $fh $body;
+    print $fh $$body;
     $s->{'response_made'} = 1;
 }
 
@@ -141,7 +141,8 @@ use strict;
 use Vend::Util;
 use POSIX qw(setsid);
 
-my $LINK_FILE = "$Global::ConfDir/socket";
+my $LINK_FILE = "$Global::ConfDir/socket"
+	if defined $Global::ConfDir;
 
 sub _read {
     my ($in) = @_;
@@ -203,8 +204,8 @@ sub read_cgi_data {
 }
 
 sub connection {
-    my (@argv, %env, $entity);
-    read_cgi_data(\@argv, \%env, \$entity);
+    my (%env, $entity);
+    read_cgi_data(\@Global::argv, \%env, \$entity);
 
     my $http = new Vend::Http::Server \*Vend::Server::MESSAGE, \%env, $entity;
 
@@ -299,6 +300,7 @@ sub housekeeping {
 		($reconfig) = grep $_ eq 'reconfig', @files;
 		($restart) = grep $_ eq 'restart', @files
 			if $Signal_Restart;
+		#scalar grep($_ eq 'stop_the_server', @files) and exit;
 		if (defined $restart) {
 			$Signal_Restart = 0;
 			open(Vend::Server::RESTART, "+<$Global::ConfDir/restart")
@@ -467,7 +469,7 @@ sub server_both {
 			close(Vend::Server::INET_MODE_INDICATOR);
 		}
 		elsif ($Global::Unix_Mode) {
-			logGlobal "INET mode error: $@\n\nContinuing in UNIX MODE ONLY\n";
+			logGlobal "INET mode error port $port: $@\n\nContinuing in UNIX MODE ONLY\n";
 		}
 		else {
 			logGlobal "INET mode server failed to start: $@\n";
@@ -485,6 +487,7 @@ sub server_both {
 #	if ::debug(0xFFFF);
 # END DEBUG
 		$no_fork = 1;
+		$Vend::Foreground = 1;
 	}
 
     for (;;) {

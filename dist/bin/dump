@@ -1,8 +1,8 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 #
 # MiniVend session dumper
 #
-# $Id: dump,v 1.8 1998/03/21 12:16:07 mike Exp mike $
+# $Id: dump,v 1.9 1998/06/06 08:35:28 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -47,6 +47,7 @@ BEGIN {
 
 ### END CONFIGURABLE VARIABLES
 
+sub debug { return undef }
 sub dontwarn { $FindBin::RealBin; }
 
 $Global::ConfigFile = 'minivend.cfg';
@@ -205,8 +206,7 @@ Vend::Util::setup_escape_chars();
 $CGI::user = 'DUMP';
 $CGI::host = 'LOCAL';
 $Vend::SessionName = session_name();
-get_session();
-dump_sessions($name || undef);
-put_session();
-release_session();
+Vend::Session::open_session();
+Vend::Session::dump_sessions($name || undef);
+Vend::Session::close_session();
 

@@ -1,6 +1,6 @@
 package Vend::Parser;
 
-# $Id: Parser.pm,v 1.11 1998/01/31 05:21:43 mike Exp $
+# $Id: Parser.pm,v 1.14 1998/06/01 17:04:54 mike Exp $
 
 =head1 NAME
 
@@ -106,7 +106,7 @@ use strict;
 
 use HTML::Entities ();
 use vars qw($VERSION);
-$VERSION = sprintf("%d.%02d", q$Revision: 1.11 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.14 $ =~ /(\d+)\.(\d+)/);
 
 
 sub new
@@ -142,6 +142,7 @@ sub eof
 
 sub parse
 {
+#::logGlobal("Enter parse with args:" . join '|', @_);
 	my $self = shift;
 	my $buf = \ $self->{'_buf'};
 	unless (defined $_[0]) {
@@ -157,59 +158,21 @@ sub parse
 	# it is a token or not, or the $$buf is empty.
 	while (1) {  # the loop will end by returning when text is parsed
 		# First we try to pull off any plain text (anything before a "<" char)
-		if ($$buf =~ s|^([^\[]+)||) {
-			unless (length $$buf) {
-				my $text = $1;
-				# At the end of the buffer, we should not parse white space
-				# but leave it for parsing on the next round.
-				if ($text =~ s|(\s+)$||) {
-					$$buf = $1;
-				# Same treatment for chopped up entites.
-				} elsif ($text =~ s/(&(?:(?:\#\d*)?|\w*))$//) {
-					$$buf = $1;
-				};
-				$self->text($text);
-				return $self;
-			} else {
-				$self->text($1);
-			}
+		if ($$buf =~ s|^([^\[<]+)||) {
+#::logGlobal("Leading text found. Buf:\n" . $$buf);
+			$self->text($1);
+			return $self unless length $$buf;
 		# Netscapes buggy comments are easy to handle
 		} elsif ($self->{'_netscape_comment'} && $$buf =~ m|^(<!--)|) {
+#::logGlobal("Netscape comment found. Buf:\n" . $$buf);
 			if ($$buf =~ s|^<!--(.*?)-->||s) {
 				$self->comment($1);
 			} else {
 				return $self;  # must wait until we see the end of it
 			}
 		# Then, markup declarations (usually either <!DOCTYPE...> or a comment)
-#		} elsif ($$buf =~ s|^(\[!)||) {
-#			my $eaten = $1;
-#			my $text = '';
-#			my @com = ();  # keeps comments until we have seen the end
-#			# Eat text and beginning of comment
-#			while ($$buf =~ s|^(([^>]*?)--)||) {
-#				$eaten .= $1;
-#				$text .= $2;
-#				# Look for end of comment
-#				if ($$buf =~ s|^((.*?)--)||s) {
-#					$eaten .= $1;
-#					push(@com, $2);
-#				} else {
-#					# Need more data to get all comment text.
-#					$$buf = $eaten . $$buf;
-#					return $self;
-#				}
-#			}
-#			# Can we finish the tag
-#			if ($$buf =~ s|^([^>]*)>||) {
-#				$text .= $1;
-#				$self->declaration($text) if $text =~ /\S/;
-#				# then tell about all the comments we found
-#				for (@com) { $self->comment($_); }
-#			} else {
-#				$$buf = $eaten . $$buf;  # must start with it all next time
-#				return $self;
-#			}
 		} elsif ($$buf =~ s|^\[/||) {
+#::logGlobal("End tag found. Buf:\n" . $$buf);
 			# end tag
 			if ($$buf =~ s|^\s*([a-z][-a-z0-9._]*)\s*\]||i) {
 				$self->end(lc($1));
@@ -222,9 +185,21 @@ sub parse
 				$$buf = "";
 			}
 		# Then, finally we look for a start tag
-		} elsif ($$buf =~ s|^\[||) {
+		} elsif ($$buf =~ s|^([<\[])||) {
+#::logGlobal("Start tag found. Buf:\n" . $$buf);
 			# start tag
-			my $eaten = '[';
+			my $eaten = $1;
+			my $end_brack;
+			if($eaten eq '[') {
+				$self->{HTML} = 0;
+				$end_brack = '[^\]]'
+			}
+			else {
+				$self->{HTML} = 1;
+				$end_brack = '[^>]'
+			}
+			#$self->{HTML} = $eaten eq '[' ? 0 : 1;
+
 
 			# This first thing we must find is a tag name.  RFC1866 says:
 			#   A name consists of a letter followed by letters,
@@ -233,35 +208,61 @@ sub parse
 			#   the SGML declaration for HTML, 9.5, "SGML Declaration
 			#   for HTML".  In a start-tag, the element name must
 			#   immediately follow the tag open delimiter `<'.
-			if ($$buf =~ s|^(([a-zA-Z][-a-zA-Z0-9._]*)\s*)||) {
+			if ($$buf =~ s|^(([a-zA-Z][-a-zA-Z0-9._]*)((?:\s+$end_brack+)?\s+[mM][Vv]\s*=\s*)?\s*)||) {
 				$eaten .= $1;
-				my $tag = lc $2;
+
+				my ($tag, $end_tag);
 				my %attr;
 				my @attrseq;
-
 				my $old;
+
+				if(! $3) {
+					($self->text($eaten), next)
+						if $self->{HTML};
+					$tag = lc $2;
+				}
+				else {
+					$end_tag = $2;
+					( $$buf =~ s|^((['"])(.*?)\2\s*)||s and $tag = $3 )
+					or
+					( $$buf =~ s|^(([a-zA-Z][-a-zA-Z0-9._]*)\s*)|| and $tag = $2)
+					or ($self->text($eaten), next);
+					$eaten .= $1;
+					if( index($tag, " ") != -1 ) {
+						($tag, $attr{OLD}) = split /\s+/, $tag, 2;
+						$old = 1;
+					}
+					$tag = lc $tag;
+				}
+#::logGlobal("Found tag=$tag end_tag=$end_tag buf eaten=$eaten length=" . length $$buf) if $self->{HTML};
+				my $nopush;
 
 				# Then we would like to find some attributes
 				#
 				# Arrgh!! Since stupid Netscape violates RCF1866 by
 				# using "_" in attribute names (like "ADD_DATE") of
 				# their bookmarks.html, we allow this too.
-				#while (	$$buf =~ s|^(([a-zA-Z][-a-zA-Z0-9._]*)\s*)|| ) {
 				while (	$$buf =~ s|^(([a-zA-Z][-a-zA-Z0-9._]*)\s*)|| or
-					 	$$buf =~ s|^(([=!<>][=~])\s+)||) {
+					 	! $self->{HTML} && $$buf =~ s|^(([=!<>][=~]?)\s+)||) {
 					$eaten .= $1;
 					my $attr = lc $2;
+					$attr =~ s/^[Mm][Vv]\.?// || undef $attr
+						if $self->{HTML};
+#::logGlobal("Found attr=$attr eaten=$eaten length=" . length $$buf) if $self->{HTML};
+						
 					my $val;
-
+					
 					# The attribute might take an optional value (first we
 					# check for an unquoted value)
-					if ($$buf =~ s|(^=\s*([^\"\'\]\s][^\]\s]*)\s*)||) {
+					if ($$buf =~ s|(^=\s*([^\"\'\]\s][^\]>\s]*)\s*)||) {
 						$eaten .= $1;
+						next unless defined $attr;
 						$val = $2;
 						HTML::Entities::decode($val);
 					# or quoted by " or '
 					} elsif ($$buf =~ s|(^=\s*([\"\'])(.*?)\2\s*)||s) {
 						$eaten .= $1;
+						next unless defined $attr;
 						$val = $3;
 						HTML::Entities::decode($val);
 					# truncated just after the '=' or inside the attribute
@@ -273,18 +274,10 @@ sub parse
 						# assume attribute with implicit value, but
 						# if not,no value is set and the
 						# eaten value is grown
-# DEBUG
-#Vend::Util::logDebug
-#("Implicit test...")
-#	if ::debug(0x2);
-# END DEBUG
-						($attr,$val) = $self->implicit($tag,$attr);
-						$old = 1 unless $val;
-# DEBUG
-#Vend::Util::logDebug
-#("old=$old val=$val attr=$attr\n")
-#	if ::debug(0x2);
-# END DEBUG
+						undef $nopush;
+						($attr,$val,$nopush) = $self->implicit($tag,$attr);
+						$old = 1 unless $val || $self->{HTML};
+
 					} else {
 # DEBUG
 #Vend::Util::logDebug
@@ -293,26 +286,42 @@ sub parse
 # END DEBUG
 						$old = 1;
 					}
-					next if $old;
+					next if $old and !$self->{HTML};
+					if(! $attr) {
+						$attr->{OLD} = $val if defined $attr;
+						next;
+					}
 					$attr{$attr} = $val;
-					push(@attrseq, $attr);
+					push(@attrseq, $attr) unless $nopush;
 				}
 
-				# At the end there should be a closing "\]"
-				if ($$buf =~ s|^\]||) {
+				# At the end there should be a closing "\] or >"
+				if ($$buf =~ s|^\]|| ) {
+					$self->text("$eaten]"), next
+						if $self->{HTML};
 					$self->start($tag, \%attr, \@attrseq, "$eaten]");
+				} elsif ($$buf =~ s|^>|| ) {
+#::logGlobal("Found possible HTML-embedded tag");
+					$self->text("$eaten>"), next
+						unless $self->{HTML};
+#::logGlobal("started tag=$tag | attr=@attrseq | eaten=$eaten");
+					$self->start($tag, \%attr, \@attrseq, "$eaten>", $end_tag);
 				} elsif ($$buf =~ s|^([^\]\n]+\])||) {
+#::logGlobal("Started with junk.");
 					$eaten .= $1;
-					$self->start($tag, {}, [], $eaten);
+					$self->start($tag, {}, [], $eaten, $end_tag);
 				} elsif (length $$buf) {
+#::logGlobal("Not conforming.");
 					# Not a conforming start tag, regard it as normal text
 					$self->text($eaten);
 				} else {
+#::logGlobal("Recycle.");
 					$$buf = $eaten;  # need more data to know
 					return $self;
 				}
 
 			} elsif (length $$buf) {
+#::logGlobal("Text found. Buf:\n" . $$buf);
 				$self->text($eaten);
 			} else {
 				$$buf = $eaten . $$buf;  # need more data to parse
@@ -325,52 +334,16 @@ sub parse
 			# The buffer is empty now
 			return $self;
 		}
+#::logGlobal("Return for more. Buf:\n" . $$buf);
+		return $self if $self->{SEND};
 	}
 	$self;
 }
 
-sub parse_file
-{
-	my($self, $file) = @_;
-	no strict 'refs';  # so that a symbol ref as $file works
-	local(*F);
-	unless (ref($file) || $file =~ /^\*[\w:]+$/) {
-		# Assume $file is a filename
-		open(F, $file) || die "Can't open $file: $!";
-		$file = \*F;
-	}
-	my $chunk = '';
-	while(read($file, $chunk, 2048)) {
-		$self->parse($chunk);
-	}
-	close($file);
-	$self->eof;
-}
-
-sub text
-{
-	# my($self, $text) = @_;
-}
-
-sub declaration
-{
-	# my($self, $decl) = @_;
-}
 
 sub comment
 {
 	# my($self, $comment) = @_;
-}
-
-sub start
-{
-	my($self, $tag, $attr, $attrseq, $origtext) = @_;
-	# $attr is reference to a HASH, $attrseq is reference to an ARRAY
-}
-
-sub end
-{
-	my($self, $tag) = @_;
 }
 
 1;

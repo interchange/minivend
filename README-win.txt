@@ -1,4 +1,4 @@
-# MiniVend V3.07
+# MiniVend V3.09
 # 
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
 #
@@ -32,10 +32,12 @@
 
         * Perl 5.004 for Win32 -- accept no substitutes. THIS
           PROGRAM WILL RUN ON NO EARLIER VERSION OF PERL. PERIOD.
-          It will NOT run on the ActiveState port.
+          IT WILL NOT RUN on the ActiveState port. The version
+          you need is variously known as the "CORE", "Standard",
+          or "Gurusamy Sarathy" version.
 
         * Web server. Almost any that has CGI capability
-          should work. Tested on Microsoft Personal Web Server
+          should work. Tested on Microsoft Personal Web Server,
           NT IIS, and OmniHTTPD.
 
         * Memory, memory, memory -- best guess is that things
@@ -44,7 +46,7 @@
           performance indicator, as it indicates 86% free RAM on
           my machine with 32M while MiniVend is running. I find
           it hard to believe. That is the smallest RAM machine
-          I have, and MV runs fine on it -- it is a 486DX/100.
+          I have, and MV ran fine on it -- it is a 486DX/100.
 
     IMPORTANT NOTE:
 
@@ -81,7 +83,7 @@
           instructions in the README.NOW file.
 
           MiniVend will run without OK without DB_File, but
-          will be slower.
+          the user database will not be persistent.
 
        3. Obtain and install BLAT if you wish to 
           send emailed orders.
@@ -101,16 +103,16 @@
   
     Installation:
 
-    1. Download the minivend-3.07.exe distribution file
+    1. Download the minivend-3.09.exe distribution file
     and run it in the normal Windows fashion.
     
     ( If you don't want to execute the self-extracting ZIP file,
-      then you can obtain the standard minivend-3.07.tar.gz file and
+      then you can obtain the standard minivend-3.09.tar.gz file and
       install that instead. )
       
       You will have to obtain the CYGWIN.DLL file if you want to
       use TLINK.EXE as your link CGI. The standard distribution .EXE
-      file has it included -- the minivend-3.07-nodll.exe file
+      file has it included -- the minivend-3.09-nodll.exe file
       eliminates it.
 
     2. Select a directory to install MiniVend in -- it defaults
@@ -125,12 +127,28 @@
     to be accessible from the outside world, you will have
     to enter a valid IP address or server name.
 
+    5. MiniVend will run as a service if you set it up with
+    srvany.exe or a similar program. Because the server
+    is single-tasked, it is recommended that you set up
+    a system agent to shut down the MV server, expire the
+    session database, and restart at least once per day.
+    (Expiration will always be needed to prevent the DBM files
+    or session directories from getting too big, and possible
+    memory leaks in Safe.pm make this a good idea anyway.)
+
+    6. Be careful of long-running searches -- because the server
+    will not handle multiple simultaneous requests as it does
+    on UNIX, searches will hold off user access. It is recommended
+    that you break your results pages into small (less than the
+    default 50-result) chunks by setting mv_matchlimit.
+
 -------------------------------------------------------------
 
             W I N D O W S   D I F F E R E N C E S
 
-      * ODBC is not implemented yet, though some work has
-        been done with Win32::ODBC and the DBI interface.
+      * ODBC works fine, but you will need to have the
+        DBI::ODBC module properly installed. DBI also works
+        with MS SQL Server according to user reports.
 
       * No fork() on Windows means that only one server
         can run at a time. This means multiple requests
@@ -153,10 +171,6 @@
 
         You can then use the kill.exe program to kill the
         server.
-
-      * Many features are not tested, but the minimal
-        functionality as outlined in the demo seems to
-        work well, particularly when DB_File is used.
 
       * Memory leaks in the Safe.pm module may mean that
         you will need to restart the server due to running

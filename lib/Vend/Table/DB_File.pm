@@ -1,6 +1,6 @@
 # Table/DB_File.pm: access a table stored in a DB file hash
 #
-# $Id: DB_File.pm,v 1.11 1998/01/31 05:23:13 mike Exp $
+# $Id: DB_File.pm,v 1.12 1998/05/02 03:06:52 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -21,7 +21,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::DB_File;
-$VERSION = substr(q$Revision: 1.11 $, 10);
+$VERSION = substr(q$Revision: 1.12 $, 10);
 use Carp;
 use strict;
 use Fcntl;
@@ -157,6 +157,15 @@ sub column_index {
     return $i;
 }
 
+sub row_hash {
+    my ($s, $key) = @_;
+    my $line = $s->[$TIE_HASH]{"k$key"};
+    croak "There is no row with index '$key'" unless defined $line;
+	my %row;
+    @row{ @{$s->[$COLUMN_NAMES]}} = map(unstuff($_), split(/\t/, $line, 9999));
+	return \%row;
+}
+
 sub row {
     my ($s, $key) = @_;
     my $line = $s->[$TIE_HASH]{"k$key"};
@@ -247,6 +256,8 @@ sub record_exists {
     }
     return $r;
 }
+
+*test_record = \&record_exists;
 
 sub delete_record {
     my ($s, $key) = @_;

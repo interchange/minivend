@@ -1,6 +1,6 @@
 # Table/DBI.pm: access a table stored in an DBI/DBD Database
 #
-# $Id: DBI.pm,v 1.16 1998/03/21 12:08:13 mike Exp $
+# $Id: DBI.pm,v 1.21 1998/06/06 08:13:51 mike Exp mike $
 #
 # Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -19,7 +19,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::DBI;
-$VERSION = substr(q$Revision: 1.16 $, 10);
+$VERSION = substr(q$Revision: 1.21 $, 10);
 
 use Carp;
 use strict;
@@ -30,7 +30,8 @@ use strict;
 # 3: Array of column names
 # 4: each reference (transitory)
 
-my ($TABLE, $KEY, $DBI, $NAME, $CONFIG, $EACH) = (0 .. 5);
+use vars qw($TABLE $KEY $DBI $NAME $CONFIG $EACH);
+($TABLE, $KEY, $DBI, $NAME, $CONFIG, $EACH) = (0 .. 5);
 
 my %Cattr = ( qw(
 					PRINTERROR     	PrintError
@@ -233,6 +234,9 @@ sub open_table {
 
 	$cols = $config->{NAME} || [list_fields($db, $tablename)];
 
+	$config->{COLUMN_NAMES} = lc (join " ", '', @$cols, '')
+		unless defined $config->{COLUMN_NAMES};
+
 	$config->{NUMERIC} = {} unless $config->{NUMERIC};
 
 	croak "DBI: no column names returned for $tablename\n"
@@ -259,22 +263,8 @@ sub columns {
 sub test_column {
     my ($s, $column) = @_;
 
-	my $i = 0;
-	my $col;
-
-	for(@{$s->[$NAME]}) {
-		($i++, next) unless "\L$_" eq "\L$column";
-		$col = $i;
-	}
-# DEBUG
-#Vend::Util::logDebug
-#("test_column: returning '$col' from $s->[$TABLE]\n")
-#	if ::debug(0x4);
-# END DEBUG
-	return undef unless defined $col;
-
-	return $col - 1;
-
+	return 1 if index($s->[$CONFIG]->{COLUMN_NAMES}, " \L$column ") != -1;
+	return undef;
 }
 
 sub quote {
@@ -301,16 +291,14 @@ sub numeric {
 sub inc_field {
     my ($s, $key, $column, $value) = @_;
 	$key = $s->[$DBI]->quote($key)
-		unless defined $s->[$CONFIG]->{NUMERIC}->{$key};
-	$value = $s->[$DBI]->quote($value)
-		unless defined $s->[$CONFIG]->{NUMERIC}->{$column};
+		unless exists $s->[$CONFIG]{NUMERIC}{$s->[$KEY]};
     my $sth = $s->[$DBI]->prepare(
 		"select $column from $s->[$TABLE] where $s->[$KEY] = $key");
     croak "inc_field: $DBI::errstr\n" unless defined $sth;
     $sth->execute();
     $value += ($sth->fetchrow_array)[0];
-    undef $sth;
-	$value =~ s/\s+$//;
+	$value = $s->[$DBI]->quote($value)
+		unless exists $s->[$CONFIG]{NUMERIC}{$column};
     $sth = $s->[$DBI]->do("update $s->[$TABLE] SET $column=$value where $s->[$KEY] = $key");
     $value;
 }
@@ -322,24 +310,25 @@ sub column_index {
 	my $col;
 
 	for(@{$s->[$NAME]}) {
-		($i++, next) unless $_ eq $column;
+		($i++, next) unless "\L$_" eq "\L$column";
 		$col = $i;
+		last;
 	}
 
-    unless($col) {
-		croak "There is no column named '$column'\n";
-		return undef;
-	}
-	return $col;
+	return undef unless $col;
+	
+	return $col - 1;
 
 }
+
+*column_exists = \&column_index;
 
 sub field_accessor {
     my ($s, $column) = @_;
     return sub {
         my ($key) = @_;
 		$key = $s->[$DBI]->quote($key)
-			unless defined $s->[$CONFIG]->{NUMERIC}->{$key};
+			unless exists $s->[$CONFIG]{NUMERIC}{$s->[$KEY]};
         my $sth = $s->[$DBI]->prepare
 			("select $column from $s->[$TABLE] where $s->[$KEY] = $key")
 				or croak $DBI::errstr;
@@ -347,7 +336,7 @@ sub field_accessor {
     };
 }
 
-use vars qw/$mv_sql_hash $mv_sql_array @mv_sql_param/;
+use vars qw/$mv_sql_hash $mv_sql_hash_order $mv_sql_array @mv_sql_param/;
 
 sub substitute_arg {
 	my ($s, $query, @arg) = @_;
@@ -430,18 +419,22 @@ sub hash_query {
 #("hash_query: $text\n")
 #	if ::debug(0x4);
 # END DEBUG
-	my $db = $s->[$DBI];
 	my $key = $s->[$KEY];
-    my $sth = $db->prepare($text)
+    my $sth = $s-[$DBI]->prepare($text)
 		or croak "$DBI::errstr\n";
     $sth->execute() or croak $DBI::errstr;
 	my $out = {};
+	my @out;
+	my $tkey;
 	my $ref;
 	while($ref = $sth->fetchrow_hashref()) {
-		$out->{$ref->{$key}} = $ref;
+		$tkey = $ref->{$key};
+		push (@out, $tkey);
+		$out->{$tkey} = $ref;
 	}
 	if(ref $config and $config->{PERL}) {
 		$mv_sql_hash = $out;
+		$mv_sql_hash_order = \@out;
 		return unless $config->{BOTH};
 	}
 	return $out;
@@ -524,9 +517,9 @@ sub field_settor {
     return sub {
         my ($key, $value) = @_;
 		$value = $s->[$DBI]->quote($value)
-			unless defined $s->[$CONFIG]->{NUMERIC}->{$column};
+			unless exists $s->[$CONFIG]->{NUMERIC}->{$column};
 		$key = $s->[$DBI]->quote($key)
-			unless defined $s->[$CONFIG]->{NUMERIC}->{$key};
+			unless exists $s->[$CONFIG]{NUMERIC}{$s->[$KEY]};
         $s->[$DBI]->do("update $s->[$TABLE] SET $column=$value where $s->[$KEY] = $key");
     };
 }
@@ -536,10 +529,6 @@ sub set_row {
 	my @cols = @{$s->[$CONFIG]->{NAME}};
 	
 	my $i = 0;
-	for(@fields) {
-		$_ = $s->[$DBI]->quote($_)
-			unless defined $s->[$CONFIG]->{NUMERIC}->{$cols[$i++]};
-	}
 
 	while(scalar @cols < scalar @fields) {
 		my $val = pop @fields;
@@ -549,6 +538,11 @@ sub set_row {
 
 	while(scalar @cols > scalar @fields) {
 		push @fields, '';
+	}
+
+	for(@fields) {
+		$_ = $s->[$DBI]->quote($_)
+			unless exists $s->[$CONFIG]->{NUMERIC}->{$cols[$i++]};
 	}
 
 	my $values = join ',', @fields;
@@ -562,10 +556,26 @@ sub set_row {
 		or croak "$DBI::errstr\n";
 }
 
+sub row_hash {
+    my ($s, $key) = @_;
+	$key = $s->[$DBI]->quote($key)
+		unless exists $s->[$CONFIG]{NUMERIC}{$s->[$KEY]};
+    my $sth = $s->[$DBI]->prepare(
+		"select * from $s->[$TABLE] where $s->[$KEY] = $key");
+# DEBUG
+#Vend::Util::logDebug
+#("row hash: table=$s->[$TABLE] key=$key\n")
+#	if ::debug(0x4);
+# END DEBUG
+    $sth->execute()
+		or croak("execute error: $DBI::errstr");
+	return $sth->fetchrow_hashref();
+}
+
 sub field {
     my ($s, $key, $column) = @_;
-	$key = $s->[$DBI]->quote($key) 
-			unless defined $s->[$CONFIG]->{NUMERIC}->{$key};
+	$key = $s->[$DBI]->quote($key)
+		unless exists $s->[$CONFIG]{NUMERIC}{$s->[$KEY]};
     my $sth = $s->[$DBI]->prepare(
 		"select $column from $s->[$TABLE] where $s->[$KEY] = $key");
     $sth->execute()
@@ -583,9 +593,9 @@ sub field {
 sub set_field {
     my ($s, $key, $column, $value) = @_;
 	$key = $s->[$DBI]->quote($key)
-		unless defined $s->[$CONFIG]->{NUMERIC}->{$key};
+		unless exists $s->[$CONFIG]{NUMERIC}{$s->[$KEY]};
 	$value = $s->[$DBI]->quote($value)
-		unless defined $s->[$CONFIG]->{NUMERIC}->{$column};
+		unless exists $s->[$CONFIG]->{NUMERIC}->{$column};
     $s->[$DBI]->do("update $s->[$TABLE] SET $column = $value where $s->[$KEY] = $key")
 		or croak "$DBI::errstr\n";
 	$value;
@@ -596,6 +606,7 @@ sub ref {
 }
 
 #sub record_exists { 1 }
+sub test_record { 1 }
 
 sub record_exists {
     my ($s, $key) = @_;
@@ -604,7 +615,9 @@ sub record_exists {
 #("call object $s with arg $key -- key name is '$s->[$KEY]'\n")
 #	if ::debug(0x4);
 # END DEBUG
-	my $query = "select $s->[$KEY] from $s->[$TABLE] where $s->[$KEY] = '$key'";
+	$key = $s->[$DBI]->quote($key)
+		unless exists $s->[$CONFIG]{NUMERIC}{$s->[$KEY]};
+	my $query = "select $s->[$KEY] from $s->[$TABLE] where $s->[$KEY] = $key";
 	my $sth = $s->[$DBI]->prepare($query);
     $sth->execute() or croak $DBI::errstr;
     $sth->fetchrow_arrayref or return undef;
@@ -613,8 +626,9 @@ sub record_exists {
 
 sub delete_record {
     my ($s, $key) = @_;
-
-    $s->[$DBI]->do("delete from $s->[$TABLE] where $s->[$KEY] = '$key'");
+	$key = $s->[$DBI]->quote($key)
+		unless exists $s->[$CONFIG]{NUMERIC}{$s->[$KEY]};
+    $s->[$DBI]->do("delete from $s->[$TABLE] where $s->[$KEY] = $key");
 }
 
 sub list_fields {

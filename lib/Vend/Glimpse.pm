@@ -1,6 +1,6 @@
 # Vend/Glimpse.pm:  Search indexes with Glimpse
 #
-# $Id: Glimpse.pm,v 1.11 1998/01/31 05:14:54 mike Exp $
+# $Id: Glimpse.pm,v 1.13 1998/06/01 17:02:23 mike Exp $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::Glimpse
 #
@@ -26,8 +26,7 @@ package Vend::Glimpse;
 require Vend::Search;
 @ISA = qw(Vend::Search);
 
-$VERSION = substr(q$Revision: 1.11 $, 10);
-use Text::ParseWords;
+$VERSION = substr(q$Revision: 1.13 $, 10);
 use strict;
 
 sub new {
@@ -87,7 +86,7 @@ sub search {
 	my($delim,$string);
 	my($max_matches,$mod,$index_delim,$return_delim);
 	my($cmd,$code,$count,$joiner,$matches_to_send,@out);
-	my($limit_sub,$return_sub);
+	my($limit_sub,$return_sub,$delayed_return);
 	my($f,$key,$spec,$val,$range_op);
 	my($searchfile,@searchfiles);
 	my(@pats);
@@ -324,7 +323,7 @@ EOF
 		$return_sub = sub {@_};
 	}
 	else {
-		eval {$return_sub = $s->get_return()};
+		eval {($return_sub, $delayed_return) = $s->get_return()};
 		if($@) {
 			&{$g->{error_routine}}($g->{error_page}, $@);
 			$g->{matches} = -1;
@@ -375,13 +374,27 @@ EOF
 		return undef;
 	}
 
-	$g->{matches} = scalar(@out);
-	$g->{first_match} = 0;
+	if($g->{unique_result}) {
+		my %seen;
+		@out = grep ! $seen{$_}++, @out;
+	}
 
+	$g->{matches} = scalar(@out);
+
+	if($delayed_return) {
+		$s->sort_search_return(\@out);
+		@out = map { &{$delayed_return}($_) } @out;
+	}
 
     if ($g->{matches} > $g->{match_limit}) {
         $s->save_more(\@out)
             or &{$g->{log_routine}}("Error saving matches: $!");
+		if ($g->{first_match}) {
+			splice(@out,0,$g->{first_match}) if $g->{first_match};
+			$g->{next_pointer} = $g->{first_match} + $g->{match_limit};
+			$g->{next_pointer} = 0
+				if $g->{next_pointer} > $g->{matches};
+		}
         $#out = $g->{match_limit} - 1;
     }
 
