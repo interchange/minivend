@@ -68,7 +68,7 @@ my %PosNumber =	( qw!
 				default          2
 				description      2
 				discount         1
-				dump             0
+				dump             1
 				ecml             2
 				either           0
 				error            1
@@ -153,7 +153,7 @@ my %Order =	(
 				counter			=> [qw( file )],
 				data			=> [qw( table field key )],
 				default			=> [qw( name default )],
-				dump			=> [qw( )],
+				dump			=> [qw( key )],
 				description		=> [qw( code base )],
 				discount		=> [qw( code  )],
 				ecml			=> [qw( name function )],

@@ -108,7 +108,17 @@ EOF
 }
 
 sub full_dump {
-	my $out = minidump();
+	my $portion = shift;
+	my $out = '';
+	if($portion) {
+		$out .= "###### SESSION ($portion) #####\n";
+		$out .= ::uneval($Vend::Session->{$portion});
+		$out .= "\n###### END SESSION    #####\n";
+		$out =~ s/\0/\\0/g;
+		return $out;
+	}
+
+	$out = minidump();
 	local($Data::Dumper::Indent) = 2;
 	unless(caller() eq 'Vend::SOAP') {
 		$out .= "###### ENVIRONMENT     #####\n";
