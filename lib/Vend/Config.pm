@@ -251,7 +251,7 @@ sub global_directives {
     ['TcpHost',           undef,             'localhost 127.0.0.1'],
 	['SendMailProgram',  'executable',		$Global::SendMailLocation
 												|| '/usr/lib/sendmail'],
-	['PIDfile',     	  undef,             "$Global::VendRoot/etc/minivend.pid"],
+	['PIDfile',     	  undef,             "$Global::VendRoot/etc/interchange.pid"],
 	['SocketFile',     	  undef,             "$Global::VendRoot/etc/socket"],
 	['SocketPerms',      'integer',          0600],
 	['HouseKeeping',     'integer',          60],
