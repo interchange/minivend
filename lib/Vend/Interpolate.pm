@@ -583,7 +583,9 @@ sub vars_and_comments {
 	1 while $$html =~ s/\[pragma\s+(\w+)(?:\s+(\w+))?\]/
 		$::Pragma->{$1} = (length($2) ? $2 : 1), ''/ige;
 
-	if($::Pragma->{init_page}) {
+	undef $Vend::PageInit unless $::Pragma->{init_page};
+
+	if(defined $Vend::PageInit and ! $Vend::PageInit++) {
 		::run_macro($::Pragma->{init_page}, $html);
 	}
 

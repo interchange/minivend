@@ -69,6 +69,7 @@ sub display_special_page {
 	die ::get_locale_message(412, "Missing special page: %s\n", $name)
 		unless defined $page;
 	$page =~ s#\[subject\]#$subject#ig;
+	$Vend::PageInit = 0;
 	return ::response(::interpolate_html($page, 1));
 }
 
@@ -120,6 +121,7 @@ sub display_page {
 	}
 
 	if (defined $page) {
+		$Vend::PageInit = 0;
 		::response(::interpolate_html($page, 1, $opt));
 		return 1;
 	}
