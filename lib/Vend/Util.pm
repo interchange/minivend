@@ -53,6 +53,7 @@ require Exporter;
 	logDebug
 	logError
 	logGlobal
+	logOnce
 	logtime
 	random_string
 	readfile
@@ -1707,6 +1708,26 @@ sub logError {
 				);
     }
 }
+
+
+# Front-end to log routines that ignores repeated identical
+# log messages after the first occurrence
+my %logOnce_cache;
+my %log_sub_map = (
+	data	=> \&logData,
+	debug	=> \&logDebug,
+	error	=> \&logError,
+	global	=> \&logGlobal,
+);
+
+# First argument should be log type (see above map).
+# Rest of arguments are same as if calling log routine directly.
+sub logOnce {
+	return if exists $logOnce_cache{"@_"};
+	my $log_sub = $log_sub_map{ lc(shift) } || $log_sub_map{error};
+	$log_sub->(@_) and ++$logOnce_cache{"@_"};
+}
+
 
 # Here for convenience in calls
 sub set_cookie {
