@@ -2338,11 +2338,14 @@ sub add_items {
 
 	@group   = split /\0/, (delete $CGI::values{mv_order_group} || '');
 	for( my $i = 0; $i < @group; $i++ ) {
+#::logDebug("processing order group=$group[$i]");
 	   $attr{mv_mi}->[$i] = $group[$i] ? ++$Vend::Session->{pageCount} : 0;
 	}
 
 	$j = 0;
 	my $set;
+	my %group_seen;
+
 	foreach $code (@items) {
 		undef $item;
 		$quantity = defined $quantities[$j] ? $quantities[$j] : 1;
@@ -2409,14 +2412,17 @@ sub add_items {
 
 			# Add the master item/sub item ids if appropriate
 			if(@group) {
-				if($attr{mv_mi}->[$j]) {
+#::logDebug("processing order_group");
+				if(! $group_seen{ $group[$j] }++ ) {
 					$item->{mv_mi} = $mv_mi = $attr{mv_mi}->[$j];
+#::logDebug("processing new master item=$mv_mi");
 					$item->{mv_mp} = $mv_mp = $attr{mv_mp}->[$j];
 					$item->{mv_si} = $mv_si = 0;
 				}
 				else {
 					$item->{mv_mi} = $mv_mi;
 					$item->{mv_si} = ++$mv_si;
+#::logDebug("processing sub item=$mv_si");
 					$item->{mv_mp} = $attr{mv_mp}->[$j] || $mv_mp;
 				}
 			}
