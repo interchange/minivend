@@ -60,7 +60,7 @@ use strict;
 use File::Basename;
 use Vend::Util;
 use Vend::Interpolate;
-use Vend::Table::Common qw(import_ascii_delimited import_csv);
+use Vend::Table::Common qw(import_ascii_delimited);
 
 File::Basename::fileparse_set_fstype($^O);
 
@@ -259,13 +259,12 @@ sub import_text {
 
 	my $save = $/;
 	local($/) = $record_delim if defined $record_delim;
+
 	$options->{Object} = $db;
-	if($delimiter ne 'CSV') {
-		Vend::Table::Common::import_ascii_delimited($fn, $options);
-	}
-	else {
-		Vend::Table::Common::import_csv($fn, $options);
-	}
+
+	## This is where the actual import happens
+	Vend::Table::Common::import_ascii_delimited($fn, $options);
+
 	$/ = $save;
 	unlink $fn unless $options->{'file'};
 	return 1;
@@ -569,6 +568,16 @@ sub tie_database {
 			$Vend::Database{$name} = import_database($data);
 		}
 		else {
+			if($data->{GUESS_NUMERIC}) {
+				my $dir = $data->{dir} || $Vend::Cfg->{ProductDir};
+				my $fn = Vend::Util::catfile( $dir, $data->{file} );
+				my @fields = grep /\S/, split /\s+/, ::readfile("$fn.numeric");
+#::logGlobal("fields=@fields");
+				$data->{NUMERIC} = {};
+				for(@fields) {
+					$data->{NUMERIC}{$_} = 1;
+				}
+			}
 			my $class = $db_config{$data->{Class}}->{Class};
 			$Vend::UPPERCASE{$name} = 1
 				if $data->{UPPERCASE};
@@ -1302,8 +1311,10 @@ sub item_price {
 	}
 	$price = database_field($base, $item->{code}, $Vend::Cfg->{PriceField})
 		if $Vend::Cfg->{PriceField};
+#::logDebug("item_price before chain cost: $price");
 	$price = chain_cost($item,$price || $Vend::Cfg->{CommonAdjust});
 	$price = $price / $Vend::Cfg->{PriceDivide};
+#::logDebug("item_price before cache: $price");
 	$item->{mv_cache_price} = $price
 		if ! $quantity and exists $item->{mv_cache_price};
 #::logDebug("item_price final: $price");
