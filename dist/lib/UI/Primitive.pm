@@ -446,7 +446,7 @@ sub list_glob {
 
 sub list_pages {
 	my ($keep, $suf, $base) = @_;
-	$suf = $Vend::Cfg->{StaticSuffix} if ! $suf;
+	$suf = $Vend::Cfg->{HTMLsuffix} if ! $suf;
 	$base = Vend::Util::catfile($Vend::Cfg->{VendRoot}, $base) if $base;
 	$base ||= $Vend::Cfg->{PageDir};
 	my @names;
