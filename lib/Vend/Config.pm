@@ -3627,6 +3627,7 @@ $StdTags = <<'EOF';
 						seti
 						tag
 						tmp
+						tmp_no
 						value
 				"
 				:commerce "
@@ -3737,6 +3738,7 @@ $StdTags = <<'EOF';
 				:perl "
 					perl
 					calc
+					calc_no
 					mvasp
 				"
 				:time "
