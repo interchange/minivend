@@ -110,7 +110,7 @@ my $Info;
 
 sub create {
     my ($class, $config, $columns, $tablename) = @_;
-#::logDebug("trying create table");
+#::logDebug("trying create table $tablename");
 	my @call = find_dsn($config);
 	my $dattr = pop @call;
 	my $db = DBI->connect( @call )

@@ -10,7 +10,7 @@ package Vend::UserDB;
 
 $VERSION = substr(q$Revision$, 10);
 
-use vars qw! $VERSION @S_FIELDS @B_FIELDS @P_FIELDS %S_to_B %B_to_S!;
+use vars qw! $VERSION @S_FIELDS @B_FIELDS @P_FIELDS @I_FIELDS %S_to_B %B_to_S!;
 
 use Vend::Data;
 use Vend::Util;
@@ -263,6 +263,11 @@ sub new {
 		$options{preferences} =~ s/^[,\s]+//;
 		@P_FIELDS = split /[\s,]+/, $options{preferences};
 	}
+	if($options{ignore}) {
+		$options{ignore} =~ s/[,\s]+$//;
+		$options{ignore} =~ s/^[,\s]+//;
+		@I_FIELDS = split /[\s,]+/, $options{ignore};
+	}
 	my $self = {
 			USERNAME  	=>	$options{username}	||
 							$Vend::Session->{username} ||
@@ -507,6 +512,10 @@ sub set_db {
 	my %ignore;
 
 	my @final;
+
+	for(@I_FIELDS) {
+		$ignore{$_} = 1;
+	}
 
 	for(values %{$self->{LOCATION}}) {
 		$ignore{$_} = 1;

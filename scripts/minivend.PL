@@ -123,7 +123,7 @@ use vars qw($VERSION);
 require Exporter;
 
 BEGIN {
-	$VERSION = '4.5.0';
+	$VERSION = '4.5.1';
 }
 
 
@@ -507,6 +507,11 @@ sub parse_click {
 	elsif(defined ($params = $Vend::Cfg->{OrderProfileName}{$click}) ) {
 		# Do nothing, we found the click
 		$params = $Vend::Cfg->{OrderProfile}[$params];
+#::logDebug("Found profile click $click = |$params|");
+	}
+	elsif(defined ($params = $Global::ProfilesName->{$click}) ) {
+		# Do nothing, we found the click
+		$params = $Global::Profiles->[$params];
 #::logDebug("Found profile click $click = |$params|");
 	}
 	elsif($params = $::Scratch->{"mv_click $click"}) {
