@@ -291,6 +291,12 @@ sub search {
 		$s->restore_specs();
 	}
 
+	# Search the results and return
+	if($s->{mv_next_search}) {
+		@out = $s->search_reference(\@out);
+#::logDebug("did next_search: " . ::uneval(\@out));
+	}
+
 	$s->{matches} = scalar(@out);
 #::logDebug("before delayed return: self=" . ::Vend::Util::uneval_it({%$s}));
 
