@@ -297,6 +297,8 @@ sub search {
 #::logDebug("did next_search: " . ::uneval(\@out));
 	}
 
+	$s->{matches} = scalar(@out);
+
 #::logDebug("before delayed return: self=" . ::Vend::Util::uneval_it({%$s}));
 
 	if($delayed_return and $s->{matches} > 0) {
