@@ -136,14 +136,18 @@ sub unstuff {
 
 sub autonumber {
 	my $s = shift;
-	return '' if ! $s->[$CONFIG]->{AUTO_NUMBER};
+	my $start;
+	return '' if not $start = $s->[$CONFIG]->{AUTO_NUMBER};
 	local($/) = "\n";
 	my $c = $s->[$CONFIG];
 	if(! defined $c->{AutoNumberCounter}) {
 		$c->{AutoNumberCounter} = new File::CounterFile
-									"./etc/$c->{name}.autonumber", '000000';
+									"$c->{dir}/$c->{name}.autonumber", $start;
 	}
-	my $num = $c->{AutoNumberCounter}->inc();
+	my $num;
+	do {
+		$num = $c->{AutoNumberCounter}->inc();
+	} while $s->record_exists($num);
 	return $num;
 }
 
@@ -317,6 +321,7 @@ sub stuff_row {
 	$s->filter(\@fields, $s->[$COLUMN_INDEX], $s->[$CONFIG]{FILTER_TO})
 		if $s->[$CONFIG]{FILTER_TO};
     $s->[$TIE_HASH]{"k$key"} = join("\t", map(stuff($_), @fields));
+	return $key;
 }
 
 sub freeze_row {
@@ -327,7 +332,8 @@ sub freeze_row {
 		if ! $key;
 	$s->filter(\@fields, $s->[$COLUMN_INDEX], $s->[$CONFIG]{FILTER_TO})
 		if $s->[$CONFIG]{FILTER_TO};
-	return $s->[$TIE_HASH]{"k$key"} = Storable::freeze(\@fields);
+	$s->[$TIE_HASH]{"k$key"} = Storable::freeze(\@fields);
+	return $key;
 }
 
 if($Storable) {
@@ -493,7 +499,7 @@ sub delete_record {
 		return undef;
 	}
 
-#::logDebug("delete row $key");
+#::logDebug("delete row $key from $s->[$FILENAME]");
     delete $s->[$TIE_HASH]{"k$key"};
 	1;
 }
