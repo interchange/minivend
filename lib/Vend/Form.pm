@@ -690,7 +690,7 @@ sub dropdown {
 		if (length($default)) {
 			$regex	= qr/$re_b\Q$value\E$re_e/;
 			$default =~ $regex and $select = 1;
-		} elsif (defined($default) && $value == '') {
+		} elsif (defined($default) && length($value) == 0) {
 			$select = 1;
 		}
 		$run .= ' SELECTED' if $select;
