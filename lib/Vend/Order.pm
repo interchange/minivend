@@ -5,7 +5,7 @@
 # Copyright (C) 1996-2001 Red Hat, Inc. <interchange@redhat.com>
 #
 # This program was originally based on Vend 0.2 and 0.3
-# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+# Copyright 1995 by Andrew M. Wilcox <amw@wilcoxsolutions.com>
 #
 # CyberCash 3 native mode enhancements made by and
 # Copyright 1998 by Michael C. McCune <mmccune@ibm.net>

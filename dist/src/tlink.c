@@ -4,7 +4,7 @@
  *
  * $Id$
  *
- * Copyright (C) 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+ * Copyright (C) 1995 by Andrew M. Wilcox <amw@wilcoxsolutions.com>
  *
  * Copyright (C) 1996-2002 Red Hat, Inc. <interchange@redhat.com>
  *
