@@ -23,6 +23,9 @@
 			settle_transaction="__SETTLE_TRANSACTION__"
 			[/if-loop-data]
 			archive=1]
+	[if scratch ship_notice_username]
+	[email-raw][include etc/ship_notice][/email-raw]
+	[/if]
 [/loop]
 			
 
