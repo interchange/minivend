@@ -583,6 +583,8 @@ sub dynamic_var {
 
 sub vars_and_comments {
 	my $html = shift;
+	## We never want to interpolate vars if in restricted mode
+	return if $Vend::restricted;
 	local($^W) = 0;
 
 	# Remove Minivend 3 legacy [new] tags
@@ -7501,7 +7503,9 @@ sub tag_shipping {
 			}
 		}
 		$out = Vend::Util::round_to_frac_digits($out);
-		$out = currency($out, $opt->{noformat}, $opt->{convert});
+		## Conversion would have been done above, force to 0, as
+		## found by Frederic Steinfels
+		$out = currency($out, $opt->{noformat}, 0);
 	}
 	return $out unless $opt->{hide};
 	return;
