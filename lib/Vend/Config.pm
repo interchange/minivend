@@ -1665,7 +1665,7 @@ sub parse_varname {
 	return if $Vend::ExternalProgram;
 
 	my($iv,$vn,$k,$v,@set);
-logDebug("parse_varname: $settings");
+#logDebug("parse_varname: $settings");
 	if(defined $C) {
 		return '' if ! $settings;
 		$C->{IV} = { %{$Global::IV} } if ! $C->{IV};
