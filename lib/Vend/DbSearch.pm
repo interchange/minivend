@@ -76,7 +76,10 @@ sub init {
     $s->{mv_numeric}            = [];
     $s->{mv_orsearch}           = [];
     $s->{mv_search_field}       = [];
-    $s->{mv_search_file}        = [@{$Vend::Cfg->{ProductFiles}}];
+    $s->{mv_search_file}        =	[ @{
+										$::Variable->{MV_DEFAULT_SEARCH_FILE}
+										||	$Vend::Cfg->{ProductFiles}
+										} ];
     $s->{mv_search_group}       = [];
     $s->{mv_searchspec}         = [];
     $s->{mv_sort_option}        = [];
@@ -212,6 +215,7 @@ sub search {
 
 		if(! defined $f and defined $limit_sub) {
 #::logDebug("no f, limit, dbref=$dbref");
+			local($_);
 			while($_ = join "\t", $dbref->each_nokey($qual || undef) ) {
 				next unless &$limit_sub($_);
 				push @out, &$return_sub($_);
@@ -219,6 +223,7 @@ sub search {
 		}
 		elsif(defined $limit_sub) {
 #::logDebug("f and limit, dbref=$dbref");
+			local($_);
 			while($_ = join "\t", $dbref->each_nokey($qual || undef) ) {
 				next unless &$f();
 				next unless &$limit_sub($_);
@@ -230,6 +235,7 @@ sub search {
 		}
 		else {
 #::logDebug("f and no limit, dbref=$dbref");
+			local($_);
 			while($_ = join "\t", $dbref->each_nokey($qual || undef) ) {
 				next unless &$f();
 				push @out, &$return_sub($_);
