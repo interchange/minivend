@@ -245,7 +245,7 @@ sub global_directives {
 												defined $Global::Unix_Mode
 												)
 												? ($Global::Unix_Mode || 0) : 'Yes'],
-	['TcpMap',           'hash',             '- -'],
+	['TcpMap',           'hash',             ''],
 	['Environment',      'array',            ''],
 	['TcpHost',           undef,             'localhost 127.0.0.1'],
 	['SendMailProgram',  'executable',		 [
