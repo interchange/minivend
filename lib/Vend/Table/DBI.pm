@@ -1496,7 +1496,7 @@ sub each_nokey {
 	if(! defined $return->[0]) {
 		pop @$s;
 		delete $s->[$CONFIG]{Export_order};
-		return [];
+		return ();
 	}
     return $return;
 }

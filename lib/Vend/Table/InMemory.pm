@@ -170,7 +170,7 @@ sub each_nokey {
 
 	for (;;) {
 		$key = each %{$s->[$TIE_HASH]};
-		return [] unless defined $key;
+		return () unless defined $key;
 		return [ $s->row($key) ];
 	}
 }
