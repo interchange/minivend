@@ -206,6 +206,46 @@ my %Parse = (
 							}
 							return (1, $name, '');
 						},
+	'exists'			=> sub {
+							my($name, $value, $code) = @_;
+
+							$code =~ s/(\w+)(:+(\w+))?\s*//;
+							my $tab = $1
+								or return (0, $name, errmsg("no table specified"));
+							my $col = $3;
+							my $msg = $code;
+
+							my $db = database_exists_ref($tab)
+								or do {
+									$msg = errmsg(
+										"Table %s doesn't exist",
+										$tab,
+									);
+									return(0, $name, $msg);
+								};
+							my $used;
+							if(! $col) {
+								$used = $db->record_exists($value);
+							}
+							else {
+#::logDebug("Doing foreign key check, tab=$tab col=$col value=$value");
+								$used = $db->foreign($value, $col);
+							}
+
+#::logDebug("Checking exists, tab=$tab col=$col, used=$used");
+							if($used) {
+								return (1, $name, '');
+							}
+							else {
+								$msg = errmsg(
+										"Key %s does not exist in %s, try again.",
+										$value,
+										$tab,
+									) unless $msg;
+								return(0, $name, $msg);
+							}
+
+						},
 	'unique'			=> sub {
 							my($name, $value, $code) = @_;
 
