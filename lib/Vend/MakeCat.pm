@@ -180,9 +180,9 @@ EOF
 EOF
 	permtype  =>  <<EOF,
 # The type of permission structure for multiple user catalogs.
-# Select M for each user in own group (with minivend user in group)
-#        G for all users in group of minivend user
-#        U for all catalogs owned by minivend user (must be catuser as well)
+# Select M for each user in own group (with interchange user in group)
+#        G for all users in group of interchange user
+#        U for all catalogs owned by interchange user (must be catuser as well)
 #
 #        M is recommended, G works for most installations.
 EOF
