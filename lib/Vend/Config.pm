@@ -453,7 +453,7 @@ sub catalog_directives {
 	['SeparateItems',    'yesno',			 'No'],
 	['PageSelectField',  undef,     	     ''],
 	['NonTaxableField',  undef,     	     ''],
-	['CyberCash',	 	 'yesno',     	     'No'],
+	['CyberCash',	 	 'warn',     	     ''],
 	['CreditCardAuto',	 'yesno',     	     'No'],
 	['NoCache',	     	 'boolean',    	     ''],
 	['ClearCache',	     'yesno',     	     'No'],
