@@ -34,24 +34,24 @@ use strict;
 sub array {
 	my ($s, $opt) = @_;
 	$s->{mv_one_sql_table} = 1;
-	$s->{mv_list_only} = 1;
-	Vend::Scan::perform_search($opt, undef, $s);
+	$s->{mv_list_only} = 1; # makes perform_search only return results array
+	return Vend::Scan::perform_search($opt, undef, $s);
 }
 
 sub hash {
 	my ($s, $opt) = @_;
 	$s->{mv_return_reference} = 'HASH';
 	$s->{mv_one_sql_table} = 1;
-	$s->{mv_list_only} = 1;
-	Vend::Scan::perform_search($opt, undef, $s);
+	$s->{mv_list_only} = 1; # makes perform_search only return results array
+	return Vend::Scan::perform_search($opt, undef, $s);
 }
 
 sub list {
 	my ($s, $opt) = @_;
-	$s->{mv_list_only} = 1;
 	$s->{mv_return_reference} = 'LIST';
 	$s->{mv_one_sql_table} = 1;
-	Vend::Scan::perform_search($opt, undef, $s);
+	$s->{mv_list_only} = 1; # makes perform_search only return results array
+	return Vend::Scan::perform_search($opt, undef, $s);
 }
 
 my %Default = (

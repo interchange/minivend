@@ -1279,6 +1279,66 @@ EndOfRoutine
     return $out;
 }
 
+sub import_from_ic_db {
+    my ($infile, $options, $table_name) = @_;
+
+	my $tname = $options->{MIRROR}
+		or die errmsg(
+				"Memory mirror table not specified for table %s.",
+				$table_name,
+			);
+#::logDebug("Importing mirrored $table_name from $tname");
+
+	$Vend::Database{$tname} =
+		Vend::Data::import_database($Vend::Cfg->{Database}{$tname})
+			unless $Vend::Database{$tname};
+
+	my $idb = Vend::Data::database_exists_ref($tname)
+		or die errmsg(
+				"Memory mirror table %s does not exist (yet) to create mirror %s.\n",
+				$tname,
+				$table_name,
+			);
+
+	my @field_names = $idb->columns;
+
+	my $odb;
+
+	if($options->{ObjectType}) {
+		no strict 'refs';
+		$odb = &{"$options->{ObjectType}::create"}(
+									$options->{ObjectType},
+									$options,
+									\@field_names,
+									$table_name,
+								);
+	}
+	else {
+		$odb = $options->{Object};
+	}
+
+#::logDebug("idb=$idb odb=$odb");
+	eval {
+		my $f;
+		while($f = $idb->each_nokey()) {
+#::logDebug("importing key=$f->[0]");
+			$odb->set_row(@$f);
+		}
+	};
+
+	if($@) {
+		die ::errmsg(
+				"Problem with mirror import from source %s to target %s\n",
+				$tname,
+				$table_name,
+				);
+	}
+	
+	$odb->[$CONFIG]{Mirror_complete} = 1;
+	delete $odb->[$CONFIG]{Clean_start};
+    return $odb;
+}
+
 my $white = ' \t';
 
 sub read_quoted_fields {
