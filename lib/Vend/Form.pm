@@ -559,6 +559,7 @@ sub combo {
 sub dropdown {
 	my($opt, $opts) = @_;
 #::logDebug("called select opt=" . ::uneval($opt) . "\nopts=" . ::uneval($opts));
+	$opt->{multiple} = 1 if $opt->{type} eq 'multiple';
 
 	$opts ||= [];
 
@@ -936,6 +937,8 @@ if($opt->{debug}) {
 	#            in $opt
 	my $type = parse_type($opt);
 
+#::logDebug("type=$type");
+
 	my $look;
 
 	if($opt->{passed}) {
@@ -957,7 +960,7 @@ if($opt->{debug}) {
 		$data ||= [];
 	}
 	elsif($look = $opt->{lookup}) {
-::logDebug("lookup called, opt=" . uneval($opt));
+#::logDebug("lookup called, opt=" . uneval($opt));
 		LOOK: {
 			my $tab = $opt->{db} || $opt->{table} || $Vend::Cfg->{ProductFiles}[0];
 			my $db = Vend::Data::database_exists_ref($tab)
@@ -1066,6 +1069,7 @@ if($opt->{debug}) {
 		display     => \&current_label,
 		links		=> \&links,
 		movecombo	=> \&movecombo,
+		multiple    => \&dropdown,
 		noyes		=> \&noyes,
 		option_format => \&option_widget,
 		options     => \&show_options,
@@ -1097,7 +1101,7 @@ if($opt->{debug}) {
 			|| $daction{default};
 
 	if($opt->{variant}) {
-::logDebug("variant='$opt->{variant}'");
+#::logDebug("variant='$opt->{variant}'");
 		$opt->{subwidget}	=  $Vend::UserWidget->{$opt->{variant}}
 							|| $daction{$opt->{variant}}
 							|| $daction{default};
