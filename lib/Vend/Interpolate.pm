@@ -2770,14 +2770,12 @@ sub escape_form {
 
 	$val =~ s/^\s+//mg;
 	$val =~ s/\s+$//mg;
-	my @args;
 
 	## Already escaped, return
 	return $val if $val =~ /^\S+=\S+=\S*$/;
 
-	$val =~ s/^\s+//mg;
-	$val =~ s/\s+$//mg;
-	@args = split /\n+/, $val;
+	my @args = split /\n+/, $val;
+
 	for(@args) {
 		s/^(.*?=)(.+)/$1 . Vend::Util::unhexify($2)/ge;
 	}
