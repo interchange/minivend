@@ -142,7 +142,7 @@ sub autonumber {
 	my $c = $s->[$CONFIG];
 	if(! defined $c->{AutoNumberCounter}) {
 		$c->{AutoNumberCounter} = new File::CounterFile
-									"$c->{dir}/$c->{name}.autonumber", $start;
+									"$c->{DIR}/$c->{name}.autonumber", $start;
 	}
 	my $num;
 	do {
@@ -1109,7 +1109,7 @@ EndOfRoutine
 	unlockfile(\*IN) or die "unlock\n";
     close(IN);
 	if($numeric_guess) {
-		my $fn = Vend::Util::catfile($out->[$CONFIG]{dir}, $out->[$CONFIG]{file});
+		my $fn = Vend::Util::catfile($out->[$CONFIG]{DIR}, $out->[$CONFIG]{file});
 		Vend::Util::writefile(
 					">$fn.numeric",
 					join " ", map { $field_names[$_] } @possible,
