@@ -206,7 +206,7 @@ sub read_shipping {
 			next;
 		}
 
-		next unless /\S/;
+		next if ! /\S/ or /^\s*#/;
 		s/\s+$//;
 		if(/^[^\s:]+\t/) {
 			push (@shipping, [@line]) if @line;
