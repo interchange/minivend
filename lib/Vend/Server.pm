@@ -323,7 +323,7 @@ sub parse_post {
 	my $redo;
   CGIVAL: {
   	# This loop semi-duplicated in store_cgi_kv
-	foreach $pair (@pairs) {
+	foreach $pair (grep length, @pairs) {
 		($key, $value) = ($pair =~ m/([^=]+)=(.*)/)
 			or do {
 				if ($Global::TolerateGet) {
