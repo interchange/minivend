@@ -1249,7 +1249,7 @@ GLOBLOOP:
 
 	# In case no user-supplied config has been given...returns
 	# with no effect if that has been done already.
-	get_system_code();
+	get_system_code() unless defined $SystemCodeDone;
 
 	# Do some cleanup
 	set_global_defaults();
