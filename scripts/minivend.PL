@@ -547,6 +547,7 @@ my %Ignore = qw(
 	mv_check  1
 	mv_click  1
 	mv_nextpage  1
+	mv_more_ip  1
 	mv_credit_card_number  1
 	);
 
