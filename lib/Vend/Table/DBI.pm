@@ -212,6 +212,9 @@ sub check_capability {
 	my ($config, $driver_name) = @_;
 	return if $config->{_Checked_capability}++;
 
+	$driver_name = $config->{BASE_CAPABILITY}
+		if $config->{BASE_CAPABILITY};
+
 	my ($k, $known);
 	while ( ($k, $known) = each %known_capability ) {
 		if(! defined $config->{$k} ) {
