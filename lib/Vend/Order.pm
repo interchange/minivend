@@ -115,6 +115,28 @@ my %Parse = (
 							}
 							return (1, $name, '');
 						},
+	'filter'			=> sub {		
+							my($name, $value, $code) = @_;
+							my $message;
+							my $filter;
+
+							$code =~ s/\\/\\\\/g;
+							if($code =~ /(["']).+?\1$/) {
+								my @code = Text::ParseWords::shellwords($code);
+								$message = pop(@code);
+								$filter = join " ", @code;
+							}
+							else {
+								($filter, $message) = split /\s+/, $code, 2;
+							}
+
+							my $test = Vend::Interpolate::filter_value($filter, $value, $name);
+							if($test ne $value) {
+								$message ||= errmsg("%s caught by filter %s", $name, $filter);
+								return ( 0, $name, $message);
+							}
+							return (1, $name, '');
+						},
 	'regex'			=>	sub {		
 							my($name, $value, $code) = @_;
 							my $message;
