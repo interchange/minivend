@@ -3304,7 +3304,7 @@ EOF
 #::logDebug("meta-title=$opt->{meta_title}");
 				my $title = errmsg($opt->{meta_title}, $t, $c);
 				$meta_string = <<EOF;
-<a href="$meta_url"$opt->{meta_extra} tabindex=9999><img src="$opt->{meta_image}" title="$title" $opt->{meta_image_extra}></A></A>
+<a href="$meta_url"$opt->{meta_extra} tabindex=9999><img src="$opt->{meta_image}" title="$title" $opt->{meta_image_extra}></a>
 EOF
 				if($meta_specific) {
 					$title = errmsg($opt->{meta_title_specific}, $t, $c, $key);
