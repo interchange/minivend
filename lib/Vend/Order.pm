@@ -2112,6 +2112,9 @@ sub update_quantity {
 		foreach $i (0 .. $#$cart) {
 #::logDebug("updating line $i modifiers: " . ::uneval($cart->[$i]));
 #::logDebug(qq{CGI value=$CGI::values{"$h$i"}});
+			next if
+				!   defined $CGI::values{"$h$i"}
+				and defined $cart->[$i]{$h};
 			$modifier = $CGI::values{"$h$i"}
 					  || (defined $cart->[$i]{$h} ? '' : undef);
 #::logDebug("line $i modifier $h now $modifier");
