@@ -47,19 +47,19 @@ PARSECFG: {
 
 	$file = "$VendRoot/minivend.cfg";
 	open(MVCFG, $file) or die "Couldn't read $file: $!\n";
-	while(<MVCFG>) { push(@cfglines, $_) if /^\s*(sub)?catalog\s+/i }
+	while(<MVCFG>) { push(@cfglines, $_) if /^\s*catalog\s+/i }
 	close MVCFG;
 
 	eval {
 		$file = "$VendRoot/catalogs.list";
 		open(MVCFG, $file) or die "Couldn't read $file: $!\n";
-		while(<MVCFG>) { push(@cfglines, $_) if /^\s*(sub)?catalog\s+/i }
+		while(<MVCFG>) { push(@cfglines, $_) if /^\s*catalog\s+/i }
 		close MVCFG;
 	};
 	eval {
 		$file = "$VendRoot/active.catalogs";
 		open(MVCFG, $file) or die "Couldn't read $file: $!\n";
-		while(<MVCFG>) { push(@cfglines, $_) if /^\s*(sub)?catalog\s+/i }
+		while(<MVCFG>) { push(@cfglines, $_) if /^\s*catalog\s+/i }
 		close MVCFG;
 		rename $file, "$file.bak";
 	};
@@ -67,8 +67,8 @@ PARSECFG: {
 	@cfglines = grep !$seen{$_}++, @cfglines;
 
 	for(@cfglines) {
-		next unless /^\s*(sub)?catalog\s+([-\w_]+)/i;
-		push @cats, $2;
+		next unless /^\s*catalog\s+([-\w_]+)/i;
+		push @cats, $1;
 	}
 
 }

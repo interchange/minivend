@@ -1,9 +1,10 @@
 # Table/GDBM.pm: access a table stored in a GDBM file
 #
-# $Id: GDBM.pm,v 1.9 1998/09/01 13:15:22 mike Exp mike $
+# $Id: GDBM.pm,v 1.11 1999/02/15 08:51:50 mike Exp mike $
 #
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+# Copyright 1996-1999 by Mike Heins <mikeh@minivend.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,18 +21,18 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::GDBM;
-$VERSION = substr(q$Revision: 1.9 $, 10);
-use Carp;
+$VERSION = substr(q$Revision: 1.11 $, 10);
 use strict;
 use GDBM_File;
 
-use vars qw($SQL);
+use vars qw($Storable);
 
-# See if we can do SQL queries
+# See if we can do Storable
 BEGIN {
 	eval {
-		require SQL::Statement;
-		$SQL = 1;
+		die unless $ENV{MINIVEND_STORABLE_DB};
+		require Storable;
+		$Storable = 1;
 	};
 }
 
@@ -45,7 +46,6 @@ my @Hex_string;
 
 sub stuff {
     my ($val) = @_;
-
     $val =~ s,([\t\%]),$Hex_string[ord($1)],eg;
     return $val;
 }
@@ -62,17 +62,18 @@ sub unstuff {
 # 2: column index
 # 3: tie hash
 # 4: dbm object
+# 5: configuration
 
-my ($FILENAME, $COLUMN_NAMES, $COLUMN_INDEX, $TIE_HASH, $DBM) = (0 .. 4);
+my ($FILENAME, $COLUMN_NAMES, $COLUMN_INDEX, $TIE_HASH, $DBM, $CONFIG) = (0 .. 5);
 
-sub create_table {
-    my ($class, $config, $filename, $columns) = @_;
-
-    return $class->create($columns, $filename, $config);
+sub config {
+	my ($self, $key, $value) = @_;
+	return $self->[$CONFIG]{$key} unless defined $value;
+	$self->[$CONFIG]{$key} = $value;
 }
 
 sub create {
-    my ($class, $columns, $filename, $config) = @_;
+    my ($class, $config, $columns, $filename) = @_;
 
     $config = {} unless defined $config;
     my ($File_permission_mode, $Fast_write)
@@ -80,13 +81,13 @@ sub create {
     $File_permission_mode = 0666 unless defined $File_permission_mode;
     $Fast_write = 1 unless defined $Fast_write;
 
-    croak "columns argument $columns is not an array ref\n"
+    die "columns argument $columns is not an array ref\n"
         unless ref($columns) eq 'ARRAY';
 
     # my $column_file = "$filename.columns";
     # my @columns = @$columns;
     # open(COLUMNS, ">$column_file")
-    #    or croak "Couldn't create '$column_file': $!";
+    #    or die "Couldn't create '$column_file': $!";
     # print COLUMNS join("\t", @columns), "\n";
     # close(COLUMNS);
 
@@ -100,11 +101,11 @@ sub create {
     my $flags = GDBM_NEWDB;
     $flags |= GDBM_FAST if $Fast_write;
     my $dbm = tie(%$tie, 'GDBM_File', $filename, $flags, $File_permission_mode)
-        or croak "Could not create '$filename': $!";
+        or die "Could not create '$filename': $!";
 
     $tie->{'c'} = join("\t", @$columns);
 
-    my $self = [$filename, $columns, $column_index, $tie, $dbm];
+    my $self = [$filename, $columns, $column_index, $tie, $dbm, $config];
     bless $self, $class;
 }
 
@@ -123,8 +124,18 @@ sub open_table {
         $flags |= GDBM_FAST if $Fast_write;
     }
 
-    my $dbm = tie(%$tie, 'GDBM_File', $filename, $flags, 0600)
-        or croak "Could not open '$filename': $!";
+	my $dbm;
+    my $failed = 0;
+
+    while( $failed < 10 ) {
+        $dbm = tie(%$tie, 'GDBM_File', $filename, $flags, 0600)
+            and undef($failed), last;
+        $failed++;
+        select(undef,undef,undef,$failed * .100);
+    }
+
+    die("Could not tie to '$filename': $!")
+        if $failed;
 
     my $columns = [split(/\t/, $tie->{'c'})];
 
@@ -134,14 +145,14 @@ sub open_table {
         $column_index->{$columns->[$i]} = $i;
     }
 
-    my $self = [$filename, $columns, $column_index, $tie, $dbm];
+    my $self = [$filename, $columns, $column_index, $tie, $dbm, $config];
     bless $self, $class;
 }
 
 sub close_table {
     my ($s) = @_;
-	pop(@$s);
-	my $ref = pop(@$s);
+	splice(@$s, $DBM, 1);
+	my $ref = splice(@$s, $TIE_HASH, 1);
     untie %$ref or die "Could not close GDBM table $s->[$FILENAME]: $!\n";
 }
 
@@ -160,24 +171,29 @@ sub test_column {
 sub column_index {
     my ($s, $column) = @_;
     my $i = $s->[$COLUMN_INDEX]{$column};
-    croak "There is no column named '$column'" unless defined $i;
+    die "There is no column named '$column'" unless defined $i;
     return $i;
 }
 
 sub row_hash {
     my ($s, $key) = @_;
-    my $line = $s->[$TIE_HASH]{"k$key"};
-    croak "There is no row with index '$key'" unless defined $line;
 	my %row;
-    @row{ @{$s->[$COLUMN_NAMES]}} = map(unstuff($_), split(/\t/, $line, 9999));
+    @row{ @{$s->[$COLUMN_NAMES]} } = $s->row($key);
 	return \%row;
 }
 
-sub row {
+sub unstuff_row {
     my ($s, $key) = @_;
     my $line = $s->[$TIE_HASH]{"k$key"};
-    croak "There is no row with index '$key'" unless defined $line;
+    die "There is no row with index '$key'" unless defined $line;
     return map(unstuff($_), split(/\t/, $line, 9999));
+}
+
+sub thaw_row {
+    my ($s, $key) = @_;
+    my $line = $s->[$TIE_HASH]{"k$key"};
+    die "There is no row with index '$key'" unless defined $line;
+    return @{ Storable::thaw($line) };
 }
 
 sub field_accessor {
@@ -200,11 +216,26 @@ sub field_settor {
     };
 }
 
-sub set_row {
+sub stuff_row {
     my ($s, $key, @fields) = @_;
     my $line = join("\t", map(stuff($_), @fields));
     $s->[$TIE_HASH]{"k$key"} = $line;
 }
+
+sub freeze_row {
+    my ($s, $key, @fields) = @_;
+    $s->[$TIE_HASH]{"k$key"} = Storable::freeze(\@fields);
+}
+
+if($Storable) {
+	*set_row = \&freeze_row;
+	*row = \&thaw_row;
+}
+else {
+	*set_row = \&stuff_row;
+	*row = \&unstuff_row;
+}
+
 
 sub field {
     my ($s, $key, $column) = @_;
@@ -240,13 +271,13 @@ sub ref {
 
 sub each_record {
     my ($s) = @_;
-    my ($key, $value);
+    my $key;
 
     for (;;) {
-        ($key, $value) = each %{$s->[3]};
+        $key = each %{$s->[3]};
         if (defined $key) {
             if ($key =~ s/^k//) {
-                return ($key, map(unstuff($_), split(/\t/, $value, 9999)));
+                return ($key, $s->row($key));
             }
         }
         else {

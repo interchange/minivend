@@ -1,0 +1,175 @@
+<HTML>
+<HEAD>
+<TITLE>[dv site_name] -- [L]Shopping Cart Contents[/L]</TITLE>
+</HEAD>
+<BODY [dv body]>
+<CENTER>
+<FORM ACTION="[process-target secure=1]" METHOD=POST>
+<INPUT TYPE=hidden NAME=mv_session_id VALUE="[data session id]">
+<input type="hidden" name="mv_doit" value="refresh">
+<input type="hidden" name="mv_orderpage" value="ord/basket">
+<input type="hidden" name="mv_checkout" value="ord/checkout">
+<input type="hidden" name="mv_nextpage" value="redirect">
+[if-dv smlogo]
+<A HREF="[dv url]">
+<IMG BORDER=0 SRC="[dv smlogo]" ALT="[dv site_name] Logo" ALIGN="CENTER">
+</A>[/if-dv]
+<TABLE BORDER=0>
+<CAPTION><FONT SIZE=7>[L]Shopping Cart Contents[/L]</FONT><BR></CAPTION>
+<TR>
+	<TH BGCOLOR="[dv header_bgcolor]" WIDTH=70 VALIGN=BOTTOM><FONT COLOR="[dv header_textcolor]">
+	[L]SKU[/L]
+	</TH>
+	<TH BGCOLOR="[dv header_bgcolor]" VALIGN=BOTTOM ALIGN=LEFT><FONT COLOR="[dv header_textcolor]">
+	[L]Description[/L]
+	</TH>
+	<TH BGCOLOR="[dv header_bgcolor]" WIDTH=70 VALIGN=BOTTOM ALIGN=center><FONT COLOR="[dv header_textcolor]">
+	[L]Quantity[/L]
+	</TH>
+	<TH BGCOLOR="[dv header_bgcolor]" WIDTH=90 VALIGN=BOTTOM ALIGN=center><FONT COLOR="[dv header_textcolor]">
+	[L]Price[/L]
+	</TH>
+	<TH BGCOLOR="[dv header_bgcolor]" WIDTH=90 VALIGN=BOTTOM ALIGN=center><FONT COLOR="[dv header_textcolor]">
+	[L]Extension[/L]
+	</TH>
+</TR>
+[if items]
+[then]
+[item-list]
+<TR>
+<P>
+	<TD BGCOLOR="#FFFFFF" VALIGN=TOP align=center>
+	[item-code]<FONT COLOR="#000000" SIZE="-2"><BR><INPUT TYPE=checkbox NAME="[quantity-name]"
+			   onClick="this.form.action='[process-target]',
+			   			this.form.submit()"
+			   VALUE=0> </FONT><FONT SIZE="-1">[L]remove[/L]</FONT></TD>
+	<TD BGCOLOR="#FFFFFF" VALIGN=TOP MARGINWIDTH=12 MARGINHEIGHT=12>
+	<FONT COLOR="#000000">
+	[if-field url]
+		<A HREF="[item-field url]">[item-description]</A>
+	[else]
+		[item-description]
+	[/else]
+	[/if-field]
+	<BR><FONT SIZE="-1">
+	[item-accessories size][item-accessories color]</FONT>	
+	</TD>
+	<TD BGCOLOR="#FFFFFF" VALIGN=TOP ALIGN=CENTER><FONT COLOR="#000000">
+	<INPUT TYPE="text"
+		NAME="[quantity-name]" VALUE="[item-quantity]" size=3>
+
+	</TD>
+	<TD BGCOLOR="#FFFFFF" VALIGN=TOP ALIGN=RIGHT><FONT COLOR="#000000">
+		[discount-price]
+	</TD>
+	<TD BGCOLOR="#FFFFFF" VALIGN=TOP ALIGN=RIGHT><FONT COLOR="#000000">
+		[item-subtotal]
+	</TD>
+</TR>
+[/item-list]
+[/then]
+[else]
+	<TR><TD ALIGN=CENTER COLSPAN=5 BGCOLOR="#FFFFFF"><FONT COLOR="#000000">
+		<H3>[L]No items at the moment.[/L]</H3>
+	</TD></TR>
+[/else]
+[/if]
+<TR>
+<TD BGCOLOR="[dv header_bgcolor]" COLSPAN=4 ALIGN=RIGHT VALIGN=CENTER>
+<FONT COLOR="[dv header_textcolor]">
+<input type="submit"
+	onClick="this.form.action='[process-target]'"
+	name="mv_submit" value="[L]Recalculate[/L]">
+<IMG BORDER=0 WIDTH=50 HEIGHT=2 SRC="bg.gif" ALT=" . . ">
+<IMG BORDER=0 WIDTH=50 HEIGHT=2 SRC="bg.gif" ALT=" . . ">
+	<B>[L]Subtotal[/L]</B></TD>
+<TD BGCOLOR="[dv header_bgcolor]" ALIGN=RIGHT VALIGN=CENTER><FONT COLOR="[dv header_textcolor]">[subtotal]</TD>
+</TR>
+<TR>
+<TD BGCOLOR="[dv header_bgcolor]" COLSPAN=5 ALIGN=CENTER>
+<FONT COLOR="[dv header_textcolor]">
+<input type="submit" name="mv_click" value="[L]Check out[/L]">
+<input type="submit"
+	onClick="this.form.action='[process-target]'"
+	name="mv_click" value="[L]Continue Shopping[/L]">
+</TD>
+</TR>
+</TABLE>
+</FORM>
+
+
+<P>
+
+[if session logged_in]
+[then]
+<P>
+    <FORM ACTION="[process-target]" METHOD=POST>
+    [L]Hi[/L] [value name]! [L]You are logged in as user[/L] <B>[value mv_username]</B>.
+	<BR>
+	<TABLE><TR><TD><INPUT TYPE=submit NAME="mv_click" VALUE="Log out"></TD>
+		<TD><A HREF="[area new_account]">Change your password</A><BR>
+		[if type=data term="userdb::acl::[data session username]"]
+		<A HREF="[area query/check_orders]">Check order status</A><BR>
+		[/if]
+		[if session username eq 'flycat']
+		<A HREF="[area cartcfg/master_edit]">Edit vendor configurations</A>
+		[elsif type=data
+			term="userdb::acl::[data session username]"
+			op="=~"
+			compare="/cartcfg/"]
+		<A HREF="[area cartcfg/editcart]">Edit your vendor configuration</A>
+		[/elsif]
+		[/if]</TD></TR></TABLE>
+	</FORM>
+[set Log out]
+mv_todo=return
+mv_nextpage=ord/basket
+[userdb logout]
+[/set]
+[/then]
+[else]
+[set Login]
+[userdb login]
+[/set]
+<P>
+[if session failure]
+[data session failure]
+[/if]
+<P>
+[L]If you have an account with us, please enter your user name and password[/L]. (test/test for testing)
+<P>
+    <FORM ACTION="[process-target]" METHOD=POST>
+    <INPUT TYPE=hidden NAME=mv_click VALUE=Login>
+    <INPUT TYPE=hidden NAME=mv_doit  VALUE=return>
+    <INPUT TYPE=hidden NAME=mv_nextpage VALUE="ord/basket">
+
+    <TABLE CELLSPACING=0 CELLPADDING=0>
+    <TR><TD ALIGN=RIGHT>[L]Username[/L]</TD>
+        <TD><INPUT NAME=mv_username VALUE="[value mv_username]" SIZE=10>
+		[page new_account][L]Create a new account[/L][/page]
+        </TD></TR>
+
+    <TR><TD ALIGN=RIGHT>[L]Password[/L]</TD>
+        <TD><INPUT
+				onChange="this.form.submit()"
+			  TYPE=password NAME=mv_password VALUE="" SIZE=10>
+        <INPUT TYPE=submit VALUE="[L]Log in[/L]"> &nbsp;&nbsp;
+        </TD></TR>
+    </TABLE>
+
+    </FORM>
+[/else][/if]
+
+[set [L]Continue Shopping[/L]]
+mv_todo=return
+mv_nextpage=redirect
+[/set]
+
+[set [L]Check out[/L]]
+mv_todo=return
+mv_nextpage=ord/checkout
+[/set]
+
+<BR>
+
+</body> </html>

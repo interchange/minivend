@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 #
-# MiniVend version 3.08
+# MiniVend version 3.12
 #
-# $Id: Cart.pm,v 1.12 1998/05/02 03:02:04 mike Exp $
+# $Id: Cart.pm,v 1.13 1999/02/15 08:50:23 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -11,7 +11,7 @@
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
 # Enhancements made by and
-# Copyright 1996 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -36,18 +36,17 @@ require Exporter;
 @EXPORT_OK = qw(create add set);
 
 
-$VERSION = substr(q$Revision: 1.12 $, 10);
+$VERSION = substr(q$Revision: 1.13 $, 10);
 $DEBUG   = 0;
 
-use Carp;
 use vars qw($DEBUG $VERSION);
 use strict;
 
 sub create {
     my($name, @attributes) = @_;
-	croak "New shopping cart $name defined with no name.\n"
+	die "New shopping cart $name defined with no name.\n"
 		unless defined $name;
-	return $Vend::Session->{'carts'}->{$name} = [];
+	return $Vend::Session->{'carts'}{$name} = [];
 }
 
 sub add {
@@ -56,7 +55,7 @@ sub add {
 	my $i;
 	
 	! defined $item{'code'} or $item{'code'} eq ''
-		and croak "Vend::Cart: add empty item?";
+		and die "Vend::Cart: add empty item?";
 
 	$item{'quantity'} ||= 1;
 	$item{'quantity'} < 1 and die "Can't order negative number.\n";
@@ -153,15 +152,15 @@ sub toss_cart {
 
 sub set_cart {
 	my($cart) = @_;
-	defined $cart and defined $Vend::Session->{'carts'}->{$cart}
-	    and return $Vend::Items = $Vend::Session->{'carts'}->{$cart};
+	defined $cart and defined $Vend::Session->{'carts'}{$cart}
+	    and return $Vend::Items = $Vend::Session->{'carts'}{$cart};
 	return $Vend::Items;
 }
 
 sub get_cart {
 	my($cart,@options) = @_;
-	if(defined $cart and defined $Vend::Session->{'carts'}->{$cart}) {
-	    return $Vend::Session->{'carts'}->{$cart};
+	if(defined $cart and defined $Vend::Session->{'carts'}{$cart}) {
+	    return $Vend::Session->{'carts'}{$cart};
 	}
 	elsif(defined $cart and $cart) {
 		return create $cart;

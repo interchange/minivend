@@ -1,9 +1,9 @@
 # Session.pm - Minivend Sessions
 #
-# $Id: Session.pm,v 1.32 1998/09/01 13:15:22 mike Exp mike $
+# $Id: Session.pm,v 1.34 1999/02/15 08:51:29 mike Exp mike $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
-# Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ package Vend::Session;
 require Exporter;
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.32 $, 10);
+$VERSION = substr(q$Revision: 1.34 $, 10);
 
 @ISA = qw(Exporter);
 
@@ -43,7 +43,6 @@ session_name
 );
 
 use strict;
-use Carp;
 use Fcntl;
 use Vend::Util;
 
@@ -180,7 +179,7 @@ sub new_session {
 			last unless exists $Vend::SessionDBM{$name};
 		}
     }
-	$CGI::cookie = '';
+	$CGI::cookie = $Vend::Cookie = '';
     $Vend::SessionName = $name;
     init_session();
 	return if $File_sessions;
@@ -392,7 +391,6 @@ sub init_session {
     $Vend::Session = {
 	'version' => 1,
 	'frames' => $Vend::Cfg->{FramesDefault},
-	'login' => '',
 	'arg' => $Vend::Argument,
 	'browser' => $CGI::useragent,
 	'referer' => $CGI::referer,

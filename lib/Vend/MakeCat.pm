@@ -2,9 +2,9 @@
 #
 # MakeCat.pm - routines for catalog configurator
 #
-# $Id $
+# $Id: MakeCat.pm,v 1.16 1999/02/15 08:51:05 mike Exp $
 #
-# Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -54,7 +54,7 @@ sethistory
 use strict;
 
 use vars qw($Force $Error $History $VERSION);
-$VERSION = substr(q$Revision: 1.14 $, 10);
+$VERSION = substr(q$Revision: 1.16 $, 10);
 
 $Force = 0;
 $History = 0;
@@ -147,10 +147,10 @@ EOF
 #
 EOF
 	demotype   =>  <<EOF,
-# The type of demo catalog to use, sample or simple.
+# The type of demo catalog to use, simple or flycat.
 #
-#    sample -- frame-based high-end catalog
-#    simple -- no frames, good basic catalog
+#    simple -- database-based catalog
+#    flycat -- on-the-fly non-database catalog
 #
 # If you have defined your own custom template catalog,
 # you can enter it's name.
@@ -199,7 +199,7 @@ EOF
 # directive in the catalog configuration file. This is a URL
 # fragment, not a directory or file name.
 #
-#         <IMG SRC="/sample/images/icon.gif">
+#         <IMG SRC="/simple/images/icon.gif">
 #                   ^^^^^^^^^^^^^^
 #
 EOF
@@ -496,6 +496,7 @@ sub prompt {
 
     print $prompt;
     print "[$default] " if $default;
+	local ($/) = "\n";
     chomp($ans = <STDIN>);
     $ans ? $ans : $default;
 }
@@ -626,7 +627,7 @@ sub conf_parse_http {
 	$data =~ s!
 				<virtualhost
 				\s+
-					([^>]+)
+					([^>\n]+)
 				\s*>\s+
 					([\000-\377]*?)
 				</virtualhost>!
@@ -667,6 +668,7 @@ sub conf_parse_http {
 		for(@data) {
 			next unless /^\s*servername\s+(.*)/i;
 			$servname = $1;
+			$servname =~ s/\s+$//;
 			if(defined $servers->{$servname} and $port) {
 				$servname .= ":$port";
 			}
@@ -678,7 +680,8 @@ sub conf_parse_http {
 		}
 		
 		if($handle eq ' ') {
-			chomp($servname = `hostname`) unless $servname;
+			$servname = `hostname` unless $servname;
+			$servname =~ s/\s+$//;
 			$main = $servname;
 		}
 		next unless $servname;

@@ -26,7 +26,6 @@ $VERSION = substr(q$Revision: 1.5 $, 10);
 
 @EXPORT = qw ( fake_html );
 
-use Carp;
 use strict;
 use Vend::Util;
 use Vend::Data;

@@ -1,9 +1,9 @@
 # Config.pm - Configure Minivend
 #
-# $Id: Config.pm,v 1.54 1998/09/01 13:15:22 mike Exp mike $
+# $Id: Config.pm,v 1.56 1999/02/15 08:50:46 mike Exp mike $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
-# Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -35,13 +35,12 @@ use vars qw(
 			@Locale_directives_ary @Locale_directives_scalar
 			@Locale_directives_currency @Locale_keys_currency
 			);
-use Carp;
 use Safe;
 use Fcntl;
 use Vend::Parse;
 use Vend::Util;
 
-$VERSION = substr(q$Revision: 1.54 $, 10);
+$VERSION = substr(q$Revision: 1.56 $, 10);
 
 for( qw(search refresh cancel return secure unsecure submit control checkout) ) {
 	$Global::LegalAction{$_} = 1;
@@ -149,21 +148,22 @@ sub global_directives {
     ['TcpPort',          'integer',          '7786'],
     ['TcpMap',           'hash',             '7786 mv_admin 7787 "" 7788 "" 7789 ""'],
 	['Environment',      'array',            ''],
-    ['TcpHost',           undef,             'localhost'],
+    ['TcpHost',           undef,             'localhost 127.0.0.1'],
 	['SendMailProgram',  'executable',		$Global::SendMailLocation
 												|| '/usr/lib/sendmail'],
     ['ForkSearches',	  undef,     	     ''],  # Prevent errors on 2.02 upgrade
 	['HouseKeeping',     'integer',          60],
 	['Mall',	          'yesno',           'No'],
-	['MaxServers',       'integer',          2],
+	['MaxServers',       'integer',          10],
 	['GlobalSub',		 'subroutine',       ''],
 	['FullUrl',			 'yesno',            'No'],
 	['Locale',			 'locale',            ''],
+	['HitCount',		 'yesno',            'No'],
 	['IpHead',			 'yesno',            'No'],
 	['IpQuad',			 'integer',          '1'],
 	['TemplateDir',      'root_dir', 	     ''],
 	['DomainTail',		 'yesno',            'Yes'],
-	['SafeSignals',	 	 'yesno',            'Yes'],
+	['SafeSignals',	 	 'warn',             ''],
 	['AcrossLocks',		 'yesno',            'No'],
 	['PIDcheck',		 'integer',          '0'],
     ['LockoutCommand',    undef,             ''],
@@ -183,7 +183,7 @@ sub global_directives {
 	['AdminUser',		  undef,			 ''],
 	['AdminHost',		  undef,			 ''],
     ['HammerLock',		 'integer',     	 30],
-    ['TolerateGet',		 'yesno',     	 	'No'],
+    ['TolerateGet',		 'yesno',     	 	'Yes'],
     ['DebugMode',		 'integer',     	     0],
     ['CheckHTML',		  undef,     	     ''],
 	['Variable',	  	 'variable',     	 ''],
@@ -210,7 +210,7 @@ sub catalog_directives {
 	['ProductDir',       'relative_dir',     'products'],
 	['OfflineDir',       'relative_dir',     'offline'],
 	['DataDir',          'relative_dir',     'products'],
-	['ConfigDir',        'relative_dir',     'config'],
+	['ConfigDir',        'relative_dir',	 'config'],
 	['TemplateDir',      'dir_array', 		 ''],
 	['ConfigDatabase',	 'config_db',	     ''],
 	['Delimiter',        'delimiter',        'TAB'],
@@ -219,6 +219,7 @@ sub catalog_directives {
 	['FieldDelimiter',   'variable',         ''],
     ['ParseVariables',	 'yesno',     	     'No'],
     ['SpecialPage',		 'special',     	 ''],
+    ['SpecialFile',		 'special',     	 ''],
     ['ActionMap',		 'action',	     	 ''],
 	['VendURL',          'url',              undef],
 	['SecureURL',        'url',              undef],
@@ -249,10 +250,8 @@ sub catalog_directives {
 	['DirectiveDatabase', undef,             ''],
 	['VariableDatabase',  undef,         	 ''],
     ['RequiredFields',   undef,              ''],
-    ['SqlHost',   	 	 undef,              'localhost'],
     ['MsqlProducts',   	 'warn',            ''],
-    ['MsqlDB',   		 undef,              'minivend'],
-    ['SqlDB',   		 undef,              'sqlvend'],
+    ['MsqlDB',   		 'warn',             ''],
     ['ReceiptPage',      'valid_page',       ''],
     ['ReportIgnore',     undef, 			 'credit_card_no,credit_card_exp'],
     ['OrderCounter',	 undef,     	     ''],
@@ -282,6 +281,7 @@ sub catalog_directives {
     ['FallbackIP',		 'yesno',     	     'No'],
     ['WideOpen',		 'yesno',     	     'No'],
     ['Cookies',			 'yesno',     	     'Yes'],
+	['CookieLogin',      'yesno',            'No'],
 	['CookieDomain',     undef,              ''],
     ['MasterHost',		 undef,     	     ''],
     ['UserTag',			 'tag', 	    	 ''],
@@ -312,14 +312,14 @@ sub catalog_directives {
     ['StaticAll',		 'yesno',     	     'No'],
     ['StaticDepth',		 undef,     	     '1'],
     ['StaticFly',		 'yesno',     	     'No'],
+    ['StaticLogged',	 'yesno',     	     'No'],
     ['StaticDir',		 undef,     	     ''], 
-    ['UserDatabase',	 undef,		     	 ''],  #undocumented
+	['UserDB',			 'locale',	     	 ''], 
+	['UserDatabase',	 undef,		     	 ''],  #undocumented
     ['AdminDatabase',	 'boolean',     	 ''], 
     ['AdminPage',		 'boolean',     	 ''],
-    ['RobotLimit',		 'integer',		      0],  #undocumented
-    ['OrderLineLimit',	 'integer',		      0],  #undocumented
-    ['PasswordFile',	 undef,		     	 ''],  #undocumented, unused
-    ['GroupFile',		 undef,		     	 ''],  #undocumented, unused
+    ['RobotLimit',		 'integer',		      0],
+    ['OrderLineLimit',	 'integer',		      0],
     ['StaticPage',		 'boolean',     	 ''],
     ['StaticPath',		 undef,     	     '/'],
     ['StaticPattern',	 'regex',     	     ''],
@@ -573,6 +573,11 @@ CONFIGLOOP: {
 		}
 	}
 
+	if(-f "$Global::ConfDir/$C->{CatalogName}.before") {
+		unshift @include, $C->{ConfigFile};
+		$C->{ConfigFile} = "$Global::ConfDir/$C->{CatalogName}.before";
+	}
+
     open(Vend::CONFIG, $C->{ConfigFile})
 		or do {
 			my $msg = "Could not open configuration file '" . $C->{ConfigFile} .
@@ -600,7 +605,7 @@ CONFIGLOOP: {
 		$var = $1;
 		$value = $2;
 		($lvar = $var) =~ tr/A-Z/a-z/;
-		my($codere) = '[\w-_#/.]+';
+		my($codere) = '[\w-_#/.:]+';
 
 		if ($value =~ /^(.*)<<(\w+)\s*/) {                  # "here" value
 			my $begin  = $1 || '';
@@ -624,17 +629,18 @@ CONFIGLOOP: {
 			}
 			$file = $name{$lvar} unless $file;
 			if($Global::NoAbsolute) {
-			config_error(
-			  "No leading / allowed if NoAbsolute set. Contact administrator.\n")
-				if $file =~ m.^/.;
-			config_error(
+				config_error(<<EOF) if Vend::Util::file_name_is_absolute($file);
+Absolute filenames not allowed if NoAbsolute set. Contact administrator.
+EOF
+				config_error(
 			  "No leading ../.. allowed if NoAbsolute set. Contact administrator.\n")
-				if $file =~ m#^\.\./.*\.\.#;
-			config_error(
+					if $file =~ m#^\.\./.*\.\.#;
+				config_error(
 			  "Symbolic links not allowed if NoAbsolute set. Contact administrator.\n")
-				if -l $file;
+					if -l $file;
 			}
-			$file = "$C->{ConfigDir}/$file" unless $file =~ m!^/!;
+			$file = "$C->{ConfigDir}/$file"
+				unless Vend::Util::file_name_is_absolute($file);
 			$file = escape_chars($file);			# make safe for filename
 			my $tmpval = readfile($file);
 			unless( defined $tmpval ) {
@@ -769,6 +775,11 @@ CONFIGLOOP: {
 
 	if(@include) {
 		$C->{ConfigFile} = shift @include;
+		redo CONFIGLOOP;
+	}
+
+	if(-f "$Global::ConfDir/$C->{CatalogName}.after") {
+		$C->{ConfigFile} = "$Global::ConfDir/$C->{CatalogName}.after";
 		redo CONFIGLOOP;
 	}
 
@@ -1233,38 +1244,16 @@ sub parse_locale {
 # Sets the special page array
 sub parse_special {
 	my($item,$settings) = @_;
-	unless ($settings) {
-		my $c = {};
-	# Set the special page array
-		%$c = (
-		qw(
-			badsearch		badsearch
-			canceled		canceled
-			catalog			catalog
-			checkout		checkout
-			confirmation	confirmation
-			control			control
-			failed			failed
-			flypage			flypage
-			interact		interact
-			missing			missing	
-			needfield		needfield
-			nomatch			nomatch
-			noproduct		noproduct
-			notfound		notfound
-			order			order
-			order_security	order_security
-			search			search
-			violation		violation
-			)
-		);
-		return $c;
-	}
+	return {} unless $settings;
 	my(%setting) = grep /\S/, split /[\s,]+/, $settings;
 	for (keys %setting) {
-		$C->{'SpecialPage'}->{$_} = $setting{$_};
+		if($Global::NoAbsolute and file_name_is_absolute($setting{$_}) ) {
+			config_warn("Absolute file name not allowed: $setting{$_}\n");
+			next;
+		}
+		$C->{$item}{$_} = $setting{$_};
 	}
-	return $C->{'SpecialPage'};
+	return $C->{$item};
 }
 
 sub parse_hash {
@@ -1367,7 +1356,7 @@ sub parse_root_dir {
     my($var, $value) = @_;
 	return [] unless $value;
     $value = "$Global::VendRoot/$value"
-		unless File::Spec->file_name_is_absolute($value);
+		unless Vend::Util::file_name_is_absolute($value);
     $value =~ s./+$..;
 	no strict 'refs';
     my $c = ${"Global::$var"} || [];
@@ -1379,7 +1368,7 @@ sub parse_dir_array {
     my($var, $value) = @_;
 	return [] unless $value;
     $value = "$C->{VendRoot}/$value"
-		unless File::Spec->file_name_is_absolute($value);
+		unless Vend::Util::file_name_is_absolute($value);
     $value =~ s./+$..;
     $C->{$var} = [] unless $C->{$var};
     my $c = $C->{$var} || [];
@@ -1396,14 +1385,14 @@ sub parse_relative_dir {
 	config_error(
 	  "No leading / allowed if NoAbsolute set. Contact administrator.\n"
 	  )
-	  if File::Spec->file_name_is_absolute($value) and $Global::NoAbsolute;
+	  if Vend::Util::file_name_is_absolute($value) and $Global::NoAbsolute;
 	config_error(
 	  "No leading ../.. allowed if NoAbsolute set. Contact administrator.\n"
 	  )
 	  if $value =~ m#^\.\./.*\.\.# and $Global::NoAbsolute;
 
     $value = "$C->{'VendRoot'}/$value"
-		unless File::Spec->file_name_is_absolute($value);
+		unless Vend::Util::file_name_is_absolute($value);
     $value =~ s./+$..;
     $value;
 }
@@ -1424,7 +1413,8 @@ sub parse_url {
     config_warn(
       "The $var directive (now set to '$value') should probably\n" .
       "start with 'http:' or 'https:'")
-	unless $value eq '/mv_admin' or $value =~ m/^https?:/i;
+	unless $value eq '/mv_admin' or $value =~ m/^https?:/i
+	or $Vend::InternalHTTP;
     $value =~ s./$..;
     $value;
 }
@@ -1607,7 +1597,7 @@ sub parse_config_db {
 			}
 		}
 		elsif(	$type =~ /^msql\b/i	) {
-			$d->{'type'} = 7;
+			$d->{'type'} = 8;
 		}
 		elsif(	"\U$type" eq 'TAB'	) {
 			$d->{'type'} = 6;
@@ -1701,7 +1691,7 @@ sub parse_database {
 		$new = 1 if ! defined $c->{$database};
 	}
 	elsif( defined $c->{$database}->{",default"} ) {
-		$new = 1 if not defined $c->{$database}->{",initialized"};
+		$new = 1 if ($C->{BaseCatalog} || ! defined $c->{$database}->{",initialized"});
 		$c->{$database}->{",initialized"} = 1;
 	}
 	else {
@@ -1725,7 +1715,7 @@ sub parse_database {
 			}
 		}
 		elsif(	$type =~ /^msql\b/i	) {
-			$d->{'type'} = 7;
+			$d->{'type'} = 8;
 		}
 		elsif(	"\U$type" eq 'TAB'	) {
 			$d->{'type'} = 6;
@@ -1749,6 +1739,7 @@ sub parse_database {
 			$d->{'type'} = 1;
 			$d->{'DELIMITER'} = $type;
 		}
+		$d->{Class} = $d->{'type'} eq '8' ? 'DBI' : $Global::Default_database;
 	}
 	else {
 		my($p, $val) = split /\s+/, $remain, 2;
@@ -1768,6 +1759,9 @@ sub parse_database {
 			my(@v) = Text::ParseWords::shellwords($val);
 			$d->{$p} = [] unless defined $d->{$p};
 			push @{$d->{$p}}, @v;
+		}
+		elsif ($p =~ /^(MEMORY|GDBM|DB_FILE)$/i) {
+			$d->{Class} = uc $p;
 		}
 		elsif ($p eq 'ALIAS') {
 			if (defined $c->{$val}) {
@@ -1861,6 +1855,7 @@ sub save_variable {
 my %tagCanon = ( qw(
 
 	alias			Alias
+	addattr  		addAttr
 	attralias		attrAlias
 	cannest			canNest
 	endhtml			endHTML
@@ -1884,12 +1879,17 @@ my %tagCanon = ( qw(
 
 
 my %tagAry 	= ( qw! Order 1 Required 1 ! );
-my %tagHash	= ( qw! replaceAttr 1 Implicit 1 attrAlias 1 ! );
+my %tagHash	= ( qw!
+				replaceAttr	1
+				Implicit	1
+				attrAlias	1
+				! );
 my %tagBool = ( qw!
 				hasEndTag	1
 				Interpolate 1
 				canNest		1
 				isEndAnchor	1
+				addAttr 	1
 				isOperator	1
 				! );
 

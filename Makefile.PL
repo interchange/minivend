@@ -26,7 +26,7 @@ my @mods_to_get;
 my $Lock_troubles;
 my $Windows;
 
-$VERSION = '3.11';
+$VERSION = '3.12';
 
 # See if we have the CPAN module
 my $Cpan = 0;
@@ -235,7 +235,7 @@ sub copyright_prompt {
 
  MiniVend V$VERSION
  
- Copyright 1996-1998 by Michael J. Heins <mikeh\@minivend.com>
+ Copyright 1996-1999 by Michael J. Heins <mikeh\@minivend.com>
 
  MiniVend is free under the terms of the GNU General Public License.
 
@@ -446,6 +446,64 @@ EOF
 	}
 
 
+	eval {
+		require Business::UPS;
+	};
+	if ($@) {
+		push @extra_lib_dirs, 'Business';
+		push @extra_lib_files, 'Business/UPS.pm';
+	}
+
+	eval {
+		require Storable;
+	};
+	unless ($@) {
+				my $def = 'n';
+		        print <<EOF;
+
+You appear to have Raphael Manfredi's Storable module installed.
+
+This module will significantly improve your DBM storage and
+fetch times.
+
+You can reply one of:
+
+		n -- Don't use Storable
+		s -- Use for sessions only, won't break existing databases
+		y -- Use for both sessions and databases
+
+It is recommended that new installations reply YES, and that
+existing installations reply S unless there is a need for
+improved performance. Replying S will mean you have to delete all
+of your session files.
+
+If you reply YES and you use any GDBM or DB_File databases
+they will NEED TO BE REMADE for ALL CATALOGS using this
+MiniVend server instance.
+EOF
+
+		if($ENV{MINIVEND_STORABLE_DB} || -f "$realdir/_db_storable") {
+			$def = 'y';
+		}
+		elsif($ENV{MINIVEND_STORABLE} || -f "$realdir/_session_storable") {
+			$def = 's';
+		}
+		my $ask = my_prompt("Use Storable module? (y/n/s) ", $def);
+		if ($ask =~ /^\s*(y|d)/i) {
+			open(TSTORABLE, ">$realdir/_db_storable")
+				or die "creat $realdir/_db_storable: $!\n";
+			print TSTORABLE "REMOVE THIS FILE TO STOP USING Storable\n";
+			close TSTORABLE;
+		}
+		if ($ask =~ /^\s*(y|s)/i) {
+			open(TSTORABLE, ">$realdir/_session_storable")
+				or die "creat $realdir/_session_storable: $!\n";
+			print TSTORABLE "REMOVE THIS FILE TO STOP USING Storable\n";
+			close TSTORABLE;
+		}
+	}
+
+
 MODCHECK: {
 
 	last MODCHECK unless $Cpan;
@@ -518,9 +576,11 @@ EOF
 
 		print <<EOF;
 
-You may wish to inspect minivend.cfg.dist for new values.
+You may wish to inspect minivend.cfg.dist for new values; in
+particular if you want to use the newer demo you might need some
+UserTag entries defined there.
 
-Check the README file for changes you might have to make if
+Check the UPGRADE file for changes you might have to make if
 updating from an earlier version of MiniVend.
 EOF
 

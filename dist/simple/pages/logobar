@@ -1,0 +1,23 @@
+
+<STYLE>
+<!--
+.navbar {color: white;}
+.link {text-decoration: none}
+-->
+</STYLE>
+
+<TABLE WIDTH="100%" CELLSPACING="0" BORDER="0" CELLPADDING="0">
+              <TR>
+			   <TD>
+				   <A HREF="[area]"><IMG SRC="[var SMLOGO]" ALT="[var COMPANY]" BORDER="0"></A><BR>
+			   </TD>
+			   <TD ALIGN="right">
+				[rotate floor=1 ceiling=2]
+			   </TD>
+			   <TD WIDTH="20">
+			   &nbsp;
+			   </TD>
+  </TR>
+<TR><TD COLSPAN=3>&nbsp;</TD></TR>
+</TABLE>
+

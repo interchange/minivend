@@ -2,16 +2,21 @@
 <HEAD>
 <TITLE>[L]Stop shopping[/L]</TITLE>
 </HEAD>
+<BODY MV="body 1">
+__LOGOBAR__
+__MENUBAR__
+__LEFTSIDE__
 
-[body 1]
 <CENTER>
 <H1>[L]Stop shopping[/L]</H1>
+</CENTER>
+
 <FORM ACTION="[process-target]" METHOD="POST">
 <input type="hidden" name="mv_doit" value="refresh">
-<input type="hidden" name="mv_orderpage" value="catalog">
-<input type="hidden" name="mv_nextpage" value="catalog">
+<input type="hidden" name="mv_orderpage" value="index">
+<input type="hidden" name="mv_nextpage" value="index">
 
-[L]If you click <STRONG>Remove Contents</STRONG>[/L],
+<BLOCKQUOTE>[L]If you click <STRONG>Remove Contents</STRONG>[/L],
 [L]only the items you have placed in your basket will be removed.[/L]
 
 <P>
@@ -25,15 +30,20 @@
 [/item-list]
 
 <CENTER>
+<FONT FACE="arial,helvetica">
 <input type="submit" value="[L]Remove Contents Only[/L]">
 <input type="submit" name="mv_todo" value="[L]Erase All Information[/L]">
+</FONT>
 </CENTER>
+</BLOCKQUOTE>
 </form>
 [set [L]Erase All Information[/L]]
 mv_todo=cancel
 [/set]
-
 <P ALIGN=CENTER>
 
-[include pages/buttonbar.html]
+__NO_RIGHT__
+__MENUBOTTOM__
+__COPYRIGHT__
+<!-- current page: @@MV_PAGE@@ -->
 </body> </html>

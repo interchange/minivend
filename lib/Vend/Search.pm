@@ -1,10 +1,12 @@
 #!/usr/bin/perl -w
 #
+# $Id: Search.pm,v 1.28 1999/02/15 08:51:18 mike Exp mike $
+#
 # Vend::Search -- Base class for search engines
 #
 # ADAPTED from Search::Text FOR FITTING INTO MINIVEND LIBRARIES
 #
-# Copyright 1996 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,7 +27,7 @@
 #
 package Vend::Search;
 
-$VERSION = substr(q$Revision: 1.25 $, 10);
+$VERSION = substr(q$Revision: 1.28 $, 10);
 $DEBUG = 0;
 
 my $Joiner;
@@ -37,7 +39,6 @@ else {
 	$Joiner = ':';
 }
 
-use Carp;
 use strict;
 use vars qw($DEBUG $VERSION);
 
@@ -51,10 +52,9 @@ sub new {
 		all_chars			=> 1,
 		base_directory		=> $Vend::Cfg->{'ProductDir'},
 		begin_string		=> 0,
-		case_sensitive		=> 0,
 		#column_ops			=> undef,
 		coordinate			=> 0,
-		error_page			=> $Vend::Cfg->{'Special'}->{'badsearch'},
+		error_page			=> $Vend::Cfg->{'Special'}->{'badsearch'} || 'badsearch',
 		error_routine		=> \&main::display_special_page,
 		exact_match			=> 0,
 		first_match			=> 0,
@@ -89,7 +89,7 @@ sub new {
 		#session_key			=> '',
 		spelling_errors		=> 0,
 		substring_match		=> 0,
-		uneval_routine		=> \&Vend::Util::uneval,
+		uneval_routine		=> \&Vend::Util::uneval_it,
 	};
 
 	for(keys %options) {
@@ -135,6 +135,105 @@ sub debug {
 sub version {
 	$Vend::Search::VERSION;
 }
+
+sub spec_check {
+  my ($s, $g, @specs) = @_;
+  my @pats;
+  SPEC_CHECK: {
+	last SPEC_CHECK if $g->{return_all};
+	# Patch supplied by Don Grodecki
+	# Now ignores empty search strings if coordinated search
+	my $i = 0;
+
+	unless ($g->{coordinate} and @specs == @{$s->{fields}}) {
+		for(qw! case_sensitive substring_match negate !) {
+			next unless ref $g->{$_};
+			$g->{$_} = $g->{$_}->[0];
+		}
+		$g->{coordinate} = '';
+	}
+
+	while ($i < @specs) {
+		if($#specs and length($specs[$i]) == 0) { # should add a switch
+			if($g->{coordinate}) {
+		        splice(@{$s->{fields}}, $i, 1);
+		        splice(@{$g->{column_op}}, $i, 1)
+					if ref $g->{column_op};
+		        splice(@{$g->{case_sensitive}}, $i, 1)
+					if ref $g->{case_sensitive};
+		        splice(@{$g->{numeric}}, $i, 1)
+					if ref $g->{numeric};
+		        splice(@{$g->{substring_match}}, $i, 1)
+					if ref $g->{substring_match};
+		        splice(@{$g->{negate}}, $i, 1)
+					if ref $g->{negate};
+			}
+		    splice(@specs, $i, 1);
+			splice(@{$s->{specs}}, $i, 1);
+		}
+		else {
+			if($g->{coordinate} and $g->{column_op} and $g->{column_op}[$i] =~ /([~]|rm|em)/) {
+				if(length($specs[$i]) < $g->{min_string}) {
+					my $msg = <<EOF;
+Search strings must be at least $g->{min_string} characters.
+You had '$specs[$i]' as one of your search strings.
+EOF
+					&{$g->{error_routine}}($g->{error_page}, $msg);
+					$g->{matches} = -1;
+					return undef;
+				}
+				$g->{regex_specs} = []
+					unless $g->{regex_specs};
+				$specs[$i] =~ /(.*)/;
+				push @{$g->{regex_specs}}, $1;
+			}
+			$i++;
+		}
+	}
+
+# DEBUG
+Vend::Util::logDebug
+($s->dump_options() . "\nspecs=" . join("|", @specs) . "|\n")
+	if ::debug(0x10);
+# END DEBUG
+
+	if ( ! $g->{exact_match} and ! $g->{coordinate}) {
+		my $string = join ' ', @specs;
+		eval {
+			@specs = Text::ParseWords::shellwords( $string );
+		};
+		if($@ or ! @specs) {
+			$string =~ s/['"]/./g;
+			$g->{all_chars} = 0;
+			@specs = Text::ParseWords::shellwords( $string );
+		}
+	}
+
+	@specs = $s->escape(@specs);
+
+# DEBUG
+Vend::Util::logDebug
+("spec='" . (join "','", @specs) . "'\n")
+	if ::debug(0x10 );
+# END DEBUG
+
+	# untaint
+	for(@specs) {
+		/(.*)/s;
+		push @pats, $1;
+	}
+	@{$s->{'specs'}} = @pats;
+
+# DEBUG
+Vend::Util::logDebug
+("pats: '" . join("', '", @pats) . "'\n")
+	if ::debug(0x10);
+# END DEBUG
+
+  } # last SPEC_CHECK
+  return @pats;
+}
+
 
 sub more_matches {
 	my($self,$session,$next,$last,$mod) = @_;
@@ -320,6 +419,8 @@ sub map_ops {
 	my $c = $g->{column_op} or return ();
 	my $i;
 	my $op;
+	$g->{numeric} = [ $g->{numeric} ]
+		unless ref $g->{numeric};
 	for($i = 0; $i < $count; $i++) {
 		next unless $c->[$i];
 		$c->[$i] =~ tr/ 	//;
@@ -342,18 +443,29 @@ sub get_limit {
 	my $join_key;
 	$join_key = defined $g->{return_fields} ? $g->{return_fields}[0] : 0;
 	my $sub;
+	my $wild_card;
 	my @join_fields;
-	my $joiner = $g->{or_search} ? '1 if' : 'undef unless';
-	my $ender = $g->{or_search} ? 'return undef;' : 'return 1;';
+	my $joiner;
+	my $ender;
+	if($g->{or_search}) {
+		$joiner = '1 if';
+		$ender = 'return undef;';
+	}
+	else {
+		$joiner = 'undef unless';
+		$ender = 'return 1;';
+	}
+	#my $joiner = $g->{or_search} ? '1 if' : 'undef unless';
+	#my $ender = $g->{or_search} ? 'return undef;' : 'return 1;';
 	# Here we join data if we are passed a non-numeric field. The array
 	# index comes from the end to avoid counting the fields.
 	my $k = 0;
 	for(@{$s->{'fields'}}) {
-#::logGlobal("join_field $_");
-		next unless /\w+:+.+/;
+#::logError("join_field $_");
+		next unless /:+.+/;
 		unshift(@join_fields, $_);
 		$_ = --$k;
-#::logGlobal("join_field $_");
+#::logError("join_field $_");
 	}
 	# Add the code to get the join data if it is there
 	if(@join_fields) {
@@ -361,13 +473,33 @@ sub get_limit {
 my \$key = (split m{$g->{index_delim}}, \$line)[$join_key];
 EOF
 		for(@join_fields) {
-			my ($table, $col) = split /:+/, $_;
-			$code .= <<EOF;
+			my ($table, $col) = split /:+/, $_, 2;
+			if($table) {
+				$wild_card = 0;
+				$code .= <<EOF;
 \$line .= qq{$g->{index_delim}} .
 		  Vend::Data::database_field('$table', \$key, '$col');
 EOF
+			}
+			elsif ($col =~ tr/:/,/) {
+				$wild_card = 1;
+				$col =~ s/[^\d,.]//g;
+			$code .= <<EOF;
+my \$addl = join " ", (split m{$g->{index_delim}}, \$line)[$col];
+\$line .= qq{$g->{index_delim}} . \$addl;
+EOF
+			}
+			else {
+				$wild_card = 1;
+				$code .= <<EOF;
+my \$addl = \$line;
+\$addl =~ tr/$g->{index_delim}/ /;
+\$line .= qq{$g->{index_delim}} . \$addl;
+EOF
+			}
 		}
 	}
+
 	my $fields = join ",", @{$s->{'fields'}};
 
 	if ( ref $g->{range_look} )  {
@@ -380,6 +512,7 @@ EOF
 		 undef $f;
 		 $code .= <<EOF;
 	my \@fields = (split /\\Q$g->{index_delim}/, \$line)[$fields];
+#::logError("fields=\@fields");
 EOF
 		my @specs;
 		# For a limiting function, can't if or_search
@@ -436,7 +569,11 @@ EOF
 					$like = 1;
 				}
 			 }
-			 undef $candidate if $i >= $k + $field_count;
+			 if ($i >= $k + $field_count) {
+				 undef $candidate if ! $wild_card;
+#::logError("triggered wild_card: $wild_card");
+				 $wild_card = 0;
+			 }
 			 if(defined $candidate and ! $like) {
 				undef $f if $candidate;
 			 	$f = "sub { return 1 if \$_ $start$specs[$i]$term ; return 0}"
@@ -447,7 +584,7 @@ EOF
 		return $joiner \$fields[$i] $start$specs[$i]$term;
 EOF
 		}
-#::logGlobal("coordinate search func is: $f");
+#::logError("coordinate search func is: $f");
 # DEBUG
 Vend::Util::logDebug
 ("coordinate search\ncode is: $code\nfunc is:\n$f")
@@ -460,7 +597,7 @@ $range_code
 $ender
 }
 EOF
-#::logGlobal("coordinate search\ncode is: $code\n");
+#::logError("coordinate search code is:\n$code\n");
 	}
 	elsif ( @{$s->{'fields'}} )  {
 		if(! $g->{begin_string}) {
@@ -505,10 +642,10 @@ EOF
 		die("no limit and no search") unless defined $f;
 		return ($f);
 	}
-#::logGlobal("code is $code");
+#::logError("code is $code");
 	$limit_sub = eval $code;
 	die "Bad code: $@" if $@;
-	return ($limit_sub, $f || undef);
+	return ($limit_sub, $f);
 }
 
 sub saved_params {
@@ -784,14 +921,15 @@ sub sort_search_return {
 		$Opts[$i] = 'none' unless defined $Sort_field{$Opts[$i]};
 		$last = $Opts[$i];
 	}
-#::logGlobal("Flds: @Flds\nOpts: @Opts\n");
+#::logError("Flds: @Flds\nOpts: @Opts\n");
 
 	$max += 2;
 	my $f_string = join ",", @Flds;
+	my $delim = quotemeta $g->{index_delim};
 	my $code = <<EOF;
 sub {
-	my \@a = (split /$g->{return_delim}/, \$a, $max)[$f_string];
-	my \@b = (split /$g->{return_delim}/, \$b, $max)[$f_string];
+	my \@a = (split /$delim/, \$a, $max)[$f_string];
+	my \@b = (split /$delim/, \$b, $max)[$f_string];
 	my \$r;
 EOF
 	for($i = 0; $i < @Flds; $i++) {
@@ -813,7 +951,7 @@ eval {
 	}
 
 };
-#::logGlobal("Routine is $routine:\n$code");
+#::logError("Routine is $routine:\n$code");
 
 	# Prime sort routine
 	sort { $routine } ('30','31') or 1;

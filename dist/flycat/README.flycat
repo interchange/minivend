@@ -1,0 +1,117 @@
+# MiniVend V3.12
+# 
+# Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
+#
+# This program is free software; you can redistribute it
+# and/or modify it under the terms of the GNU General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later
+# version. 
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public
+# License along with this program; if not, write to the Free
+# Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139,
+# USA.
+
+                        F L Y C A T   D E M O
+                                       
+   The flycat demo is designed as a ready-to-run non-database based
+   shopping cart. See the file flycat/html/index.html for examples
+   of how you can create item order buttons.
+
+    Flycat Features
+
+        * Up to thousands of individual vendors
+        * Items are created "on the fly" -- no pre-existing product
+          database is used.
+        * SSL support means secure and practical credit card ordering
+        * PGP support for secure off-site mailing of orders
+        * Vendors can be added by HTML form
+
+    Flexible Ordering Process
+
+        * Shipping calculation, mixed modes, with UPS table lookup
+        * Sales tax calculation only for certain states
+        * PGP encryption of credit card information or
+          the entire emailed order
+        * Fully-configurable item options and price adjustments
+        * Sophisticated back end order entry capability including CyberCash(R)
+        * Customers can create an account with address books and order tracking
+        * Automated UPS lookup (with Perl LWP library installed)
+        * Per-item shipping cost supported
+        * Per-item handling cost supported
+
+    Easy Administration
+
+        * Vendors can edit their own configuration
+        * Individual order databases and order tracking by vendor
+
+
+-------------------------------------------------------------------
+
+                      I N S T A L L A T I O N
+
+PRELIMINARY
+------------
+
+1.  Install MiniVend and a catalog based on "flycat" using the
+    normal installation procedure.
+
+2.  Run the sample order page and log on as user "flycat"
+    with password "pass".
+
+3.  Change your password! This is the master user who can
+    create new vendors.
+
+ADDING A VENDOR
+---------------
+
+1.  In your browser, log out as user "flycat" and create
+    a new account in the shopping cart. Remember the vendor
+    ID you made, and the user ID and password you select;
+    for our examples they will be:
+
+        User ID:   V1001
+        Password:  passme
+
+2.  Add the entry using your browser and the URL:
+
+            http://__MVC_SERVERNAME____MVC_CGIURL__/cartcfg/newcart
+
+    You might use the user id (V1001 in our example) for the vendor
+    code, or a mnemonic name if you wish. Just make sure it has
+    nothing except letters and numbers in it.
+
+    There is online help for the individual fields to enter.
+
+3.  If the automated directory make fails due to lack of permission,
+    you must create an order directory *which the minivend daemon must
+	have write permission on*. Using telnet or whatever means you
+	wish, create the order directory for the user. This directory
+	will contain copies of all orders, their transaction database,
+	and their order number counter.
+
+4.  Once steps 2 and 3 are done the store is ready to run.
+
+
+ENABLING AN EXISTING VENDOR TO EDIT THEIR OWN CONFIGURATION:
+
+1.  Still in your browser, log out as user "flycat" and create
+    a new account in the shopping cart. Remember the vendor
+    ID you made, and the user ID and password you select;
+    for our examples they will be:
+
+        Vendor ID: V1001
+        User ID:   V1001
+        Password:  passme
+
+2.  Access the URL:
+
+        http://__MVC_SERVERNAME____MVC_CGIURL__/cartcfg/enable_edit
+
+    Enter V1001 in both fields and click the submit button.

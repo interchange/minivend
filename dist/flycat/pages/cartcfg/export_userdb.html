@@ -1,0 +1,18 @@
+<HTML>
+<HEAD><TITLE>Export User Database</HEAD></TITLE>
+</HEAD>
+<BODY>
+
+	[set name=export_results int][tag export userdb][/tag][/set]
+
+<H1>Export User Database</H1>
+
+[if scratch export_results]
+Success.
+[else]
+EXPORT FAILED.
+[/else][/if]
+<P>
+[include pages/cartcfg/buttonbar]
+</BODY></HTML>
+	

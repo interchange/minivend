@@ -1,11 +1,11 @@
-### MiniVend 3.11 Manifest ###
+### MiniVend 3.12 Manifest ###
 ###                        ###
 ###   DON'T edit this !!!  ###
 ###                        ###
 ### $Revision: 1.8 $
 ##############################
 
-bin/buildtree script 0755 shbang
+bin/buildtree script 0755 shbang,vars:VendRoot
 bin/check script 0755 shbang,vars:VendRoot
 bin/checkstat.sh
 bin/compact script 0755 shbang
@@ -14,10 +14,10 @@ bin/expire script 0755 shbang,vars:VendRoot
 bin/expireall script 0755 shbang,vars:VendRoot
 bin/htpasswd.pl script 0755 shbang
 bin/ifdef script 0755 shbang
-bin/localize script 0755 shbang
+bin/localize script 0755 shbang,vars:VendRoot
 bin/makecat script 0755 shbang,vars:VendRoot
 bin/offline script 0755 shbang,vars:VendRoot
-bin/reconfig script 0755 shbang
+bin/reconfig script 0755 shbang,vars:VendRoot
 bin/restart script 0755 shbang,vars:VendRoot
 bin/restart_inet script 0755 shbang,vars:VendRoot
 bin/restart_unix script 0755 shbang,vars:VendRoot

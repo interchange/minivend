@@ -1,8 +1,8 @@
 # Parse.pm - Parse MiniVend tags
 # 
-# $Id: Parse.pm,v 1.42 1998/09/01 13:15:22 mike Exp mike $
+# $Id: Parse.pm,v 1.48 1999/02/15 08:51:10 mike Exp mike $
 #
-# Copyright 1997-1998 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1997-1999 by Michael J. Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,12 +20,12 @@
 
 package Vend::Parse;
 
-# $Id: Parse.pm,v 1.42 1998/09/01 13:15:22 mike Exp mike $
+# $Id: Parse.pm,v 1.48 1999/02/15 08:51:10 mike Exp mike $
 
 require Vend::Parser;
 
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.42 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.48 $ =~ /(\d+)\.(\d+)/);
 
 use Safe;
 use Vend::Util;
@@ -40,7 +40,7 @@ require Exporter;
 
 @ISA = qw(Exporter Vend::Parser);
 
-$VERSION = substr(q$Revision: 1.42 $, 10);
+$VERSION = substr(q$Revision: 1.48 $, 10);
 @EXPORT = ();
 @EXPORT_OK = qw(find_matching_end);
 
@@ -52,60 +52,63 @@ my($CurrentSearch, $CurrentCode, $CurrentDB, $CurrentWith, $CurrentItem);
 my(@SavedSearch, @SavedCode, @SavedDB, @SavedWith, @SavedItem);
 
 my %PosNumber =	( qw!
-					
-				accessories		 2
-				area			 2
-				areatarget		 3
-				body			 2
-				buttonbar		 1
-				cart			 1
-				cgi				 1
-				checked			 3
-				currency		 1
-				data			 5
-				default			 2
-				discount		 1
-				description		 2
-				field			 2
-				file			 2
-				finish_order	 1
-				fly_list		 2
-				framebase		 1
-				goto			 2
-				help			 1
-				if				 1
-				include			 1
-				label			 1
-				last_page		 2
-				lookup			 1
-				loop			 1
-				msql			 2
-				nitems			 1
-				order			 4
-				page			 2
-				pagetarget		 3
-				perl			 1
-				price			 4
-				process_order	 2
-				process_search	 1
-				process_target	 2
-				rotate			 2
-				row				 1
-				salestax		 2
-				scratch			 1
-				search			 1
-				search_region	 1
-				selected		 3
-				set				 1
-				setlocale		 3
-				shipping		 3
-				shipping_desc	 1
-				shipping_description	 1
-				sql				 2
-				subtotal		 2
-				tag				 1
-				total_cost		 2
-				value			 4
+                    
+                accessories      2
+                area             2
+                areatarget       3
+                body             2
+                bounce           2
+                buttonbar        1
+                cart             1
+                cgi              1
+                checked          3
+                currency         1
+                data             6
+                default          2
+                discount         1
+                description      2
+                field            2
+                file             2
+                finish_order     1
+                fly_list         2
+                framebase        1
+                goto             2
+                help             1
+                if               1
+                import           2
+                include          1
+                index            1
+                label            1
+                last_page        2
+                lookup           1
+                loop             1
+                nitems           1
+                order            4
+                page             2
+                pagetarget       3
+                perl             1
+                price            4
+                process_order    2
+                process_search   1
+                process_target   2
+                rotate           2
+                row              1
+                salestax         2
+                scratch          1
+                search           1
+                search_region    1
+                selected         3
+                set              1
+                setlocale        3
+                shipping         3
+                shipping_desc    1
+                sql              2
+                subtotal         2
+                tag              1
+                total_cost       2
+                userdb           1
+                value            4
+                value_extended   1
 
 			! );
 
@@ -115,6 +118,7 @@ my %Order =	(
 				area			=> [qw( href arg secure)],
 				areatarget		=> [qw( href target arg secure)],
 				body			=> [qw( type extra )],
+				bounce			=> [qw( href if )],
 				buttonbar		=> [qw( type  )],
 				calc			=> [],
 				cart			=> [qw( name  )],
@@ -122,12 +126,12 @@ my %Order =	(
 				compat			=> [],
 				'currency'		=> [qw( convert )],
 				checked			=> [qw( name value multiple default)],
-				data			=> [qw( table field key value increment)],
+				data			=> [qw( table field key value increment append )],
 				default			=> [qw( name default set)],
 				description		=> [qw( code base )],
 				discount		=> [qw( code  )],
 				field			=> [qw( name code )],
-				file			=> [qw( name )],
+				file			=> [qw( name type )],
 				finish_order	=> [qw( href )],
 				fly_list		=> [qw( code base )],
 				framebase		=> [qw( target  )],
@@ -138,6 +142,8 @@ my %Order =	(
 				'if'			=> [qw( type term op compare )],
 				'or'			=> [qw( type term op compare )],
 				'and'			=> [qw( type term op compare )],
+				index  			=> [qw( table )],
+				import 			=> [qw( table type )],
 				include			=> [qw( file )],
 				item_list		=> [qw( name )],
 				label			=> [qw( name )],
@@ -145,7 +151,6 @@ my %Order =	(
 				lookup			=> [qw( table field key value )],
 				loop			=> [qw( with arg search option)],
 				loop_change		=> [qw( with arg )],
-				msql			=> [qw( type query list true base)],
 				nitems			=> [qw( name  )],
 				order			=> [qw( code href base quantity )],
 				page			=> [qw( href arg secure)],
@@ -157,6 +162,7 @@ my %Order =	(
 				process_search	=> [qw( target )],
 				process_target	=> [qw( target secure )],
 				random			=> [],
+				read_cookie		=> [qw( name )],
 				rotate			=> [qw( ceiling floor )],
 				row				=> [qw( width )],
 				'salestax'		=> [qw( name noformat)],
@@ -164,51 +170,19 @@ my %Order =	(
 				search			=> [qw( arg   )],
 				search_region	=> [qw( arg   )],
 				selected		=> [qw( name value multiple )],
-				setlocale		=> [qw( locale persist currency )],
+				set_cookie		=> [qw( name value expire )],
+				setlocale		=> [qw( locale currency persist )],
 				set				=> [qw( name  )],
 				'shipping'		=> [qw( name cart noformat )],
 				shipping_desc	=> [qw( name  )],
-				shipping_description	=> [qw( name  )],
 				sql				=> [qw( type query list false base)],
 				strip			=> [],
 				'subtotal'		=> [qw( name noformat )],
 				tag				=> [qw( op base file type )],
 				total_cost		=> [qw( name noformat )],
+				userdb          => [qw( function ) ],
 				value			=> [qw( name escaped set hide)],
-
-			);
-
-my %Required = (
-
-				accessories	=> [ qw( code )],
-				area		=> [ qw( href )],
-				areatarget	=> [ qw( href )],
-				body		=> [ qw( type )],
-				buttonbar	=> [ qw( type )],
-				cart		=> [ qw( name )],
-				cgi			=> [ qw( name )],
-				checked		=> [ qw( name value )],
-				data		=> [ qw( table )],
-				default		=> [ qw( name )],
-				discount	=> [ qw( code )],
-				field		=> [ qw( name code )],
-				file		=> [ qw( name )],
-				fly_list	=> [ qw( code )],
-				framebase	=> [ qw( target )],
-				help		=> [ qw( name )],
-				'if'		=> [ qw( base )],
-				'or'		=> [ qw( base )],
-				'and'		=> [ qw( base )],
-				include		=> [ qw( file )],
-				lookup		=> [ qw( table field key )],
-				order		=> [ qw( code )],
-				page		=> [ qw( href )],
-				pagetarget	=> [ qw( href )],
-				scratch		=> [ qw( name )],
-				search		=> [ qw( arg  )],
-				selected	=> [ qw( name value )],
-				set			=> [ qw( name )],
-				value		=> [ qw( name )],
+				value_extended  => [qw( name )],
 
 			);
 
@@ -223,21 +197,26 @@ my %InvalidateCache = (
 				frames_off	1
 				frames_on	1
 				item_list	1
+				import		1
+				index		1
 				if          1
 				last_page	1
 				lookup		1
-				msql		1
 				nitems		1
 				perl		1
 				'salestax'	1
 				scratch		1
 				selected	1
+				read_cookie 1
+				set_cookie  1
 				set			1
 				'shipping'	1
 				sql			1
 				subtotal	1
 				total_cost	1
+				userdb		1
 				value		1
+				value_extended 1
 
 			   )
 			);
@@ -296,14 +275,12 @@ my %Implicit = (
 			);
 
 my %PosRoutine = (
-
 				'or'			=> sub { return &Vend::Interpolate::tag_if(@_, 1) },
 				'and'			=> sub { return &Vend::Interpolate::tag_if(@_, 1) },
 				'if'			=> \&Vend::Interpolate::tag_if,
-				'tag'				=> \&Vend::Interpolate::do_tag,
+				'tag'			=> \&Vend::Interpolate::do_tag,
 				'sql'			=> \&Vend::Data::sql_query,
 			);
-
 
 my %Routine = (
 
@@ -314,6 +291,7 @@ my %Routine = (
 				area			=> \&Vend::Interpolate::tag_area,
 				areatarget		=> \&Vend::Interpolate::tag_areatarget,
 				body			=> \&Vend::Interpolate::tag_body,
+				bounce          => sub { return '' },
 				buttonbar		=> \&Vend::Interpolate::tag_buttonbar,
 				calc			=> \&Vend::Interpolate::tag_calc,
 				cart			=> \&Vend::Interpolate::tag_cart,
@@ -336,11 +314,16 @@ my %Routine = (
 				field			=> \&Vend::Data::product_field,
 				file			=> \&Vend::Interpolate::tag_file,
 				finish_order	=> \&Vend::Interpolate::tag_finish_order,
-				fly_list		=> \&Vend::Interpolate::fly_page,
+				fly_list		=> sub {
+									$_[0] = $Vend::Session->{'arg'} unless $_[0];
+									return &Vend::Interpolate::fly_page(@_);
+									},
 				framebase		=> \&Vend::Interpolate::tag_frame_base,
 				frames_off		=> \&Vend::Interpolate::tag_frames_off,
 				frames_on		=> \&Vend::Interpolate::tag_frames_on,
 				help			=> \&Vend::Interpolate::tag_help,
+				index 			=> \&Vend::Data::index_database,
+				import 			=> \&Vend::Data::import_text,
 				include			=> sub {
 									&Vend::Interpolate::interpolate_html(
 										&Vend::Util::readfile
@@ -361,7 +344,6 @@ my %Routine = (
 									return &Vend::Interpolate::tag_loop_list
 										(@_, $option);
 									},
-				msql			=> \&Vend::Data::sql_query,
 				nitems			=> \&Vend::Util::tag_nitems,
 				order			=> \&Vend::Interpolate::tag_order,
 				page			=> \&Vend::Interpolate::tag_page,
@@ -373,6 +355,7 @@ my %Routine = (
 				process_search	=> \&Vend::Interpolate::tag_process_search,
 				process_target	=> \&Vend::Interpolate::tag_process_target,
 				random			=> \&Vend::Interpolate::tag_random,
+				read_cookie     => \&Vend::Util::read_cookie,
 				rotate			=> \&Vend::Interpolate::tag_rotate,
 				row				=> \&Vend::Interpolate::tag_row,
 				'salestax'		=> \&Vend::Interpolate::tag_salestax,
@@ -381,10 +364,11 @@ my %Routine = (
 				search_region	=> \&Vend::Interpolate::tag_search_region,
 				selected		=> \&Vend::Interpolate::tag_selected,
 				setlocale		=> \&Vend::Util::setlocale,
+				set_cookie		=> \&Vend::Util::set_cookie,
+				rotate			=> \&Vend::Interpolate::tag_rotate,
 				set				=> \&Vend::Interpolate::set_scratch,
 				'shipping'		=> \&Vend::Interpolate::tag_shipping,
 				shipping_desc	=> \&Vend::Interpolate::tag_shipping_desc,
-				shipping_description => \&Vend::Interpolate::tag_shipping_desc,
 				sql				=> \&Vend::Data::sql_query,
 				'subtotal'		=> \&Vend::Interpolate::tag_subtotal,
 				strip			=> sub {
@@ -395,7 +379,9 @@ my %Routine = (
 									},
 				tag				=> \&Vend::Interpolate::do_parse_tag,
 				total_cost		=> \&Vend::Interpolate::tag_total_cost,
+				userdb			=> \&Vend::UserDB::userdb,
 				value			=> \&Vend::Interpolate::tag_value,
+				value_extended	=> \&Vend::Interpolate::tag_value_extended,
 
 			);
 
@@ -407,6 +393,14 @@ my %attrAlias = (
 	 						'col' => 'name',
 	 						'key' => 'code',
 	 						'row' => 'code',
+						},
+	 index          	=> { 
+	 						'database' => 'table',
+	 						'base' => 'table',
+						},
+	 import          	=> { 
+	 						'database' => 'table',
+	 						'base' => 'table',
 						},
 	 data          	=> { 
 	 						'database' => 'table',
@@ -427,12 +421,17 @@ my %attrAlias = (
 	 						'operator' => 'op',
 	 						'base' => 'type',
 						},
+	 'userdb'		=> {
+	 						'table' => 'db',
+	 						'name' => 'nickname',
+						},
 	 'shipping'			=> { 'cart' => 'name', },
 	 'salestax'			=> { 'cart' => 'name', },
 	 'subtotal'			=> { 'cart' => 'name', },
 	 'total_cost'		=> { 'cart' => 'name', },
 	 'if'			=> { 
 	 						'comp' => 'compare',
+	 						'condition' => 'compare',
 	 						'operator' => 'op',
 	 						'base' => 'type',
 						},
@@ -455,6 +454,7 @@ my %Alias = (
 						url			urldecode
 						urld		urldecode
 						href		area
+						shipping_description shipping_desc
 						a			pagetarget
 				)
 			);
@@ -464,6 +464,18 @@ my %canNest = (
 				qw(
 						if			1
 						loop		1
+				)
+			);
+
+
+my %addAttr = (
+				qw(
+					userdb    1
+					import    1
+					index     1
+					page	  1
+					area	  1
+					value_extended    1
 				)
 			);
 
@@ -541,9 +553,9 @@ my %hasEndTag = (
 						discount	1
 						fly_list	1
 						if			1
+						import		1
 						item_list	1
 						loop		1
-						msql		1
 						sql			1
 						perl		1
 						post		1
@@ -562,6 +574,7 @@ my %Interpolate = (
 						buttonbar	1
 						calc		1
 						currency	1
+						import		1
 						random		1
 						rotate		1
 						row			1
@@ -607,24 +620,25 @@ sub new
 }
 
 my %myRefs = (
-	 insideHTML		=> \%insideHTML,
-	 Alias          => \%Alias,
-	 attrAlias      => \%attrAlias,
-	 canNest        => \%canNest,
-	 endHTML    	=> \%endHTML,
-	 hasEndTag      => \%hasEndTag,
-	 Implicit       => \%Implicit,
-	 insertHTML		=> \%insertHTML,
+     Alias           => \%Alias,
+     addAttr         => \%addAttr,
+     attrAlias       => \%attrAlias,
+	 canNest         => \%canNest,
+	 endHTML         => \%endHTML,
+	 hasEndTag       => \%hasEndTag,
+	 Implicit        => \%Implicit,
+	 insertHTML	     => \%insertHTML,
+	 insideHTML	     => \%insideHTML,
+	 Interpolate     => \%Interpolate,
 	 InvalidateCache => \%InvalidateCache,
-	 isEndAnchor    => \%isEndAnchor,
-	 lookaheadHTML	=> \%lookaheadHTML,
-	 Order          => \%Order,
-	 PosNumber      => \%PosNumber,
-	 PosRoutine     => \%PosRoutine,
-	 replaceAttr    => \%replaceAttr,
-	 replaceHTML    => \%replaceHTML,
-	 Required       => \%Required,
-	 Routine        => \%Routine,
+	 isEndAnchor     => \%isEndAnchor,
+	 lookaheadHTML   => \%lookaheadHTML,
+	 Order           => \%Order,
+	 PosNumber       => \%PosNumber,
+	 PosRoutine      => \%PosRoutine,
+	 replaceAttr     => \%replaceAttr,
+	 replaceHTML     => \%replaceHTML,
+	 Routine         => \%Routine,
 );
 
 sub add_tags {
@@ -704,6 +718,10 @@ sub format_html_attribute {
 
 sub goto_buf {
 	my ($name, $buf) = @_;
+	if(! $name) {
+		$$buf = '';
+		return;
+	}
 	while($$buf =~ s!  .+?
 							(
 								(?:
@@ -814,14 +832,37 @@ sub html_start {
 		$attr->{interpolate} = 1
 			if defined $Interpolate{$tag} and ! defined $attr->{interpolate};
 		@args = @{$attr}{ @{ $Order{$tag} } };
+		push(@args, $attr) if $addAttr{$tag};
 	}
 
-	if($tag eq 'goto') {
-		return 1 if defined $attr->{'if'} and
-					(! $attr->{'if'} or $attr->{'if'} =~ /^\s*[\s0]\s*$/); 
-		goto_buf($args[0], \$Initialized->{_buf});
-		$self->{ABORT} = 1;
-		return 1;
+	if($tag =~ /^[gb]o/) {
+		if($tag eq 'goto') {
+			return 1 if defined $attr->{'if'} and
+						(! $attr->{'if'} or $attr->{'if'} =~ /^\s*[\s0]\s*$/); 
+			if(! $args[0]) {
+				$$buf = '';
+				$$Initialized->{_buf} = '';
+				$Initialized->{_buf} = '';
+				$self->{ABORT} = 1
+					if $attr->{abort};
+				return ($self->{SEND} = 1);
+			}
+			goto_buf($args[0], \$Initialized->{_buf});
+			$self->{ABORT} = 1;
+			return 1;
+		}
+		elsif($tag eq 'bounce') {
+			return 1 if defined $attr->{'if'} and
+						(! $attr->{'if'} or $attr->{'if'} =~ /^\s*[\s0]\s*$/); 
+			$Vend::StatusLine = '' if ! $Vend::StatusLine;
+			$Vend::StatusLine .= <<EOF;
+Status: 302 moved
+Location: $attr->{href}
+EOF
+			$$buf = '';
+			$Initialized->{_buf} = '';
+			return ($self->{SEND} = 1);
+		}
 	}
 
 #::logGlobal("tag=$tag end_tag=$end_tag attributes:\n" . Vend::Util::uneval($attr)) if$Monitor{$tag};
@@ -1063,6 +1104,7 @@ sub start {
 		$attr->{interpolate} = 1
 			if  defined $Interpolate{$tag} and ! defined $attr->{interpolate};
 		@args = @{$attr}{ @{ $Order{$tag} } };
+		push(@args, $attr) if $addAttr{$tag};
 	}
 
 #::logGlobal("Interpolate value now='$attr->{interpolate}'") if$Monitor{$tag};
@@ -1076,12 +1118,35 @@ sub start {
 #interpolate=$attr->{interpolate}
 #EOF
 
-	if($tag eq 'goto') {
-		return 1 if defined $attr->{'if'} and
-					(! $attr->{'if'} or $attr->{'if'} =~ /^\s*[\s0]\s*$/); 
-		goto_buf($args[0], \$Initialized->{_buf});
-		$self->{ABORT} = 1;
-		return 1;
+	if($tag =~ /^[gb]o/) {
+		if($tag eq 'goto') {
+			return 1 if defined $attr->{'if'} and
+						(! $attr->{'if'} or $attr->{'if'} =~ /^\s*[\s0]\s*$/); 
+			if(! $args[0]) {
+				$$buf = '';
+				$Initialized->{_buf} = '';
+				$self->{ABORT} = 1
+					if $attr->{abort};
+				return ($self->{SEND} = 1);
+			}
+			goto_buf($args[0], \$Initialized->{_buf});
+			$self->{ABORT} = 1;
+			$self->{SEND} = 1 if ! $Initialized->{_buf};
+			return 1;
+		}
+		elsif($tag eq 'bounce') {
+			return 1 if defined $attr->{'if'} and
+						(! $attr->{'if'} or $attr->{'if'} =~ /^\s*[\s0]\s*$/); 
+			$Vend::StatusLine = '' if ! $Vend::StatusLine;
+			$Vend::StatusLine .= <<EOF;
+Status: 302 moved
+Location: $attr->{href}
+EOF
+			$$buf = '';
+			$Initialized->{_buf} = '';
+			$self->{SEND} = 1;
+			return 1;
+		}
 	}
 
 	if($hasEndTag{$tag}) {

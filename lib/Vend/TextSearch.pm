@@ -1,10 +1,10 @@
 # Vend/TextSearch.pm:  Search indexes with Perl
 #
-# $Id: TextSearch.pm,v 1.19 1998/09/01 13:15:22 mike Exp mike $
+# $Id: TextSearch.pm,v 1.22 1999/02/15 08:51:31 mike Exp mike $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::TextSearch
 #
-# Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@ require Vend::Search;
 
 @ISA = qw(Vend::Search);
 
-$VERSION = substr(q$Revision: 1.19 $, 10);
+$VERSION = substr(q$Revision: 1.22 $, 10);
 
 use Search::Dict;
 use strict;
@@ -46,8 +46,6 @@ sub init {
 	my $g = $s->{global};
 	$g->{'dict_look'}	= '';
 	$g->{'dict_end'}	= '';
-	$g->{'dict_order'}	= 0;
-	$g->{'dict_case'} 	= 0;
 }
 
 sub version {
@@ -57,7 +55,7 @@ sub version {
 sub escape {
     my($self, @text) = @_;
     if($self->{'global'}->{all_chars}) {
-		@text = grep quotemeta $_, @text;
+		@text = map {quotemeta $_} @text;
     }
     for(@text) {
         s!([^\\]?)([}])!$1\\$2!g;
@@ -76,7 +74,7 @@ Vend::Util::logDebug
 	if ::debug(0x10);
 # END DEBUG
 
-	my($delim,$string);
+	my($delim);
 	my($max_matches,$mod,$spec);
 	my($code,$count,$matches_to_send,@out);
 	my($index_delim,$limit_sub,$return_sub,$delayed_return);
@@ -104,8 +102,8 @@ Vend::Util::logDebug
 
 	if($g->{base_directory}) {
 		for(@searchfiles) {
-			$_ = File::Spec->catfile($g->{base_directory}, $_)
-				unless File::Spec->file_name_is_absolute($_);
+			$_ = Vend::Util::catfile($g->{base_directory}, $_)
+				unless Vend::Util::file_name_is_absolute($_);
 		}
 	}
 
@@ -148,87 +146,16 @@ Vend::Util::logDebug
 
 	@specs = '' if @specs == 0;
 
+	@pats = $s->spec_check($g, @specs);
+
 # DEBUG
 Vend::Util::logDebug
 ($s->dump_options() )
 	if ::debug(0x10);
+Vend::Util::logError
+($s->dump_options() . "specs: " . join('|', @pats) )
+    if $CGI::values{mv_search_debug};
 # END DEBUG
-
-  SPEC_CHECK: {
-	last SPEC_CHECK if $g->{return_all};
-	# Patch supplied by Don Grodecki
-	# Now ignores empty search strings if coordinated search
-	my $i = 0;
-
-	unless ($g->{coordinate} and @specs == @{$s->{fields}}) {
-		for(qw! case_sensitive substring_match negate !) {
-			next unless ref $g->{$_};
-			$g->{$_} = $g->{$_}->[0];
-		}
-		$g->{coordinate} = '';
-	}
-
-	while ($i < @specs) {
-		$string = $specs[$i];
-		if($#specs and length($string) == 0) { # should add a switch
-			if($g->{coordinate}) {
-		        splice(@{$s->{fields}}, $i, 1);
-		        splice(@{$g->{case_sensitive}}, $i, 1)
-					if ref $g->{case_sensitive};
-		        splice(@{$g->{substring_match}}, $i, 1)
-					if ref $g->{substring_match};
-		        splice(@{$g->{negate}}, $i, 1)
-					if ref $g->{negate};
-			}
-		    splice(@specs, $i, 1);
-			splice(@{$s->{specs}}, $i, 1);
-		}
-		elsif(length($string) < $g->{min_string}) {
-			my $msg = <<EOF;
-Search strings must be at least $g->{min_string} characters.
-You had '$string' as one of your search strings.
-EOF
-			&{$g->{error_routine}}($g->{error_page}, $msg);
-			$g->{matches} = -1;
-			return undef;
-		}
-		else {
-			$i++;
-		}
-	}
-
-# DEBUG
-Vend::Util::logDebug
-($s->dump_options())
-	if ::debug(0x10);
-# END DEBUG
-
-	if ( ! $g->{exact_match} and ! $g->{coordinate}) {
-		@specs = Text::ParseWords::shellwords( join ' ', @specs);
-	}
-
-	@specs = $s->escape(@specs);
-
-# DEBUG
-Vend::Util::logDebug
-("spec='" . (join "','", @specs) . "'\n")
-	if ::debug(0x10 );
-# END DEBUG
-
-	# untaint
-	for(@specs) {
-		/(.*)/;
-		push @pats, $1;
-	}
-	@{$s->{'specs'}} = @specs;
-
-# DEBUG
-Vend::Util::logDebug
-("pats: '" . join("', '", @pats) . "'\n")
-	if ::debug(0x10);
-# END DEBUG
-
-  } # last SPEC_CHECK
 
 	if ($g->{coordinate}) {
 		undef $f;
@@ -256,7 +183,9 @@ Vend::Util::logDebug
 
 	my $prospect;
 
-	eval {($limit_sub, $prospect) = $s->get_limit($f)};
+	eval {
+		($limit_sub, $prospect) = $s->get_limit($f);
+	};
 
 	if($@) {
 		&{$g->{error_routine}}($g->{error_page}, $@);
@@ -283,6 +212,9 @@ Vend::Util::logDebug
 Vend::Util::logDebug
 ('fields/specs: ' .  scalar @{$s->{fields}} . "/" .  scalar @{$s->{specs}} . "\n")
 	if ::debug(0x10);
+Vend::Util::logError
+('fields/specs: ' .  scalar @{$s->{fields}} . "/" .  scalar @{$s->{specs}} . "\n")
+    if $CGI::values{mv_search_debug};
 # END DEBUG
 
 	if($g->{dict_end}) {
@@ -421,6 +353,11 @@ Vend::Util::logDebug
 				push @out, &$return_sub($_);
 			}
 		}
+		elsif (!defined $f) {
+			&{$g->{error_routine}}($g->{error_page}, 'No search definition');
+			$g->{matches} = -1;
+			return undef;
+		}
 		else {
 #::logGlobal("just f");
 			while(<Vend::TextSearch::SEARCH>) {
@@ -461,6 +398,9 @@ Vend::Util::logDebug
 Vend::Util::logDebug
 ("$g->{matches} matches\n")
 	if ::debug(0x10);
+Vend::Util::logError
+("$g->{matches} matches")
+	if $CGI::values{mv_search_debug};
 Vend::Util::logDebug
 ("0 .. " . (scalar(@out) - 1) . "\n" )
 	if ::debug(0x10);

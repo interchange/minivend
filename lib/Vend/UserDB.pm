@@ -1,23 +1,24 @@
 #!/usr/bin/perl
 #
-# $Id: UserDB.pm,v 1.6 1998/09/01 13:15:22 mike Exp mike $
+# $Id: UserDB.pm,v 1.16 1999/02/15 08:51:34 mike Exp mike $
 #
-# Copyright 1997 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1997-1999 by Michael J. Heins <mikeh@iac.net>
 #
 # **** ALL RIGHTS RESERVED ****
 
 package Vend::UserDB;
 
-$VERSION = substr(q$Revision: 1.6 $, 10);
+$VERSION = substr(q$Revision: 1.16 $, 10);
 $DEBUG = 0;
 
 use vars qw! $VERSION $DEBUG @S_FIELDS @B_FIELDS @P_FIELDS %S_to_B %B_to_S!;
 
-use lib '/a/lib';
-use Carp;
 use Vend::Data;
 use Vend::Util;
+use Safe;
 use strict;
+
+my $ready = new Safe;
 
 =head1 NAME
 
@@ -80,6 +81,7 @@ Get, set user information:
 
     $obj->get_values();
     $obj->set_values();
+    $obj->clear_values();
 
 Save, restore filed user information:
 
@@ -92,8 +94,8 @@ Save, restore filed user information:
     $obj->get_preferences();
     $obj->set_preferences();
 
-    $obj->get_carts();
-    $obj->set_carts();
+    $obj->get_cart();
+    $obj->set_cart();
 
 =head2 Shipping Address Book
 
@@ -150,7 +152,7 @@ box or in a set of links.
 
 @B_FIELDS = ( 
 qw!	b_nickname	b_name		b_address	b_city		b_state		b_zip
-	b_country	b_phone
+	b_country	b_phone purchase_order
 	mv_credit_card_type	mv_credit_card_exp_month	mv_credit_card_exp_year
 	mv_credit_card_info
 	!
@@ -186,21 +188,51 @@ sub new {
 
 	my ($class, %options) = @_;
 
-	my $values = $options{'values'} || $::Values;
+	my $loc;
+	if(	$Vend::Cfg->{UserDB} ) {
+		$loc =	$options{profile}
+				? ($Vend::Cfg->{UserDB_repository}{$options{profile}})
+				: $Vend::Cfg->{UserDB};
+		$loc = {} unless $loc;
+		my ($k, $v);
+		while ( ($k,$v) = each %$loc) {
+			$options{$k} = $v unless defined $options{$k};
+		}
+	}
 
+	if($options{billing}) {
+		$options{billing} =~ s/[,\s]+$//;
+		$options{billing} =~ s/^[,\s]+//;
+		@B_FIELDS = split /[\s,]+/, $options{billing};
+	}
+	if($options{shipping}) {
+		$options{shipping} =~ s/[,\s]+$//;
+		$options{shipping} =~ s/^[,\s]+//;
+		@S_FIELDS = split /[\s,]+/, $options{shipping};
+	}
+	if($options{preferences}) {
+		$options{preferences} =~ s/[,\s]+$//;
+		$options{preferences} =~ s/^[,\s]+//;
+		@P_FIELDS = split /[\s,]+/, $options{preferences};
+	}
 	my $self = {
-			USERNAME  	=> $options{username}	|| $CGI::values{mv_username} || '',
+			USERNAME  	=>	$options{username}	||
+							$Vend::Session->{username} ||
+							$CGI::values{mv_username} || '',
 			OLDPASS  	=> $options{oldpass}	|| $CGI::values{mv_password_old} || '',
 			PASSWORD  	=> $options{password}	|| $CGI::values{mv_password} || '',
 			VERIFY  	=> $options{verify}		|| $CGI::values{mv_verify}	 || '',
 			NICKNAME   	=> $options{nickname}	|| '',
 			LAST   		=> '',
-			VALUES		=>	$values,
-			CARTS		=>	$Vend::Session->{carts},
+			CRYPT  		=> defined $options{'crypt'}
+							? $options{'crypt'}
+							: ! $Vend::Cfg->{Variable}{MV_NO_CRYPT},
+			CGI			=>	( defined $options{cgi} ? is_yes($options{cgi}) : 1),
 			PRESENT		=>	{ },
 			DB_ID		=>	$options{database} || 'userdb',
+			OPTIONS		=>	\%options,
 			LOCATION	=>	{
-						USERNAME	=> $options{bill_field} || 'user',
+						USERNAME	=> $options{user_field} || 'user',
 						BILLING		=> $options{bill_field} || 'accounts',
 						SHIPPING	=> $options{addr_field} || 'address_book',
 						PREFERENCES	=> $options{pref_field} || 'preferences',
@@ -208,16 +240,20 @@ sub new {
 						CARTS		=> $options{cart_field} || 'carts',
 						PASSWORD	=> $options{pass_field} || 'password',
 						LAST		=> $options{time_field} || 'time',
+						EXPIRATION	=> $options{expire_field} || 'expiration',
+						ACL			=> $options{acl}		|| 'acl',
+						FILE_ACL	=> $options{file_acl}	|| 'file_acl',
+						DB_ACL		=> $options{db_acl}		|| 'db_acl',
 							},
 			STATUS		=>		0,
 			ERROR		=>		'',
+			MESSAGE		=>		'',
 		};
-
 	bless $self;
 
 	return $self if $options{no_open};
 
-	set_db($self) or croak "user database $self->{DB_ID} does not exist.\n";
+	set_db($self) or die "user database $self->{DB_ID} does not exist.\n";
 
 	return $self;
 }
@@ -292,8 +328,111 @@ sub create_db {
 	}
 	1;
 }
-	
-	
+
+sub log {
+	my $self = shift;
+	my $time = $self->{OPTIONS}{UNIX_TIME} ?  time() :
+				POSIX::strftime("%Y%m%d%H%M", localtime());
+	my $msg = shift;
+	logData( ($self->{OPTIONS}{logfile} || $Vend::Cfg->{LogFile}),
+						$time,
+						$self->{USERNAME},
+						$CGI::remote_host,
+						$msg,
+						);
+	return;
+}
+
+sub check_acl {
+	my ($self,%options) = @_;
+
+	if(! defined $self->{PRESENT}{$self->{LOCATION}{ACL}}) {
+		$self->{ERROR} = 'No ACL field present.';
+		return undef;
+	}
+
+	if(not $options{location}) {
+		$self->{ERROR} = 'No location to check.';
+		return undef;
+	}
+
+	my $acl = $self->{DB}->field($self->{USERNAME}, $self->{LOCATION}{ACL});
+	$acl =~ /(\s|^)$options{location}(\s|$)/;
+}
+
+
+sub set_acl {
+	my ($self,%options) = @_;
+
+	if(!$self->{PRESENT}{$self->{LOCATION}{ACL}}) {
+		$self->{ERROR} = 'No ACL field present.';
+		return undef;
+	}
+
+	if(!$options{location}) {
+		$self->{ERROR} = 'No location to set.';
+		return undef;
+	}
+
+	my $acl = $self->{DB}->field($self->{USERNAME}, $self->{LOCATION}{ACL});
+	if($options{'delete'}) {
+		$acl =~ s/(\s|^)$options{location}(\s|$)/$1$2/;
+	}
+	else {
+		$acl =~ s/(\s|^)$options{location}(\s|$)/$1$2/;
+		$acl .= " $options{location}";
+	}
+	$acl =~ s/\s+/ /g;
+	$self->{DB}->set_field( $self->{USERNAME}, $self->{LOCATION}{ACL}, $acl);
+	return $acl if $options{show};
+	return;
+}
+
+sub _check_acl {
+	my ($self, $loc, %options) = @_;
+	return undef unless $options{location};
+	my $acl = $self->{DB}->field( $self->{USERNAME}, $loc);
+	my $f = $ready->reval($acl);
+	return 1 if ! $options{mode} and exists $f->{$options{location}};
+	return 1 if $f->{$options{location}} =~ /$options{mode}/i;
+	return '';
+}
+
+sub _set_acl {
+	my ($self, $loc, %options) = @_;
+	return undef unless $self->{OPTIONS}{location};
+	my $acl = $self->{DB}->field( $self->{USERNAME}, $loc );
+	my $f = $ready->reval($acl) || {};
+	if($options{'delete'}) {
+		delete $f->{$options{location}};
+	}
+	else {
+		$f->{$options{location}} = $options{mode} || 'rw';
+	}
+	my $return = $self->{DB}->set_field( $self->{USERNAME}, $loc, Vend::Util::uneval_it($f) );
+	return $return if $options{show};
+	return;
+}
+
+sub set_file_acl {
+	my $self = shift;
+	return $self->_set_acl($self->{LOCATION}{FILE_ACL}, @_);
+}
+
+sub set_db_acl {
+	my $self = shift;
+	return $self->_set_acl($self->{LOCATION}{DB_ACL}, @_);
+}
+
+sub check_file_acl {
+	my $self = shift;
+	return $self->_check_acl($self->{LOCATION}{FILE_ACL}, @_);
+}
+
+sub check_db_acl {
+	my $self = shift;
+	return $self->_check_acl($self->{LOCATION}{DB_ACL}, @_);
+}
 
 sub set_db {
 	my($self, $database) = @_;
@@ -313,6 +452,10 @@ sub set_db {
 
 	for(values %{$self->{LOCATION}}) {
 		$ignore{$_} = 1;
+	}
+
+	if($self->{OPTIONS}{force_lower}) {
+		@fields = map { lc $_ } @fields;
 	}
 
 	for(@fields) {
@@ -340,12 +483,22 @@ sub map_field {
 	}
 }
 
+sub clear_values {
+	my($self, @fields) = @_;
+
+	@fields = @{ $self->{DB_FIELDS} } unless @fields;
+
+	for(@fields) {
+		delete $::Values->{$_};
+		delete $CGI::values{$_};
+	}
+
+	1;
+}
 sub get_values {
 	my($self, @fields) = @_;
 
-	if(! @fields) {
-		@fields = $self->{DB}->columns();
-	}
+	@fields = @{ $self->{DB_FIELDS} } unless @fields;
 
 	unless ( $self->{DB}->record_exists($self->{USERNAME}) ) {
 		$self->{ERROR} = "username $self->{USERNAME} does not exist.";
@@ -353,9 +506,15 @@ sub get_values {
 	}
 
 	my %ignore;
+	my %scratch;
 
 	for(values %{$self->{LOCATION}}) {
 		$ignore{$_} = 1;
+	}
+
+	if($self->{OPTIONS}->{scratch}) {
+		my (@s) = split /[\s,]+/, $self->{OPTIONS}{scratch} ;
+		@scratch{@s} = @s;
 	}
 
 	for(@fields) {
@@ -363,14 +522,20 @@ sub get_values {
 			$self->{PRESENT}->{$_} = 1;
 			next;
 		}
-		$self->{VALUES}->{$_} = $self->{DB}->field($self->{USERNAME}, $_);	
+		if($scratch{$_}) {
+			$::Scratch->{$_} = $self->{DB}->field($self->{USERNAME}, $_);	
+			next;
+		}
+		$::Values->{$_} = $self->{DB}->field($self->{USERNAME}, $_);	
 	}
 
-	for(qw!SHIPPING BILLING PREFERENCES CARTS!) {
-		my $f = $self->{LOCATION}->{$_};
+	my $area;
+	foreach $area (qw!SHIPPING BILLING PREFERENCES CARTS!) {
+		my $f = $self->{LOCATION}->{$area};
 		if ($self->{PRESENT}->{$f}) {
-			my $s = eval $self->{DB}->field($self->{USERNAME}, $f);
-			$self->{VALUES}->{$f} = join " ", sort keys %$s;
+			my $s = $self->get_hash($area);
+			die "Bad structure in $f: $@" if $@;
+			$::Values->{$f} = join "\n", sort keys %$s;
 		}
 	}
 	
@@ -378,58 +543,163 @@ sub get_values {
 }
 
 sub set_values {
-	my($self, @fields) = @_;
+	my($self) = @_;
+
+	my @fields;
 
 	my $user = $self->{USERNAME};
+
+	@fields = @{$self->{DB_FIELDS}};
 
 	unless ( $self->{DB}->record_exists($self->{USERNAME}) ) {
 		$self->{ERROR} = "username $self->{USERNAME} does not exist.";
 		return undef;
 	}
-	for( @{$self->{DB_FIELDS}} ) {
+	my %scratch;
+
+	if($self->{OPTIONS}->{scratch}) {
+		my (@s) = split /[\s,]+/, $self->{OPTIONS}{scratch} ;
+		@scratch{@s} = @s;
+	}
+
+	for( @fields ) {
 # DEBUG
-#Vend::Util::logDebug
-#("saving $_ as $self->{VALUES}->{$_}\n")
-#	if ::debug(0x1);
+#::logError("saving $_ as $::Values->{$_}\n")
+#	if $self->{OPTIONS}{debug};
 # END DEBUG
-		$self->{DB}->set_field($user, $_, $self->{VALUES}->{$_})
-			if defined $self->{VALUES}->{$_};	
+		if ($scratch{$_}) {
+			$self->{DB}->set_field($user, $_, $::Scratch->{$_})
+				if defined $::Scratch->{$_};	
+			next;
+		}
+		$self->{DB}->set_field($user, $_, $::Values->{$_})
+			if defined $::Values->{$_};	
 	}
 	1;
 }
 
 sub set_billing {
-	my($self) = @_;
-	my @fields = @B_FIELDS;
-	$self->set_hash('BILLING', @B_FIELDS );
+	my $self = shift;
+	my $ref = $self->set_hash('BILLING', @B_FIELDS );
+	return $ref;
 }
 
 sub set_shipping {
-	my($self) = @_;
-	my @fields = @S_FIELDS;
-	$self->set_hash('SHIPPING', @S_FIELDS );
+	my $self = shift;
+	my $ref = $self->set_hash('SHIPPING', @S_FIELDS );
+	return $ref;
 }
 
 sub set_preferences {
-	my($self) = @_;
-	$self->set_hash('PREFERENCES', @P_FIELDS );
-}
-
-sub get_billing {
-	my($self) = @_;
-	my @fields = @B_FIELDS;
-	$self->get_hash('BILLING', @B_FIELDS );
+	my $self = shift;
+	my $ref = $self->set_hash('PREFERENCES', @P_FIELDS );
+	return $ref;
 }
 
 sub get_shipping {
-	my($self) = @_;
-	my @fields = @S_FIELDS;
-	$self->get_hash('SHIPPING', @S_FIELDS );
+	my $self = shift;
+	my $ref = $self->get_hash('SHIPPING', @S_FIELDS );
+	return $ref;
+}
+
+sub get_billing {
+	my $self = shift;
+	my $ref = $self->get_hash('BILLING', @B_FIELDS );
+	return $ref;
 }
 
 sub get_preferences {
-	my($self) = @_;
-	$self->get_hash('PREFERENCES', @P_FIELDS );
+	my $self = shift;
+	my $ref = $self->get_hash('PREFERENCES', @P_FIELDS );
+	return $ref;
+}
+
+sub get_shipping_names {
+	my $self = shift;
+	my $ref = $self->get_hash('SHIPPING');
+	return undef unless ref $ref;
+	$::Values->{$self->{LOCATION}{SHIPPING}} = join "\n", keys %$ref;
+	return $::Values->{$self->{LOCATION}{SHIPPING}} if $self->{OPTIONS}{show};
+	return '';
+}
+
+sub get_billing_names {
+	my $self = shift;
+	my $ref = $self->get_hash('BILLING');
+	return undef unless ref $ref;
+	$::Values->{$self->{LOCATION}{BILLING}} = join "\n", keys %$ref;
+	return $::Values->{$self->{LOCATION}{BILLING}} if $self->{OPTIONS}{show};
+	return '';
+}
+
+sub get_preferences_names {
+	my $self = shift;
+	my $ref = $self->get_hash('PREFERENCES');
+	return undef unless ref $ref;
+	$::Values->{$self->{LOCATION}{PREFERENCES}} = join "\n", keys %$ref;
+	return $::Values->{$self->{LOCATION}{PREFERENCES}} if $self->{OPTIONS}{show};
+	return '';
+}
+
+sub get_cart_names {
+	my $self = shift;
+	my $ref = $self->get_hash('CARTS');
+	return undef unless ref $ref;
+	$::Values->{$self->{LOCATION}{CARTS}} = join "\n", keys %$ref;
+	return $::Values->{$self->{LOCATION}{CARTS}} if $self->{OPTIONS}{show};
+	return '';
+}
+
+sub delete_billing {
+	my $self = shift;
+	$self->delete_nickname('BILLING', @B_FIELDS );
+	return '';
+}
+
+sub delete_cart {
+	my $self = shift;
+	$self->delete_nickname('CARTS', $self->{NICKNAME});
+	return '';
+}
+
+sub delete_shipping {
+	my $self = shift;
+	$self->delete_nickname('SHIPPING', @S_FIELDS );
+	return '';
+}
+
+sub delete_preferences {
+	my $self = shift;
+	$self->delete_nickname('PREFERENCES', @P_FIELDS );
+	return '';
+}
+
+sub delete_nickname {
+	my($self, $name, @fields) = @_;
+
+	die "no fields?" unless @fields;
+	die "no name?" unless $name;
+
+	$self->get_hash($name) unless ref $self->{$name};
+
+	my $nick_field = shift @fields;
+	my $nick = $self->{NICKNAME} || $::Values->{$nick_field};
+	$nick =~ s/^[\0\s]+//;
+	$nick =~ s/[\0\s]+.*//;
+
+	delete $self->{$name}{$nick};
+
+	my $field_name = $self->{LOCATION}->{$name};
+	unless($self->{PRESENT}->{$field_name}) {
+		$self->{ERROR} = '$field_name field not present to set $name';
+		return undef;
+	}
+
+	my $s = uneval $self->{$name};
+
+	$self->{DB}->set_field( $self->{USERNAME}, $field_name, $s);
+
+	return ($s, $self->{$name});
 }
 
 sub set_hash {
@@ -441,15 +711,18 @@ sub set_hash {
 	$self->get_hash($name) unless ref $self->{$name};
 
 	my $nick_field = shift @fields;
-	my $nick = $self->{NICKNAME} || $self->{VALUES}->{$nick_field};
+	my $nick = $self->{NICKNAME} || $::Values->{$nick_field};
+	$nick =~ s/^[\0\s]+//;
+	$nick =~ s/[\0\s]+.*//;
+	$::Values->{$nick_field} = $nick;
+	$CGI::values{$nick_field} = $nick if $self->{CGI};
 
 	die "no nickname?" unless $nick;
-
 
 	$self->{$name}{$nick} = {} unless defined $self->{$name}{$nick};
 
 	for(@fields) {
-		$self->{$name}{$nick}{$_} = $self->{VALUES}->{$_};
+		$self->{$name}{$nick}{$_} = $::Values->{$_};
 	}
 
 	my $field_name = $self->{LOCATION}->{$name};
@@ -460,9 +733,9 @@ sub set_hash {
 
 	my $s = uneval $self->{$name};
 
-	Vend::Data::set_field( $self->{DB}, $self->{USERNAME}, $field_name, $s);
+	$self->{DB}->set_field( $self->{USERNAME}, $field_name, $s);
 
-	return $s;
+	return ($s, $self->{$name});
 }
 
 sub get_hash {
@@ -479,7 +752,8 @@ sub get_hash {
 		$s = $self->{DB}->field( $self->{USERNAME}, $field_name);
 
 		if($s) {
-			$self->{$name} = eval $s;
+			$self->{$name} = $ready->reval($s);
+			die "Bad structure in $field_name: $@" if $@;
 		}
 		else {
 			$self->{$name} = {};
@@ -493,11 +767,15 @@ sub get_hash {
 		return undef;
 	}
 
-	return unless @fields;
+	return $self->{$name} unless @fields;
 
 	eval {
 		my $nick_field = shift @fields;
-		$nick = $self->{NICKNAME} || $self->{VALUES}->{$nick_field};
+		$nick = $self->{NICKNAME} || $::Values->{$nick_field};
+		$nick =~ s/^[\0\s]+//;
+		$nick =~ s/[\0\s]+.*//;
+		$::Values->{$nick_field} = $nick;
+		$CGI::values{$nick_field} = $nick if $self->{CGI};
 		die "no nickname?" unless $nick;
 	};
 
@@ -506,12 +784,14 @@ sub get_hash {
 		return undef;
 	}
 
-
 	$self->{$name}->{$nick} = {} unless defined $self->{$name}{$nick};
 
 	for(@fields) {
-		$self->{VALUES}{$_} = $self->{$name}{$nick}{$_} || '';
+		$::Values->{$_} = $self->{$name}{$nick}{$_} || '';
+		next unless $self->{CGI};
+		$CGI::values{$_} = $::Values->{$_};
 	}
+	::update_user() if $self->{CGI};
 	return $self->{$name}{$nick};
 }
 
@@ -527,16 +807,54 @@ sub login {
 		unless($self) {
 			$self = new Vend::UserDB %options;
 		}
-
+		if($Vend::Cfg->{CookieLogin}) {
+			$self->{USERNAME} = Vend::Util::read_cookie('MV_USERNAME')
+				if ! $self->{USERNAME};
+			$self->{PASSWORD} = Vend::Util::read_cookie('MV_PASSWORD')
+				if ! $self->{PASSWORD};
+		}
+		if ($self->{OPTIONS}{ignore_case}) {
+			$self->{PASSWORD} = lc $self->{PASSWORD};
+			$self->{USERNAME} = lc $self->{USERNAME};
+		}
 		die "Username does not exist.\n"
 			unless $self->{DB}->record_exists($self->{USERNAME});
 		my $db_pass = $self->{DB}->field(
 						$self->{USERNAME},
 						$self->{LOCATION}{PASSWORD},
 						);
+		my $pw = $self->{PASSWORD};
+		if($self->{CRYPT}) {
+			$self->{PASSWORD} = crypt($pw,$db_pass);
+		}
 		die "Password mismatch.\n"
 			unless $self->{PASSWORD} eq $db_pass;
 
+		if($self->{PRESENT}->{ $self->{LOCATION}{EXPIRATION} } ) {
+			my $now = time();
+			my $cmp = $now;
+			$cmp = POSIX::strftime("%Y%m%d%H%M", localtime($now))
+				unless $self->{OPTIONS}->{unix_time};
+			my $exp = $self->{DB}->field(
+						$self->{USERNAME},
+						$self->{LOCATION}{EXPIRATION},
+						);
+			die "Expiration date not set.\n" 
+				if ! $exp and $self->{EMPTY_EXPIRE_FATAL};
+			if($exp and $exp < $cmp) {
+				die "Expired $exp.\n";
+			}
+		}
+
+		username_cookies($self->{USERNAME}, $pw) 
+			if $Vend::Cfg->{CookieLogin};
+
+		$self->{DB}->set_field( $self->{USERNAME},
+								$self->{LOCATION}{LAST},
+								time()
+								);
+		$self->log('login') if $options{'log'};
+		
 		$self->get_values();
 	};
 
@@ -545,7 +863,6 @@ sub login {
 			$self->{ERROR} = $@;
 		}
 		else {
-#			logError("Vend::UserDB error: $@\n");
 			logError( errmsg('UserDB.pm:1', "Vend::UserDB error: %s\n", $@ ) );
 		}
 		return undef;
@@ -570,28 +887,41 @@ sub change_pass {
 
 		die "Bad object.\n" unless defined $self;
 
-		die "$self->{USERNAME} not a user"
+		die "$self->{USERNAME} not a user\n"
 			unless $self->{DB}->record_exists($self->{USERNAME});
-		die "Must have old password"
-			if	$self->{OLDPASS}
-				ne
-				$self->{DB}->field($self->{USERNAME}, $self->{LOCATION}{PASSWORD});
-		die "Must enter at least 4 characters for password."
+		my $db_pass = $self->{DB}->field($self->{USERNAME}, $self->{LOCATION}{PASSWORD});
+
+		if($self->{CRYPT}) {
+			$self->{OLDPASS} = crypt($self->{OLDPASS},$db_pass);
+		}
+
+		die "Must have old password\n"
+			if	$self->{OLDPASS} ne $db_pass;
+		die "Must enter at least 4 characters for password.\n"
 			unless length($self->{PASSWORD}) > 3;
-		die "Password and check value don't match."
+		die "Password and check value don't match.\n"
 			unless $self->{PASSWORD} eq $self->{VERIFY};
-		my $pass = Vend::Data::set_field(
-						$self->{DB},
+
+		if($self->{CRYPT}) {
+			$self->{PASSWORD} = crypt(
+									$self->{PASSWORD},
+									Vend::Util::random_string(2)
+								);
+		}
+		
+		my $pass = $self->{DB}->set_field(
 						$self->{USERNAME},
 						$self->{LOCATION}{PASSWORD},
 						$self->{PASSWORD}
 						);
-		die "Database access error." unless defined $pass;
+		die "Database access error.\n" unless defined $pass;
+		$self->log('change password') if $options{'log'};
 	};
 
 	if($@) {
 		if(defined $self) {
 			$self->{ERROR} = $@;
+			$self->log('change password failed') if $options{'log'};
 		}
 		else {
 			logError( errmsg('UserDB.pm:3', "Vend::UserDB error: %s", $@ ) );
@@ -600,6 +930,17 @@ sub change_pass {
 	}
 	
 	1;
+}
+
+my $GOOD_CHARS = '[-A-Za-z0-9_@.]';
+
+sub assign_username {
+        my $self = shift;
+        my $file = shift || $self->{OPTIONS}{'counter'};
+        my $start = $self->{OPTIONS}{username} || 'U00000';
+        $file = './etc/username.counter' if ! $file;
+        my $ctr = File::CounterFile->new($file, $start);
+        return $ctr->inc();
 }
 
 sub new_account {
@@ -615,22 +956,58 @@ sub new_account {
 		unless($self) {
 			$self = new Vend::UserDB %options;
 		}
-
 		die "Bad object.\n" unless defined $self;
 
-		die "Username already exists.\n"
-			if $self->{DB}->record_exists($self->{USERNAME});
+		die "Already logged in. Log out first.\n"
+			if $Vend::Session->{logged_in};
+		die "Sorry, reserved user name.\n"
+			if $self->{OPTIONS}{username_mask} 
+				and $self->{USERNAME} =~ m!$self->{OPTIONS}{username_mask}!;
 		die "Must enter at least 4 characters for password.\n"
 			unless length($self->{PASSWORD}) > 3;
 		die "Password and check value don't match.\n"
 			unless $self->{PASSWORD} eq $self->{VERIFY};
-		my $pass = Vend::Data::set_field(
-						$self->{DB},
+
+		if ($self->{OPTIONS}{ignore_case}) {
+			$self->{PASSWORD} = lc $self->{PASSWORD};
+			$self->{USERNAME} = lc $self->{USERNAME};
+		}
+
+		my $pw = $self->{PASSWORD};
+		if($self->{CRYPT}) {
+			eval {
+				$self->{PASSWORD} = crypt(
+										$pw,
+										Vend::Util::random_string(2)
+									);
+			};
+		}
+	
+		if($self->{OPTIONS}{'assign_username'}) {
+			$self->{USERNAME} = $self->assign_username();
+			$self->{USERNAME} = lc $self->{USERNAME}
+				if $self->{OPTIONS}{ignore_case};
+		}
+		die "Must have longer username.\n" unless length($self->{USERNAME}) > 1;
+		die "Can't have '$1' as username, unsafe characters.\n"
+			if $self->{USERNAME} !~ m{^$GOOD_CHARS+$};
+		unless ($self->{DB}->record_exists($self->{USERNAME})) {
+			$self->{DB}->set_row($self->{USERNAME});
+		}
+		else {
+			die "Username already exists.\n"
+		}
+		my $pass = $self->{DB}->set_field(
 						$self->{USERNAME},
 						$self->{LOCATION}{PASSWORD},
 						$self->{PASSWORD}
 						);
 		die "Database access error.\n" unless defined $pass;
+
+		username_cookies($self->{USERNAME}, $pw) 
+			if $Vend::Cfg->{CookieLogin};
+
+		$self->log('new account') if $options{'log'};
 		$self->set_values();
 	};
 
@@ -647,61 +1024,104 @@ sub new_account {
 	1;
 }
 
+sub username_cookies {
+		my ($user, $pw) = @_;
+		return unless
+			 $CGI::values{mv_cookie_password}		or
+			 $CGI::values{mv_cookie_username}		or
+			 Vend::Util::read_cookie('MV_PASSWORD')	or
+			 Vend::Util::read_cookie('MV_USERNAME');
+		$::Instance->{Cookies} = [] unless defined $::Instance->{Cookies};
+		my $exp = time() + $Vend::Cfg->{SaveExpire};
+		push @{$::Instance->{Cookies}},
+			['MV_USERNAME', $user, $exp];
+		return unless
+			$CGI::values{mv_cookie_password}		or
+			Vend::Util::read_cookie('MV_PASSWORD');
+		push @{$::Instance->{Cookies}},
+			['MV_PASSWORD', $pw, $exp];
+		return;
+}
+
 sub get_cart {
-	my($self, $from, $to) = @_;
+	my($self, %options) = @_;
+
+	my $from = $self->{NICKNAME};
+	my $to;
+	if ($options{target}) {
+		if ($Vend::Session->{'carts'}->{$options{target}}) {
+			$to = $Vend::Session->{'carts'}->{$options{target}};
+		}
+		else {
+			$to = $Vend::Session->{'carts'}->{$options{target}} = [];
+		}
+	}
+	else {
+		$to = $Vend::Items;
+	}
 
 	my $field_name = $self->{LOCATION}->{CARTS};
-	my ($cart,$d);
+	my ($d);
 
 	eval {
 		die "no from cart name?"				unless $from;
-		die "no to cart name?"					unless $to;
 		die "$field_name field not present to get $from\n"
 										unless $self->{PRESENT}->{$field_name};
 
 		my $s = $self->{DB}->field( $self->{USERNAME}, $field_name);
 
-		die "no value in source cart." unless $s;
+		die "no saved carts.\n" unless $s;
 
-		$d = eval $s;
+		$d = $ready->reval($s);
 
 		die "eval failed?"				unless ref $d;
+
+		die "source cart '$from' does not exist.\n" unless ref $d->{$from};
 	};
 
 	if($@) {
 		$self->{ERROR} = $@;
 		return undef;
 	}
-
-
-	$self->{CARTS}->{$to} = $d->{$from};
+#::logGlobal ("to=$options{target} from=$from ref=$d->{$from}");
+	@$to = @{$d->{$from}};
 
 }
 
 sub set_cart {
-	my($self, $from, $to) = @_;
+	my($self, %options) = @_;
+
+	my $from;
+	my $to   = $self->{NICKNAME};
+	if ($self->{OPTIONS}{source}) {
+		$from = $Vend::Session->{carts}->{$self->{OPTIONS}{source}} || [];
+	}
+	else {
+		$from = $Vend::Items;
+	}
 
 	my $field_name = $self->{LOCATION}->{CARTS};
 	my ($cart,$s,$d);
 
 	eval {
-		die "no from cart name?"				unless $from;
-		die "no to cart name?"					unless $to;
+		die "no to cart name?\n"					unless $to;
 		die "$field_name field not present to save $from\n"
 										unless $self->{PRESENT}->{$field_name};
 
-		$s = eval $self->{DB}->field( $self->{USERNAME}, $field_name);
+		$d = $ready->reval( $self->{DB}->field( $self->{USERNAME}, $field_name) );
 
-		if($s) {
-			$d = eval $s;
-		}
-		else {
-			$d = {};
-		}
+		$d = {} unless $d;
 
 		die "eval failed?"				unless ref $d;
 
-		$d->{$to} = $self->{CARTS}->{$from};
+		if($options{merge}) {
+			$d->{$to} = [] unless ref $d->{$to};
+			push(@{$d->{$to}}, @{$from});
+		}
+		else {
+		}
+
+		$d->{$to} = $from;
 
 		$s = uneval $d;
 
@@ -712,8 +1132,111 @@ sub set_cart {
 		return undef;
 	}
 
-	Vend::Interpolate::set_field( $self->{DB}, $self->{USERNAME}, $field_name, $s);
+	$self->{DB}->set_field( $self->{USERNAME}, $field_name, $s);
 
+}
+
+sub userdb {
+	my $function = shift;
+	my $opt = shift;
+
+	my %options;
+
+#::logError("Called userdb function=$function opt=$opt " .  Data::Dumper::Dumper($opt));
+
+	if(ref $opt) {
+		%options = %$opt;
+	}
+	else {
+		%options = ($opt, @_);
+	}
+
+	my $status = 1;
+	my $user;
+
+	if($function eq 'login') {
+		$Vend::Session->{logged_in} = 0;
+		delete $Vend::Session->{username};
+		::put_session;
+		$user = new Vend::UserDB %options;
+		unless (defined $user) {
+			$Vend::Session->{failure} = "Unable to access user database.";
+			return undef;
+		}
+		if ($status = $user->login(%options) ) {
+			$Vend::Session->{logged_in} = 1;
+			$Vend::Session->{username} = $user->{USERNAME};
+			undef $Vend::Cookie
+				unless $Vend::Cfg->{StaticLogged};
+			::update_user();
+		}
+	}
+	elsif($function eq 'new_account') {
+		$user = new Vend::UserDB %options;
+		unless (defined $user) {
+			$Vend::Session->{failure} = "Unable to access user database.";
+			return undef;
+		}
+		if($status = $user->new_account(%options)) {
+			$Vend::Session->{logged_in} = 1;
+			$Vend::Session->{username} = $user->{USERNAME};
+			undef $Vend::Cookie
+				unless $Vend::Cfg->{StaticLogged};
+		}
+	}
+	elsif($function eq 'logout') {
+		$user = new Vend::UserDB %options;
+		unless (defined $user) {
+			$Vend::Session->{failure} = "Unable to access user database.";
+			return undef;
+		}
+		if( is_yes($options{clear}) ) {
+			$user->clear_values();
+		}
+		delete $Vend::Session->{'logged_in'};
+		delete $Vend::Session->{'username'};
+		delete $Vend::Session->{'values'}{mv_username};
+		$user->log('logout') if $options{'log'};
+		$user->{MESSAGE} = 'Logged out.';
+	}
+	elsif (! $Vend::Session->{logged_in}) {
+		$Vend::Session->{failure} = "Not logged in.";
+		return undef;
+	}
+	elsif($function eq 'save') {
+		$user = new Vend::UserDB %options;
+		unless (defined $user) {
+			$Vend::Session->{failure} = "Unable to access user database.";
+			return undef;
+		}
+		$status = $user->set_values();
+	}
+	else {
+		$user = new Vend::UserDB %options;
+		unless (defined $user) {
+			$Vend::Session->{failure} = "Unable to access user database.";
+			return undef;
+		}
+		$status = $user->$function(%options);
+	}
+	
+	if(defined $status) {
+		delete $Vend::Session->{failure};
+#::logGlobal("userdb success=$user->{ERROR}\n"); # if $Global::DEBUG;
+		$Vend::Session->{success} = $user->{MESSAGE};
+		if($options{show_message}) {
+			$status = $user->{MESSAGE};
+		}
+	}
+	else {
+#::logGlobal("userdb failure=$user->{ERROR}\n"); # if $Global::DEBUG;
+		$Vend::Session->{failure} = $user->{ERROR};
+		if($options{show_message}) {
+			$status = $user->{ERROR};
+		}
+	}
+	return $status unless $options{hide};
+	return;
 }
 
 1;

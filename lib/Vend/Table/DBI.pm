@@ -1,8 +1,8 @@
 # Table/DBI.pm: access a table stored in an DBI/DBD Database
 #
-# $Id: DBI.pm,v 1.23 1998/07/18 11:43:40 mike Exp $
+# $Id: DBI.pm,v 1.25 1999/02/15 08:51:44 mike Exp mike $
 #
-# Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
+# Copyright 1996-1999 by Michael J. Heins <mikeh@minivend.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,16 +19,16 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::DBI;
-$VERSION = substr(q$Revision: 1.23 $, 10);
+$VERSION = substr(q$Revision: 1.25 $, 10);
 
-use Carp;
 use strict;
 
 # 0: table name
 # 1: key name
 # 2: database object
 # 3: Array of column names
-# 4: each reference (transitory)
+# 4: Configuration hash
+# 5: each reference (transitory)
 
 use vars qw($TABLE $KEY $DBI $NAME $CONFIG $EACH);
 ($TABLE, $KEY, $DBI, $NAME, $CONFIG, $EACH) = (0 .. 5);
@@ -50,8 +50,6 @@ my %Dattr = ( qw(
 					LONGREADLEN    	LongReadLen
 				) );
 
-#my %Dattr = ( qw( AUTOCOMMIT AutoCommit	) );
-					
 sub find_dsn {
 	my ($config) = @_;
 	my($param, $value, $cattr, $dattr, @out);
@@ -87,37 +85,25 @@ sub find_dsn {
 	@out;
 }
 
-sub create_table {
-    my ($class, $config, $filename, $columns) = @_;
-
-    return $class->create($columns, $filename, $config);
-}
-
 sub config {
-	my $s = shift;
-	return undef
-		unless defined $s->[$CONFIG]->{$_[0]};
-	$s->[$CONFIG]->{$_[0]};
+	my ($self, $key, $value) = @_;
+	return $self->[$CONFIG]{$key} unless defined $value;
+	$self->[$CONFIG]{$key} = $value;
 }
-	
 
 sub create {
-    my ($class, $columns, $tablename, $config) = @_;
+    my ($class, $config, $columns, $tablename) = @_;
 
 	my @call = find_dsn($config);
 	my $dattr = pop @call;
 	my $db = DBI->connect( @call )
-		or croak "DBI connect failed: $DBI::errstr\n";
-# DEBUG
-#Vend::Util::logDebug
-#("trying to create $tablename\n")
-#	if ::debug(0x4);
-#$db->trace(2) if ::debug(0x4);
-#Vend::Util::logDebug
-#("connected\n")
-#	if ::debug(0x4);
-# END DEBUG
-    croak "columns argument $columns is not an array ref\n"
+		or die "DBI connect failed: $DBI::errstr\n";
+
+	if($config->{HANDLE_ONLY}) {
+		return bless [$tablename, undef, $db, undef, $config], $class;
+	}
+
+    die "columns argument $columns is not an array ref\n"
         unless ref($columns) eq 'ARRAY';
 
 	if(defined $dattr) {
@@ -125,12 +111,6 @@ sub create {
 			$db->{$_} = $dattr->{$_};
 		}
 	}
-
-# DEBUG
-#Vend::Util::logDebug
-#("ChopBlanks: '" . $db->{ChopBlanks} . "'\n")
-#	if ::debug(0x4);
-# END DEBUG
 
     my ($i, $key, $keycol, $first);
 	my(@cols);
@@ -179,7 +159,7 @@ sub create {
 			unless defined $config->{COLUMN_DEF}->{$key};
 
 	$db->do("drop table $tablename")
-		or carp "$DBI::errstr\n";
+		or warn "$DBI::errstr\n";
 
 # DEBUG
 #Vend::Util::logDebug
@@ -191,18 +171,13 @@ sub create {
 	$query .= "\n)\n";
 	
 	$db->do($query)
-		or croak "DBI: Create table '$tablename' failed: $DBI::errstr\n";
+		or warn "DBI: Create table '$tablename' failed: $DBI::errstr\n";
 #	::logError("table $tablename created: $query");
 	::logError( Vend::Util::errmsg('Table/DBI.pm:1', "table %s created: %s" , $tablename, $query) );
 
 	$db->do("create index ${key}_idx on $tablename ($key)")
 #		or ::logError("table $tablename index failed: $DBI::errstr");
 		or ::logError( Vend::Util::errmsg('Table/DBI.pm:2', "table %s index failed: %s" , $tablename, $DBI::errstr) );
-# DEBUG
-#Vend::Util::logDebug
-#("Created table, I think.\n")
-#	if ::debug(0x4);
-# END DEBUG
 
 	$config->{NAME} = $columns;
 
@@ -216,7 +191,11 @@ sub open_table {
     my @call = find_dsn($config);
     my $dattr = pop @call;
     my $db = DBI->connect( @call )
-		or croak "$DBI::errstr\n";
+		or die "$tablename: $DBI::errstr\n";
+
+	if($config->{HANDLE_ONLY}) {
+		return bless [$tablename, undef, $db, undef, $config], $class;
+	}
 # DEBUG
 #$db->trace(2) if $Global::DEBUG & $GLOBAL::DHASH{DATA};
 # END DEBUG
@@ -228,11 +207,6 @@ sub open_table {
 			$db->{$_} = $dattr->{$_};
 		}
 	}
-# DEBUG
-#Vend::Util::logDebug
-#("ChopBlanks: '" . $db->{ChopBlanks} . "'\n")
-#	if ::debug(0x4);
-# END DEBUG
 
 	$cols = $config->{NAME} || [list_fields($db, $tablename)];
 
@@ -241,7 +215,7 @@ sub open_table {
 
 	$config->{NUMERIC} = {} unless $config->{NUMERIC};
 
-	croak "DBI: no column names returned for $tablename\n"
+	die "DBI: no column names returned for $tablename\n"
 			unless defined $$cols[1];
 
 	# Check if we have a non-first-column key
@@ -277,16 +251,6 @@ sub quote {
 }
 
 sub numeric {
-# DEBUG
-#Vend::Util::logDebug
-#("called numeric with @_: status=")
-#	if ::debug(0x4);
-#	my $status = exists $_[0]->[$CONFIG]->{NUMERIC}->{$_[1]};
-# DEBUG
-#Vend::Util::logDebug
-#("$status\n")
-#	if ::debug(0x4);
-# END DEBUG
 	return exists $_[0]->[$CONFIG]->{NUMERIC}->{$_[1]};
 }
 
@@ -296,7 +260,7 @@ sub inc_field {
 		unless exists $s->[$CONFIG]{NUMERIC}{$s->[$KEY]};
     my $sth = $s->[$DBI]->prepare(
 		"select $column from $s->[$TABLE] where $s->[$KEY] = $key");
-    croak "inc_field: $DBI::errstr\n" unless defined $sth;
+    die "inc_field: $DBI::errstr\n" unless defined $sth;
     $sth->execute();
     $value += ($sth->fetchrow_array)[0];
 	$value = $s->[$DBI]->quote($value)
@@ -333,12 +297,16 @@ sub field_accessor {
 			unless exists $s->[$CONFIG]{NUMERIC}{$s->[$KEY]};
         my $sth = $s->[$DBI]->prepare
 			("select $column from $s->[$TABLE] where $s->[$KEY] = $key")
-				or croak $DBI::errstr;
+				or die $DBI::errstr;
 		($sth->fetchrow)[0];
     };
 }
 
-use vars qw/$mv_sql_hash $mv_sql_hash_order $mv_sql_array @mv_sql_param/;
+use vars qw/$mv_sql_hash
+            $mv_sql_hash_order
+            $mv_sql_array
+            @mv_sql_param
+            %mv_sql_names/;
 
 sub substitute_arg {
 	my ($s, $query, @arg) = @_;
@@ -373,10 +341,10 @@ sub param_query {
 
 	my $db = $s->[$DBI];
     my $sth = $db->prepare($text)
-		or croak "$DBI::errstr\n";
+		or die "$table: $DBI::errstr\n";
 	my(@row);
 	my(@out);
-    $sth->execute() or croak $DBI::errstr;
+    $sth->execute() or die $DBI::errstr;
 	while(@row = $sth->fetchrow_array()) {
 		push @out, @row;
 	}
@@ -393,16 +361,13 @@ sub param_query {
 
 sub array_query {
 	my($s, $text, $table, $config, @arg) = @_;
-# DEBUG
-#Vend::Util::logDebug
-#("array_query: $text\n")
-#	if ::debug(0x4);
-# END DEBUG
 	$text = $s->substitute_arg($text, @arg) if @arg;
 	my $db = $s->[$DBI];
     my $sth = $db->prepare($text)
-		or croak "$DBI::errstr\n";
-    $sth->execute() or croak $DBI::errstr;
+		or die "$table: $DBI::errstr\n";
+    $sth->execute() or die $DBI::errstr;
+    my $i = 0;
+    %mv_sql_names = map { (lc $_, $i++) } @{$sth->{NAME}};
 	my $out = $sth->fetchall_arrayref;
 	if(ref $config and $config->{PERL}) {
 		$mv_sql_array = $out;
@@ -416,15 +381,10 @@ sub hash_query {
    
     $text = $s->substitute_arg($text, @arg) if @arg;
 
-# DEBUG
-#Vend::Util::logDebug
-#("hash_query: $text\n")
-#	if ::debug(0x4);
-# END DEBUG
 	my $key = $s->[$KEY];
     my $sth = $s->[$DBI]->prepare($text)
-		or croak "$DBI::errstr\n";
-    $sth->execute() or croak $DBI::errstr;
+		or die "$table: $DBI::errstr\n";
+    $sth->execute() or die $DBI::errstr;
 	my $out = {};
 	my @out;
 	my $tkey;
@@ -449,9 +409,9 @@ sub html_query {
 
 	my $db = $s->[$DBI];
     my $sth = $db->prepare($text)
-		or croak "$DBI::errstr\n";
+		or die "$table: $DBI::errstr\n";
 	my(@row);
-    $sth->execute() or croak $DBI::errstr;
+    $sth->execute() or die $DBI::errstr;
 	my $r = '<TR>';
 	for(@{$sth->{NAME}}) {
 		$r .= "<TH><B>$_</B></TH>";
@@ -478,7 +438,7 @@ sub set_query {
 	$text = $s->substitute_arg($text, @arg) if @arg;
 	my $rc = $s->[$DBI]->do($text);
 	unless (defined $config->{IF} || defined $config->{ELSE}) {
-		croak "$DBI::errstr\n" unless defined $rc;
+		die "$table: $DBI::errstr\n" unless defined $rc;
 		return '';
 	}
 	$rc = 0 if $rc eq '0E0';
@@ -493,23 +453,13 @@ sub each_record {
     my ($s) = @_;
     my ($table,$key,$db,$cols,$config,$each) = @$s;
     unless(defined $each) {
-# DEBUG
-#Vend::Util::logDebug
-#("Each not defined -- listing table $table for $db\n")
-#	if ::debug(0x4);
-# END DEBUG
         $each = $db->prepare("select * from $table")
-            or croak $DBI::errstr;
+            or die $DBI::errstr;
         push @$s, $each;
 		$each->execute();
     }
     my @cols;
     @cols = $each->fetchrow_array;
-# DEBUG
-#Vend::Util::logDebug
-#("Cols for DBI each_record:\n--\n" . (join "|", @cols) . "\n--\n")
-#	if ::debug(0x4);
-# END DEBUG
     pop(@$s) unless(scalar @cols);
     return @cols;
 }
@@ -535,7 +485,6 @@ sub set_row {
 	while(scalar @cols < scalar @fields) {
 		my $val = pop @fields;
 		my $t = $s->[$TABLE]; my $f = $fields[0];
-#		::logError("set_row $t: field with value '$val' removed from record '$f'");
 		::logError( Vend::Util::errmsg('Table/DBI.pm:3', "set_row %s: field with value '%s' removed from record '%s'" , $t, $val, $f) );
 	}
 
@@ -549,14 +498,10 @@ sub set_row {
 	}
 
 	my $values = join ',', @fields;
-# DEBUG
-#Vend::Util::logDebug
-#("Got to set_row\n$values\n")
-#	if ::debug(0x4);
-# END DEBUG
+
     $s->[$DBI]->do("delete from $s->[$TABLE] where $s->[$KEY] = $fields[0]");
     $s->[$DBI]->do("insert into $s->[$TABLE] VALUES ($values)")
-		or croak "$DBI::errstr\n";
+		or die "$DBI::errstr\n";
 }
 
 sub row_hash {
@@ -565,13 +510,8 @@ sub row_hash {
 		unless exists $s->[$CONFIG]{NUMERIC}{$s->[$KEY]};
     my $sth = $s->[$DBI]->prepare(
 		"select * from $s->[$TABLE] where $s->[$KEY] = $key");
-# DEBUG
-#Vend::Util::logDebug
-#("row hash: table=$s->[$TABLE] key=$key\n")
-#	if ::debug(0x4);
-# END DEBUG
     $sth->execute()
-		or croak("execute error: $DBI::errstr");
+		or die("execute error: $DBI::errstr");
 	return $sth->fetchrow_hashref();
 }
 
@@ -582,13 +522,8 @@ sub field {
     my $sth = $s->[$DBI]->prepare(
 		"select $column from $s->[$TABLE] where $s->[$KEY] = $key");
     $sth->execute()
-		or croak("execute error: $DBI::errstr");
+		or die("execute error: $DBI::errstr");
 	my $data = ($sth->fetchrow_array())[0];
-# DEBUG
-#Vend::Util::logDebug
-#("retrieve field: col=$column key=$key data=$data\n")
-#	if ::debug(0x4);
-# END DEBUG
 	return '' unless $data =~ /\S/;
 	$data;
 }
@@ -600,7 +535,7 @@ sub set_field {
 	$value = $s->[$DBI]->quote($value)
 		unless exists $s->[$CONFIG]->{NUMERIC}->{$column};
     $s->[$DBI]->do("update $s->[$TABLE] SET $column = $value where $s->[$KEY] = $key")
-		or croak "$DBI::errstr\n";
+		or die "$DBI::errstr\n";
 	$value;
 }
 
@@ -608,21 +543,15 @@ sub ref {
 	return $_[0];
 }
 
-#sub record_exists { 1 }
 sub test_record { 1 }
 
 sub record_exists {
     my ($s, $key) = @_;
-# DEBUG
-#Vend::Util::logDebug
-#("call object $s with arg $key -- key name is '$s->[$KEY]'\n")
-#	if ::debug(0x4);
-# END DEBUG
 	$key = $s->[$DBI]->quote($key)
 		unless exists $s->[$CONFIG]{NUMERIC}{$s->[$KEY]};
 	my $query = "select $s->[$KEY] from $s->[$TABLE] where $s->[$KEY] = $key";
 	my $sth = $s->[$DBI]->prepare($query);
-    $sth->execute() or croak $DBI::errstr;
+    $sth->execute() or die $DBI::errstr;
     $sth->fetchrow_arrayref or return undef;
 	return 1;
 }
@@ -644,14 +573,14 @@ sub list_fields {
 	my @fld;
 
 	my $sth = $db->prepare("select * from $name")
-		or croak $DBI::errstr;
+		or die $DBI::errstr;
 
 	# Wish we didn't have to do this, but we cache the columns
-	$sth->execute		or croak "$DBI::errstr\n";
+	$sth->execute		or die "$DBI::errstr\n";
 
 	@fld = @{$sth->{NAME}};
 
-	croak "DBI: can't find field names.\n"
+	die "DBI: can't find field names.\n"
 		unless @fld > 1;
 # DEBUG
 #Vend::Util::logDebug
@@ -670,12 +599,12 @@ sub table_exists {
 WHERE table_name = '$name'
 EOF
 
-	croak "$DBI::errstr\n" unless $sth;
-	$sth->execute() or croak "$DBI::errstr\n";
+	die "$DBI::errstr\n" unless $sth;
+	$sth->execute() or die "$DBI::errstr\n";
 	if(@row = $sth->fetchrow_array()) {
 		$rc = $row[0];
 	}
-	$sth->finish() or croak "$DBI::errstr\n";
+	$sth->finish() or die "$DBI::errstr\n";
 	$rc;
 }
 

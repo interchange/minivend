@@ -1,8 +1,8 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #
-# MiniVend version 3.11
+# MiniVend version 3.12
 #
-# $Id: minivend,v 1.34 1998/09/01 13:15:22 mike Exp mike $
+# $Id: minivend,v 1.38 1999/02/12 12:24:23 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -56,12 +56,30 @@ $Global::SendMailLocation = '/usr/lib/sendmail';
 if($Config{osname} =~ /win32/i) {
 	$Global::Windows = 1;
 }
+
 # Uncomment next line if you want to guarantee use of DB_File
 #$ENV{MINIVEND_DBFILE} = 1;
 
+# Uncomment next line if you want to guarantee use of GDBM and not DB_File
+#$ENV{MINIVEND_GDBM} = 1;
+
 # Uncomment next line if you want to use no DBM, sessions
-# stored in files and databases in memory (or mSQL)
+# stored in files and databases in memory (or SQL)
 #$ENV{MINIVEND_NODBM} = 1;
+
+# Uncomment next line if you DON'T want to use DBI, can
+# save a bit on code size
+#$ENV{MINIVEND_NO_DBI} = 1;
+
+# Uncomment next line if you want to use the Storable
+# module for storing session data. It improves session performance
+# to a good degree. We will also do a bit of auto-detect below.
+#$ENV{MINIVEND_STORABLE} = 1;
+
+# Uncomment next line if you want to use the Storable
+# module for storing database data. It improves GBDM/DB_File performance
+# to a good degree. We will also do a bit of auto-detect below.
+#$ENV{MINIVEND_STORABLE_DB} = 1;
 
 # Uncomment AND SET next line to set PGP path to somewhere besides
 # the MiniVend user path
@@ -71,6 +89,15 @@ if($Config{osname} =~ /win32/i) {
 # routines if on a Linux system with bad STRUCT_HAS_TZ.
 if(-f "$Global::VendRoot/linux.badposix") {
 	$ENV{MINIVEND_BADPOSIX} = 1;
+}
+
+# Use the Storable module for storing data in DBM files.
+if (-f "$Global::VendRoot/_session_storable") {
+	$ENV{MINIVEND_STORABLE} = 1;
+}
+
+if (-f "$Global::VendRoot/_db_storable") {
+	$ENV{MINIVEND_STORABLE_DB} = 1;
 }
 
 # If you set this to true, you can create an alias that doesn't begin
@@ -87,16 +114,6 @@ if(-f "$Global::VendRoot/linux.badposix") {
 # % bin/vlink simple scan sf=category/se=Impressionists/rf=0,title,artist
 #  
 $Global::AllowQuery = 1;
-
-# The following will stay until this is fixed in RedHat Linux.
-# Set the above to 0 if your version won't dump core on strftime.
-if(	$Config{osname} eq 'linux'			and 
-	! $Config{d_gnulibc} eq 'define'	and
-	! defined $ENV{MINIVEND_BADPOSIX} )
-{
-	$ENV{MINIVEND_BADPOSIX} = 1;
-}
-
 
 $Global::ErrorFile = 'error.log';
 }
@@ -133,7 +150,9 @@ sub debug {
 	return ($_[0] || 0) & $Global::DEBUG;
 }
 
-$VERSION = '3.11';
+BEGIN {
+	$VERSION = '3.12';
+}
 use strict;
 use Fcntl;
 
@@ -151,21 +170,30 @@ $Global::SendMailLocation = ($Global::Windows and $Global::SendMailLocation) ||
 BEGIN {
 	chdir $Global::VendRoot
 		or die "Couldn't change directory to $Global::VendRoot: $!\n";
-	$Global::GDBM = $Global::DB_File = $Global::Msql = $Global::DBI = 0;
-	eval {require Msql and $Global::Msql = 1};
+	$Global::GDBM = $Global::DB_File = $Global::DBI = 0;
+	
 	# This is for standard DBI
-	eval {require DBI and $Global::DBI = 1};
+	eval {
+			die if $ENV{MINIVEND_NODBI};
+			require DBI and $Global::DBI = 1
+	};
 
 	# This is for experimenting with Win32::ODBC
 	#use DBI::W32ODBC;
 	#$Global::DBI = 1;
 
+	# Clean HTML if module there
+	eval {require HTML::Clean; };
+
+	# Now can use any type of database
 	AUTO: {
 		last AUTO if 
 			(defined $ENV{MINIVEND_DBFILE} and $Global::DB_File = 1);
 		last AUTO if 
 			(defined $ENV{MINIVEND_NODBM});
-		eval {require GDBM_File and $Global::GDBM = 1} ||
+		eval {require GDBM_File and $Global::GDBM = 1};
+		last AUTO if 
+			(defined $ENV{MINIVEND_GDBM} and $Global::GDBM = 1);
 		eval {require DB_File and $Global::DB_File = 1};
 	}
 
@@ -173,15 +201,19 @@ BEGIN {
 		require Vend::Table::GDBM;
 		import GDBM_File;
 		$Global::GDBM = 1;
+		$Global::Default_database = 'GDBM'
+			unless defined $Global::Default_database;
 	}
-	elsif($Global::DB_File) {
+	if($Global::DB_File) {
 		require Vend::Table::DB_File;
 		import DB_File;
 		$Global::DB_File = 1;
+		$Global::Default_database = 'DB_FILE'
+			unless defined $Global::Default_database;
 	}
-	else {
-		require Vend::Table::InMemory;
-	}
+	$Global::Default_database = 'MEMORY'
+			unless defined $Global::Default_database;
+	require Vend::Table::InMemory;
 }
 
 
@@ -200,6 +232,7 @@ use Vend::TextSearch;
 use Vend::Order;
 use Vend::Data;
 use Vend::Util;
+use Vend::UserDB;
 use Vend::Interpolate;
 use Vend::ValidCC;
 use Vend::Cart;
@@ -251,6 +284,12 @@ sub response {
 	return 1 if $Vend::BuildingPages;
 	my $out = ref $output ? $output : \$output;
 	check_html($out) if defined $Vend::CheckHTML;
+	if(defined $Vend::CleanHTML) {
+		my $html = new HTML::Clean($out);
+		$html->compat();
+		$html->strip();
+		$out = $html->data();
+	}
 	if (defined $Vend::DebugHTML) {
 		$$out .= "\n<!-- DEBUG\n" .
 					$Vend::DebugHTML .
@@ -447,7 +486,7 @@ sub do_page {
 		if defined $Vend::Cfg->{CollectData}->{page};
 
 	if($Vend::Cfg->{PageCache}	and
-		$CGI::cookie			and
+		$Vend::Cookie			and
 		! defined $Vend::Cfg->{NoCache}->{$name})
 	{
 		cache_page($name, $arg || undef) and $Vend::Session->{'page'} = $name;
@@ -578,7 +617,7 @@ sub do_search {
 		create_last_search($c);
 	}
 
-	if($Vend::Cfg->{SearchCache} and $CGI::cookie) {
+	if($Vend::Cfg->{SearchCache} and $Vend::Cookie) {
 		my($key,$page) = check_search_cache($Vend::Session->{last_search});
 		if (defined $page and $CGI::pragma !~ /no-cache/i) {
 			put_session if $Vend::Session->{scratch}->{mv_put_session};
@@ -614,7 +653,7 @@ sub do_scan {
 		$c->{mv_cache_key} = $key;
 	}
 
-	if($Vend::Cfg->{SearchCache} and $CGI::cookie) {
+	if($Vend::Cfg->{SearchCache} and $Vend::Cookie) {
 		($key,$page) = check_search_cache($Vend::Session->{last_search},$key);
 		if (defined $page and $CGI::pragma !~ /no-cache/i) {
 			put_session if $Vend::Session->{scratch}->{mv_put_session};
@@ -719,16 +758,18 @@ sub add_items {
 		@bases = split /\0/, $bases, $1;
 	}
 
-	foreach $attr (@{$Vend::Cfg->{UseModifier}}) {
-		$attr{$attr} = [];
-		next unless defined $CGI::values{"mv_order_$attr"};
-		@{$attr{$attr}} = split /\0/, $CGI::values{"mv_order_$attr"}, -1;
+	if ($Vend::Cfg->{UseModifier}) {
+		foreach $attr (@{$Vend::Cfg->{UseModifier} || []}) {
+			$attr{$attr} = [];
+			next unless defined $CGI::values{"mv_order_$attr"};
+			@{$attr{$attr}} = split /\0/, $CGI::values{"mv_order_$attr"}, -1;
+		}
 	}
 
-      my ($group, $found_master, $mv_mi, $mv_si, @group);
+    my ($group, $found_master, $mv_mi, $mv_si, @group);
 
-      @group = split /\0/, (delete $CGI::values{mv_order_group} || ''), -1;
-      for( $i = 0; $i < @group; $i++ ) {
+    @group = split /\0/, (delete $CGI::values{mv_order_group} || ''), -1;
+    for( $i = 0; $i < @group; $i++ ) {
        $attr{mv_mi}->[$i] = $group[$i] ? ++$Vend::Session->{pageCount} : 0;
 	}
 
@@ -831,9 +872,9 @@ sub update_data {
 					 "Table: '%s'\n" .
 					 "Fields:'%s'\n" .
 					 "Key:   '%s'\n",
-					 $CGI::values{'mv_data_table'},
-					 $CGI::values{'mv_data_fields'},
-					 $CGI::values{'mv_data_key'}
+					 $CGI::values{mv_data_table},
+					 $CGI::values{mv_data_fields},
+					 $CGI::values{mv_data_key}
 					 )
 				 );
 		
@@ -848,7 +889,7 @@ sub update_data {
 	my $table		= $CGI::values{'mv_data_table'};
 	my $prikey		= $CGI::values{'mv_data_key'};
 	my $decode		= is_yes($CGI::values{'mv_data_decode'});
-	my ($ref, $type, $db, $msql, $database);
+	my ($ref, $type, $db, $database);
 
 	$ref = $Vend::Cfg->{Database}->{$table} || '';
 
@@ -858,28 +899,17 @@ sub update_data {
 	}
 	$Vend::WriteDatabase{$table} = 1;
 
-	if( $ref->{'type'} eq '7') {
-		$type = 'sql';
-		$msql = 'm';
-		$database = $Vend::Cfg->{MsqlDB};
-	}
-	elsif($ref->{'type'} eq '8') {
-		$type = 'sql';
-		$database = $table;
-	}
-	elsif ($function =~ /(m)?sql/i) {
-		$type = 'sql';
-		$msql = $1 || '';
-		$database = $Vend::Cfg->{MsqlDB} if $msql;
-	}
-	elsif ($db = database_exists_ref($table)) {
-		$type = 'dbm';
-		$db = $db->ref();
-	}
-	else {
-		interaction_error("Non-existent database table '$table'");
-		return undef;
-	}
+    if($ref->{'type'} eq '8') {
+        $type = 'sql';
+        $database = $table;
+    }
+    else {
+        $type = 'dbm';
+    }
+
+    $db = database_exists_ref($table)
+        or die "Not a defined database '$table': $!\n";
+    $db = $db->ref();
 
 	my @fields		= grep $_, split /[\s\0,]+/, $CGI::values{'mv_data_fields'};
 
@@ -921,28 +951,6 @@ sub update_data {
 		if($function eq 'delete') {
 			$db->delete_record($select_key);
 		}
-		elsif($type eq 'sql' and $function eq 'insert') {
-			sql_query('set', "", "delete from $table where code = '$select_key'",
-						$msql || undef, $database);
-			$query = "insert into $table (";
-			$query .= join ",", @k;
-			$query .= ") VALUES ('";
-			$query .= join "','", @v;
-			$query .= "')";
-		}
-		elsif ($type eq 'sql' and $function eq 'update') {
-			$query = "UPDATE $table SET ";
-			my $what;
-			@c = ();
-			while (@k) {
-				( ($key = shift @k), ($value = shift @v), next )
-					if $k[0] eq $prikey;
-				$what = (shift @k) . "='" . (shift @v) . "'";
-				push @c, $what;
-			}
-			$query .= join ", ", @c;
-			$query .= " WHERE $key = '$value'";
-		}
 		else {
 			my $field;
 			$key = $data{$prikey}->[$i];
@@ -952,9 +960,6 @@ sub update_data {
 				Vend::Data::set_field($db, $key, $field, $value);
 			}
 		}
-				
-		sql_query('set', "", $query, $msql || undef, $database)
-			if $type eq 'sql';
 	}
 
 }
@@ -1114,7 +1119,7 @@ sub update_user {
 
 	if(defined $CGI::values{'mv_check'}) {
 		delete $Vend::Session->{'values'}->{mv_nextpage};
-		my(@checks) = split /\s*[,\0]+\s*/, $CGI::values{'mv_check'};
+		my(@checks) = split /\s*[,\0]+\s*/, delete $CGI::values{'mv_check'};
 		my($check);
 		foreach $check (@checks) {
 				parse_click $Vend::Session->{'values'}, $check, \%CGI::values;	
@@ -1148,6 +1153,7 @@ sub do_sub {
 	}
 
 	return do_page($path) if defined $path;
+	return $Vend::Session->{return_value};
 }
 
 ## DO PROCESS
@@ -1262,7 +1268,7 @@ sub do_process {
 			display_page($next) unless $final;
 		}
 		else {
-			$next = $::Values{mv_failpage} || find_special_page('needfield');
+			$next = $::Values->{mv_failpage} || find_special_page('needfield');
 			display_special_page($next, $missing);
 			last CHECK_ORDER;
 		}
@@ -1293,6 +1299,7 @@ sub do_process {
 					find_special_page('failed'),
 					$Vend::Session->{cybercash_error}
 				);
+				put_session();
 				return;
 			}
 		}
@@ -1378,9 +1385,6 @@ sub do_process {
 		return;
 	}
 	elsif ($todo eq 'cancel') {
-		$Vend::Session->{'values'}->{'credit_card_no'} = 'xxxxxxxxxxxxxxxxxxxxxx';
-		$Vend::Session->{'values'}->{'credit_card_exp'} = 'xxxxxxxx';
-		$Vend::Session->{'login'} = '';
 		my $frames = $Vend::Session->{'frames'};
 		put_session();
 		get_session();
@@ -1586,39 +1590,38 @@ EOF
 		read_accessories();
 		read_salestax();
 		read_shipping();
-		open_database();
+		open_database(1);
 		my $db;
 		DREAD: {
-			if($db = $Vend::Cfg->{DbDatabase}) {
-				$db = database_exists_ref($db)
-					or last DREAD;
-				$db = $db->ref();
-				my ($k, @f);	# key and fields
-				my @l;			# refs to locale repository
-				my @n;			# names of locales
+			last DREAD unless $db = $Vend::Cfg->{DbDatabase};
+			$db = database_exists_ref($db)
+				or last DREAD;
+			$db = $db->ref();
+			my ($k, @f);	# key and fields
+			my @l;			# refs to locale repository
+			my @n;			# names of locales
 
-				@n = $db->columns();
-				my $name;
-				foreach $name (@n) {
-					my $file = $db->field('_file', $name);
-					my $type = $db->field('_type', $name);
-					next unless $file and $type;
-					Vend::Config::parse_database('', "$name $file $type");
-				}
-				my $i;
-				while( ($k , @f ) = $db->each_record) {
-					next if $k =~ /^_/;
-					for ($i = 0; $i < @f; $i++) {
-						next unless length $f[$i];
-						Vend::Config::parse_database('', "$n[$i] $k $f[$i]");
-					}
+			@n = $db->columns();
+			my $name;
+			foreach $name (@n) {
+				my $file = $db->field('_file', $name);
+				my $type = $db->field('_type', $name);
+				next unless $file and $type;
+				Vend::Config::parse_database('', "$name $file $type");
+			}
+			my $i;
+			while( ($k , @f ) = $db->each_record) {
+				next if $k =~ /^_/;
+				for ($i = 0; $i < @f; $i++) {
+					next unless length $f[$i];
+					Vend::Config::parse_database('', "$n[$i] $k $f[$i]");
 				}
 			}
 			my $save = $^W;
 			$^W = 0;
 			close_database();
 			$^W = $save;
-			open_database();
+			open_database(1);
 		}
 		(
 			$Vend::Cfg->{ItemPriceRoutine},
@@ -1626,66 +1629,63 @@ EOF
 		)	= read_pricing();
 
 		LREAD: {
-			if($db = $Vend::Cfg->{LocaleDatabase}) {
-				$db = database_exists_ref($db)
-					or last LREAD;
-				$db = $db->ref();
-				my ($k, @f);	# key and fields
-				my @l;			# refs to locale repository
-				my @n;			# names of locales
+			last LREAD unless $db = $Vend::Cfg->{LocaleDatabase};
+			$db = database_exists_ref($db)
+				or last LREAD;
+			$db = $db->ref();
+			my ($k, @f);	# key and fields
+			my @l;			# refs to locale repository
+			my @n;			# names of locales
 
-				@n = $db->columns();
-				my $extra;
+			@n = $db->columns();
+			my $extra;
+			for(@n) {
+				$Vend::Cfg->{Locale_repository}{$_} = {}
+					unless $Vend::Cfg->{Locale_repository}{$_};
+				push @l, $Vend::Cfg->{Locale_repository}{$_};
+			}
+			my $i;
+			while( ($k , @f ) = $db->each_record) {
+				for ($i = 0; $i < @f; $i++) {
+					next unless length($f[$i]);
+					$l[$i]->{$k} = $f[$i];
+				}
+			}
+			unless ($Vend::Cfg->{Locale}) {
 				for(@n) {
-					$Vend::Cfg->{Locale_repository}{$_} = {}
-						unless $Vend::Cfg->{Locale_repository}{$_};
-					push @l, $Vend::Cfg->{Locale_repository}{$_};
+					next unless $Vend::Cfg->{Locale_repository}{$_}{'default'};
+					$Vend::Cfg->{Locale} = $Vend::Cfg->{Locale_repository}{$_};
+					last;
 				}
-				my $i;
-				while( ($k , @f ) = $db->each_record) {
-					for ($i = 0; $i < @f; $i++) {
-						next unless length($f[$i]);
-						$l[$i]->{$k} = $f[$i];
-					}
-				}
-				unless ($Vend::Cfg->{Locale}) {
-					for(@n) {
-						next unless $Vend::Cfg->{Locale_repository}{$_}{'default'};
-						$Vend::Cfg->{Locale} = $Vend::Cfg->{Locale_repository}{$_};
-						last;
-					}
-					$Vend::Cfg->{Locale} = $Vend::Cfg->{Locale_repository}{$n[0]}
-						unless $Vend::Cfg->{Locale};
-				}
+				$Vend::Cfg->{Locale} = $Vend::Cfg->{Locale_repository}{$n[0]}
+					unless $Vend::Cfg->{Locale};
 			}
 		}
 
 		SREAD: {
-			if($db = $Vend::Cfg->{DirectiveDatabase}
-					|| $Vend::Cfg->{VariableDatabase}) {
-				$db = database_exists_ref($db)
-					or last SREAD;
-				$db = $db->ref();
-				my ($k, @f);	# key and fields
-				my @l;			# refs to locale repository
-				my @n;			# names of locales
+			last SREAD unless $db = ($Vend::Cfg->{DirectiveDatabase} || $Vend::Cfg->{VariableDatabase});
+			$db = database_exists_ref($db)
+				or last SREAD;
+			$db = $db->ref();
+			my ($k, @f);	# key and fields
+			my @l;			# refs to locale repository
+			my @n;			# names of locales
 
-				@n = $db->columns();
-				my $extra;
-				for(@n) {
-					if (! ref $Vend::Cfg->{$_} or $Vend::Cfg->{$_} !~ /HASH/) {
-						# ignore non-existent directive
-						push @l, {};
-						next;
-					}
-					push @l, $Vend::Cfg->{$_};
+			@n = $db->columns();
+			my $extra;
+			for(@n) {
+				if (! ref $Vend::Cfg->{$_} or $Vend::Cfg->{$_} !~ /HASH/) {
+					# ignore non-existent directive
+					push @l, {};
+					next;
 				}
-				my $i;
-				while( ($k , @f ) = $db->each_record) {
-					for ($i = 0; $i < @f; $i++) {
-						next unless length($f[$i]);
-						$l[$i]->{$k} = $f[$i];
-					}
+				push @l, $Vend::Cfg->{$_};
+			}
+			my $i;
+			while( ($k , @f ) = $db->each_record) {
+				for ($i = 0; $i < @f; $i++) {
+					next unless length($f[$i]);
+					$l[$i]->{$k} = $f[$i];
 				}
 			}
 		}
@@ -1724,6 +1724,9 @@ sub build_page {
     my($base,$page);
 	my $status = 1;
 
+	Vend::Interpolate::reset_calc();
+
+  eval {
 	unless($scan) {
 		$page = readin($name);
 		# Try for on-the-fly if not there
@@ -1825,7 +1828,9 @@ sub build_page {
 		print "\cH" x 20 . "skipping, page not found.\n";
 		$status = 0;
 	}
-	$status;
+  };
+	$status = 0 if $@;
+	return $status;
 
 }
 
@@ -1947,11 +1952,11 @@ sub build_all {
 		print "done.\n"
 	}
 
-	open_database();
+	open_database(1);
 	$Vend::SessionID = '';
 	$Vend::SessionName = '';
 	init_session();
-	$CGI::cookie = "MV_SESSION_ID=building:local.host";
+    $CGI::cookie = $Vend::Cookie = "MV_SESSION_ID=building:local.host";
 	$Vend::Session->{'frames'} = $Vend::Cfg->{FramesDefault};
 	require File::Find or die "No standard Perl library File::Find!\n";
 	$sub = sub {
@@ -2157,7 +2162,7 @@ sub map_cgi {
 
     $CGI::user = http()->Authenticated_User || '';
     $CGI::useragent = http()->User_Agent;
-    $CGI::cookie = http()->Cookie;
+    $CGI::cookie = $Vend::Cookie = http()->Cookie;
 	$CGI::authorization = http()->{Authorization}
 		if defined $Vend::InternalHTTP and ! $CGI::user;
 
@@ -2265,11 +2270,13 @@ sub dispatch {
 				$Vend::Save->{VendURL}   = $Vend::Cfg->{VendURL};
 				$Vend::Save->{SecureURL} = $Vend::Cfg->{SecureURL};
 			}
-			$Vend::Cfg->{VendURL} =~ s!$real!$CGI::script_name!
-				unless $CGI::secure
-					and $Vend::Cfg->{SecureURL} =~ m!$CGI::script_name$!
-					and $Vend::Cfg->{VendURL}   !~ m!$CGI::script_name$!;
-			$Vend::Cfg->{SecureURL} =~ s!$real!$CGI::script_name!;
+            unless (	$CGI::secure                                        and
+                    	$Vend::Cfg->{SecureURL} =~ m!$CGI::script_name$!    and
+                    	$Vend::Cfg->{VendURL}   !~ m!$CGI::script_name$!		)
+            {
+				$Vend::Cfg->{VendURL}   =~ s!$real!$CGI::script_name!;
+				$Vend::Cfg->{SecureURL} =~ s!$real!$CGI::script_name!;
+			}
 		}
 		elsif ($Vend::InternalHTTP) {
 			$Vend::Cfg->{VendURL} = "http://" .
@@ -2281,6 +2288,12 @@ sub dispatch {
 	}
 	else {
 		$Vend::Cfg = $Global::Standalone;
+	}
+
+    if($Global::HitCount) {
+		my $ctr = new File::CounterFile
+					"$Global::ConfDir/hits.$Vend::Cfg->{CatalogName}";
+        $ctr->inc();
 	}
 
 	if ($Vend::Cfg->{DebugMode}) {
@@ -2440,18 +2453,49 @@ EOF
 # DEBUG
 #Vend::Util::logDebug("session name='$Vend::SessionName'\n");
 # END DEBUG
+
+	if($Vend::Cfg->{CookieLogin}) {
+		COOKIELOGIN: {
+			last COOKIELOGIN if $Vend::Session->{logged_in};
+			last COOKIELOGIN if defined $CGI::values{mv_username};
+			last COOKIELOGIN unless
+				$CGI::values{mv_username} = Vend::Util::read_cookie('MV_USERNAME');
+			my $password;
+			last COOKIELOGIN unless
+				$password = Vend::Util::read_cookie('MV_PASSWORD');
+			$CGI::values{mv_password} = $password;
+			Vend::UserDB::userdb('login');
+		}
+	}
+
 	$Vend::Session->{'id'} = $Vend::SessionID;
 	$Vend::Session->{'arg'} = $Vend::Argument;
 	$Vend::Session->{'source'} = $rest
 		if ! $Vend::Session->{source} &&
 			 $rest && $rest =~ /[A-Za-z]/;
 	$Vend::Session->{'user'} = $CGI::user;
+	undef $Vend::Cookie if 
+		$Vend::Session->{logged_in} && ! $Vend::Cfg->{StaticLogged};
 	$CGI::pragma = 'no-cache'
 		if delete $Vend::Session->{scratch}{mv_no_cache};
 
     $Vend::Session->{prev_url} = $Vend::Session->{last_url}
 		if defined $Vend::Session->{last_url};
-    $path = $Vend::Session->{last_url} = $CGI::path_info;
+
+	$path = $Vend::Session->{last_url} = $CGI::path_info;
+
+	if(	defined $Vend::Session->{one_time_path_alias} )
+	{
+		$path = $Vend::Session->{one_time_path_alias}{$path}
+			if defined $Vend::Session->{one_time_path_alias}{$path};
+		delete $Vend::Session->{one_time_path_alias};
+	}
+
+	if( defined $Vend::Session->{path_alias}       and
+		defined $Vend::Session->{path_alias}{$path}		)
+	{
+		$path = $Vend::Session->{path_alias}{$path};
+	}
 
 	ROUTINES: {
 		last ROUTINES unless index($path, '/process/') == 0;
@@ -2478,10 +2522,40 @@ EOF
 								($Vend::Session->{scratch}{mv_currency} || undef)
 							);
 	}
-	
-	if($Vend::Cfg->{Autoload}) {
-		do_sub($Vend::Cfg->{Autoload});
-		$path = $Vend::Session->{return_value} if $Vend::Session->{return_value};
+
+	my $macro;
+	if (
+		defined $Vend::Cfg->{Autoload} and
+		$macro = $Vend::Cfg->{Autoload}
+		)
+	{
+		if($macro =~ /\[\w+/) {
+			interpolate_html($macro);
+		}
+		else {
+			my (@subs) = grep /\S/, split /\s+/, $macro;
+			for(@subs) {
+				do_sub($_) or last;
+				$path = $Vend::Session->{return_value} if $Vend::Session->{return_value};
+			}
+		}
+	}
+
+	if (
+		defined $Vend::Session->{Autoload} and
+		$macro = $Vend::Session->{Autoload}
+		)
+	{
+		if($macro =~ /\[\w+/) {
+			interpolate_html($macro);
+		}
+		else {
+			my (@subs) = grep /\S/, split /\s+/, $macro;
+			for(@subs) {
+				do_sub($_) or last;
+				$path = $Vend::Session->{return_value} if $Vend::Session->{return_value};
+			}
+		}
 	}
 
     # If the cgi-bin program was invoked with no extra path info,
@@ -2554,6 +2628,7 @@ sub dontwarn {
 	$Global::AdminSub +
 	$Global::DomainTail +
 	$Global::FullUrl +
+    $Global::HitCount +
 	$Global::IpHead +
 	$Vend::CheckHTML +
 	$Vend::ContentType +
@@ -2585,10 +2660,70 @@ sub unhexify {
     $s;
 }
 
+sub parse_multipart {
+	my ($boundary) = $CGI::content_type =~ /boundary=\"?([^\";]+)\"?/;
+#::logGlobal("got to multipart");
+	# Stolen from CGI.pm, thanks Lincoln
+	$boundary = "--$boundary"
+		unless $Vend::Session->{browser} =~ /MSIE 3\.0[12];  Mac/i;
+	unless ($CGI::post_input =~ s/^\s*$boundary\s+//) {
+		return interaction_error("multipart/form-data sent incorrectly");
+	}
+
+	my @parts;
+	@parts = split /\r?\n$boundary/, $CGI::post_input;
+	
+#::logGlobal("multipart: " . scalar @parts . " parts");
+
+	DOMULTI: {
+		for (@parts) {	
+			last if ! $_ || $_ eq '--';
+			s/^\s+//;
+			my($header, $data) = split /\r?\n\r?\n/, $_, 2;
+			my $token = '[-\w!\#$%&\'*+.^_\`|{}~]';
+			my %header;
+			$header =~ s/\r?\n\s+/ /og;           # merge continuation lines
+			while ($header=~/($token+):\s+([^\r\n]*)/mgox) {
+				my ($field_name,$field_value) = ($1,$2); # avoid taintedness
+				$field_name =~ s/\b(\w)/uc($1)/eg; #canonicalize
+				$header{$field_name} = $field_value;
+			}
+
+#::logGlobal("Content-Disposition: " .  $header{'Content-Disposition'});
+			my($param)= $header{'Content-Disposition'}=~/ name="?([^\";]*)"?/;
+
+			# Bug:  Netscape doesn't escape quotation marks in file names!!!
+			my($filename) = $header{'Content-Disposition'}=~/ filename="?([^\";]*)"?/;
+#::logGlobal("param='$param' filename='$filename'" );
+			if(! $param) {
+				logGlobal("unsupported multipart header: \n$header\n");
+				next;
+			}
+
+			if($filename) {
+				$CGI::file{$param} = $data;
+				$data = $filename;
+			}
+			else {
+				$data =~ s/\r?\n$//;
+			}
+			unless (defined $CGI::values{$param}) {
+				$CGI::values{$param} = $data;
+			}
+			else {
+				$CGI::values{$param} .= "\0" . $data;
+			}
+		}
+	}
+	return 1;
+}
+
 sub parse_post {
 	my(@pairs, $pair, $key, $value);
 	undef %CGI::values;
 	return unless defined $CGI::post_input;
+	return parse_multipart() if $CGI::content_type =~ /^multipart/i;
+#::logError("no multipart, content-type = '$CGI::content_type'");
 	@pairs = split(/&/, $CGI::post_input);
 	foreach $pair (@pairs) {
 		($key, $value) = ($pair =~ m/([^=]+)=(.*)/)
@@ -2619,7 +2754,7 @@ sub parse_options {
 		if (m/^-c(onfig)?$/i) {
 			$Global::ConfigFile = shift @ARGV;
 			die "Missing file argument for -config option\n"
-				if blank($Global::ConfigFile);
+				if $Global::ConfigFile;
 		} elsif (m/^-D(EBUG)?([\dxa-fA-F]*)$/i) {
 			$Global::DEBUG = $2 || (4096 | 1 );
 		} elsif (m/^-s(erve)?$/i) {
@@ -2634,11 +2769,11 @@ sub parse_options {
 		} elsif (m/^-f(iles)?$/i) {
 			$Vend::BuildSpec = shift @ARGV;
 			die "Missing file spec for -files option\n"
-				if blank($Vend::BuildSpec);
+				if ! $Vend::BuildSpec;
 		} elsif (m/^-o(utdir)?$/i) {
 			$Vend::OutputDirectory = shift @ARGV;
 			die "Missing file argument for -outdir option\n"
-				if blank($Vend::OutputDirectory);
+				if ! $Vend::OutputDirectory;
 		} elsif (m/^-e(xclude)?$/i) {
 			die "-e(xclude) requires argument\n" unless @ARGV;
 			$Vend::CatalogToSkip{shift @ARGV} = 1;

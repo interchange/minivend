@@ -3,48 +3,104 @@
 <HEAD>
 <TITLE>[L]Search Results[/L]</TITLE>
 </HEAD>
-[body 1]
-<H2>
-[page srchform]<IMG BORDER=0 SRC="search.gif" ALT="SEARCH"></A>
-[L]Search Results[/L]
-</H2>
+<BODY MV="body 1">
+__LOGOBAR__
+__MENUBAR__
+__LEFTSIDE__
 
-<P>
-<H2>
+[comment]
+	This is the default search results page. You can have
+	as many as you like as long as you set the mv_search_page
+	variable to match the page you wish to use to build
+	search results.
+[/comment]
+
 [search-region send=1]
 [more-list]
-	Matches [matches] of
-[/more-list]
+<FONT SIZE="-1" FACE="arial,helvetica">Matches [matches] of
 [if value mv_search_match_count > 1]
-	[value mv_search_match_count] titles found
+    [value mv_search_match_count] found.
 [/if]
-</H2>
-[more-list]
+<BLOCKQUOTE>
+<B>Links to more matches:</B><BR>
 [more]
+</BLOCKQUOTE></FONT>
 [/more-list]
 <P>
 [search-list]
 [sort][value sort_field1] [value sort_field2] [value sort_field3][/sort]
-<B>[item_increment].</B>
-<I>[item-field title]</I><BR>
-<B>[item-field artist]</B><BR>
-[page href="[item-code]" send=1]<IMG ALT="[L]More Info[/L]" BORDER=0 SRC="details.gif">[/page]
-[order [item-code]]<IMG ALT="[L]ORDER NOW[/L]" BORDER=0 SRC="ordernow.gif">[/order]
-<B>[L]Our Price[/L] [item-price]</B><p>
-<HR>
+[on-change 1]
+[condition][item-field category][/condition]
+<TABLE WIDTH="80%"><TR __HEADERBG__><TD ALIGN=CENTER>
+    <BR><FONT FACE="arial, helvetica" COLOR="__HEADERTEXT__"><H3>[item-field category]</H3>
+</TD></TR></TABLE>
+[/on-change 1]
+<TABLE CELLPADDING="3">
+    <TR>
+        <TD VALIGN="top">
+            <TABLE>
+                <TR>
+                    <TD VALIGN="top">
+                        <A HREF="[area [item-code]]">
+                        <IMG SRC="[item-field image]" ALT="[item-field title]" BORDER="0"></A>
+                    </TD>
+                    <TD VALIGN="top">
+                        <FONT SIZE="3" FACE="verdana,arial,helvetica">          
+                        <B>[item-field title]</B>
+                        </FONT><BR>
+                        <FONT SIZE="2" FACE="verdana,arial,helvetica">          
+                        By <A HREF="[area scan
+                            st=glimpse
+                            sf=artist
+                            se=[item-field artist]
+                        ]"><B><FONT COLOR="#0000CC">
+                        [item-field artist]
+                        </FONT></B></A><P>
+                        </FONT>
+
+                        Our Price:</FONT><B><FONT SIZE="3" COLOR="#FF0000">
+                        [item-price]
+                        </B></FONT>                                        
+                        &nbsp; <NOBR><A HREF="[area order [item-code]]" CLASS="buybtn">
+                        <FONT FACE="verdana,arial,helvetica" COLOR="#0000cc">
+                        <BR>Buy Now</FONT></A></NOBR><BR>
+                    </TD>
+                </TR>
+                <TR>
+                    <TD COLSPAN="2">                            
+                        <FONT SIZE="2"><P>
+                        [item-field comment]
+                        </FONT>
+                    </TD>
+                </TR>
+            </TABLE>
+        </TD>
+    </TR>
+</TABLE>
 [/search-list]
 
 [no-match]
-Sorry, no matches for [value mv_searchspec].
+<BR><BR><BLOCKQUOTE>
+Sorry, no matches for <B>[value mv_searchspec]</B>.
+<BR><BR></BLOCKQUOTE>
 [/no-match]
 
 [more-list]
+<FONT SIZE="-1" FACE="arial,helvetica">Matches [matches] of
+[if value mv_search_match_count > 1]
+    [value mv_search_match_count] titles found.
+[/if]
+<BLOCKQUOTE>
 <B>Links to more matches:</B><BR>
 [more]
-<HR>
+</BLOCKQUOTE></FONT>
 [/more-list]
 [/search-region]
 <P ALIGN=CENTER>
-[include pages/buttonbar.html]
 
+__RIGHTSIDE__
+__MENUBOTTOM__
+__COPYRIGHT__
+
+<!-- current page: @@MV_PAGE@@ -->
 </body> </html>

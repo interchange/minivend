@@ -2,7 +2,7 @@
 #
 # makecat = MiniVend catalog configurator
 #
-# Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
+# Copyright 1996-1999 by Michael J. Heins <mikeh@minivend.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -54,7 +54,6 @@ my $Removeconfig;
 my $Reconfigure = 0;
 my $Configfile;
 my $Cfg;
-my $Interactive;
 my $Logfile = 'makecat.log';
 my $catalog_name;
 my %Conf;
@@ -72,7 +71,6 @@ options:
     -F    Force make of catalog with defaults
     -f    Configuration file (default is $0.cfg)
     -l    File to log to (default makecat.log)
-    -i    Interactive edit of configuration
     -r    Reconfigure defaults
 
     Defaults:
@@ -83,7 +81,7 @@ options:
     --minivenduser=username  The user ID which runs MiniVend
     --serverconf=filename    Location of httpd.conf
     --vendroot=filename      Location of MiniVend software
-	--homedir=directory      Use instead of $HOME to set defaults
+	--homedir=directory      Use instead of \$HOME to set defaults
 
     Required:
     --catroot=directory      Directory where MiniVend catalog files go
@@ -129,7 +127,6 @@ my %optctl = (
     'demotype'          => \$Conf{demotype},
     'documentroot'      => \$Conf{documentroot},
     'f'                 => \$Configfile,
-    'i'                 => \$Interactive,
     'homedir'           => \$Conf{homedir},
     'imagedir'          => \$Conf{imagedir},
     'imageurl'          => \$Conf{imageurl},
@@ -216,12 +213,15 @@ EOF
 
 unless($catalog_name) {
 	die "$USAGE\n" if $Vend::MakeCat::Force;
-	$Interactive = 1;
 	print <<EOF;
 
 Select a short, mnemonic name for the catalog. This will be
 used to set the defaults for naming the catalog, executable,
 and directory, so you will have to type in this name frequently.
+
+NOTE: This will be the name of 'vlink' or 'tlink', the link CGI
+program. Depending on your CGI setup, it may also have the 
+extension .cgi added.
 
 If you are doing the demo for the first time, you might use "simple".
 
@@ -481,6 +481,10 @@ sub prefix {
 }
 
 my %History = (
+    demotype =>  sub {
+						return('simple', 'flycat');
+					},
+
     documentroot =>  sub {
 						if(defined $Servers->{$Servername}) {
 							return $Servers->{$Servername}->{documentroot}
@@ -929,136 +933,6 @@ EOF
 #############
 
 	my $serv = prefix('servername') || 'www.yourdomain'; 
-	my $demo_template = <<"EndOfTemplate";
-# The server name, something like: www.company.com
-#                                  www.company.com:8000
-#                                  www.company.com/~yourname
-#
-SERVERNAME     $serv
-
-EndOfTemplate
-
-	$demo_template .= <<'EndOfTemplate';
-# The ID for this store, which you just put in as the catalog name.
-# Might be used as the basis for a or a lot of different things. We
-# will use it to set:
-#
-#   -- the default name of the CGI link program (vlink or tlink)
-#   -- the ID of the catalog
-#   -- the directory name
-#
-# and some other things.
-#
-STOREID        __STOREID__
-
-# The base template. You only should change this if you have made your
-# own template or downloaded one (like "sample" from ftp.minivend.com/pub).
-#
-DEMOTYPE        simple
-
-# A path to the store logo image, regular and small. Just the image, should
-# be something like:
-#
-LOGO            artstore.gif
-SMLOGO          artsmall.gif
-
-# The shipping modes to select -- these are defined in shipping.asc
-#
-SHIPMODES       upsg upsb upsr
-
-# What your beginning order number should be. MUST CONTAIN ONLY LETTERS
-# AND NUMBERS --- NO DASHES OR UNDERSCORES.
-#
-ORDPREFIX       __STOREID__00000
-
-# Company/division name, address, contact info
-COMPANY         The Art Store
-ADDRESS         123 Any St.
-CITY            Yourtown, USA 00000
-PHONE           (513) 555-5555
-TOLLFREE        (888) 555-5555
-FAX             (513) 555-5556
-
-# Your email address for information inquiries here. You will be asked
-# separately for and address where orders will be sent.
-EMAILINFO      __STOREID__
-
-# Encryption program for encrypting credit card numbers.
-ENCRYPTOR       none
-
-# The rest are the entries that are done normally by the catalog configuation
-# script. You can set defaults by uncommenting and editing them, or
-# use the normal defaults by not editing them.
-
-EndOfTemplate
-
-DEMOSETUP: {
-
-	my %extra;
-	for ( qw/
-				ADDRESS CITY COMPANY DEMOTYPE EMAILINFO ENCRYPTOR
-				FAX LOGO ORDPREFIX PHONE SERVERNAME SHIPMODES
-				SMLOGO STOREID TOLLFREE
-			/
-		)
-	{
-		#next if defined $ENV{"MVC_$_"};
-		next if prefix($_);
-		$demo_template =~ /^$_\s+(.*)/m;
-		$ENV{"MVC_$_"} = $1;
-	}
-
-}
-
-if($Interactive) {
-
-	my $key; 
-	my (@keys) = $Cfg->val('global', 'askconfig');
-	foreach $key (@keys) {
-		$demo_template .= Vend::MakeCat::description($key);
-		$demo_template .= sprintf "%-15s %s\n\n", uc $key, prefix(lc $key);
-	}
-
-	my $cfgfile = "$catalog_name.cfg";
-	
-	my $end = $Windows ? "\r\n" : "\n";
-	unless (-f $cfgfile) {
-			open WRITE, ">$cfgfile" or die "create $cfgfile: $!\n";
-			my @lines;
-			@lines = split /\n/, $demo_template;
-			for(@lines) {
-					s/__STOREID__/$catalog_name/g;
-					print WRITE "$_\n";
-			}
-			close WRITE;
-	}
-
-	print <<EOF;
-
-You are in interactive mode.
-
-You can now edit the store configuration. When you save the file,
-you will get a chance to abort the catalog make.
-
-EOF
-
-	$ans = prompt("Press ENTER to edit...");
-
-	$editor = $ENV{VISUAL} || $ENV{EDITOR} || ($Windows ? 'notepad' : 'vi');
-
-	system "$editor $cfgfile";
-
-	$ans = prompt("Continue and make the catalog? ", 'y');
-
-	chomp $ans;
-	$ans = 'y' unless $ans;
-
-	exit unless $ans =~ /^\s*y/i;
-
-	undef $Interactive;
-	goto READCONFIG;
-
-}
 
 # Set server
 
@@ -1194,9 +1068,10 @@ unless (defined $mvuid) {
 	die "$Conf{minivenduser} is not a valid user name on this machine.\n";
 }
 
+# Fix supplied by Paul V. Shevtsov
 if($isroot) {
-	chown ($mvuid, $mvgid, $configfile)
-		or warn "\nCouldn't set ownership of $configfile: $!\n";
+	chown ($mvuid, $mvgid, $Configfile)
+		or warn "\nCouldn't set ownership of $Configfile: $!\n";
 }
 
 if ($Conf{minivendgroup}) {
@@ -1237,6 +1112,7 @@ for ( $Conf{catroot}, $Conf{documentroot}, $Conf{basedir},
 die "\n" if $warn;
 
 my $prog;
+use vars qw/$CGIwrap/;
 
 SETLINKMODE: {
 	if($prog = prefix('linkprogram')) {
@@ -1277,6 +1153,10 @@ EOF
 	}
 	elsif($ask =~ /^\s*n/i) {
 		$prog = "NONE";
+	}
+	else {
+		$ask = prompt("Do you use CGIWRAP? ", 'n');
+		$CGIwrap = $ask =~ /^\s*y/i;
 	}
 
 }
@@ -1390,6 +1270,68 @@ unless (-d $Conf{'demotype'}) {
 }
 else {
 	$dir = $Conf{'demotype'};
+}
+
+# Do some additional configuration if the additional_fields
+# file is found
+
+ADDITIONAL: {
+	last ADDITIONAL unless -f "$dir/config/additional_fields";
+	open(ADDL, "$dir/config/additional_fields") 
+		or last ADDITIONAL;
+	my %help;
+	local ($/) = "";
+	if(open(ADDLHELP, "$dir/config/additional_help") ) {
+		while(<ADDLHELP>) {
+			my($parm,$help) = split /\n/, $_, 2;
+			$help =~ s/\s*$/\n\n/;
+			$help{uc $parm} = $help;
+		}
+		close ADDLHELP;
+	}
+	print "found more to ask.\n\n";
+	while(<ADDL>) {
+		s/\s+$//;
+		s/__MVC_([A-Z0-9]+)(__)?/substitute($1,$2)/eg;
+		my ($var, $prompt, $default) = split /\n/, $_, 3;
+		$var =~ s/\s+//g;
+		$var = lc $var;
+		my $ucvar = uc $var;
+		if (defined $help{$ucvar}) {
+			$help{$ucvar} =~ s/__MVC_([A-Z0-9]+)(__)?/substitute($1,$2)/eg;
+			print $help{$ucvar};
+		}
+		$Conf{$var} = prompt( do_msg("$prompt: ", 40),
+							 (delete $ENV{"MVC_$ucvar"} || $Conf{$var} || $default) ) ;
+	}
+	close ADDL;
+}
+
+PRECMD: {
+	last PRECMD unless -f "$dir/config/precopy_commands";
+	open(ADDL, "$dir/config/precopy_commands") 
+		or last PRECMD;
+	print "\nFound system commands to run.\n\n";
+	local ($/) = "";
+	while(<ADDL>) {
+		s/\s+$//;
+		s/__MVC_([A-Z0-9]+)(__)?/substitute($1,$2)/eg;
+		my ($command, $prompt) = split /\n/, $_, 2;
+		$command =~ s/^\s+//;
+		$command =~ s/\s+$//;
+		print $prompt;
+		my $ans = prompt( do_msg(qq{run "$command"? }, 40), 'y' );
+		if($ans =~ /^\s*y/i) {
+			system $command;
+			if($?) {
+				print "\nCommand returned error code " . ($? >> 8) . ": $!\n";
+			}
+		}
+		else {
+			print "\nskipping '$command'\n";
+		}
+	}
+	close ADDL;
 }
 
 # Here we actually do the file copy unless --nocopy is set
@@ -1539,19 +1481,27 @@ sub wanted {
 	umask(022) unless $Conf{noumask};
 
 	unless ($prog eq 'NONE') {
-
+		my $ask_cgi = 'y';
 		print do_msg("Moving link program to $cginame");
+		if(-f $cginame) {
+			$ask_cgi = prompt ("$cginame exists, overwrite? ", 'n');
+		}
 
-		File::Copy::copy("$Conf{catroot}/executable", $cginame)
-			or die "\nCouldn't copy link executable from $prog to $cginame: $!\n";
-		unlink "$Conf{catroot}/executable";
+		if(is_yes($ask_cgi)) {
+			File::Copy::copy("$Conf{catroot}/executable", $cginame)
+				or die
+				"\nCouldn't copy link executable from $prog to $cginame: $!\n";
+			chmod 0755, $cginame   
+					or die "\nCouldn't make $cginame executable: $!\n";
+			unlink "$Conf{catroot}/executable";
+		}
 
 		if($isroot) {
 			chown ($mvuid, $mvgid, $cginame)
 				or die "\nCouldn't set ownership of $cginame: $!\n";
 		}
 
-		unless ($Windows or $Inetmode) {
+		unless ($Windows or $Inetmode or $CGIwrap) {
 			unless ($isroot or can_do_suid()) {
 				print <<EOF;
 
@@ -1657,6 +1607,33 @@ EOF
 	}
 
 }
+
+POSTCMD: {
+	last POSTCMD unless -f "$dir/config/postcopy_commands";
+	open(ADDL, "$dir/config/postcopy_commands") 
+		or last POSTCMD;
+	print "\nFound additional system commands to run.\n\n";
+	local ($/) = "";
+	while(<ADDL>) {
+		s/\s+$//;
+		s/__MVC_([A-Z0-9]+)(__)?/substitute($1,$2)/eg;
+		my ($command, $prompt) = split /\n/, $_, 2;
+		$command =~ s/^\s+//;
+		$command =~ s/\s+$//;
+		print $prompt;
+		my $ans = prompt( do_msg(qq{run "$command"? }, 40), 'y' );
+		if($ans =~ /^\s*y/i) {
+			system $command;
+			if($?) {
+				print "\nCommand returned error code " . ($? >> 8) . ": $!\n";
+			}
+		}
+		else {
+			print "\nskipping '$command'\n";
+		}
+	}
+	close ADDL;
+}
 	my $add;
 
 	umask(07) unless $Conf{noumask};
@@ -1705,8 +1682,8 @@ EOF
 		open(NEWCFG, ">minivend.cfg")
 			or die "\nCouldn't write minivend.cfg: $!\n";
 
-		$newcfgline = sprintf "%-13s %s %s %s\n", 'Catalog',
-				$catalog_name, $Conf{catroot}, $full . $Conf{cgiurl};
+		$newcfgline = sprintf "%-13s %s %s %s %s\n", 'Catalog',
+				$catalog_name, $Conf{catroot}, $full . $Conf{cgiurl}, $Conf{aliases};
 		if (defined $mark) {
 			print NEWCFG @out[0..$mark-1];
 			print NEWCFG $newcfgline;
@@ -1735,8 +1712,8 @@ $newcfgline
 EOF
 	}
 
-	$newcfgline = sprintf "%-13s %s %s %s\n", 'Catalog',
-				$catalog_name, $Conf{catroot}, $full . $Conf{cgiurl};
+	$newcfgline = sprintf "%-13s %s %s %s %s\n", 'Catalog',
+				$catalog_name, $Conf{catroot}, $full . $Conf{cgiurl}, $Conf{aliases};
 
 	if($add_to_running) {
 		my $fn = 'etc/restart';
@@ -1746,6 +1723,10 @@ EOF
 		printf RESTART $newcfgline;
 		Vend::Util::unlockfile(\*RESTART) 		or die "unlock $fn: $!\n";
 		close RESTART;
+		if($isroot) {
+			chown ($mvuid, $mvgid, $fn)
+				or warn "\nCouldn't set ownership of $fn: $!\n";
+		}
 		unless ($Windows) {
 			kill 'HUP', $pid;
 			sleep 1;

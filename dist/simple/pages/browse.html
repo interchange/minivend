@@ -2,41 +2,122 @@
 <HEAD>[tag flag build][/tag]
 <TITLE>[L]Browse[/L] __COMPANY__</TITLE>
 </HEAD>
-[body 1]
-<CENTER>
-<H1>
-[L]Browse[/L] __COMPANY__
-</H1>
+<BODY MV="body 1">
+[comment]
+	The __VALUES__ below are MiniVend Variable settings.
+	In this case, they come from these settings in catalog.cfg:
+
+	## Set some menubars and headers
+	ConfigDir pages
+	Variable      LEFTSIDE   <leftside
+	Variable      RIGHTSIDE  <rightside
+	Variable      NO_RIGHT   <no_right
+	Variable      MENUBAR    <menubar
+	Variable      MENUBOTTOM <menubottom
+	Variable      LOGOBAR    <logobar
+	Variable      COPYRIGHT  <copyright
+	ConfigDir config
+
+	Each one comes from a file in this directory which
+	corresponds to the variable.
+
+	They have the effect of predefining a page layout without
+	having to maintain different pages.
+
+[/comment]
+__LOGOBAR__
+__MENUBAR__
+__LEFTSIDE__
+
+[comment]
+
+	This page just uses an in page search (the [loop search=...])
+	to return all products from the database. The parameter
+	"ra=yes" sets the MiniVend search variable mv_return_all to "yes",
+	meaning just start returning records from the file.
+	
+	If there are more than 50 then it will be truncated because of
+	the mv_matchlimit default of 100.  If you wanted to return up
+	to 100 then you would set the search setting to "ra=yes/ml=100".
+
+	See the browse1.html page for a page that returns 1 or more
+	at a time with paging.
+
+[/comment]
+
 <FONT SIZE="-1">
 	[L]Browse[/L] [page browse1 1:1]one</A>
 	or     [page browse1 1:2]two</A> at a time </FONT></BR>
-[tag each products]
+[loop search="ra=yes"]
 [sort products:category products:price:rn]
+[comment]
+	The [loop-next] simply skips a product if it is in the 
+	category "Accessory". The [calc] tag is a little embedded
+	Perl.
+[/comment]
 [loop-next][calc]'[loop-field category]' eq 'Accessory'[/calc][/loop-next]
+
+[comment]
+	[loop-change] is a way of setting up headers. You place a possibly
+	changing value in the [condition] container, and when the value
+	changes the contents of the [loop-change] container are output.
+	There can also be an [else] [/else] area.
+[/comment]
 [loop-change 1]
 [condition][loop-field category][/condition]
 <TABLE WIDTH="80%"><TR BGCOLOR="#cccccc" TEXT="WHITE"><TD ALIGN=CENTER>
-	<BR><H1>[loop-field category]</H1>
+	<BR><FONT FACE="arial, helvetica"><H3>[loop-field category]</H3>
 </TD></TR></TABLE>
 [/loop-change 1]
-<P>
-[if_loop_field image]
-<IMG SRC="[loop_field image]">
-<P>
-[/if_loop_field]
+<TABLE CELLPADDING="3">
+    <TR>
+        <TD VALIGN="top">
+			<TABLE>
+				<TR>
+					<TD VALIGN="top">
+						<A HREF="[area [loop-code]]">
+						<IMG SRC="[loop-field image]" ALT="[loop-field title]" BORDER="0"></A>
+					</TD>
+					<TD VALIGN="top">
+						<FONT SIZE="3" FACE="verdana,arial,helvetica">          
+						<B>[loop-field title]</B>
+            			</FONT><BR>
+            			<FONT SIZE="2" FACE="verdana,arial,helvetica">          
+						By <A HREF="[area scan
+							st=glimpse
+							sf=artist
+							se=[loop-field artist]
+						]"><B><FONT COLOR="#0000CC">
+						[loop-field artist]
+						</FONT></B></A><P>
+						</FONT>
 
-<H2>[loop-description]</H2>
-<P>
-[L]Catalog[/L] [L]Number[/L]: [loop-code]
-<P>
-[L]Price[/L]: [loop-price]
-<P>
-[page [loop-code]]<IMG BORDER=0 SRC="details.gif" ALT="[L]More Info[/L]">[/page]
-[order [loop-code]]<IMG BORDER=0 SRC="ordernow.gif" ALT="[L]ORDER NOW[/L]">[/order]
-[/tag]
-<HR>
-[include pages/buttonbar.html]
-</CENTER>
+			 			Our Price:</FONT><B><FONT SIZE="3" COLOR="#FF0000">
+			 			[loop-price]
+			 			</B></FONT>                                        
+             			&nbsp; <NOBR><A HREF="[area order [loop-code]]" CLASS="buybtn">
+             			<FONT FACE="verdana,arial,helvetica" COLOR="#0000cc">
+			 			<BR>Buy Now</FONT></A></NOBR><BR>
+					</TD>
+				</TR>
+				<TR>
+                    <TD COLSPAN="2">                            
+             			<FONT SIZE="2"><P>
+						[loop-field comment]
+						</FONT>
+					</TD>
+				</TR>
+    		</TABLE>
+		</TD>
+	</TR>
+</TABLE>
+[/loop]
 
+[comment] And the footer as above. [/comment]
+__NO_RIGHT__
+__MENUBOTTOM__
+__COPYRIGHT__
+
+<!-- current page: @@MV_PAGE@@ -->
 </BODY>
 </HTML>

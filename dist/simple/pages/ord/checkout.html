@@ -1,67 +1,124 @@
 <HTML>
 <HEAD>
 <TITLE>[L]Check out[/L] -- __COMPANY__</TITLE>
-
-[set checkout_profile]
-name=required
-address=required
-city=required
-country=required
-state=state
-zip=zip
-email=required
-phone_day=phone
-email=email
-&fatal = yes
-
-[if value fax_order]
-&set = mv_payment Call Us
-[elsif config CreditCardAuto]
-&set = mv_payment Credit Card ([default mv_credit_card_type])
-mv_credit_card_info=required
-[/elsif]
-[else]
-&set = mv_payment Credit Card ([default mv_credit_card_type])
-[/else]
-[/if]
-
-&final = yes
-&set=mv_email [value email]
-
-[/set]
-
 </HEAD>
 <BODY MV="body 1 TEXT=GREEN">
 
-[if base=data
-	term="country::shipmodes::[default country US]"
-	op="=~" comp="[default mv_shipmode upsg]"]
+[include pages/logobar]
+<!--
+[if !value country]
+	Set country to: [value name=country set="US"]
+	Set save_country to: [value name=save_country set="US"]
+	Set mv_shipmode to: [value name=mv_shipmode set="upsg"]
+[elsif type=explicit
+		compare="[calc]
+					q{[value country]} ne q{[value save_country]}
+				[/calc]"]
+	Set saved country to: [value name=save_country set="[value country]"]
+	Set shipmode to:
+		[value name=mv_shipmode
+				set="[calc]
+						$mode = q{[data
+										table=country
+										col=shipmodes
+										key='[value country]'
+										]};
+						$mode =~ s/\s.*//;
+						return $mode;
+					[/calc]"
+				]
+[/elsif]
+[/if]
+-->
+				
+[if session logged_in]
 [then]
-	[default name="country" default=US set=1]
-	[default name="mv_shipmode" default=upsg set=1]
+
+[set [L]Log out[/L]]
+mv_todo=return
+mv_nextpage=ord/checkout
+[userdb function=logout clear=1]
+[/set]
+
+    <TABLE CELLSPACING=0 CELLPADDING=0 WIDTH="100%">
+    <TR><TD>
+    <FORM ACTION="[process-target]" METHOD=POST>
+    [L]Hi[/L] [value name]! [L]You are logged in as user[/L] <B>[value mv_username]</B>.<BR>
+	<TABLE><TR><TD><INPUT TYPE=submit NAME="mv_click" VALUE="Log out"></TD>
+		<TD><A HREF="[area new_account]">Change your password</A><BR>
+		[if type=data term="userdb::acl::[data session username]"]
+		<A HREF="[area query/check_orders]">Check order status</A>
+		[/if]</TD></TR></TABLE>
+	</FORM>
+	</TD></TR></TABLE>
+
+    <TABLE CELLSPACING=0 CELLPADDING=0 WIDTH="100%">
+    <TR><TD ALIGN=CENTER>
+    <FORM ACTION="[process-target]" METHOD=POST>
+	</FORM>
+	</TD></TR></TABLE>
+
+
 [/then]
 [else]
-	[perl values]
-		$ship = tag_data('country', 'shipmodes', $Safe{'values'}{country});
-		$out .= $ship;
-		$ship =~ s/\s+.*//;
-		$Safe{'values'}{mv_shipmode} = $ship;
-		return '';
-	[/perl]
-[/else]
+
+[set Login]
+mv_todo=return
+mv_nextpage=ord/checkout
+[userdb login]
+[/set]
+[if session failure]
+<P>
+[data session failure]
+<P>
 [/if]
-	
-<CENTER>
-[page href=""]<IMG BORDER=0 SRC="__SMLOGO__" ALT="__COMPANY__ Logo" ALIGN="CENTER"></A>
-</CENTER>
+[L]If you have an account with us, please enter your user name and password[/L]. (test/test for testing)
+<P>
+    <FORM ACTION="[process-target]" METHOD=POST>
+    <INPUT TYPE=hidden NAME=mv_click VALUE=Login>
+    <INPUT TYPE=hidden NAME=mv_doit  VALUE=return>
+    <INPUT TYPE=hidden NAME=mv_nextpage VALUE="ord/checkout">
+
+    <TABLE CELLSPACING=0 CELLPADDING=0>
+	<TR><TD ALIGN=RIGHT>[L]Username[/L]</TD>
+        <TD><INPUT NAME=mv_username VALUE="[value mv_username]" SIZE=10>
+		[page new_account][L]Create a new account[/L][/page]
+        </TD></TR>
+
+    <TR><TD ALIGN=RIGHT>[L]Password[/L]</TD>
+        <TD><INPUT
+				onChange="this.form.submit()"
+			  TYPE=password NAME=mv_password VALUE="" SIZE=10>
+        <INPUT TYPE=submit VALUE="Log in"> &nbsp;&nbsp;
+        </TD></TR>
+    </TABLE>
+
+    </FORM>
+
+[/else][/if]	
+<SCRIPT>    // JavaScript Form Validation Demo    // by Paul Colton
+    function check_tax(form) {
+        // Make sure the email field is not blank
+        var foundState = false;
+        var ch = form.state.value;
+        ch = ch.toUpperCase();
+		[loop arg="__TAXAREA__"]
+        if(ch == "[loop-code]") {
+            alert("You will be charged [currency][fly-tax [loop-code]][/currency] sales tax\nsince you are shipping to [loop-code]. Click UPDATE to see the amount in your total.");
+            foundState = true;
+        }
+		[/loop]
+        return foundState;
+    }
+</SCRIPT>
 
 <FORM ACTION="[process-target secure=1]" METHOD="POST">
 <INPUT TYPE=hidden NAME=mv_session_id VALUE="[data session id]">
 [if items]
 [then]
-<TABLE>
-<TR><TD COLSPAN=4 BGCOLOR="#00F0F0">
-	<FONT SIZE="+2">[L]Order details[/L]</FONT>
+<TABLE WIDTH=600>
+<TR><TD COLSPAN=4 __HEADERBG__>
+	<FONT SIZE="+2" COLOR="__HEADERTEXT__">[L]Order details[/L]</FONT>
 	</TD>
 </TR>
 [item-list]
@@ -72,15 +129,14 @@ mv_credit_card_info=required
 	<INPUT TYPE="hidden" NAME="[quantity-name]" value="[item-quantity]">
 	</TD>
 	<TD VALIGN=TOP MARGINWIDTH=12 MARGINHEIGHT=12>
-	[page [item-code]][item-description]</A>
-	[item-accessories size][item-accessories color]
+	[item-description]</A>
 	</TD>
 	<TD VALIGN=TOP>[item-quantity] @ [item-price]</TD>
 	<TD VALIGN=TOP ALIGN=RIGHT>[item-subtotal]</TD>
 </TR>
 [/item-list]
 <TR>
-	<TD COLSPAN=2></TD>
+	<TD COLSPAN=2><A HREF="[area ord/basket]">Back to cart</A><BR></TD>
 	<TD>[L]Subtotal[/L]</TD>
 	<TD ALIGN=RIGHT>[subtotal]</TD>
 </TR>
@@ -90,7 +146,7 @@ mv_credit_card_info=required
 	<TD ALIGN=RIGHT>[salestax]</TD>
 </TR>
 <TR>
-	<TD COLSPAN=2>
+	<TD COLSPAN=2></TD>
 	<TD>[L]Shipping[/L]</TD>
 	<TD ALIGN=RIGHT>[shipping]</TD>
 </TR>
@@ -113,12 +169,12 @@ mv_credit_card_info=required
 
 <INPUT TYPE="hidden" NAME="mv_doit" VALUE="refresh">
 <INPUT TYPE="hidden" NAME="mv_orderpage" VALUE="ord/checkout">
-<INPUT TYPE="hidden" NAME="mv_order_report" VALUE="ord/report">
+<INPUT TYPE="hidden" NAME="mv_order_report" VALUE="../etc/report">
 <INPUT TYPE="hidden" NAME="mv_failpage" VALUE="special/needfield">
 <INPUT TYPE="hidden" NAME="mv_order_profile" VALUE="checkout_profile">
 
-<TABLE WIDTH=500><TR><TD BGCOLOR="#00F0F0">
-<FONT SIZE="+2">[L]Shipping Address[/L]</FONT>
+<TABLE WIDTH=600><TR><TD __HEADERBG__>
+<FONT SIZE="+2" COLOR="__HEADERTEXT__">[L]Shipping Address[/L]</FONT>
 </TD></TR></TABLE>
 
 <TABLE WIDTH=90%>
@@ -161,7 +217,7 @@ mv_credit_card_info=required
 		</TD>
 		<TD ALIGN=CENTER VALIGN=BOTTOM>
 		[L]State/Province[/L]<BR>
-		<INPUT onChange="this.form.submit()"
+		<INPUT onChange="check_tax(this.form)"
 			TYPE="text" NAME="state" VALUE="[value state]" size=8>
 		</TD>
 		<TD ALIGN=RIGHT>
@@ -180,43 +236,41 @@ mv_credit_card_info=required
 
 <TR>
 	<TD ALIGN=RIGHT>
-	<IMG WIDTH=12 HEIGHT=12 SRC="redball.gif">
+		<IMG WIDTH=12 HEIGHT=12 SRC="redball.gif">
 	</TD>
 	<TD ALIGN=RIGHT><B>[L]Email Address[/L]</B></TD>
-	<TD>
-	<TABLE>
-	<TR>
-		<TD>
-		<INPUT TYPE="text" NAME="email" VALUE="[value email]" size=16>
-		</TD>
+	<TD ALIGN=LEFT>
+		<INPUT TYPE="text" NAME="email" VALUE="[value email]" size=40>
+	</TD>
+</TR>
+
+
+<TR>
 		<TD ALIGN=RIGHT>
-		<IMG WIDTH=12 HEIGHT=12 SRC="bg.gif">
+		&nbsp;
 		</TD>
 		<TD ALIGN=RIGHT>
 		<B>[L]Country[/L]</B>
 		</TD>
-		<TD ALIGN=RIGHT>
-		[if value country eq 'US']
+		<TD>
+		[if value country =~ /(^$|US|CA)/]
 		<SELECT NAME=country onChange="this.form.submit()">
 			<OPTION VALUE="US"> United States
-			<OPTION VALUE="CA"> Canada
-			<OPTION VALUE="AD"> Other (select to change)
+			<OPTION [selected country CA] VALUE="CA"> Canada
+			<OPTION VALUE="JP"> Other (select to change)
 		</SELECT>
 		[else]
 		<SELECT MV="loop"
 			MV.PREPEND="[sort country:name]"
-			MV.SEARCH="ra=yes/se=./fi=country.asc/ml=1000"
+			MV.SEARCH="ra=yes/fi=country.asc/ml=1000"
 			onChange="this.form.submit()"
 			MV.OPTION="country"
 			NAME="country">
 			<OPTION VALUE="[loop-code]"> [loop-data country name] 
 		</SELECT>
 		[/else]
-		[/if]<BR>
+		[/if] <FONT SIZE="1"><B>(will update display)</B></FONT>
 		</TD>
-	</TR>
-	</TABLE>
-	</TD>
 </TR>
 
 <TR>	
@@ -253,22 +307,90 @@ mv_credit_card_info=required
 </TR>
 </TABLE>
 
-<TABLE WIDTH=500><TR><TD BGCOLOR="#00F0F0">
-<FONT SIZE="+2">[L]Choose your shipping method[/L]</FONT>
+[if session logged_in]
+		[userdb function=get_shipping_names]
+
+[set [L]Save shipping[/L]]
+mv_todo=return
+mv_nextpage=ord/checkout
+[userdb function=set_shipping]
+[/set]
+
+[set [L]Recall shipping[/L]]
+mv_todo=return
+mv_nextpage=ord/checkout
+[userdb function=get_shipping]
+[/set]
+
+[set [L]DELETE shipping[/L]]
+mv_todo=return
+mv_nextpage=ord/checkout
+[userdb function=delete_shipping]
+[/set]
+<TABLE CELLPADDING=0 CELLSPACING=0 BORDER=1 WIDTH=600>
+	<TR>
+	<TD VALIGN=TOP>
+	<FONT SIZE="-1">
+	You can create a new entry for the shipping address in your address book.<BR>Nickname:
+	<INPUT TYPE=text   NAME="s_nickname" SIZE=10>
+	<INPUT TYPE=submit NAME="mv_check" VALUE="[L]Save shipping[/L]"><BR>
+	</FONT>
+	</TD>
+	[if value address_book]
+	<TD>
+	<FONT SIZE="-1">
+	You can save the shipping address to an entry in your address book.<BR>
+		[loop arg="[value address_book]" ]
+		<INPUT TYPE=checkbox NAME="s_nickname" VALUE="[loop-code]"> [loop-code]
+		[/loop]
+	<INPUT TYPE=submit NAME="mv_check" VALUE="[L]Save shipping[/L]">
+	</FONT>
+	</TD></TR><TR>
+	<TD>
+	<FONT SIZE="-1">
+	You can recall a shipping address from your address book.<BR>
+		[loop arg="[value address_book]" ]
+		<INPUT TYPE=checkbox NAME="s_nickname" VALUE="[loop-code]"> [loop-code]
+		[/loop]
+	<INPUT TYPE=submit NAME="mv_check" VALUE="[L]Recall shipping[/L]">
+	</FONT>
+	</TD>
+	<TD>
+	<FONT SIZE="-1">
+	You can DELETE a shipping address from your address book.<BR>
+		[loop arg="[value address_book]" ]
+		<INPUT TYPE=checkbox NAME="s_nickname" VALUE="[loop-code]"> [loop-code]
+		[/loop]
+	<INPUT TYPE=submit NAME="mv_check" VALUE="[L]DELETE shipping[/L]">
+	</FONT>
+	</TD>
+	[/if]
+	</TR>
+</TABLE>
+[/if]
+
+<P>
+<TABLE WIDTH=600><TR><TD __HEADERBG__>
+<FONT SIZE="+2" __HEADERTEXT__>[L]Choose your shipping method[/L]</FONT>
 </TD></TR></TABLE>
 
 <P>
-<TABLE WIDTH=500>
+<TABLE WIDTH=600>
 <TR><TD>
-	<SELECT MV=loop
-		MV.SEARCH="fi=country.asc/se=[default country US]/sf=selector/rf=shipmodes"
-		MV.OPTION="mv_shipmode"
-		onChange="this.form.submit()"
-		NAME="mv_shipmode">
+    <SELECT MV=loop
+        MV.ARG="[data
+					table=country
+					key='[default country US]'
+					sf=selector
+					col=shipmodes
+					]"
+        MV.OPTION="mv_shipmode"
+        onChange="this.form.submit()"
+        NAME="mv_shipmode">
     <OPTION VALUE="[loop-code]"> [shipping-desc [loop-code]] [shipping [loop-code]]
-	</SELECT>
+    </SELECT>
 </TD>
-<TD ALIGN=RIGHT><INPUT TYPE=submit VALUE="Update"></TD>
+<TD ALIGN=RIGHT><INPUT TYPE=submit VALUE="[L]Update[/L]"></TD>
 </TR>
 
 <TR>
@@ -279,28 +401,15 @@ mv_credit_card_info=required
 </TD>
 </TR></TABLE>
 
-<TABLE WIDTH=500><TR><TD BGCOLOR="#00F0F0">
-<FONT SIZE="+2">[L]Credit Card Information[/L]</FONT>
+<TABLE WIDTH=600><TR><TD __HEADERBG__>
+<FONT SIZE="+2" __HEADERTEXT__>[L]Credit Card Information[/L]</FONT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<IMG SRC="smallvisa.gif">&nbsp;&nbsp;<IMG SRC="smallmc.gif">
 </TD></TR></TABLE>
 
-[if value mv_credit_card_info]
-  <P>
-  <I>(A valid <B>[help name="[default mv_credit_card_type]"]</B> number is on file.<BR>
-  If you need to change it, re-enter the number. Otherwise, leave it blank and<BR>
-  press <B>Next Screen</B></I>.)
-  <P>
-[/if]
 <P>  
 <TABLE><TR><TD VALIGN=TOP>
-[L]Card Number[/L]<BR>
-[if value mv_credit_card_valid]
+[L]Card Number[/L] <FONT SIZE=1>(test number 4111 1111 1111 1111)</FONT><BR>
 <input type="text" name="mv_credit_card_number"
 		value="" size=19>
-[else]
-<input type="text" name="mv_credit_card_number"
-		value="[value mv_credit_card_number]" size=19>
-[/else]
-[/if]
 </TD>
 <TD VALIGN=TOP>
  [L]Expires[/L] 
@@ -320,24 +429,32 @@ mv_credit_card_info=required
 		<OPTION VALUE=12 [selected mv_credit_card_exp_month 12]> 12 - [L]December[/L]
 	</SELECT>
 	<SELECT name="mv_credit_card_exp_year">
-		<OPTION VALUE=98 [selected mv_credit_card_exp_year 98]> 1998
 		<OPTION VALUE=99 [selected mv_credit_card_exp_year 99]> 1999
 		<OPTION VALUE=00 [selected mv_credit_card_exp_year 00]> 2000
 		<OPTION VALUE=01 [selected mv_credit_card_exp_year 01]> 2001
 		<OPTION VALUE=02 [selected mv_credit_card_exp_year 02]> 2002
-		<OPTION VALUE=03 [selected mv_credit_card_exp_year 02]> 2003
+		<OPTION VALUE=03 [selected mv_credit_card_exp_year 03]> 2003
+		<OPTION VALUE=04 [selected mv_credit_card_exp_year 04]> 2004
+		<OPTION VALUE=05 [selected mv_credit_card_exp_year 05]> 2005
+		<OPTION VALUE=06 [selected mv_credit_card_exp_year 06]> 2006
+		<OPTION VALUE=07 [selected mv_credit_card_exp_year 07]> 2007
+		<OPTION VALUE=08 [selected mv_credit_card_exp_year 08]> 2008
+		<OPTION VALUE=09 [selected mv_credit_card_exp_year 09]> 2009
+		<OPTION VALUE=10 [selected mv_credit_card_exp_year 10]> 2010
 	</SELECT>
 </TD></TR></TABLE>
 <INPUT TYPE=radio NAME="fax_order" VALUE=0
-	[if !value fax_order]CHECKED[/if] [checked fax_order 0]>
+	[if !value fax_order]CHECKED[/if]>
 <I>[L]Pay by credit card[/L]</I><BR>
 <INPUT TYPE=radio NAME="fax_order" VALUE=1 [checked fax_order 1]>
 <I>[L]I will call with payment information[/L]</I><BR>
+[if value tried_credit_card]
 <INPUT TYPE=checkbox NAME="mv_credit_card_force" VALUE=1>
 <I>[L]Force this card number to be taken[/L]</I><BR>
+[/if]
 
-<TABLE WIDTH=500><TR><TD BGCOLOR="#00F0F0">
-<FONT SIZE="+2">[L]Billing Address (if different)[/L]</FONT>
+<TABLE WIDTH=600><TR><TD __HEADERBG__>
+<FONT SIZE="+2" COLOR="__HEADERTEXT__">[L]Billing Address (if different)[/L]</FONT>
 </TD></TR></TABLE>
 
 <TABLE>
@@ -361,35 +478,136 @@ mv_credit_card_info=required
 	</TD>
 </TR>
 </TABLE>
-[set [L]Place Order![/L]]
-mv_todo=submit
-[/set]
 
 [if session logged_in]
-[then]
-<INPUT TYPE=checkbox NAME=mv_click CHECKED VALUE="Save_database"><I> Save my information in the database</I>
-
-[set Save_database]
-mv_arg0=LITERAL(save)
-mv_username=[value mv_username]
-mv_subroutine=userdb
+		[userdb function=get_billing_names]
+[set [L]Save billing[/L]]
+mv_todo=return
+mv_nextpage=ord/checkout
+[userdb function=set_billing]
 [/set]
 
-[/then]
-[else]
-<INPUT TYPE=checkbox NAME=mv_save_session VALUE=1> <I>[L]I plan on returning, save my information[/L]
-	[if config EncryptProgram =~ /pgp/]
-	(credit card is encrypted with PGP!)
-	[else]
-	[L](OOPS! credit card not encrypted with PGP)[/L]
-	[/else][/if]<BR>
-[/else][/if]
+[set [L]Recall billing[/L]]
+mv_todo=return
+mv_nextpage=ord/checkout
+[userdb function=get_billing]
+[/set]
+
+[set [L]DELETE billing[/L]]
+mv_todo=return
+mv_nextpage=ord/checkout
+[userdb function=delete_billing]
+[/set]
+<TABLE CELLPADDING=0 CELLSPACING=0 BORDER=1 WIDTH=600>
+	<TR>
+	<TD VALIGN=TOP>
+	<FONT SIZE="-1">
+	You can create a new entry for the billing address in your account book.<BR>Nickname:
+	<INPUT TYPE=text   NAME="b_nickname" SIZE=10>
+	<INPUT TYPE=submit NAME="mv_check" VALUE="[L]Save billing[/L]"><BR>
+	</FONT>
+	</TD>
+	[if value accounts]
+	<TD>
+	<FONT SIZE="-1">
+	You can save the billing address to an entry in your account book.<BR>
+		[loop arg="[value accounts]" ]
+		<INPUT TYPE=checkbox NAME="b_nickname" VALUE="[loop-code]"> [loop-code]
+		[/loop]
+	<INPUT TYPE=submit NAME="mv_check" VALUE="[L]Save billing[/L]">
+	</FONT>
+	</TD></TR><TR>
+	<TD>
+	<FONT SIZE="-1">
+	You can recall a billing address from your account book.<BR>
+		[loop arg="[value accounts]" ]
+		<INPUT TYPE=checkbox NAME="b_nickname" VALUE="[loop-code]"> [loop-code]
+		[/loop]
+	<INPUT TYPE=submit NAME="mv_check" VALUE="[L]Recall billing[/L]">
+	</FONT>
+	</TD>
+	<TD>
+	<FONT SIZE="-1">
+	You can DELETE a billing address from your account book.<BR>
+		[loop arg="[value accounts]" ]
+		<INPUT TYPE=checkbox NAME="b_nickname" VALUE="[loop-code]"> [loop-code]
+		[/loop]
+	<INPUT TYPE=submit NAME="mv_check" VALUE="[L]DELETE billing[/L]">
+	</FONT>
+	</TD>
+	[/if]
+	</TR>
+</TABLE>
+[/if]
+
+[set [L]Place Order![/L]]
+mv_todo=submit
+[if config CyberCash]mv_cyber_mode=__CYBER_MODE__
+[/if]
+[/set]
+
+<TABLE><TR><TD>
+<INPUT TYPE=radio NAME=email_copy [checked email_copy 1] VALUE="1">Yes
+<INPUT TYPE=radio NAME=email_copy [checked name=email_copy value=0 default=1] VALUE="0">No
+</TD><TD>
+<I>Send an email copy of my receipt</I>
+</TD></TR>
+[if session logged_in]
+<TR><TD ALIGN=RIGHT>
+<INPUT TYPE=checkbox NAME=mv_check CHECKED VALUE="Save_database">
+</TD><TD>
+<I> Save my information in the database</I>
+[set Save_database]
+[userdb save]
+[/set]
+[/if]
+</TD></TR></TABLE>
+
 <CENTER>
-<B><INPUT TYPE=submit NAME=mv_todo VALUE="[L]Place Order![/L]"></B></BR>
-<INPUT TYPE=submit VALUE="([L]Update without placing[/L])">
+<B><INPUT TYPE=submit NAME=mv_click VALUE="[L]Place Order![/L]"></B><BR>
+<FONT SIZE="-1"><INPUT TYPE=submit VALUE="[L]Update info, don't place order[/L]"></FONT>
 </CENTER>
 <P>
+<B>Gift note or Special Instructions<BR>
+<TEXTAREA NAME=gift_note ROWS=5 COLS=72>[value gift_note]</TEXTAREA>
 </FORM>
 <P>
-<CENTER>[include pages/buttonbar.html]</CENTER>
+<CENTER><A HREF="/">Return to __COMPANY__ home page</A> (make sure you save first!)</CENTER>
+[include pages/menubar]
+[include pages/copyright]
+<!-- current page: @@MV_PAGE@@ -->
 </body> </html>
+
+[set checkout_profile]
+name=required
+address=required
+city=required
+country=required
+[calc]
+	my $country = q{[cgi country]};
+	$country =~ s/\W+//g;
+	return 'phone_day=phone' unless $country =~ /^(US|CA|USA|UnitedStates|Canada)$/i;
+	return "state=state_province\nzip=zip\nphone_day=phone_us";
+[/calc]
+email=required
+email=email
+&fatal = yes
+
+[if value fax_order]
+&set = mv_payment Call Us
+[elsif config CyberCash]
+&set=mv_payment CyberCash Credit Card
+[/elsif]
+[elsif config CreditCardAuto]
+&set=mv_payment Credit Card ([default mv_credit_card_type unknown])
+mv_credit_card_info=required
+[/elsif]
+[else]
+&set=mv_payment Will Call
+[/else]
+[/if]
+
+&final = yes
+&set=mv_email [value email]
+
+[/set]

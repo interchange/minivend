@@ -1,8 +1,9 @@
 # Table/InMemory.pm: store a table in memory
 #
-# $Id: InMemory.pm,v 1.13 1998/08/16 10:26:14 mike Exp $
+# $Id: InMemory.pm,v 1.14 1999/02/15 08:51:53 mike Exp mike $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+# Copyright 1996-1998 by Mike Heins <mikeh@minivend.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,12 +20,24 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::InMemory;
-$VERSION = substr(q$Revision: 1.13 $, 10);
-use Carp;
+$VERSION = substr(q$Revision: 1.14 $, 10);
 use strict;
 
-sub create_table {
-    my ($class, $columns) = @_;
+# 0: column names
+# 1: column index
+# 2: tie hash
+# 3: configuration
+
+my ($COLUMN_NAMES, $COLUMN_INDEX, $TIE_HASH, $CONFIG) = (0 .. 3);
+
+sub config {
+	my ($self, $key, $value) = @_;
+	return $self->[$CONFIG]{$key} unless defined $value;
+	$self->[$CONFIG]{$key} = $value;
+}
+
+sub create {
+    my ($class, $config, $columns) = @_;
 
     my $column_index = {};
     my $i;
@@ -33,7 +46,7 @@ sub create_table {
     }
 
     my $hash = {};
-    my $self = [$columns, $column_index, $hash];
+    my $self = [$columns, $column_index, $hash, $config];
     bless $self, $class;
 }
 
@@ -56,14 +69,22 @@ sub test_column {
 sub column_index {
     my ($s, $column) = @_;
     my $i = $s->[1]{$column};
-    croak "There is no column named '$column'" unless defined $i;
+    die "There is no column named '$column'" unless defined $i;
     return $i;
 }
+
+sub row_array {
+    my ($s, $key) = @_;
+    my $a = $s->[2]{$key};
+    die "There is no row with index '$key'" unless defined $a;
+    return @$a;
+}
+
 
 sub row {
     my ($s, $key) = @_;
     my $a = $s->[2]{$key};
-    croak "There is no row with index '$key'" unless defined $a;
+    die "There is no row with index '$key'" unless defined $a;
 	my %row;
 	@row{ @{$s->[0]} } = @$a;
     return \%row;
@@ -77,7 +98,7 @@ sub field_accessor {
     return sub {
         my ($key) = @_;
         my $a = $s->[2]{$key};
-        croak "There is no row with index '$key'" unless defined $a;
+        die "There is no row with index '$key'" unless defined $a;
         return $a->[$index];
     };
 }
@@ -102,7 +123,7 @@ sub set_row {
 sub field {
     my ($s, $key, $column) = @_;
     my $a = $s->[2]{$key};
-    croak "There is no row with index '$key'" unless defined $a;
+    die "There is no row with index '$key'" unless defined $a;
     return $a->[$s->column_index($column)];
 }
 

@@ -1,6 +1,6 @@
-# MiniVend V3.11
+# MiniVend V3.12
 # 
-# Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
+# Copyright 1996-1999 by Michael J. Heins <mikeh@minivend.com>
 #
 
                    M I S C E L L A N E O U S

@@ -1,0 +1,139 @@
+<html>
+
+<head>
+<title>MiniVend FlyCart Demo</title>
+</head>
+
+<BODY BGCOLOR="#FFFFFF" TEXT="#000000">
+	
+<P ALIGN=CENTER><IMG SRC="__MVC_IMAGEURL__/__MVC_LOGO__" ALT="__MVC_COMPANY__">
+
+<HR NOSHADE>
+<!--begin example-->
+<FORM ACTION="__MVC_CGIURL__/process" METHOD="POST">
+<B><IMG SRC="__MVC_IMAGEURL__/00-0011.jpg">
+	<INPUT TYPE=hidden NAME=sku VALUE="test">
+	<INPUT TYPE=hidden NAME=sku VALUE="00-0011">
+	<INPUT TYPE=hidden NAME=sku VALUE="The Mona Lisa">
+	<INPUT TYPE=hidden NAME=sku VALUE="mod1">
+	<INPUT TYPE=hidden NAME=sku VALUE="1">
+	<INPUT TYPE=hidden NAME=sku VALUE="2.00">
+	<INPUT TYPE=hidden NAME=sku VALUE=".35">
+	<INPUT TYPE=hidden NAME=sku VALUE="ea.">
+	<INPUT TYPE=hidden NAME=sku VALUE="12">
+	<INPUT TYPE=hidden NAME=sku VALUE="__MVC_IMAGEURL__/00-0011.jpg">
+
+<!--
+	When you change the "sku" variable, be sure to keep the field order: 
+
+		1 - Vendor ID, always the same
+		2 - Item sku/Part Number
+		3 - Description
+		4 - Price (may be mod1-16 for option pricing)
+		5 - Quantity
+		6 - Per item shipping (if any)
+		7 - Handling fee (if any)
+		8 - Unit of measure (if any)
+		9 - Shipping weight (if any)
+		10- URL to see product details (if any)
+
+	If you leave a field blank, don't remove it, set it to blank. Otherwise
+	we can't tell the order of the fields.
+
+	Tip: The ^ character is an alternate field separator.
+	This would be the same as above:
+
+	VALUE="test^99-102^The Mona Lisa^mod1^1^2.00^.35^ea. ^1.2^__MVC_IMAGEURL__/staircase.jpg"
+
+-->
+	<DIV ALIGN=CENTER><CENTER><TABLE BORDER=1>
+        <TR>
+            <TD><B>00-0011</B></TD>
+            <TD><B>Mona Lisa</B></TD>
+            <TD><B><SELECT NAME=mod1 SIZE=1>
+                <OPTION VALUE="=error= You must select a reproduction type for this painting.">Select Quality
+                <OPTION VALUE="original - $50000000.00">Original - $50,000,000.00
+                <OPTION VALUE="litho - $1000.00">Lithograph - $1,000.00
+                <OPTION VALUE="poster - $10.00">Poster - $10.00
+			</SELECT>
+			</B>
+			</TD>
+            <TD><B><INPUT TYPE=image NAME=add SRC="__MVC_IMAGEURL__/ordernow.gif" ALIGN=center BORDER="0"> </b></td>
+        </TR>
+    </TABLE></CENTER></DIV>
+</FORM>
+<P ALIGN="center"><FONT SIZE="2"><B>
+
+Item with a variable price option. The hidden variable "sku" contains the
+keyword "mod1" instead of a price. This tells the cart to parse the selection
+named "mod1" to obtain the item price. Notice that the select box has a quality
+and price separated by a space dash space. You must use this format to insure
+correct parsing. Up to 16 options mod1 - mod16 can be used to price an item.
+
+	</B></FONT><B><BR>
+    <BR CLEAR=ALL>
+    </B></P>
+    <HR>
+    <B></B>
+	<P>
+    <DIV ALIGN=CENTER><CENTER><TABLE BORDER=1>
+        <TR>
+            <TD><B>99-102</B></TD>
+            <TD><B>The Art Store T-Shirt</B></TD>
+            <TD><FORM ACTION="__MVC_CGIURL__/process" METHOD=POST>
+                <INPUT TYPE=HIDDEN NAME=sku VALUE="test^99-102^The Art Store T-Shirt^mod1mod2mod3^1^2.00^.35^ea.^1^__MVC_IMAGEURL__/tshirt.gif"><P><B>
+				<SELECT NAME=mod1 SIZE=1>
+                    <OPTION VALUE="=error= You must select a size for the shirt.">Select Size</option>
+                    <OPTION VALUE="LG - $10.00">Large - $10.00</option>
+                    <OPTION VALUE="MD - $10.00">Medium - $10.00</option>
+                    <OPTION VALUE="SM - $9.00">Small - $9.00</option>
+                    <OPTION VALUE="XL - $11.00">Extra Large - $11.00</option>
+                </SELECT>
+				<SELECT NAME=mod2>
+                    <OPTION VALUE="=error= You must select a color for the shirt.">Select Color</option>
+                    <OPTION VALUE="white - 0.00">White</option>
+                    <OPTION VALUE="black - 0.00">Black</option>
+                    <OPTION VALUE="red - $0.50">Red - $0.50 extra</option>
+                    <OPTION VALUE="blue - $1.00">Blue - $1.00 extra</option>
+                </SELECT>
+				</B>
+            </TD>
+            <TD><B>
+            <B><INPUT TYPE=checkbox NAME=mod3 VALUE="PREWASH - $2.00"></B><FONT SIZE=2><b>Pre-washed<br>
+            (add $2.00)</B></FONT></TD>
+            <TD><B><INPUT TYPE=IMAGE NAME=add src="__MVC_IMAGEURL__/ordernow.gif" ALIGN=CENTER border="0"> </B></TD>
+            </FORM>
+        </TR>
+    </TABLE>
+<P>
+Item with a multiple price options. The first one sets the base price, and
+additional options add to the price.
+
+    </center></div><BR CLEAR=left>
+    <HR>
+
+Build your own item:<BR>
+<FORM ACTION="__MVC_CGIURL__/process" METHOD="POST">
+	<!-- Vendor --> <INPUT TYPE=hidden NAME=sku VALUE="test"><BR>
+<TABLE>
+	<TR> <TD> Part number</TD><TD><INPUT NAME=sku VALUE=""></TD></TR>
+	<TR> <TD> Description</TD><TD><INPUT NAME=sku VALUE=""></TD></TR>
+	<TR> <TD> Price</TD><TD><INPUT NAME=sku VALUE=""></TD></TR>
+	<TR> <TD> Quantity</TD><TD><INPUT NAME=sku VALUE=""></TD></TR>
+	<TR> <TD> Per item ship</TD><TD><INPUT NAME=sku VALUE=""></TD></TR>
+	<TR> <TD> Handling</TD><TD><INPUT NAME=sku VALUE=""></TD></TR>
+	<TR> <TD> Unit of Measure</TD><TD><INPUT NAME=sku VALUE=""></TD></TR>
+	<TR> <TD> Shipping Weight</TD><TD><INPUT NAME=sku VALUE=""></TD></TR>
+	<TR> <TD> URL to page</TD><TD><INPUT NAME=sku VALUE=""></TD></TR>
+	<TR> <TD> Option1</TD><TD><INPUT NAME=mod1  VALUE=""></TD></TR>
+	<TR> <TD> Option2</TD><TD><INPUT NAME=mod2  VALUE=""></TD></TR>
+	<TR> <TD> Option3</TD><TD><INPUT NAME=mod3  VALUE=""></TD></TR>
+	<TR><TD COLSPAN=2><INPUT TYPE=submit VALUE=Add></TR></TR>
+</TABLE>
+</FORM>
+
+
+<hr size="3" noshade>
+
+</body>
+</html>

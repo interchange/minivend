@@ -1,0 +1,81 @@
+LOGO
+ 
+This can be an absolute image URL, or can be just a file
+name that will go in your image directory. That directory
+should be __MVC_SAMPLEHTML__/images.
+
+SMLOGO
+ 
+This can be an absolute image URL, or can be just a file
+name that will go in your image directory. That directory
+should be __MVC_SAMPLEHTML__/images.
+
+HEADERBG
+ 
+This will be used to set the background color for the
+header bars in the shopping cart and checkout display,
+as well as any other title bars.
+
+TABLEFG
+ 
+This will be used to set the background color for the
+tables in the sidebar menu sections.
+
+HEADERTEXT
+ 
+This will be used to set the text color within the title
+bars in cart and checkout display, as well as any other
+title bars.
+
+TAXAREA
+ 
+For the US, this is usually the state(s) your business is
+located in. Non-US users will probably have to set this
+differently depending on their tax laws.
+
+TAXRATE
+ 
+For US users, this looks like STATE=RATE, where the rate
+is in percent. The default below taxes Ohio at 6% and 
+Illinois at 7.25 percent. More states can be added or
+you can have only one. Should correspond to TAXAREA.
+
+TAXSHIPPING
+ 
+If your state charges salestax on shipping, then enter
+the state code. (Again, Non-US users will have this vary
+based on their locale.)
+
+UPSADDER
+ 
+For the UPS lookup, the standard UPS tables are normally
+used. If you want to add a handling charge, do it here.
+
+SUPERUSER
+ 
+You can use MiniVend's access control to allow upload and
+download of files and reconfiguration of the catalog. You
+log in just like a normal user, but when the account name
+matches this value then you get access to the "reconfig"
+directory where the control is.
+
+NOCRYPT
+  
+If you leave this blank, passwords will be encrypted in the user
+database. If you set this to anything other than zero or a blank
+value, passwords will not be encrypted and will be readable in
+the user database. Encrypted is recommended, but be sure to write
+down your password.
+
+SUPASSWD
+ 
+Don't lose this! If you have crypt set up for UserDB, then
+you may not be able to see what it is. You can always temporarily
+set MV_NO_CRYPT to 1, and see what it is by exporting the
+user database.
+  
+Shown below is the default password:
+  
+		nevairbe
+  
+in encrypted form.

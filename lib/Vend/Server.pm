@@ -1,9 +1,9 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.47 1998/09/01 13:15:22 mike Exp mike $
+# $Id: Server.pm,v 1.52 1999/02/15 08:51:26 mike Exp mike $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
-# Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ require Vend::Http;
 @ISA = qw(Vend::Http::CGI);
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.47 $, 10);
+$VERSION = substr(q$Revision: 1.52 $, 10);
 
 use Vend::Util qw(strftime);
 use POSIX qw(setsid);
@@ -48,28 +48,55 @@ sub read_entity_body {
 
 sub create_cookie {
 	my($domain,$path) = @_;
-	my $out = "Set-Cookie: MV_SESSION_ID=" . $Vend::SessionName . ";";
-	$out .= " path=$path;";
-	$out .= " domain=" . $domain . ";" if $domain;
-	$out .= " expires=" .
-					strftime "%a, %d-%b-%y %H:%M:%S GMT ", gmtime($Vend::Expire)
-			 if $Vend::Expire;
-	$out .= "\r\n";
+	my ($name, $value, $out, $expire, $cookie);
+	my @jar;
+	@jar = ['MV_SESSION_ID', $Vend::SessionName, $Vend::Expire || undef];
+	push @jar, @{$::Instance->{Cookies}}
+		if defined $::Instance->{Cookies};
+	$out = '';
+	foreach $cookie (@jar) {
+		($name, $value, $expire) = @$cookie;
+#::logGlobal("create_cookie: name=$name value=$value expire=$expire");
+		$value = Vend::Interpolate::esc($value) 
+			if $value !~ /^[-\w:.]+$/;
+		$out .= "Set-Cookie: $name=$value;";
+		$out .= " path=$path;";
+		$out .= " domain=" . $domain . ";" if $domain;
+		if (defined $expire or $Vend::Expire) {
+			$expire = $Vend::Expire unless defined $expire;
+			$out .= " expires=" .
+						strftime "%a, %d-%b-%y %H:%M:%S GMT ", gmtime($expire);
+		}
+		$out .= "\r\n";
+	}
+	return $out;
+}
+
+sub canon_status {
+	local($_);
+	$_ = shift;
+	s:\s+$::;
+	s:\s*\n:\r\n:mg;
+	return "$_\r\n";
 }
 
 sub respond {
 	# $body is now a reference
     my ($s, $content_type, $body) = @_;
 	if(! $s and $Vend::StatusLine) {
-		print Vend::Server::MESSAGE <<EOF;
-$Vend::StatusLine
-Content-type: $content_type
-
-EOF
+		$Vend::StatusLine = "HTTP/1.0 200 OK\r\n$Vend::StatusLine"
+			if defined $Vend::InternalHTTP
+				and $Vend::StatusLine !~ m{^HTTP/};
+		$Vend::StatusLine .= $Vend::StatusLine =~ /^Content-Type:/im
+							? '' : "Content-Type: $content_type\r\n";
+		print Vend::Server::MESSAGE canon_status($Vend::StatusLine);
+		print Vend::Server::MESSAGE "\r\n";
 		print Vend::Server::MESSAGE $$body;
 		undef $Vend::StatusLine;
+		$Vend::ResponseMade = 1;
 		return;
 	}
+
     my $fh = $s->{fh};
 
 	# Fix for SunOS, Ultrix, Digital UNIX
@@ -77,20 +104,29 @@ EOF
 	$| = 1;
 	select($oldfh);
 
-	if($s->{response_made}) {
+	if($Vend::ResponseMade) {
 		print $fh $$body;
 		return 1;
 	}
 
 	if (defined $Vend::InternalHTTP or $CGI::script_name =~ m:/nph-[^/]+$:) {
 		if(defined $Vend::StatusLine) {
-			print $fh $Vend::StatusLine;
+			$Vend::StatusLine = "HTTP/1.0 200 OK\r\n$Vend::StatusLine"
+				if $Vend::StatusLine !~ m{^HTTP/};
+			print $fh canon_status($Vend::StatusLine);
+			$Vend::ResponseMade = 1;
 			undef $Vend::StatusLine;
 		}
 		else { print $fh "HTTP/1.0 200 OK\r\n"; }
 	}
 
-	if ((defined $Vend::Expire or ! $CGI::cookie) and $Vend::Cfg->{'Cookies'}) {
+	if ( (	! $CGI::cookie && ! $::Instance->{CookiesSet}
+			or defined $Vend::Expire
+			or defined $::Instance->{Cookies}
+		  )
+			and $Vend::Cfg->{'Cookies'}
+		)
+	{
 
 		my @domains;
 		@domains = ('');
@@ -116,13 +152,14 @@ EOF
 				print $fh create_cookie($d, $p);
 			}
 		}
+		$::Instance->{CookiesSet} = delete $::Instance->{Cookies};
     }
 
     if (defined $Vend::StatusLine) {
-		print $fh "$Vend::StatusLine\r\n";
+		print $fh canon_status($Vend::StatusLine);
 	}
-	else {
-		print $fh "Content-type: $content_type\r\n";
+	elsif(! $Vend::ResponseMade) {
+		print $fh canon_status("Content-Type: $content_type");
 	}
 
 	if ($Vend::Session->{frames} and $CGI::values{mv_change_frame}) {
@@ -131,12 +168,12 @@ EOF
 #("Changed Frame: Window-target: " . $CGI::values{mv_change_frame} . "\r\n")
 #	if ::debug(0x40);
 # END DEBUG
-		print $fh "Window-target: " . $CGI::values{mv_change_frame} . "\r\n";
+		print $fh canon_status("Window-target: $CGI::values{mv_change_frame}");
     }
 
     print $fh "\r\n";
     print $fh $$body;
-    $s->{'response_made'} = 1;
+    $Vend::ResponseMade = 1;
 }
 
 package Vend::Server;
@@ -197,7 +234,6 @@ BEGIN {
 		require MIME::Base64;
 		$HTTP_enabled = 1;
 		%CGImap = ( qw/
-				host                 SERVER_NAME
 				content-length       CONTENT_LENGTH
 				content-type         CONTENT_TYPE
                 authorization-type   AUTH_TYPE
@@ -420,6 +456,12 @@ sub read_cgi_data {
 			die "Unrecognized block: $block\n";
         }
     }
+	if($Vend::OnlyInternalHTTP) {
+		::logGlobal(
+			"attempt to connect from unauthorized host $Vend::OnlyInternalHTTP.\n"
+		);
+		die "attempt to connect from unauthorized host $Vend::OnlyInternalHTTP.\n";
+	}
 	return 1;
 }
 
@@ -429,6 +471,7 @@ sub connection {
 		or return;
     my $http = new Vend::Http::Server \*Vend::Server::MESSAGE, \%env, $entity;
     ::dispatch($http);
+	undef $Vend::ResponseMade;
 	undef $Vend::InternalHTTP;
 }
 
@@ -469,11 +512,11 @@ sub setup_signals {
 	elsif($Config{'osname'} eq 'irix' or ! $Config{d_sigaction}) {
 		$SIG{'INT'}  = $Routine_INT;
 		$SIG{'TERM'} = $Routine_TERM;
-		$SIG{'HUP'}  = $Routine_HUP unless $Global::Windows;
-		$SIG{'USR1'} = $Routine_USR1 unless $Global::Windows;
-		$SIG{'USR2'} = $Routine_USR2 unless $Global::Windows;
+		$SIG{'HUP'}  = $Routine_HUP;
+		$SIG{'USR1'} = $Routine_USR1;
+		$SIG{'USR2'} = $Routine_USR2;
 	}
-	else {
+	else  {
 		$SIG{'INT'}  = sub { $Signal_Terminate = 1; };
 		$SIG{'TERM'} = sub { $Signal_Terminate = 1; };
 		$SIG{'HUP'}  = sub { $Signal_Restart = 1; };
@@ -481,19 +524,14 @@ sub setup_signals {
 		$SIG{'USR2'} = sub { $Vend::Server::Num_servers--; };
 	}
 
-    if(! $Global::SafeSignals or $Config{'osname'} =~ /bsd/) {
-        require File::CounterFile;
-        my $filename = "$Global::ConfDir/process.counter";
-        unlink $filename;
-        $Counter = new File::CounterFile $filename;
-        $Sig_inc = sub { $Vend::Server::Num_servers = $Counter->inc(); };
-        $Sig_dec = sub { $Vend::Server::Num_servers = $Counter->dec(); };
-    }
+	if(! $Global::MaxServers) {
+        $Sig_inc = sub { 1 };
+        $Sig_dec = sub { 1 };
+	}
     else {
         $Sig_inc = sub { kill "USR1", $Vend::MasterProcess; };
         $Sig_dec = sub { kill "USR2", $Vend::MasterProcess; };
     }
-
 }
 
 sub restore_signals {
@@ -509,11 +547,7 @@ sub housekeeping {
 	my $now = time;
 	rand();
 
-	# Always do it if called without argument, otherwise
-	# only after $tick seconds
-	if (defined $tick) {
-		return if ($now - $Last_housekeeping < $tick);
-	}
+	return if defined $tick and ($now - $Last_housekeeping < $tick);
 
 	$Last_housekeeping = $now;
 
@@ -529,6 +563,7 @@ sub housekeeping {
 		($restart) = grep $_ eq 'restart', @files
 			if $Signal_Restart || $Global::Windows;
 		if($Global::PIDcheck) {
+			$Vend::Server::Num_servers = 0;
 			@pids = grep /^pid\.\d+$/, @files;
 		}
 		#scalar grep($_ eq 'stop_the_server', @files) and exit;
@@ -565,7 +600,7 @@ EOF
 					}
 				};
 				if($@) {
-					logGlobal(@_);
+					logGlobal($@);
 					last;
 				}
 			}
@@ -619,21 +654,22 @@ EOF
 				or die "unlink $Global::ConfDir/reconfig: $!\n";
 		}
         for (@pids) {
+            $Vend::Server::Num_servers++;
             my $fn = "$Global::ConfDir/$_";
-            next if ! -f $fn;
+            ($Vend::Server::Num_servers--, next) if ! -f $fn;
             my $runtime = $now - (stat(_))[9];
-            next if $runtime < $Global::HammerLock;
+            next if $runtime < $Global::PIDcheck;
             s/^pid\.//;
             if(kill 9, $_) {
-                &$Sig_dec;
-                unlink $fn;
+                unlink $fn and $Vend::Server::Num_servers--;
                 ::logGlobal("hammered PID $_ running $runtime seconds");
             }
             elsif (! kill 0, $_) {
+				unlink $fn and $Vend::Server::Num_servers--;
 				::logGlobal("Spurious PID file for process $_ supposedly running $runtime seconds");
-				unlink $fn;
 			}
             else {
+				unlink $fn and $Vend::Server::Num_servers--;
                 ::logGlobal("PID $_ running $runtime seconds would not die!");
             }
         }
@@ -645,18 +681,25 @@ EOF
 # Can have both INET and UNIX on same system
 sub server_both {
     my ($socket_filename) = @_;
-    my ($n, $rin, $rout, $pid, $tick, $max_servers);
+    my ($n, $rin, $rout, $pid, $tick);
 
 	$Vend::MasterProcess = $$;
 
-	$max_servers = $Global::MaxServers   || 4;
 	$tick        = $Global::HouseKeeping || 60;
 
     setup_signals();
 
-
 	my $port;
-	my $host = $Global::TcpHost || '127.0.0.1';
+	if($Global::Inet_Mode) {
+		my $host = $Global::TcpHost || '127.0.0.1';
+		my @hosts;
+		$Global::TcpHost =~ s/\./\\./g;
+		$Global::TcpHost =~ s/\*/\\S+/g;
+		@hosts = grep /\S/, split /\s+/, $Global::TcpHost;
+		$Global::TcpHost = join "|", @hosts;
+		::logGlobal("Accepting connections from $Global::TcpHost");
+	}
+
 	my $proto = getprotobyname('tcp');
 
 # DEBUG
@@ -813,6 +856,18 @@ sub server_both {
 				$ok = accept(Vend::Server::MESSAGE, $fh_map{$p});
 			}
             die "accept: $!" unless defined $ok;
+			my $connector;
+			(undef, $ok) = sockaddr_in($ok);
+		CHECKHOST: {
+			undef $Vend::OnlyInternalHTTP;
+			$connector = inet_ntoa($ok);
+			last CHECKHOST if $connector =~ /$Global::TcpHost/;
+			my $dns_name;
+			(undef, $dns_name) = gethostbyaddr($ok, AF_INET);
+			$dns_name = "UNRESOLVED_NAME" if ! $dns_name;
+			last CHECKHOST if $dns_name =~ /$Global::TcpHost/;
+			$Vend::OnlyInternalHTTP = "$dns_name/$connector";
+		}
 			$spawn = 1;
 		}
         else {
@@ -834,8 +889,10 @@ sub server_both {
 # END DEBUG
 			if(defined $no_fork) {
 				$Vend::NoFork = {};
+				$::Instance = {};
 				connection();
 				undef $Vend::NoFork;
+				undef $::Instance;
 			}
 			elsif(! defined ($pid = fork) ) {
 #				logGlobal ("Can't fork: $!");
@@ -846,6 +903,7 @@ sub server_both {
 				#fork again
 				unless ($pid = fork) {
 
+					$::Instance = {};
 					eval { 
 						touch_pid() if $Global::PIDcheck;
 						&$Sig_inc;
@@ -857,9 +915,14 @@ sub server_both {
 						logError( errmsg('Server.pm:11', "Runtime error: %s" , $msg) )
 					}
 
+					undef $::Instance;
 					select(undef,undef,undef,0.050) until getppid == 1;
-					&$Sig_dec;
-					unlink_pid() if $Global::PIDcheck;
+					if ($Global::PIDcheck) {
+						unlink_pid() and &$Sig_dec;
+					}
+					else {
+						&$Sig_dec;
+					}
 					exit(0);
 				}
 				exit(0);
@@ -889,8 +952,8 @@ sub server_both {
 	  eval {
         for(;;) {
 		   housekeeping($tick);
-           last if $Vend::Server::Num_servers < $max_servers;
-           select(undef,undef,undef,0.200);
+           last if ! $Global::MaxServers or $Vend::Server::Num_servers < $Global::MaxServers;
+           select(undef,undef,undef,0.100);
            last if $Signal_Terminate || $Signal_Debug;
         }
 	  };
@@ -932,8 +995,9 @@ sub touch_pid {
 }
 
 sub unlink_pid {
-	close(TEMPPID)					  or die "close PID file $$: $!\n";
-	unlink("$Global::ConfDir/pid.$$") or die "unlink $Global::ConfDir/pid.$$: $!\n";
+	close(TEMPPID);
+	unlink("$Global::ConfDir/pid.$$");
+	1;
 }
 
 sub grab_pid {

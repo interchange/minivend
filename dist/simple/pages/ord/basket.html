@@ -2,47 +2,56 @@
 <HEAD>
 <TITLE>[L]Shopping Cart Contents[/L]</TITLE>
 </HEAD>
-[body 1]
-<CENTER>
+<BODY MV="body 1">
+__LOGOBAR__
+__MENUBAR__
+__LEFTSIDE__
+<P><BR><BR>
 <FORM ACTION="[process-target secure=1]" METHOD=POST>
 <INPUT TYPE=hidden NAME=mv_session_id VALUE="[data session id]">
 <input type="hidden" name="mv_doit" value="refresh">
 <input type="hidden" name="mv_orderpage" value="ord/basket">
 <input type="hidden" name="mv_checkout" value="ord/checkout">
-<input type="hidden" name="mv_nextpage" value="catalog">
-[page href=""]<IMG BORDER=0 SRC="__SMLOGO__" ALT="__COMPANY__ Logo" ALIGN="CENTER"></A>
-<TABLE BORDER=0>
-<CAPTION><FONT SIZE=7>[L]Shopping Cart Contents[/L]</FONT><BR></CAPTION>
+<input type="hidden" name="mv_nextpage" value="index">
+[comment]
+  This next is a MiniVend UserTag -- if you see it in the page, then
+  you don't have it defined in catalog.cfg.
+[/comment]
+[table-font FACE="verdana,arial, helvetica" SIZE=3]
+<TABLE BORDER=1 CELLSPACING=0>
+<TR><TD COLSPAN=5 [var HEADERBG] ALIGN=CENTER><FONT SIZE=7 FACE="arial,helvetica" COLOR="[var HEADERTEXT]">[L]Shopping Cart Contents[/L]</FONT><BR></CAPTION>
 <TR>
-<P>
-	<TH BGCOLOR="#00F0F0" WIDTH=70 VALIGN=BOTTOM>
-	[L]SKU[/L]
+	<TH __HEADERBG__ WIDTH=70 VALIGN=BOTTOM>
+	<FONT COLOR="__HEADERTEXT__">[L]SKU[/L]
 	</TH>
-	<TH BGCOLOR="#00F0F0" VALIGN=BOTTOM ALIGN=LEFT>
-	[L]Description[/L]
+	<TH __HEADERBG__ VALIGN=BOTTOM ALIGN=LEFT>
+	<FONT COLOR="__HEADERTEXT__">[L]Description[/L]
 	</TH>
-	<TH BGCOLOR="#00F0F0" WIDTH=70 VALIGN=BOTTOM ALIGN=center>
-	[L]Quantity[/L]
+	<TH __HEADERBG__ WIDTH=70 VALIGN=BOTTOM ALIGN=center>
+	<FONT COLOR="__HEADERTEXT__">[L]Quantity[/L]
 	</TH>
-	<TH BGCOLOR="#00F0F0" WIDTH=90 VALIGN=BOTTOM ALIGN=center>
-	[L]Price[/L]
+	<TH __HEADERBG__ WIDTH=90 VALIGN=BOTTOM ALIGN=center>
+	<FONT COLOR="__HEADERTEXT__">[L]Price[/L]
 	</TH>
-	<TH BGCOLOR="#00F0F0" WIDTH=90 VALIGN=BOTTOM ALIGN=center>
-	[L]Extension[/L]
+	<TH __HEADERBG__ WIDTH=90 VALIGN=BOTTOM ALIGN=center>
+	<FONT COLOR="__HEADERTEXT__">[L]Extension[/L]
 	</TH>
 </TR>
 [if items]
 [then]
 [item-list]
 <TR>
-<P>
-	<TD BGCOLOR="#FFFFFF" VALIGN=TOP align=center>
+	<TD [var TABLEFG] VALIGN=TOP align=center>
 	[item-code]<FONT SIZE="-2"><BR><INPUT TYPE=checkbox NAME="[quantity-name]"
-			   onClick="document.forms[0].action='[process-target]',
-			   			document.forms[0].submit()"
+			   onClick="this.form.action='[process-target]',
+			   			this.form.submit()"
 			   VALUE=0> </FONT><FONT SIZE="-1">[L]remove[/L]</FONT></TD>
-	<TD BGCOLOR="#FFFFFF" VALIGN=TOP MARGINWIDTH=12 MARGINHEIGHT=12>
+	<TD [var TABLEFG] VALIGN=TOP MARGINWIDTH=12 MARGINHEIGHT=12>
 	[page [item-code]][item-description]</A>
+		<BR>[page quantity [item-code]]
+			<FONT SIZE=1 COLOR=RED>QUANTITY PRICING</FONT>
+			</A>
+	[summary amount="[calc][item-quantity] * ([item-field weight] || 0)[/calc]" hide=1]
 	<BR><FONT SIZE="-1">
 	[if-field related]
 	[loop arg="[item-field related]"]
@@ -50,20 +59,20 @@
 		<BR><B>[L]Order this fine accessory[/L]:</B><BR>
 		[loop-field title]
 		<INPUT TYPE="CHECKBOX" NAME="mv_order_item"
-			onClick="document.forms[0].action='[process-target]',
-					document.forms[0].submit()"
+			onClick="this.form.action='[process-target]',
+					this.form.submit()"
 			VALUE="[loop-code]">
 			<INPUT TYPE="HIDDEN" NAME="mv_order_quantity" VALUE="1">
 		[/if]
 	[/loop]
 	[/if-field][item-accessories size][item-accessories color]</FONT>	
 	</TD>
-	<TD BGCOLOR="#FFFFFF" VALIGN=TOP ALIGN=CENTER>
+	<TD [var TABLEFG] VALIGN=TOP ALIGN=CENTER>
 	<input type="text"
 		name=[quantity-name] value="[item-quantity]" size=3>
 
 	</TD>
-	<TD BGCOLOR="#FFFFFF" VALIGN=TOP ALIGN=RIGHT>
+	<TD [var TABLEFG] VALIGN=TOP ALIGN=RIGHT>
 		[discount-price]
 		[if discount [item-code]]
 		<BR><FONT COLOR=RED SIZE=-2>Item is discounted
@@ -71,42 +80,40 @@
 			</FONT>
 		[/if]
 	</TD>
-	<TD BGCOLOR="#FFFFFF" VALIGN=TOP ALIGN=RIGHT>
+	<TD [var TABLEFG] VALIGN=TOP ALIGN=RIGHT>
 		[item-subtotal]
 	</TD>
 </TR>
 [/item-list]
 [/then]
 [else]
-	<TR><TD ALIGN=CENTER COLSPAN=5 BGCOLOR="#FFFFFF">
+	<TR><TD ALIGN=CENTER COLSPAN=5 [var TABLEFG]>
 		<H3>[L]No items at the moment.[/L]</H3>
 	</TD></TR>
 [/else]
 [/if]
 <TR>
-<TD BGCOLOR="#00F0F0" COLSPAN=4 ALIGN=RIGHT VALIGN=CENTER>
-<input type="submit"
-	onClick="document.forms[0].action='[process-target]'"
-	name="mv_submit" value="[L]Recalculate[/L]">
+<TD __HEADERBG__ COLSPAN=4 ALIGN=RIGHT VALIGN=CENTER>
+<FONT COLOR="__HEADERTEXT__"><FONT SIZE="-1">[summary format="<B>Shipping weight:</B> %d" total=1]</FONT>&nbsp;&nbsp;&nbsp;&nbsp;<input type="submit"
+	onClick="this.form.action='[process-target]'"
+	name="mv_submit" value="[L]Recalculate[/L]"> 
 <IMG BORDER=0 WIDTH=50 HEIGHT=2 SRC="bg.gif" ALT=" . . ">
 <IMG BORDER=0 WIDTH=50 HEIGHT=2 SRC="bg.gif" ALT=" . . ">
-	<B>[L]Subtotal[/L]</B>
-<TD BGCOLOR="#FFFFFF" ALIGN=RIGHT VALIGN=CENTER>[subtotal]</TD>
+	<B>[L]Subtotal[/L]</B></TD>
+<TD [var TABLEFG] ALIGN=RIGHT VALIGN=CENTER>[subtotal]</TD>
 </TR>
 <TR>
-<TD BGCOLOR="#00F0F0" COLSPAN=5 ALIGN=CENTER>
-<input type="submit" name="mv_click" value="[L]Check out[/L]">
+<TD __HEADERBG__ COLSPAN=5 ALIGN=CENTER>
+<FONT COLOR="__HEADERTEXT__"><INPUT
+                    TYPE="submit"
+                    onClick="this.form.target='_top'"
+                    NAME="mv_click"
+                    VALUE="[L]Check out[/L]">
 <input type="submit"
-	onClick="document.forms[0].action='[process-target]'"
-	name="mv_click" value="[L]Search[/L]">
+	onClick="this.form.action='[process-target]'"
+	name="mv_click" value="[L]Continue shopping[/L]">
 <input type="submit"
-	onClick="document.forms[0].action='[process-target]'"
-	name="mv_click" value="[L]Browse[/L]">
-<input type="submit"
-	onClick="document.forms[0].action='[process-target]'"
-	name="mv_click" value="[L]Home[/L]">
-<input type="submit"
-	onClick="document.forms[0].action='[process-target]'"
+	onClick="this.form.action='[process-target]'"
 	name="mv_click" value="[L]Stop shopping[/L]">
 </TD>
 </TR>
@@ -118,52 +125,91 @@
 
 [if session logged_in]
 [then]
-<P>
+[userdb function=get_cart_names hide=1]
+
+[set [L]Save cart[/L]]
+mv_todo=return
+mv_nextpage=ord/basket
+[userdb function=set_cart nickname="[value c_nickname]"]
+[/set]
+
+[set [L]Recall cart[/L]]
+mv_todo=return
+mv_nextpage=ord/basket
+[userdb function=get_cart nickname="[value c_nickname]"]
+[/set]
+
+[set [L]DELETE cart[/L]]
+mv_todo=return
+mv_nextpage=ord/basket
+[userdb function=delete_cart nickname="[value c_nickname]"]
+[/set]
+<TABLE CELLPADDING=0 CELLSPACING=0 BORDER=1 WIDTH=600>
+	<TR>
+	<TD VALIGN=TOP>
     <FORM ACTION="[process-target]" METHOD=POST>
-    [L]Hi[/L] [value name]! [L]You are logged in as user[/L] <B>[value mv_username]</B>.
-	&nbsp;&nbsp;<INPUT TYPE=submit NAME="mv_click" VALUE="Log out">
+	<FONT SIZE="-1">
+	You can create a new shelf for this shopping cart in your storage bin.<BR>Nickname:
+	<INPUT TYPE=text   NAME="c_nickname" SIZE=11 VALUE="[tag time]%b-%d-%Y[/tag]">
+	<INPUT TYPE=hidden NAME="mv_todo" VALUE="return">
+	<INPUT TYPE=hidden NAME="mv_check" VALUE="[L]Save cart[/L]">
+	<INPUT TYPE=submit VALUE="[L]Save cart[/L]">
+	</FONT>
 	</FORM>
+	</TD>
+	[if value carts]
+	<TD>
+    <FORM ACTION="[process-target]" METHOD=POST>
+	<INPUT TYPE=hidden NAME="mv_todo" VALUE="return">
+	<FONT SIZE="-1">
+	You can save the cart contents to an shelf in your storage bin.<BR>
+		[loop arg="[value carts]" ]
+		<INPUT TYPE=checkbox NAME="c_nickname" VALUE="[loop-code]"> [loop-code]
+		[/loop]
+	<INPUT TYPE=submit NAME=mv_check VALUE="[L]Save cart[/L]">
+	</FONT>
+	</FORM>
+	</TD></TR><TR>
+	<TD>
+    <FORM ACTION="[process-target]" METHOD=POST>
+	<INPUT TYPE=hidden NAME="mv_todo" VALUE="return">
+	<FONT SIZE="-1">
+	You can recall a cart from a shelf in your storage bin.<BR>
+		[loop arg="[value carts]" ]
+		<INPUT TYPE=checkbox NAME="c_nickname" VALUE="[loop-code]"> [loop-code]
+		[/loop]
+	<INPUT TYPE=submit NAME="mv_check" VALUE="[L]Recall cart[/L]">
+	</FONT>
+	</FORM>
+	</TD>
+	<TD>
+    <FORM ACTION="[process-target]" METHOD=POST>
+	<INPUT TYPE=hidden NAME="mv_todo" VALUE="return">
+	<FONT SIZE="-1">
+	You can DELETE a cart from your storage bin.<BR>
+		[loop arg="[value carts]" ]
+		<INPUT TYPE=checkbox NAME="c_nickname" VALUE="[loop-code]"> [loop-code]
+		[/loop]
+	<INPUT TYPE=submit NAME="mv_check" VALUE="[L]DELETE cart[/L]">
+	</FONT>
+	</FORM>
+	</TD>
+	[/if]
+	</TR>
+</TABLE>
+
 [set Log out]
 mv_todo=return
 mv_nextpage=ord/basket
-mv_subroutine=userdb
-mv_arg0=LITERAL(logout)
-mv_username=[value mv_username]
+[userdb logout]
 [/set]
 [/then]
-[else]
-[set Login]
-mv_arg0=LITERAL(login)
-mv_subroutine=userdb
-[/set]
-<P>
-[if session failure]
-[data session failure]
 [/if]
-<P>
-[L]If you have an account with us, please enter your user name and password[/L].
-<P>
-    <FORM ACTION="[process-target]" METHOD=POST>
-    <INPUT TYPE=hidden NAME=mv_click VALUE=Login>
-    <INPUT TYPE=hidden NAME=mv_doit  VALUE=return>
-    <INPUT TYPE=hidden NAME=mv_nextpage VALUE="ord/basket">
 
-    <TABLE CELLSPACING=0 CELLPADDING=0>
-    <TR><TD ALIGN=RIGHT>[L]Username[/L]</TD>
-        <TD><INPUT NAME=mv_username VALUE="[value mv_username]" SIZE=10>
-		[page new_account][L]Create a new account[/L][/page]
-        </TD></TR>
-
-    <TR><TD ALIGN=RIGHT>[L]Password[/L]</TD>
-        <TD><INPUT
-				onChange="document.forms[1].submit()"
-			  TYPE=password NAME=mv_password VALUE="" SIZE=10>
-        <INPUT TYPE=submit VALUE="[L]Log in[/L]"> &nbsp;&nbsp;
-        </TD></TR>
-    </TABLE>
-
-    </FORM>
-[/else][/if]
+[set [L]Continue shopping[/L]]
+mv_todo=return
+mv_nextpage=last_search
+[/set]
 
 [set [L]Stop shopping[/L]]
 mv_todo=return
@@ -175,21 +221,10 @@ mv_todo=return
 mv_nextpage=ord/checkout
 [/set]
 
-[set [L]Home[/L]]
-mv_todo=return
-mv_nextpage=catalog
-[/set]
-
-[set [L]Search[/L]]
-mv_todo=return
-mv_nextpage=srchform
-[/set]
-
-[set [L]Browse[/L]]
-mv_todo=return
-mv_nextpage=browse
-[/set]
-
+[/table-font]
 <BR>
-
+__NO_RIGHT__
+__MENUBOTTOM__
+__COPYRIGHT__
+<!-- current page: @@MV_PAGE@@ -->
 </body> </html>

@@ -1,0 +1,125 @@
+<HTML>
+<HEAD>
+	<TITLE> __COMPANY__ Catalog </TITLE>
+</HEAD>
+<BODY MV="body 1">
+[comment]
+	The __VALUES__ below are MiniVend Variable settings.
+	In this case, they come from these settings in catalog.cfg:
+
+	## Set some menubars and headers
+	ConfigDir pages
+	Variable      LEFTSIDE   <leftside
+	Variable      RIGHTSIDE  <rightside
+	Variable      NO_RIGHT   <no_right
+	Variable      MENUBAR    <menubar
+	Variable      MENUBOTTOM <menubottom
+	Variable      LOGOBAR    <logobar
+	Variable      COPYRIGHT  <copyright
+	ConfigDir config
+
+	Each one comes from a file in this directory which
+	corresponds to the variable.
+
+	They have the effect of predefining a page layout without
+	having to maintain different pages.
+
+[/comment]
+__LOGOBAR__
+__MENUBAR__
+__LEFTSIDE__
+
+
+[comment]
+This is the default page of the catalog.
+[/comment]
+<!-- CONTENT HERE -->
+<!--  First product -->
+
+[comment]
+
+    This [loop] repeats the container code for every product
+    code returned by the [random] tag. The [random] tag is 
+    set in catalog.cfg with the Random directive; in the demo
+    it takes its values from the rand1.html - rand5.html page.
+
+    The effect is to have a changing "specials" display on 
+    the front page.
+
+[/comment]
+
+[loop arg="[random]"]
+<TABLE CELLPADDING="3">
+    <TR>
+        <TD VALIGN="top">
+            <TABLE>
+                <TR>
+[calc]
+                    return <<EOF if $inc++ % 2;
+                    <TD VALIGN="top" ALIGN=LEFT>
+                        <A HREF="[area [loop-code]]">
+                        <IMG SRC="[loop-field image]" ALT="[loop-field title]" BORDER="0"></A>
+                    </TD>
+EOF
+                    return '';
+[/calc]
+                    <TD VALIGN="top">
+                        <FONT SIZE="3" FACE="verdana,arial,helvetica">          
+                        <B>[loop-field title]</B>
+                        </FONT><BR>
+                        <FONT SIZE="2" FACE="verdana,arial,helvetica">          
+                        By <A HREF="[area scan
+                            st=glimpse
+                            sf=artist
+                            se=[loop-field artist]
+                        ]"><B><FONT COLOR="#0000CC">
+                        [loop-field artist]
+                        </FONT></B></A><P>
+                        </FONT>
+
+                        Our Price:</FONT><B><FONT SIZE="3" COLOR="#FF0000">
+                        [loop-price]
+                        </B></FONT>                                        
+                        &nbsp; <NOBR><A HREF="[area order [loop-code]]" CLASS="buybtn">
+                        <FONT SIZE="1" FACE="verdana,arial,helvetica" COLOR="#0000cc">
+                        Buy Now</FONT></A></NOBR><BR>
+                    </TD>
+[calc]
+                    return <<EOF if $inc % 2;
+                    <TD VALIGN="top" ALIGN=RIGHT>
+                        <A HREF="[area [loop-code]]">
+                        <IMG SRC="[loop-field image]" ALT="[loop-field title]" BORDER="0"></A>
+                    </TD>
+EOF
+                    return '';
+[/calc]
+                </TR>
+                <TR>
+                    <TD COLSPAN="2">                            
+                        <FONT SIZE="2"><P>
+                        [file name="text/[loop-code]"]
+                        <P>
+                        More <A HREF="[area scan
+                            dl=[loop-field category]
+                            di=category
+                            df=yes
+                            ]"><FONT COLOR="#0000CC">
+                        [loop-field category]</A></FONT> ...
+                    </TD>
+                </TR>
+            </TABLE>
+        </TD>
+    </TR>
+</TABLE>
+
+<HR WIDTH="90%" [var HEADERBG] HEIGHT="1">
+[/loop]
+<BR>
+
+[comment] And the footer as above. [/comment]
+__RIGHTSIDE__
+__MENUBOTTOM__
+__COPYRIGHT__
+
+<!-- current page: @@MV_PAGE@@ -->
+</BODY></HTML>

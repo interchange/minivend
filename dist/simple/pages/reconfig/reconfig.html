@@ -1,0 +1,19 @@
+<html> <head>
+<title>Catalog Reconfigured</title>
+</head>
+<BODY MV="body 1">
+<IMG SRC="mvlogo.gif" ALT="MV Logo" ALIGN=CENTER>
+
+[if type=explicit compare="[reconfig]"]
+<h1>Catalog Reconfigured!</h1>
+[reconfig-wait]
+The catalog should be successfully reconfigured.
+[else]
+RECONFIGURATION FAILED.
+[/else]
+[/if]
+<P>
+__MENUBAR__
+__COPYRIGHT__
+<!-- current page: @@MV_PAGE@@ -->
+</body></html>

@@ -1,4 +1,4 @@
-# $Id: ValidCC.pm,v 1.11 1998/01/23 05:19:49 mike Exp $
+# $Id: ValidCC.pm,v 1.12 1998/12/10 12:52:22 mike Exp $
 #
 # ValidCC.pm - validate credit card numbers
 #
@@ -7,10 +7,9 @@
 # Modified by Mike to make more forgiving in the parameters.
 
 package Vend::ValidCC;
-$VERSION = substr(q$Revision: 1.11 $, 10);
+$VERSION = substr(q$Revision: 1.12 $, 10);
 require 5.000;
 require Exporter;
-use Carp;
 
 @ISA = qw(Exporter);
 
@@ -218,7 +217,7 @@ sub encrypt_standard_cc {
 	}
 
 	# remove unwanted chars from card number
-	#$num =~ tr/0-9//cd;
+	$num =~ tr/0-9//cd;
 
 	# error will be pushed on this if present
 	@return = (

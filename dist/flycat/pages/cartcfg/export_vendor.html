@@ -1,0 +1,29 @@
+<HTML>
+<HEAD><TITLE>Export Vendor and Transactions Database</HEAD></TITLE>
+</HEAD>
+<BODY>
+
+	[set name=export_results int][tag export vendor][/tag][/set]
+
+<H1>Export Vendor Database</H1>
+
+[if scratch export_results]
+Success.
+[else]
+EXPORT FAILED.
+[/else][/if]
+<P>
+
+	[set name=export_results int][tag export transactions][/tag][/set]
+
+<H1>Export Transaction Database</H1>
+
+[if scratch export_results]
+Success.
+[else]
+EXPORT FAILED.
+[/else][/if]
+<P>
+[include pages/cartcfg/buttonbar]
+</BODY></HTML>
+	

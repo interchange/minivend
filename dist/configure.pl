@@ -354,13 +354,14 @@ else {
 	die "Ooops! No helpfile. Can't continue.\n";
 }
 
-require 5.002 || die <<EOF;
+require 5.004 || die <<EOF;
 
-Sorry, MiniVend requires at least Perl 5.002 to be assured of running
+Sorry, MiniVend requires at least Perl 5.004 to be assured of running
 properly. (If you know enough about UNIX and Perl to defeat this check,
-then you might know enough to get it running with 5.002).
+then you might know enough to get it running with 5.003. But personally
+I wouldn't try.)
 
-Please upgrade your Perl before installing MiniVend 2.0.
+Please upgrade your Perl before installing MiniVend 3.12.
 
 EOF
 
@@ -415,6 +416,16 @@ $Upgrade = -f 'minivend.cfg' ? 1 : 0;
 					"$Initial{VendRoot}/error.log",
 					"$Initial{VendRoot}/etc",
 				);
+	KEYF: {
+		last KEYF unless -f 'etc/non_root_files';
+		my @key;
+		open(KEYF, 'etc/non_root_files') 
+			or warn("can't open non_root_files"), next KEYF;
+		@key = <KEYF>;
+		chomp @key;
+		push @Keyfiles, grep /\S/, @key;
+		close KEYF;
+	}
 	# Change ownership of key files if we are root.
 if(! $Windows and $< == 0) {
 	print <<EOF;
@@ -689,6 +700,7 @@ else {
 }
 my $host = $extrahost || $Config{'myhost'};
 
+my $Made_cat;
 $Runcommand =~ s/\r?\n.*//s;
 
 MAKECAT: {
@@ -706,7 +718,7 @@ makecat program at:
 		http://$host:7786/mv_admin
 
 EOF
-	$ans = prompt "Make the simple demo now? ", ($have_www_stuff ? 'no' : 'yes');
+	$ans = prompt "Make the simple demo now? ", 'yes';
 	last MAKECAT unless $ans =~ /^\s*y/i;
 	system $Makecat;
 	if($?) {
@@ -724,6 +736,7 @@ EOF
 		$ans = prompt "Re-try making catalog? ",  ($have_www_stuff ? 'no' : 'yes');
 		redo MAKECAT if $ans =~ /^\s*y/i;
 	}
+	else { $Made_cat = 1 }
 }
 
 RUNSERVER: {
@@ -793,6 +806,7 @@ EOF
 	$ans = prompt("Start the MiniVend server? ", "yes");
 	last RUNSERVER unless $ans =~ /^\s*y/i;
 	system $Runcommand;
+	last RUNSERVER if $Made_cat;
 	my $h = "http://$host:7786/mv_admin";
 	$ans = prompt("Start Netscape with $h? ", "yes");
 	last RUNSERVER unless $ans =~ /^\s*y/i;

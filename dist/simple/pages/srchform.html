@@ -2,24 +2,47 @@
 <HEAD>
 <TITLE>[L]Search[/L] __COMPANY__</TITLE>
 </HEAD>
-[body 1]
+<BODY MV="body 1">
+__LOGOBAR__
+__MENUBAR__
+__LEFTSIDE__
+<FONT FACE="arial,helvetica">
 <TABLE>
 	<TR VALIGN=TOP>
 		<TD>
-			<IMG SRC="search.gif" ALT="SEARCH">
-			<FONT SIZE=6><I>[L]Search[/L]</I></FONT>
 			<BR><BR>
 	<FORM ACTION="[process-target main]" METHOD=POST>
-	[L]Spelling errors allowed[/L]<BR>
-	<INPUT TYPE="radio" NAME="mv_spelling_errors" VALUE="0"
-			[checked name=mv_orsearch value=0 default=1]> 0
-	<INPUT TYPE="radio" NAME="mv_spelling_errors" VALUE="1"> 1 
-	<INPUT TYPE="radio" NAME="mv_spelling_errors" VALUE="2"> 2
+[if config Glimpse]     
+    [L]Spelling errors allowed[/L]<BR>
+
+    <INPUT TYPE="hidden" NAME="mv_profile" VALUE="compensate_spelling">
+    <INPUT TYPE="radio" NAME="mv_spelling_errors" VALUE="0"
+            onClick="
+                    this.form.mv_search_field[0].checked=true;
+                    this.form.mv_search_field[1].checked=true;
+                    this.form.mv_search_field[2].checked=true;
+                "   
+            [checked name=mv_spelling_errors value=0 default=1]> 0
+    <INPUT TYPE="radio" NAME="mv_spelling_errors" VALUE="1"
+            onClick="
+                    this.form.mv_search_field[0].checked=false;
+                    this.form.mv_search_field[1].checked=false;
+                    this.form.mv_search_field[2].checked=false;
+                "
+            [checked name=mv_spelling_errors value=1]> 1
+    <INPUT TYPE="radio" NAME="mv_spelling_errors" VALUE="2"
+            onClick="
+                    this.form.mv_search_field[0].checked=false;
+                    this.form.mv_search_field[1].checked=false;
+                    this.form.mv_search_field[2].checked=false;
+                "
+            [checked name=mv_spelling_errors value=2]> 2
+[/if]
 		</TD>
 		<TD>
 	<TABLE>
 	<TR>
-		<TD VALIGN=BOTTOM><B>[L]Artist or Title[/L]</B></TD>
+		<TD VALIGN=BOTTOM><B>[L]Keyword[/L]</B></TD>
 		<TD></TD>
 	</TR>
 	<TR>
@@ -95,6 +118,7 @@
 			<B>[L]Search by Price[/L]</B><BR>
 			</TD>
 			<INPUT TYPE="hidden" NAME="mv_range_look" VALUE="price">
+			<INPUT TYPE="hidden" NAME="mv_matchlimit" VALUE="3">
 			<INPUT TYPE="hidden" NAME="mv_return_all" VALUE="yes">
 		</TR>
 		<TR>
@@ -141,9 +165,9 @@
 	</TR>
 </TABLE>
 <P>
-<CENTER>
-[random interpolate=1]
-<P>
-[include pages/buttonbar.html]
-</CENTER>
+
+__NO_RIGHT__
+__MENUBOTTOM__
+__COPYRIGHT__
+<!-- current page: @@MV_PAGE@@ -->
 </body> </html>

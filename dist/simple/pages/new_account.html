@@ -2,31 +2,52 @@
 <HEAD>
 <TITLE>__COMPANY__ -- [L]Create a new account[/L]</TITLE>
 </HEAD>
-[body 1]
- 
+<BODY MV="body 1">
 
-[page href=""]<IMG BORDER=0 SRC="__LOGO__" ALT="__COMPANY__ Logo" ALIGN="CENTER"></A>
-<H1>[L]Create a new account[/L]</H1>
-<P>
-
-<P>
-
+__LOGOBAR__
+__MENUBAR__
+__LEFTSIDE__
 [if session logged_in]
 [then]
-	[L]You are logged in as user[/L] [value mv_username].
+[tag touch userdb][/tag]
+[set Change]
+[tag flag write]userdb[/tag]
+[userdb change_pass]
+[/set]
+
+<H1>Change your password:</H1>
 <FORM ACTION="[process-target]" METHOD=POST>
-	<INPUT TYPE=hidden NAME=mv_click VALUE=Login>
+	<INPUT TYPE=hidden NAME=mv_click  VALUE=Change>
 	<INPUT TYPE=hidden NAME=mv_doit  VALUE=return>
-	<INPUT TYPE=hidden NAME=function  VALUE=logout>
 	<INPUT TYPE=hidden NAME=mv_nextpage VALUE=ord/basket>
-	<INPUT TYPE=submit VALUE="[L]Log out[/L]">
+	<INPUT TYPE=hidden NAME=mv_username VALUE="[value mv_username]">
+
+	<TABLE>
+	<TR><TD ALIGN=RIGHT>Old password</TD>
+		<TD><INPUT TYPE=password NAME=mv_password_old VALUE="" SIZE=10>
+		</TD></TR>
+
+	<TR><TD ALIGN=RIGHT>New password</TD>
+		<TD><INPUT TYPE=password NAME=mv_password VALUE="" SIZE=10>
+		</TD></TR>
+
+	<TR><TD ALIGN=RIGHT>Verify</TD>
+		<TD><INPUT TYPE=password NAME=mv_verify VALUE="" SIZE=10>
+		</TD></TR>
+	
+	<TR><TD></TD>
+		<TD><INPUT TYPE=submit VALUE="Change" SIZE=10><BR>
+		<INPUT TYPE=checkbox NAME=mv_cookie_password VALUE=1>
+		Save username/password&nbsp;(sets&nbsp;cookie)
+		</TD></TR>
+	</TABLE>
 </FORM>
 [/then]
 [else]
 
-[set Login]
-mv_arg0=function
-mv_subroutine=userdb
+<H1>Create an account at __COMPANY__</H1>
+[set NewAccount]
+[userdb new_account]
 [/set]
 
 <P>
@@ -35,41 +56,38 @@ mv_subroutine=userdb
 [/if]
 <P>
 	<FORM ACTION="[process-target]" METHOD=POST>
-	<INPUT TYPE=hidden NAME=mv_click VALUE=Login>
+	<INPUT TYPE=hidden NAME=mv_click VALUE=NewAccount>
 	<INPUT TYPE=hidden NAME=mv_doit  VALUE=return>
 	<INPUT TYPE=hidden NAME=function  VALUE=new_account>
 	<INPUT TYPE=hidden NAME=mv_nextpage VALUE=ord/basket>
 
 	<TABLE>
-	<TR><TD ALIGN=RIGHT>[L]Username[/L]</TD>
+	<TR><TD ALIGN=RIGHT>Username</TD>
 		<TD><INPUT NAME=mv_username VALUE="[value mv_username]" SIZE=10>
 		</TD></TR>
 
-	<TR><TD ALIGN=RIGHT>[L]Password[/L]</TD>
+	<TR><TD ALIGN=RIGHT>Password</TD>
 		<TD><INPUT TYPE=password NAME=mv_password VALUE="" SIZE=10>
 		</TD></TR>
 
 	<TR><TD ALIGN=RIGHT>Verify</TD>
-		<TD><INPUT TYPE=password
-			onChange="document.forms[0].submit()"
-			NAME=mv_verify VALUE="" SIZE=10>
+		<TD><INPUT TYPE=password NAME=mv_verify VALUE="" SIZE=10>
 		</TD></TR>
 
 	<TR><TD></TD>
-		<TD><INPUT TYPE=submit VALUE="[L]Log in[/L]" SIZE=10>
-		</TD></TR>
-	</TABLE>
-
-	</FORM>
-
-	<TR><TD></TD>
-		<TD><INPUT TYPE=submit VALUE="[L]Log in[/L]" SIZE=10>
+		<TD><INPUT TYPE=submit VALUE="Log in" SIZE=10><BR>
+		<INPUT TYPE=checkbox NAME=mv_cookie_password VALUE=1>
+		Save username/password&nbsp;(sets&nbsp;cookie)
 		</TD></TR>
 	</TABLE>
 
 	</FORM>
 [/else][/if]
 <P>
-[include pages/buttonbar.html]
-</BODY>
-</HTML>
+
+__NO_RIGHT__
+__MENUBOTTOM__
+__COPYRIGHT__
+
+<!-- current page: @@MV_PAGE@@ -->
+</body> </html>

@@ -1,40 +1,157 @@
 <HTML>
 [tag flag build][/tag]
 <HEAD><TITLE>[item-description]</TITLE></HEAD>
-[body 1]
-<CENTER>
-[L]Category[/L]: [loc][item-field category][/loc]
-<P>
-[if-field image]
-<IMG SRC="[item_field image]">
-<P>
-[/if-field]
+<BODY MV="body 1">
+__LOGOBAR__
+__MENUBAR__
+__LEFTSIDE__
 
-<H2>[item-description]</H2>
-<I>[item-field comment]</I>
-<P>
-[L]Catalog[/L] [L]Number[/L]: [item-code]
-<P>
-[L]Price[/L]: [price [item-code]] [page quantity [item-code]][L]Quantity Pricing[/L][/page]
-<P>
-[if-field size]
-<FORM ACTION="[process-target]" METHOD=POST>
-<TABLE BACKGROUND="__IMAGE_DIR__/blue_pap.gif">
-<TR><TD VALIGN=TOP>
-<INPUT TYPE=image BORDER=0 SRC="ordernow.gif" NAME="[L]ORDER NOW[/L]">
-<INPUT TYPE=hidden NAME=mv_todo VALUE=refresh>
-<INPUT TYPE=hidden NAME=mv_order_item VALUE="[item-code]">
-<INPUT TYPE=hidden NAME=mv_separate_items VALUE="1">
-</TD><TD VALIGN=TOP BGCOLOR="#00F0F0">
-<INPUT SIZE=3 NAME=mv_order_quantity VALUE="1">
-[item-accessories size][item-accessories color]
-</TD></TR></TABLE></FORM>
-[else]
-[order [item-code]]<IMG BORDER=0 SRC="ordernow.gif" ALT="[L]ORDER NOW[/L]">[/order]
-[/else]
-[/if-field]
-<P>
-[include pages/buttonbar.html]
+[comment]
+	This the special "flypage". When a page is called that
+	corresponds to a part number in the database, and that
+	page doesn't exist, this page is used to display it.
+
+	Everywhere you see [item-code] the part number will
+	be displayed.
+
+	[item-field title] displays the title field in the 
+	products database. [item-data products title] is the
+	same in this case, but if the products database contained
+	more than one table (with ProductFiles) then [item-field title]
+	could come from another table.
+[/comment]
+<TABLE WIDTH="80%"><TR __HEADERBG__ TEXT="__HEADERTEXT__"><TD ALIGN=CENTER>
+    <BR><FONT FACE="arial, helvetica"><H3> Category: [item-field category]</H3>
+</TD></TR></TABLE>
+[comment]
+  This next is a MiniVend UserTag -- if you see it in the page, then
+  you don't have it defined in catalog.cfg.
+[/comment]
+[table-font FACE="verdana,arial, helvetica" SIZE=3]
+<TABLE CELLPADDING="3" VALIGN="top" >
+    <TR>
+        <TD>
+            <TABLE>
+                <TR>
+                    <TD VALIGN="top">
+                        <A HREF="[area [item-code]]">
+                        <IMG SRC="[item-field image]" ALT="[item-field title]" BORDER="0"></A>
+                        <BR><FONT SIZE="-1">
+                         [page quantity [item-code]][L]Quantity Pricing[/L][/page]
+                        </FONT>
+                    </TD>
+                    <TD VALIGN="top">
+                                  
+                        <B>[item-field title]</B>
+                        <BR>
+                                  
+                        By <A HREF="[area scan
+                            st=glimpse
+                            sf=artist
+                            se=[item-field artist]
+                        ]"><B><FONT COLOR="#0000CC">[item-field artist]</FONT></B></A><P>
+                        <P>
+                        [L]Catalog[/L] [L]Number[/L]: [item-code]<BR>
+                        Our Price:<B>
+                        [item-price]
+                        </B>
+                        &nbsp; 
+                        [if ordered [item-code]]
+                            <P>
+                            <FONT COLOR=RED>
+                            This item is currently in your shopping cart.
+                            </FONT>
+                        [/if]
+                        <P>
+                        [if-field size]
+                        <FORM ACTION="[process-target]" METHOD=POST>
+                        <TABLE BACKGROUND="__IMAGE_DIR__/__BGIMAGE__">
+                        <TR><TD VALIGN=TOP>
+                        <INPUT TYPE=SUBMIT VALUE="[L]ORDER NOW[/L]">
+                        <INPUT TYPE=hidden NAME=mv_todo VALUE=refresh>
+                        <INPUT TYPE=hidden NAME=mv_order_item VALUE="[item-code]">
+                        <INPUT TYPE=hidden NAME=mv_separate_items VALUE="1">
+                        </TD><TD VALIGN=TOP BGCOLOR="#00F0F0">
+                        <INPUT SIZE=3 NAME=mv_order_quantity VALUE="1">
+                        </TD></TR>
+                        <TR>
+                            <TD COLSPAN=2>
+                                [item-accessories size][item-accessories color]
+                            </TD>
+                        </TR>
+                        <TR>
+                            <TD COLSPAN=2>
+                            <TABLE>
+                            <TR>
+                            <TD MARGINWIDTH=5 COLSPAN=2
+                                BACKGROUND=""
+                                __HEADERBG__
+                                TEXT="__HEADERTEXT__">
+                                <H3><B>Quick-order</B></H3>
+                            </TD>
+                            </TR>
+                            <TR>
+                                <TH>
+                                Color
+                                </TH>
+                                <TH>
+                                Sizes
+                                </TH>
+                            </TR>
+                            [loop arg="[item-accessories color, options]"]
+                            <TR>
+                                <TD>
+                                [loop-code]
+                                </TD>
+                                <TD> - - >
+                                </TD>
+                                [loop with="-a" arg="[item-accessories size, options]"]
+                                <TD>
+                                [page form="
+                                    mv_order_item=[item-code]
+                                    mv_order_color=[loop-code]
+                                    mv_order_size=[loop-code-a]
+                                    mv_separate_items=1
+                                    mv_todo=refresh
+                                "][loop-code-a]</A><BR>
+                                </TD>
+                                [/loop]
+                            </TR>
+                            [/loop]
+                            </TABLE>
+                            </TD>
+                        </TR>
+                        </TABLE>
+                        </FORM>
+                        [else]
+                        <BR><B>[order [item-code]]Order Now</A></B></NOBR><BR><BR>
+                        [/else]
+                        [/if-field]
+
+                    </TD>
+                </TR>
+                <TR>
+                    <TD COLSPAN="2">                            
+                        &nbsp;<BR>&nbsp;
+                    </TD>
+                </TR>
+                <TR>
+                    <TD COLSPAN="2">                            
+                        <P>
+                        <BLOCKQUOTE>[item-field comment]</BLOCKQUOTE>
+                        <P>
+                    </TD>
+                </TR>
+            </TABLE>
+        </TD>
+    </TR>
+</TABLE>
+[/table-font]
+
+__NO_RIGHT__
+__MENUBOTTOM__
+__COPYRIGHT__
 </CENTER>
+<!-- current page: @@MV_PAGE@@ -->
 </BODY>
 </HTML>

@@ -2,8 +2,44 @@
 <HEAD>
 <TITLE>[L]Browse[/L] __COMPANY__</TITLE>
 </HEAD>
-[body 1]
-<CENTER>
+<BODY MV="body 1">
+[comment]
+	The __VALUES__ below are MiniVend Variable settings.
+	In this case, they come from these settings in catalog.cfg:
+
+	## Set some menubars and headers
+	ConfigDir pages
+	Variable      LEFTSIDE   <leftside
+	Variable      RIGHTSIDE  <rightside
+	Variable      NO_RIGHT   <no_right
+	Variable      MENUBAR    <menubar
+	Variable      MENUBOTTOM <menubottom
+	Variable      LOGOBAR    <logobar
+	Variable      COPYRIGHT  <copyright
+	ConfigDir config
+
+	Each one comes from a file in this directory which
+	corresponds to the variable.
+
+	They have the effect of predefining a page layout without
+	having to maintain different pages.
+
+[/comment]
+__LOGOBAR__
+__MENUBAR__
+__LEFTSIDE__
+
+
+[comment]
+	This embedded Perl reads the argument passed to it, which
+	should be two colon-separated numbers. The first is the sequential
+	number where display should start; the second (optional) number
+	is the "chunk" size, or number of products to display per
+	page. Uncomment these links to play:
+
+			<A HREF="[area href=browse1 arg='2:5']">Start at 2, display 5</A>
+			<A HREF="[area href=browse1 arg='3:2']">Start at 3, display 2</A>
+[/comment]
 [perl arg=scratch]
 	$start = tag_data('session', 'arg') || 1;
 	$chunk = 1;
@@ -23,75 +59,108 @@
 	return '';
 [/perl]
 
-<H1>
-[L]Browse[/L] __COMPANY__
-</H1>
-[tag each products]
-[sort products:category -[scratch start] +[scratch chunk]]
 
-[loop-change 1]
-[condition][loop-field category][/condition]
-	<TABLE WIDTH="80%"><TR BGCOLOR="#cccccc" TEXT="WHITE"><TD ALIGN=CENTER>
-		<BR><H1>[loc][loop-field category][/loc]</H1>
-	</TD></TR></TABLE>
-[/loop-change 1]
-[set not_shown][/set]
-<P>
+[comment]
 
-[if_loop_field image]
-<IMG SRC="[loop_field image]">
-<P>
-[/if_loop_field]
+The below is an extended MiniVend in-page search.
 
-<H2>[loop-description]</H2>
-<P>
-[L]Catalog[/L] [L]Number[/L]: [loop-code]
-<P>
-[L]Price[/L]: [loop-price]
-<P>
-[page [loop-code]]<IMG BORDER=0 ALT="[L]More Info[/L]" SRC="details.gif">[/page]
+The [search-region] container will interpret several
+things:
 
-[if-loop-field size]
-<FORM ACTION="[process-target]" METHOD=POST>
-<TABLE BACKGROUND="__IMAGE_DIR__/blue_pap.gif">
-<TR><TD VALIGN=TOP>
-<INPUT TYPE=image BORDER=0 SRC="ordernow.gif" VALUE="[L]ORDER NOW[/L]">
-<INPUT TYPE=hidden NAME=mv_todo VALUE=refresh>
-<INPUT TYPE=hidden NAME=mv_order_item VALUE="[loop-code]">
-<INPUT TYPE=hidden NAME=mv_separate_items VALUE="1">
-</TD><TD VALIGN=TOP BGCOLOR="#00F0F0">
-<INPUT SIZE=3 NAME=mv_order_quantity VALUE="1">
-[loop-accessories size][loop-accessories color]
-</TD></TR></TABLE></FORM>
-[else]
-[order [loop-code]]<IMG BORDER=0 SRC="ordernow.gif" ALT="[L]ORDER NOW[/L]">[/order]
-[/else]
-[/if-loop-field]
+		[search-list]
+			What should display if anything is found
+		[/search-list]
 
-[/tag]
+		[no-match]
+			What should display if nothing is found
+		[/no-match]
 
-[if scratch not_shown][set name=highest interpolate=1][scratch prev][/set][tag op=header interpolate=1]
-Status: 302 moved
-Location: [area href=browse1 arg="1:[scratch chunk]"]
-[/tag]
-[else]
-<P>
-[/else]
-[/if]
+		[more-list]
+			To be displayed if more than mv_matchlimit
+			matches are found. The [more] tag shows
+			the previous/next and/or pages.
+		[/more-list]
+
+[/comment]
+[search-region arg="ra=yes
+					fm=[scratch start]
+					ml=[scratch chunk]
+					dp=browse1
+					tf=category
+					to=f
+					tf=price
+					to=rn
+					"]
+[search-list]
+[item-next][calc]$item = q{[item-field category]};
+				 return 1 unless $item;
+				 return $item eq 'Accessory'[/calc][/item-next]
+[on-change 1]
+[condition][item-field category][/condition]
+<TABLE WIDTH="80%"><TR __HEADERBG__ TEXT="__HEADERTEXT__"><TD ALIGN=CENTER>
+	<BR><FONT FACE="arial, helvetica"><H3>[item-field category]</H3>
+</TD></TR></TABLE>
+[/on-change 1]
+<TABLE CELLPADDING="3">
+    <TR>
+        <TD VALIGN="top">
+			<TABLE>
+				<TR>
+					<TD VALIGN="top">
+						<A HREF="[area [item-code]]">
+						<IMG SRC="[item-field image]" ALT="[item-field title]" BORDER="0"></A>
+					</TD>
+					<TD VALIGN="top">
+						<FONT SIZE="3" FACE="verdana,arial,helvetica">          
+						<B>[item-field title]</B>
+            			</FONT><BR>
+            			<FONT SIZE="2" FACE="verdana,arial,helvetica">          
+						By <A HREF="[area scan
+							st=glimpse
+							sf=artist
+							se=[item-field artist]
+						]"><B><FONT COLOR="#0000CC">
+						[item-field artist]
+						</FONT></B></A><P>
+						</FONT>
+
+			 			Our Price:</FONT><B><FONT SIZE="3" COLOR="#FF0000">
+			 			[item-price]
+			 			</B></FONT>                                        
+             			&nbsp; <NOBR><A HREF="[area order [item-code]]" CLASS="buybtn">
+             			<FONT FACE="verdana,arial,helvetica" COLOR="#0000cc">
+			 			<BR>Buy Now</FONT></A></NOBR><BR>
+					</TD>
+				</TR>
+				<TR>
+                    <TD COLSPAN="2">                            
+             			<FONT SIZE="2"><P>
+						[item-field comment]
+						</FONT>
+					</TD>
+				</TR>
+    		</TABLE>
+		</TD>
+	</TR>
+</TABLE>
+[/search-list]
+[/search-region]
+<TABLE WIDTH="80%"><TR __HEADERBG__ TEXT="WHITE"><TD ALIGN=CENTER VALIGN=CENTER>
+<BR><FONT COLOR="__HEADERTEXT__" FACE="arial, helvetica">
 [if scratch prev]
-[page href=browse1 arg="[scratch prev]:[scratch chunk]"]<B>[L]Previous[/L]</B></A>&nbsp;&nbsp;
-[elsif scratch highest]
-<H3>(now back at beginning)</H3>
-[page href=browse1 arg="[scratch highest]:[scratch chunk]"]<B>[L]Previous[/L]</B></A>&nbsp;&nbsp;
-[/elsif]
+[page href=browse1 arg="[scratch prev]:[scratch chunk]"]
+	<B>[L]Previous[/L]</B></A>&nbsp;&nbsp;
 [/if]
-[if !scratch not_shown]
+[if type=explicit compare="[calc]
+			[value mv_search_match_count] > [scratch next]
+			[/calc]"]
 [page href=browse1 arg="[scratch next]:[scratch chunk]"]<B>[L]Next[/L]</B></A>
-[/if]
+[/if]</BR>&nbsp;
+</TD></TR></TABLE>
 
-<HR>
-[include pages/buttonbar.html]
-</CENTER>
-
+__NO_RIGHT__
+__MENUBOTTOM__
+__COPYRIGHT__
+<!-- current page: @@MV_PAGE@@ -->
 </BODY>
 </HTML>

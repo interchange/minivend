@@ -1,17 +1,243 @@
 
                   W H A T ' S   N E W 
 
-MiniVend 3.11 is a major release enhancing many aspects of
-product pricing, secure authorization, and database updates.
+MiniVend 3.12 is a major release with multiple new features,
+particularly in the area of user access control.
 
-	* New experimental internal HTTP server means very fast
-	  request handling direct from the browser, and built-in
-	  internal security for admin tasks and protected catalog
-	  pages. Will authorize users from the add-in userdb database
-	  or any other MiniVend database. Supports crypt.
+New features: 
 
-	* Experimental catalog configuration "wizard" and admin
-	  interface built in.
+    * Major rework of the "simple" demo. (The HTML in that demo
+      was circa 1995 when the first work on MiniVend was done.)
+      Made it into the cookie-cutter style favored today, and
+      combined frames/non-frames demo.
+
+    * Added a new demo, "flycat". Documentation is sparse, will
+      remain sparse, and is totally located in the README.flycat
+      page.
+
+    * Rolled the former demonstration add-on feature UserDB.pm
+      into the main distribution. Added a [userdb ....] tag which
+      performs operations like login, logout, password change, etc.
+
+    * UserDB is now completely documented. It has many new 
+      features.
+
+    * Added four types of access control based on User database
+      login. The preferred method uses a .access_gate file to specify
+      per-page access -- this is demonstrated in the demo with the
+      [page reconfig/reconfig] page and is completely documented.
+      Another simple method allows checking of page names before loading;
+      a db_acl allows checking for read/write permission on a database;
+      and a file_acl allows read/write checking on file names. The two
+      latter ones are only enforced by your own programs; the simple
+      integrated method can be automatic.
+
+    * CookieLogin directive allows you to set a cookie with the
+      username and password of a user for auto-login. 
+
+    * [set-cookie name value expire] and [read-cookie name] tags added.
+
+    * Added a feature I have been thinking about for a long time -- 
+      form-linked page refs. If you want to order an item with configurable
+      size/color by a link, you can now do:
+
+        [page form="
+                mv_order_item=99-102
+                mv_order_size=L
+                mv_order_quantity=1
+                mv_separate_items=1
+                mv_todo=refresh"] Order t-shirt in Large size </A>
+
+      It was so simple to add I don't know why I didn't before now.
+
+      You must have TolerateGet set (which is now the default) and
+      all normal MiniVend form caveats apply -- you must have an action,
+      you must supply a page if you don't want to go to the default,
+      etc.
+
+      You can theoretically submit any form with this; it is best
+      if none of the included values have newlines. You can also
+      use it for submitting foreign forms if you like; it will
+      not touch the href if it begins with http:, ftp:, or the
+      like.
+
+      The [area ...] tag works the same way, though the deprecated
+      [pagetarget ....] and [areatarget ...] were left out.
+
+    * Added user-definable fields and command scripts to the command-line
+      makecat procedure.
+
+    * Added rudimentary documentation on building your own catalog
+      template.
+
+    * Added [import table type] tag for importing database
+      records. Supports all types including NOTES, the best mode to
+      use for inline text. Also supports import directly from a file.
+
+    * Glimpse now fully supports coordinated searching, though
+      you must make sure you have at least one regular-expression
+      based match.
+
+    * Added support for file upload/download. A demonstration is
+      included in the simple demo.
+
+    * [sql-param ...] and [item-param ...] now both support named
+      fields.
+
+    * Totally removed support for the old Msql.pm module. If you
+      still use this, use an older version or update to DBI.
+
+    * You can set an UPPERCASE parameter in the Database directive:
+
+        Database   products   UPPERCASE  1
+
+      You want to apply this to SQL only.
+
+      This allows lowercase field references in [item-field column]
+      and [item-data table column] (and sql- and loop- too). This
+      should make it easier to get things working with Oracle
+      and other DBs which won't return a lowercase field name for
+      fetchrow_hashref. Note that this is not used in [item-param
+      field] where you should know what the name is.
+
+    * There is an [if-param name] and [if-sql-param name] tag
+      ala [if-field ...] and [if-data ...].
+
+    * Added a [value-extended ...] tag which allows access to 
+      the array values of a form variable.
+
+    * In my continuing quest to get people to use the UserTag
+      capability, provided a few new ones in the demos -- notably
+      a summary tag that is employed to total shipping weight in
+      the demo, and a [table-font] [/table-font] tag which removes
+      the onerous chore of setting a default font for every table
+      cell.
+
+    * Added multi-field searching for the coordinated search.
+      You may pass a field like ":0..9" and have it search
+      fields 0 through 9 for that search term only.
+
+    * Added [next-anchor], [prev-anchor], and [page-anchor] container
+      tags for complete configurability of [more-list][/more-list] 
+      area. This also closes complaints about no spacing between
+      Previous and first page; prior behavior kept for compatibility.
+
+    * Added a Storable interface selectable at software
+      configuration time. If Storable is installed, and the
+      file _db_storable is present in the MiniVend software root,
+      (or the environment variable MINIVEND_STORABLE_DB is true)
+      then Storable will be used not only for sessions but for
+      all GDBM and DB_File storage. THIS BREAKS EXISTING CATALOGS.
+      If you want to use Storable only for sessions, just set
+      the environment variable $ENV{MINIVEND_STORABLE} to 1 as usual.
+      You can also create a _session_storable file in the MiniVend root.
+
+    * Verified the DBI interface to work with DBD::XBase (subject
+      to the usual limitations like fieldname length), which
+      allows XBASE/DBF files to be used directly. This is probably
+      not useful for anything except an import interface; something
+      like:
+
+        [tag export products_dbf products.asc TAB][/tag]
+
+      This would allow a user to upload a DBF file and
+      then import that into a standard TAB-delimited.
+
+    * Added a perhaps more convenient Locale language facility,
+      which looks like:
+
+        [LC] This is the default text
+                [de_DE] Text for de_DE locale [/de_DE]
+                [en_US] Text for en_US locale [/en_US]
+                [fr_FR] Text for fr_FR locale [/fr_FR]
+        [/LC]
+
+Bugs fixed:
+
+    * [setlocale] currency and persist parameters were
+      swapped; fixed.
+
+    * Multiple selection checks that contained non-word characters
+      would not be re-selected upon building an item-accessories
+      box. Fixed.
+
+    * Memory databases were getting imported too often, fixed
+      bug in database initalization routines.
+
+    * Fixed ownership problems in the mv_admin catalog; the
+      installation should work flawlessly as root providing parent
+      directories have the proper permission.
+
+    * Due to persistent Perl problems with signal handling, the
+      default demo is now distributed with PIDcheck enabled.
+      New behavior when PIDcheck is in force is to reset the
+      number of active servers based on the presence of PID files,
+      while still rate-limiting to MaxServers iterations between
+      housekeeping checks. The SafeSignals directive is deleted
+      (it will generate a deprecated warning but allow startup
+      to continue).
+
+      This problem would occasionally cause busy servers to
+      "freeze" as they reached and failed to go below the MaxServers 
+      level.
+
+      If the PIDcheck directive is set, the number of servers will
+      be automatically adjusted every HouseKeeping seconds according
+      to the pid files.  The recommended value for PIDcheck is now
+      180-600 seconds; the demos will come set to 300.
+
+    * Fixed "bad search column" error when searching the first
+      column of the products file or key column of a file.
+
+    * Fixed security hole allowing user-specification of absolute
+      search file names.
+
+    * Fixed error with CyberCash number formatting when 
+      using a non-english number format (i.e. spaces and
+      commas in non-english places).
+
+    * mv_sort_field works even without mv_sort_command.
+
+    * Indexing works for Windows.
+
+MiniVend 3.11 is a major release enhancing many aspects of installation,
+product pricing, secure authorization, searching, and database updates.
+
+    * New experimental internal HTTP server means very fast
+      request handling direct from the browser, and built-in
+      internal security for admin tasks and protected catalog
+      pages. Will authorize users from the add-in userdb database
+      or any other MiniVend database. Supports crypt, minimal
+      access logging.
+
+      This internal HTTP server is not meant for production use.
+      It may have difficulty with MS Internet Explod^Her.
+
+    * New catalog configuration "wizard" and admin interface
+      built in. The installation should be a one-step
+      operation, completely automatic providing you have
+      the MIME::Base64 and URI::URL modules.
+
+    * New mv_admin catalog implements HTTP-based reconfiguration
+      from a central place. Tags provided for you to gate it
+      for individual users.
+
+    * CPAN module installation improved.
+
+    * The makecat script now can be completely run from the command
+      line, no interactive steps necessary. Values can be partially
+      filled in from the command line and you will be prompted
+      for the rest. A "guess" mode returns a reference as a
+      string guessing certain parameters from the ones you
+      supply. And you can do a --nocopy test run to check the
+      results before you actually copy the files.
+
+      Unfortunately the only documentation is the usage message.
+
+    * Makecat program adds catalogs to a running server.
+    
+    * German error messages added to error locale file (thanks to
+      Karsten Mueller).
 
     * New CommonAdjust price setting scheme allows chained
       conditional lookups in pricing, shipping, and taxing. Added
@@ -20,40 +246,53 @@ product pricing, secure authorization, and database updates.
       an item subtotal with discounts applied. New mv_discount
       attribute allows individual line item discounts.
 
+    * TemplateDir (both local and global) allows missing
+      pages to "fall back" to other places. This allows
+      a catalog distribution that might only contain one
+      or two pages.
+
     * Added LocaleDatabase, VariableDatabase, and DbDatabase;
       these allow setting of the Locale, Variable, and Database
       directives from a database table. This will allow maintenance
       improvements (they still only change value on startup or
       reconfigure.)
 
-	* New [goto LABEL] and [label LABEL] allow chunks of a 
-	  page to be skipped.
+      LocaleDatabase is implemented in the demo.
 
-    * Makecat program adds catalogs to a running server.
-    
-	* German error messages added to error locale file (thanks to
-	  Karsten Mueller).
+    * Added support for CyberCash 3 (thanks to Gunnar Hellekson),
+      AUTHORIZE.NET, and PAYMENTNOW.COM.
+
+    * New [goto LABEL] and [label LABEL] allow chunks of a 
+      page to be skipped.
 
     * DB_File databases can be automatically compacted with
       the expire program; a standalone "compact" script is
       also provided.
 
+    * Added PIDcheck global directive to allow monitoring of
+      "hung" processes. This should make MiniVend more reliable
+      especially in combination with Glimpse searching.
+
+    * Text search engine now will combine binary searching with
+      database-based searches. New mv_search_map allows reliable
+      coordinated searchspecs even with empty search specifications.
+
     * Fixed multi-page sorting problems that were in MiniVend
       since 3.00.
 
-	* Added new WideOpen directive so that catalogs can individually
-	  be set to tolerate no IP address qualification. It is named
-	  that because that is what you will be; you should not use this
-	  if you ever store unencrypted credit cards (or other sensitive
-	  info). It is also recommend that you shorten your expire time
-	  to a small number of hours, maybe even 1 or 2.
+    * Added new WideOpen directive so that catalogs can individually
+      be set to tolerate no IP address qualification. It is named
+      that because that is what you will be; you should not use this
+      if you ever store unencrypted credit cards (or other sensitive
+      info). It is also recommend that you shorten your expire time
+      to a small number of hours, maybe even 1 or 2.
 
-	* Added new FallbackIP directive to allow quasi-cookie capability
-	  by IP address and browser id string. Use if you have lots of
-	  users who don't take/give cookies. Suggest also that expire
-	  times be made short, though two users would have to have the
-	  same exact browser string and IP address. It will work with
-	  cookies if they have them.
+    * Added new FallbackIP directive to allow quasi-cookie capability
+      by IP address and browser id string. Use if you have lots of
+      users who don't take/give cookies. Suggest also that expire
+      times be made short, though two users would have to have the
+      same exact browser string and IP address. It will work with
+      cookies if they have them.
 
     * Added va=var=value parameter to one-click search so you
       can set a value with a link.
@@ -63,8 +302,13 @@ product pricing, secure authorization, and database updates.
       this will allow easy and reliable display of multi-line fields
       in a <TEXTAREA>.
 
-	* Added "expireall" script that expires all catalogs
-	  in minivend.cfg by calling expire -c <name> [-r].
+    * Added "expireall" script that expires all catalogs
+      in minivend.cfg by calling expire -c <name> [-r].
+
+    * Fixed longstanding "untie attempted" bug.
+
+    * Fixed mv_save_session so it actually will send the
+      user back to their saved session.
 
 MiniVend 3.10 is a bug-fix release with a few minor updates.
 

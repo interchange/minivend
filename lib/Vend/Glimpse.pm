@@ -1,10 +1,10 @@
 # Vend/Glimpse.pm:  Search indexes with Glimpse
 #
-# $Id: Glimpse.pm,v 1.15 1998/08/16 10:26:14 mike Exp $
+# $Id: Glimpse.pm,v 1.18 1999/02/15 08:51:02 mike Exp mike $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::Glimpse
 #
-# Copyright 1996 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ package Vend::Glimpse;
 require Vend::Search;
 @ISA = qw(Vend::Search);
 
-$VERSION = substr(q$Revision: 1.15 $, 10);
+$VERSION = substr(q$Revision: 1.18 $, 10);
 use strict;
 
 sub new {
@@ -74,7 +74,7 @@ sub search {
 	my($delim,$string);
 	my($max_matches,$mod,$index_delim,$return_delim);
 	my($cmd,$code,$count,$joiner,$matches_to_send,@out);
-	my($limit_sub,$return_sub,$delayed_return);
+	my($limit_sub,$return_sub,$delayed_return,$prospect);
 	my($f,$key,$spec,$val,$range_op);
 	my($searchfile,@searchfiles);
 	my(@pats);
@@ -160,6 +160,9 @@ sub search {
         push @cmd, '-' . $g->{spelling_errors};
     }
 
+	$g->{search_file} = $g->{search_file}[0] 
+		if ref $g->{search_file};
+
     push @cmd, "-i" unless $g->{case_sensitive};
     push @cmd, "-h" unless $g->{return_file_name};
     push @cmd, "-y -L $max_matches:0:$max_matches";
@@ -193,13 +196,9 @@ sub search {
 		push @cmd, "-d '$g->{record_delim}'";
 	}
 
-	$g->{coordinate} = '';
-
     if (! $g->{exact_match}) {
         @specs = Text::ParseWords::shellwords( join ' ', @specs);
     }
-
-    @specs = $s->escape(@specs);
 
 # DEBUG
 #Vend::Util::logDebug
@@ -207,12 +206,11 @@ sub search {
 #	if ::debug(0x10);
 # END DEBUG
 
-    # untaint
-    for(@specs) {
-        /(.*)/;
-        push @pats, $1;
-    }
-	@{$s->{'specs'}} = @specs;
+	@pats = $s->spec_check($g, @specs);
+
+	if($g->{regex_specs}) {
+		@pats = @{$g->{regex_specs}};
+	}
 
 # DEBUG
 #Vend::Util::logDebug
@@ -226,6 +224,7 @@ sub search {
 	$joiner = $g->{or_search} ? ',' : ';';
   CREATE_LIMIT: {
   	$f = sub { 1; };
+  	last CREATE_LIMIT if $g->{spelling_errors};
   	last CREATE_LIMIT unless scalar @{$s->{'fields'}};
   	last CREATE_LIMIT if $g->{'coordinate'};
 	if ($g->{or_search}) {
@@ -247,7 +246,8 @@ sub search {
 	}
   } # last CREATE_LIMIT:
 
-	eval {$limit_sub = $s->get_limit($f)};
+	eval {($limit_sub,$prospect) = $s->get_limit($f)}
+		unless $g->{return_file_name};
 	if($@) {
 		&{$g->{error_routine}}($g->{error_page}, $@);
 		$g->{matches} = -1;
@@ -283,7 +283,7 @@ EOF
 
 # DEBUG
 #Vend::Util::logDebug
-#("Glimpse command line: $cmd\n")
+# ("Glimpse command line: $cmd\n")
 #	if ::debug(0x10);
 # END DEBUG
 

@@ -51,7 +51,7 @@ my %env = (
 	CONTENT_TYPE			=> 'application/x-www-form-urlencoded',
 	SCRIPT_NAME				=> $Script,
 	PATH_INFO				=> '/process',
-	REMOTE_USER				=> 'LOCAL',
+	REMOTE_USER				=> '__MVC_SUPERUSER__',
 	REMOTE_ADDR				=> 'LOCAL',
 );
 

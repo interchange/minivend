@@ -1,9 +1,9 @@
 # Util.pm - Minivend utility functions
 #
-# $Id: Util.pm,v 1.41 1998/08/25 01:47:28 mike Exp $
+# $Id: Util.pm,v 1.47 1999/02/15 08:51:36 mike Exp mike $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
-# Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,7 +26,6 @@ require Exporter;
 
 @EXPORT = qw(
 
-blank
 copyref
 currency
 check_security
@@ -58,24 +57,19 @@ escape_chars
 send_mail
 secure_vendUrl
 tag_nitems
-tag_item_quantity
-tainted
-trim_desc
 uneval
 uneval_fast
-us_number
 vendUrl
 
 );
 @EXPORT_OK = qw(append_field_data append_to_file csv field_line);
 
 use strict;
-use Carp;
 use Config;
 use Fcntl;
 use subs qw(logError logGlobal);
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.41 $, 10);
+$VERSION = substr(q$Revision: 1.47 $, 10);
 
 BEGIN {
 	eval {
@@ -165,22 +159,6 @@ sub strftime {
 	return $fmt;
 }
 
-sub find_close {
-    my ($chunk, $open, $close) = @_;
-	$open = '(' if ! defined $open;
-	$close = ')' if ! defined $close;
-    my $first = index($chunk, ']');
-    return undef if $first < 0;
-    my $int = index($chunk, '[');
-    my $pos = 0;
-    while( $int > -1 and $int < $first) {
-        $pos   = $int + 1;
-        $first = index($chunk, ']', $first + 1);
-        $int   = index($chunk, '[', $pos);
-    }
-    return substr($chunk, 0, $first);
-}
-
 sub find_close_square {
     my $chunk = shift;
     my $first = index($chunk, ']');
@@ -200,7 +178,7 @@ sub find_close_square {
 $ESCAPE_CHARS::ok_in_filename = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' .
     'abcdefghijklmnopqrstuvwxyz' .
     '0123456789' .
-    '-_.$/';
+    '-:_.$/';
 
 sub setup_escape_chars {
     my($ok, $i, $a, $t);
@@ -225,7 +203,7 @@ sub escape_chars {
 
     $r = '';
     foreach $c (split(//, $in)) {
-	$r .= $ESCAPE_CHARS::translate[ord($c)];
+		$r .= $ESCAPE_CHARS::translate[ord($c)];
     }
 
     # safe now
@@ -242,15 +220,6 @@ sub tabbed {
                             s/\t/ /g;
                             $_;
                           } @_);
-}
-
-# Trims the description output for the order and search pages
-# Trims from $Vend::Cfg->{DescriptionTrim} onward
-sub trim_desc {
-	return $_[0] unless $Vend::Cfg->{DescriptionTrim};
-	my($desc) = @_;
-	$desc =~ s/$Vend::Cfg->{DescriptionTrim}(.*)//;
-	$desc;
 }
 
 # Finds common-log-style offset
@@ -328,23 +297,6 @@ sub picture_format {
 	$pic =~ s/\d/*/g if @dig;
 	$amount = reverse $pic;
 	return $amount;
-}
-
-sub us_number {
-	local($_) = shift;
-	if (! $Vend::Cfg->{Locale}) {
-		tr/-0-9.//cd;
-	}
-	elsif(/[^.\d]/) {
-		my $chars = "[." .
-			(   $Vend::Cfg->{Locale}->{decimal_point} ||
-				$Vend::Cfg->{Locale}->{mon_decimal_point} ) .
-			']';
-		s/$chars(\d*)$/\0$1/;
-		tr/-0-9\0//cd;
-		tr/\0/./;
-	}
-	return $_;
 }
 
 sub setlocale {
@@ -464,13 +416,6 @@ sub random_string {
     }
     $r;
 }
-
-
-sub blank {
-    my ($x) = @_;
-    return (!defined($x) or $x eq '');
-}
-
 
 # To generate a unique key for caching
 # Not very good without MD5
@@ -592,13 +537,23 @@ sub writefile {
 			open(Vend::LOGDATA, "$file") or die "open\n";
 			lockfile(\*Vend::LOGDATA, 1, 1) or die "lock\n";
 			seek(Vend::LOGDATA, 0, 2) or die "seek\n";
-			print(Vend::LOGDATA "$data\n") or die "write to\n";
+			if(ref $data) {
+				print(Vend::LOGDATA $$data) or die "write to\n";
+			}
+			else {
+				print(Vend::LOGDATA "$data\n") or die "write to\n";
+			}
 			unlockfile(\*Vend::LOGDATA) or die "unlock\n";
 		}
 		else {
             my (@args) = grep /\S/, Text::ParseWords::shellwords($file);
 			open(Vend::LOGDATA, "|-") || exec @args;
-			print(Vend::LOGDATA "$data\n") or die "pipe to\n";
+			if(ref $data) {
+				print(Vend::LOGDATA $$data) or die "pipe to\n";
+			}
+			else {
+				print(Vend::LOGDATA "$data\n") or die "pipe to\n";
+			}
 		}
 		close(Vend::LOGDATA) or die "close\n";
     };
@@ -698,21 +653,61 @@ sub copyref {
     }
 }
 
+sub check_gate {
+	my($f, $gatedir) = @_;
+
+	my $gate;
+	if ($gate = readfile("$gatedir/.access_gate") ) {
+#::logGlobal("found access_gate");
+		$f =~ s:.*/::;
+		$gate = Vend::Interpolate::interpolate_html($gate);
+#::logGlobal("f=$f gate=$gate");
+		if($gate =~ m!^$f(?:\.html?)?[ \t]*:!m ) {
+			$gate =~ s!.*(\n|^)$f(?:\.html?)?[ \t]*:!!s;
+#::logGlobal("gate=$gate");
+			$gate =~ s/\n[\S].*//s;
+			$gate =~ s/^\s+//;
+		}
+		elsif($gate =~ m{^\*(?:\.html?)?[: \t]+(.*)}m) {
+			$gate = $1;
+		}
+		else {
+			undef $gate;
+		}
+	}
+	return $gate;
+}
+
 ## READIN
+
+my $Lang;
+
+sub find_locale_bit {
+	my $text = shift;
+	$Lang = $::Scratch->{mv_locale} unless defined $Lang;
+#::logGlobal("find_locale: $Lang");
+	$text =~ m{\[$Lang\](.*)\[/$Lang\]}s
+		and return $1;
+	$text =~ s{\[(\w+)\].*\[/\1\].*}{}s;
+	return $text;
+}
 
 # Reads in a page from the page directory with the name FILE and ".html"
 # appended.  Returns the entire contents of the page, or undef if the
-# file could not be read.
+# file could not be read. Substitutes Locale bits as necessary.
 
 sub readin {
     my($file, $only) = @_;
-    my($fn, $contents, $pathdir, $dir, $level);
+    my($fn, $contents, $gate, $pathdir, $dir, $level);
     local($/);
 
+	$Global::Variable->{MV_PREV_PAGE} = $Global::Variable->{MV_PAGE}
+		if defined $Global::Variable->{MV_PAGE};
 	$Global::Variable->{MV_PAGE} = $file;
 
 	$file =~ s#\.html?$##;
-	($pathdir = $file) =~ s#/[^/]*##;
+	($pathdir = $file) =~ s#/[^/]*$##;
+	$pathdir =~ s:^/+::;
 	my $try;
 	foreach $try (
 					$Vend::Cfg->{PageDir},
@@ -722,15 +717,20 @@ sub readin {
 		$dir = $try . "/" . $pathdir;
 		my $suffix = $Vend::Cfg->{HTMLsuffix};
 # DEBUG
-#logDebug("dirname for readin: $dir\n")
+#logDebug("dirname for readin: $dir")
 #	if ::debug(0x2);
 # END DEBUG
 		if (-f "$dir/.access") {
-			$level = '';
-			$level = 3 if -s _;
+			if (-s _) {
+				$level = 3;
+			}
+			else {
+				$level = '';
+			}
+			$gate = check_gate($file,$dir);
 		}
 
-		if( defined $level and ! check_security($file, $level) ){
+		if( defined $level and ! check_security($file, $level, $gate) ){
 			my $realm = $Vend::Cfg->{Variable}{COMPANY} || $Vend::Cfg->{CatalogName};
 			$Vend::StatusLine = <<EOF if $Vend::InternalHTTP;
 HTTP/1.0 401 Unauthorized
@@ -756,8 +756,11 @@ EOF
 		my $key;
 		$contents =~ s~\[L(\s+([^\]]+))?\]([\000-\377]*?)\[/L\]~
 						$key = $2 || $3;		
-						defined $Vend::Cfg->{Locale}->{$key}
-						?  ($Vend::Cfg->{Locale}->{$key})	: $3 ~eg;
+						defined $Vend::Cfg->{Locale}{$key}
+						?  ($Vend::Cfg->{Locale}{$key})	: $3 ~eg;
+		$contents =~ s~\[LC\]([\000-\377]*?)\[/LC\]~
+						find_locale_bit($1) ~eg
+				and undef $Lang;
 	}
     $contents;
 }
@@ -836,12 +839,15 @@ sub vendUrl
 		$r = $Vend::Cfg->{SecureURL};
 	}
 
-    $r .= '/' . $path . '?' . $Vend::SessionID .
-	';' . ($arguments || '') . ';';
-	++$Vend::Session->{pageCount};
-	$r .= $Vend::Session->{pageCount}
-		unless $::Scratch->{mv_no_count};
-    $r;
+	my $id = $CGI::cookie && $::Scratch->{mv_no_session_id}
+			 ? '' : $Vend::SessionID;
+	my $ct = $::Scratch->{mv_no_count}	
+			 ? '' : ++$Vend::Session->{pageCount};
+    $r .= '/' . $path;
+	return $r unless ($id || $arguments || $ct);
+	$r .= '?' . $id .  ';' . ($arguments || '');
+	$r .= ";$ct" if $ct;
+    return $r;
 }    
 
 sub secure_vendUrl
@@ -853,12 +859,15 @@ sub secure_vendUrl
 	$arguments =~ s!([^\w-_:#=/.%])! '%' . sprintf("%02x", $1)!eg
 		if defined $arguments && $Vend::Cfg->{NewEscape};
 
-    $r = $Vend::Cfg->{SecureURL} . '/' . $path . '?' . $Vend::SessionID .
-	';' . ($arguments || '') . ';';
-	++$Vend::Session->{pageCount};
-	$r .= $Vend::Session->{pageCount}
-		unless $::Scratch->{mv_no_count};
-    $r;
+    $r = $Vend::Cfg->{SecureURL};
+
+	my $id = $::Scratch->{mv_no_session_id}	? '' : $Vend::SessionID;
+	my $ct = $::Scratch->{mv_no_count}		? '' : ++$Vend::Session->{pageCount};
+    $r .= '/' . $path;
+	return $r unless ($id || $arguments || $ct);
+	$r .= '?' . $id .  ';' . ($arguments || '');
+	$r .= ";$ct" if $ct;
+    return $r;
 }
 
 my $debug = 0;
@@ -877,7 +886,7 @@ sub flock_lock {
     my $flag = $excl ? $flock_LOCK_EX : $flock_LOCK_SH;
 
     if ($wait) {
-        flock($fh, $flag) or confess "Could not lock file: $!\n";
+        flock($fh, $flag) or die "Could not lock file: $!\n";
         return 1;
     }
     else {
@@ -888,7 +897,7 @@ sub flock_lock {
                 return 0;
             }
             else {
-                confess "Could not lock file: $!\n";
+                die "Could not lock file: $!\n";
             }
         }
         return 1;
@@ -897,7 +906,7 @@ sub flock_lock {
 
 sub flock_unlock {
     my ($fh) = @_;
-    flock($fh, $flock_LOCK_UN) or confess "Could not unlock file: $!\n";
+    flock($fh, $flock_LOCK_UN) or die "Could not unlock file: $!\n";
 }
 
 
@@ -911,14 +920,14 @@ sub fcntl_lock {
 
 
     File::Lock::fcntl($fh,$cmd)
-    	or confess "Could not lock file: $!\n";
+    	or die "Could not lock file: $!\n";
 	1;
 }
 
 sub fcntl_unlock {
     my ($fh) = @_;
     File::Lock::fcntl($fh,'u')
-    	or confess "Could not unlock file: $!\n";
+    	or die "Could not unlock file: $!\n";
     1;
 }
 
@@ -965,28 +974,6 @@ sub unlockfile {
     &$unlock_function(@_);
 }
 
-# Returns the number ordered of a single item code
-# Uses the current cart if none specified.
-
-sub tag_item_quantity {
-	my($code,$ref) = @_;
-    my($i,$cart);
-	
-	if(ref $Vend::Session->{carts}->{$ref}) {
-		 $cart = $Vend::Session->{carts}->{$ref};
-	}
-	else {
-		$cart = $Vend::Items;
-	}
-
-	my $q = 0;
-    foreach $i (0 .. $#$cart) {
-		$q += $cart->[$i]->{'quantity'}
-			if $code eq $cart->[$i]->{'code'};
-    }
-	$q;
-}
-
 # Returns the total number of items ordered.
 # Uses the current cart if none specified.
 
@@ -1029,21 +1016,18 @@ sub dump_structure {
 sub check_authorization {
 	my($auth, $pwinfo) = @_;
 
-#::logGlobal("Received request for auth=$auth pwinfo=$pwinfo");
 	$auth =~ s/^\s*basic\s+//i or return undef;
 	my ($user, $pw) = split(
 						":",
 						MIME::Base64::decode_base64($auth),
 						2,
 						);
-#::logGlobal("user=$user pw=$pw cfg=$Vend::Cfg");
 	my $cmp_pw;
 	my $use_crypt = 1;
 	if(!defined $Vend::Cfg) {
 		$pwinfo = $Global::AdminUser;
 		$pwinfo =~ s/^\s+//;
 		$pwinfo =~ s/\s+$//;
-#::logGlobal("pwinfo=$pwinfo");
 		my (%compare) = split /[\s:]+/, $pwinfo;
 		return undef unless $compare{$user};
 		$cmp_pw = $compare{$user};
@@ -1062,8 +1046,6 @@ sub check_authorization {
 			if defined $Vend::Cfg->{Database}{$pwinfo};
 	}
 
-#::logGlobal("user=$user pw=$pw cmp_pw=$cmp_pw");
-
 	return undef unless $cmp_pw;
 
 	if(! $use_crypt) {
@@ -1071,26 +1053,42 @@ sub check_authorization {
 	}
 	else {
 		my $test = crypt($pw, $cmp_pw);
-#::logGlobal("user=$user pw=$test cmp_pw=$cmp_pw");
 		return $user
 			if $test eq $cmp_pw;
 	}
-#::logGlobal("denied.");
 	return undef;
 }
 
 # Check that the user is authorized by one or all of the
 # configured security checks
 sub check_security {
-	my($item, $reconfig) = @_;
+	my($item, $reconfig, $gate) = @_;
 
 	my $msg;
-	my $besthost = $CGI::remote_host || $CGI::remote_addr;
 	if(! $reconfig) {
-		return 1 if $CGI::user;
-        logGlobal <<EOF;
-auth error host=$besthost ip=$CGI::remote_addr script=$CGI::script_name page=$CGI::path_info
-EOF
+# If using the new USERDB access control you may want to remove this next line
+# for anyone with an HTTP basic auth will have access to everything
+		#return 1 if $CGI::user and ! $Global::Variable->{MV_USERDB};
+		if($gate) {
+			$gate =~ s/\s+//g;
+			return 1 if is_yes($gate);
+		}
+		elsif($Vend::Session->{logged_in}) {
+			return 1 if $Vend::Cfg->{Variable}{MV_USERDB_REMOTE_USER};
+			my $db;
+			my $field;
+			if ($db = $Vend::Cfg->{Variable}{MV_USERDB_ACL_TABLE}) {
+				$field = $Vend::Cfg->{Variable}{MV_USERDB_ACL_COLUMN};
+				my $access = Vend::Data::database_field(
+								$db,
+								$Vend::Session->{username},
+								$field,
+								);
+				return 1 if $access =~ m{(^|\s)$item(\s|$)};
+			}
+		}
+		my $besthost = $CGI::remote_host || $CGI::remote_addr;
+        logGlobal qq{auth error host=$besthost ip=$CGI::remote_addr script=$CGI::script_name page=$CGI::path_info};
         return '';  
 	}
 	elsif($reconfig eq '1') {
@@ -1098,6 +1096,8 @@ EOF
 	}
 	elsif ($reconfig eq '2') {
 		$msg = "access protected database $item";
+#::logGlobal("passed gate of $gate");
+		return 1 if is_yes($gate);
 	}
 	elsif ($reconfig eq '3') {
 		$msg = "access administrative function $item";
@@ -1124,7 +1124,10 @@ EOF
 	}
 
 	# Check to see if password enabled, then check
-	if (!$CGI::user and $Vend::Cfg->{Password} and
+	if (
+		$reconfig eq '1'		and
+		!$CGI::user				and
+		$Vend::Cfg->{Password}	and
 		crypt($CGI::reconfigure_catalog, $Vend::Cfg->{Password})
 		ne  $Vend::Cfg->{Password})
 	{
@@ -1134,7 +1137,7 @@ EOF
 			return '';
 	}
 
-	# Finally ceck to see if remote_user match enabled, then check
+	# Finally check to see if remote_user match enabled, then check
 	if ($Vend::Cfg->{RemoteUser} and
 		$CGI::user ne $Vend::Cfg->{RemoteUser})
 	{
@@ -1152,8 +1155,9 @@ EOF
 	}
 
 	# Don't allow random reconfigures without one of the three checks
-	unless ($Vend::Cfg->{MasterHost} or $Vend::Cfg->{Password}
-			or $Vend::Cfg->{RemoteUser}) {
+	unless ($Vend::Cfg->{MasterHost} or
+			$Vend::Cfg->{Password}   or
+			$Vend::Cfg->{RemoteUser}) {
 		logGlobal <<EOF;
 Attempt to $msg on $CGI::script_name, secure operations disabled.
 
@@ -1168,11 +1172,6 @@ EOF
 	}
 
 	# Authorized if got here
-# DEBUG
-#Vend::Util::logDebug
-#("Checked security: $msg\n")
-#	if ::debug(0x1);
-# END DEBUG
 	return 1;
 }
 
@@ -1202,12 +1201,24 @@ sub csv {
 # message BODY.  Returns true on success.
 
 sub send_mail {
-    my($to, $subject, $body) = @_;
-	my($reply) = '';
+    my($to, $subject, $body, $reply, $use_mime, @extra_headers) = @_;
     my($ok);
+#::logGlobal("send_mail: to=$to subj=$subject r=$reply mime=$use_mime\n");
 
-	$reply = "Reply-To: $::Values->{'mv_email'}\n"
-		if defined $::Values->{'mv_email'};
+	unless (defined $use_mime) {
+		$use_mime = $Vend::MIME || undef;
+	}
+
+	if(!defined $reply) {
+		$reply = $::Values->{'mv_email'}
+				?  "Reply-To: $::Values->{'mv_email'}\n"
+				: '';
+	}
+	elsif ($reply) {
+		$reply = "Reply-To: $reply\n"
+			unless $reply =~ /^reply-to:/i;
+		$reply =~ s/\s+$/\n/;
+	}
 
     $ok = 0;
 	my $none;
@@ -1221,13 +1232,21 @@ sub send_mail {
 		last SEND if $none;
 		open(Vend::MAIL,"|$Vend::Cfg->{SendMailProgram} $to") or last SEND;
 		my $mime = '';
-		$mime = Vend::Interpolate::do_tag('mime header') if defined $Vend::MIME;
-		print Vend::MAIL "To: $to\n", $reply, "Subject: $subject\n$mime\n"
+		$mime = Vend::Interpolate::do_tag('mime header') if $use_mime;
+		print Vend::MAIL "To: $to\n", $reply, "Subject: $subject\n"
+	    	or last SEND;
+		for(@extra_headers) {
+			s/\s*$/\n/;
+			print Vend::MAIL $_
+				or last SEND;
+		}
+		$mime =~ s/\s*$/\n/;
+		print Vend::MAIL $mime
 	    	or last SEND;
 		print Vend::MAIL $body
 				or last SEND;
 		print Vend::MAIL Vend::Interpolate::do_tag('mime boundary') . '--'
-			if defined $Vend::MIME;
+			if $use_mime;
 		print Vend::MAIL "\r\n\cZ" if $Global::Windows;
 		close Vend::MAIL or last SEND;
 		$ok = ($? == 0);
@@ -1243,25 +1262,15 @@ sub send_mail {
     $ok;
 }
 
-sub tainted {
-    my($v) = @_;
-    my($r);
-    local($@);
-
-    eval { open(Vend::FOO, ">" . "FOO" . substr($v,0,0)); };
-    close Vend::FOO;
-    ($@ ? 1 : 0);
-}
-
 # Checks the Locale for a special page definintion mv_special_$key and
 # returns it if found, otherwise goes to the default Vend::Cfg->{Special} array
 sub find_special_page {
     my $key = shift;
-    return $Vend::Cfg->{Special}{$key} unless 
+    return $Vend::Cfg->{Special}{$key} || $key unless 
 		$Vend::Cfg->{Locale};
     return $Vend::Cfg->{Locale}{"mv_special_$key"}
 		if defined $Vend::Cfg->{Locale}{"mv_special_$key"};
-    return $Vend::Cfg->{Special}{$key};
+    return $Vend::Cfg->{Special}{$key} || $key;
 }
 
 # Appends the string $value to the end of $filename.  The file is opened
@@ -1372,7 +1381,7 @@ sub logError {
 
 	$Vend::Session->{'last_error'} = $msg;
 
-    $msg = format_log_msg($msg);
+    $msg = format_log_msg($msg) unless $msg =~ /^\\/;
 
 	$Vend::Errors .= $msg if ($Vend::Cfg->{DisplayErrors} ||
 							  $Global::DisplayErrors);
@@ -1396,6 +1405,157 @@ $msg
 EOF
     }
 }
+
+# Here for convenience in calls
+sub set_cookie {
+    my ($name, $value, $expire) = @_;
+    $::Instance->{Cookies} = []
+        if ! $::Instance->{Cookies};
+    @{$::Instance->{Cookies}} = [$name, $value, $expire];
+    return;
+}
+
+# Here for convenience in calls
+sub read_cookie {
+	my ($lookfor, $string) = @_;
+	$string = $CGI::cookie
+		unless defined $string;
+	return undef unless $string =~ /\b$lookfor=([^\s;]+)/i;
+ 	return unescape_chars($1);
+}
+
+# These were stolen from File::Spec
+# Can't use that because it INSISTS on object
+# calls without returning a blessed object
+
+my $abspat = $^O =~ /win32/i ? '^([a-z]:)?[\\\\/]' : '^/';
+
+sub file_name_is_absolute {
+    my($file) = @_;
+    $file =~ m{$abspat}oi ;
+}
+
+sub win_catfile {
+    my $file = pop @_;
+    return $file unless @_;
+    my $dir = catdir(@_);
+    $dir =~ s/(\\\.)$//;
+    $dir .= "\\" unless substr($dir,length($dir)-1,1) eq "\\";
+    return $dir.$file;
+}
+
+sub unix_catfile {
+    my $file = pop @_;
+    return $file unless @_;
+    my $dir = catdir(@_);
+    for ($dir) {
+	$_ .= "/" unless substr($_,length($_)-1,1) eq "/";
+    }
+    return $dir.$file;
+}
+
+sub unix_path {
+    my $path_sep = ":";
+    my $path = $ENV{PATH};
+    my @path = split $path_sep, $path;
+    foreach(@path) { $_ = '.' if $_ eq '' }
+    @path;
+}
+
+sub win_path {
+    local $^W = 1;
+    my $path = $ENV{'PATH'} || $ENV{'Path'} || $ENV{'path'};
+    my @path = split(';',$path);
+    foreach(@path) { $_ = '.' if $_ eq '' }
+    @path;
+}
+
+sub win_catdir {
+    my @args = @_;
+    for (@args) {
+	# append a slash to each argument unless it has one there
+	$_ .= "\\" if $_ eq '' or substr($_,-1) ne "\\";
+    }
+    my $result = canonpath(join('', @args));
+    $result;
+}
+
+sub win_canonpath {
+    my($path) = @_;
+    $path =~ s/^([a-z]:)/\u$1/;
+    $path =~ s|/|\\|g;
+    $path =~ s|\\+|\\|g ;                          # xx////xx  -> xx/xx
+    $path =~ s|(\\\.)+\\|\\|g ;                    # xx/././xx -> xx/xx
+    $path =~ s|^(\.\\)+|| unless $path eq ".\\";   # ./xx      -> xx
+    $path =~ s|\\$|| 
+             unless $path =~ m#^([a-z]:)?\\#;      # xx/       -> xx
+    $path .= '.' if $path =~ m#\\$#;
+    $path;
+}
+
+sub unix_canonpath {
+    my($path) = @_;
+    $path =~ s|/+|/|g ;                            # xx////xx  -> xx/xx
+    $path =~ s|(/\.)+/|/|g ;                       # xx/././xx -> xx/xx
+    $path =~ s|^(\./)+|| unless $path eq "./";     # ./xx      -> xx
+    $path =~ s|/$|| unless $path eq "/";           # xx/       -> xx
+    $path;
+}
+
+sub unix_catdir {
+    my @args = @_;
+    for (@args) {
+	# append a slash to each argument unless it has one there
+	$_ .= "/" if $_ eq '' or substr($_,-1) ne "/";
+    }
+    my $result = join('', @args);
+    # remove a trailing slash unless we are root
+    substr($result,-1) = ""
+	if length($result) > 1 && substr($result,-1) eq "/";
+    $result;
+}
+
+
+my $catdir_routine;
+my $canonpath_routine;
+my $catfile_routine;
+my $path_routine;
+
+if($^O =~ /win32/i) {
+	$catdir_routine = \&win_catdir;
+	$catfile_routine = \&win_catfile;
+	$path_routine = \&win_path;
+	$canonpath_routine = \&win_canonpath;
+}
+else {
+	$catdir_routine = \&unix_catdir;
+	$catfile_routine = \&unix_catfile;
+	$path_routine = \&unix_path;
+	$canonpath_routine = \&unix_canonpath;
+}
+
+sub path {
+	return &{$path_routine}(@_);
+}
+
+sub catfile {
+	return &{$catfile_routine}(@_);
+}
+
+sub catdir {
+	return &{$catdir_routine}(@_);
+}
+
+sub canonpath {
+	return &{$canonpath_routine}(@_);
+}
+
+#print "catfile a b c --> " . catfile('a', 'b', 'c') . "\n";
+#print "catdir a b c --> " . catdir('a', 'b', 'c') . "\n";
+#print "canonpath a/b//../../c --> " . canonpath('a/b/../../c') . "\n";
+#print "file_name_is_absolute a/b/c --> " . file_name_is_absolute('a/b/c') . "\n";
+#print "file_name_is_absolute a:b/c --> " . file_name_is_absolute('a:b/c') . "\n";
+#print "file_name_is_absolute /a/b/c --> " . file_name_is_absolute('/a/b/c') . "\n";
 
 1;
 __END__

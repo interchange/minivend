@@ -1,0 +1,140 @@
+<TABLE WIDTH="100%" CELLSPACING="0" BORDER="0" CELLPADDING="0">
+
+<TR>
+<TD WIDTH=7 BGCOLOR="[var BARBG]">&nbsp;</TD>
+
+<TD WIDTH="130" VALIGN="top">
+
+<TABLE CELLPADDING=0 CELLSPACING=0 BORDER=0 BGCOLOR="[var BARBG]">
+<TR><TD VALIGN=top BGCOLOR="[var BARBG]" ROWSPAN=2 WIDTH=5>&nbsp;</TD>
+<TD VALIGN=top WIDTH=125>
+<TABLE WIDTH=100% CELLPADDING=1 CELLSPACING=1 BORDER=0 bgcolor="[var BARBG]">
+<TR><TD VALIGN=top>
+	<FORM METHOD="POST" ACTION="[process-search]">
+	<TABLE WIDTH=100% CELLPADDING=1 CELLSPACING=1 BORDER=0 bgcolor="[var BARBG]">
+	<TR>
+		<TD BGCOLOR="[var BARBG]" ALIGN=RIGHT WIDTH="100%"><FONT SIZE=2 FACE=ARIAL,HELVETICA style="text-decoration: none" COLOR="[var BARTEXT]"><B>SEARCH</B><BR>                       
+		   </FONT>
+		</TD>
+	</TR>
+	<TR>    
+	<TD [var TABLEFG] ALIGN=RIGHT><FONT SIZE=2 FACE=ARIAL,HELVETICA style="text-decoration: none"><INPUT TYPE="hidden" NAME="mv_searchtype" VALUE="glimpse">
+	   <INPUT MAXLENGTH="30" NAME="mv_searchspec" SIZE="13" VALUE=""><BR>
+		<FONT FACE="arial,helvetica" SIZE="-1">
+		<INPUT TYPE="submit" VALUE="Search"><BR>
+
+		<FONT SIZE="1" FACE="verdana,arial,helvetica">
+		<A HREF="[area srchform]">Power Search</A><BR>
+		</FONT>
+					
+	</TD>
+	</TR></TABLE></FORM>
+</TD></TR>
+<TR><TD VALIGN=top BGCOLOR="[var BARBG]" ALIGN=right width=100%><A HREF="[area about]"><FONT SIZE=2 FACE=ARIAL,HELVETICA style="text-decoration: none" COLOR="[var BARTEXT]"><B>
+ABOUT US&nbsp;</FONT></A><BR></TD></TR>
+
+<TR><TD VALIGN=top [var TABLEFG] ALIGN=right width=100%><A HREF="[area feedback]"><FONT SIZE=2 FACE=ARIAL,HELVETICA style="text-decoration: none"><B>contact us&nbsp;</FONT></A><BR></TD></TR>
+<TR><TD VALIGN=top [var TABLEFG]  ALIGN=right width=100%><A HREF="[area news]"><FONT SIZE=2 FACE=ARIAL,HELVETICA style="text-decoration: none"><B>news&nbsp;</FONT><BR></A></TD></TR>
+<TR><TD VALIGN=top [var TABLEFG]  ALIGN=right width=100%><A HREF="[area privacy]"><FONT SIZE=2 FACE=ARIAL,HELVETICA style="text-decoration: none"><B>privacy&nbsp;policy&nbsp;</FONT></A><BR></TD></TR>
+<TR><TD VALIGN=top BGCOLOR="[var BARBG]" ALIGN=right width=100%><A HREF="[area browse]"><FONT SIZE=2 FACE=ARIAL,HELVETICA style="text-decoration: none" COLOR="[var BARTEXT]"><B>
+<BR>GALLERIES&nbsp;</FONT></A><BR></TD></TR>
+<TR><TD VALIGN=top [var TABLEFG] ALIGN=right width=100%><A HREF="[area scan
+	 di=category
+	 df=yes
+	 dl=Renaissance]"><FONT SIZE=2 FACE=ARIAL,HELVETICA style="text-decoration: none"><B>renaissance&nbsp;</FONT></A><BR></TD></TR>
+<TR><TD VALIGN=top [var TABLEFG] ALIGN=right width=100%><A HREF="[area scan
+	 di=category
+	 df=yes
+	 dl=Impressionists]"><FONT SIZE=2 FACE=ARIAL,HELVETICA style="text-decoration: none"><B>impressionists&nbsp;</FONT></A><BR></TD></TR>
+<TR><TD VALIGN=top [var TABLEFG] ALIGN=right width=100%><A HREF="[area scan
+	 di=category
+	 df=yes
+	 dl=Americana]"><FONT SIZE=2 FACE=ARIAL,HELVETICA style="text-decoration: none"><B>americana&nbsp;</FONT></A><BR></TD></TR>
+<TR><TD VALIGN=top [var TABLEFG] ALIGN=right width=100%><A HREF="[area scan
+	 di=category
+	 df=yes
+	 dl=Surrealists]"><FONT SIZE=2 FACE=ARIAL,HELVETICA style="text-decoration: none"><B>surrealists&nbsp;</FONT></A><BR></TD></TR>
+<TR><TD VALIGN=top [var TABLEFG] ALIGN=right width=100%><A HREF="[area scan
+	 di=category
+	 df=yes
+	 dl=Contemporary]"><FONT SIZE=2 FACE=ARIAL,HELVETICA style="text-decoration: none"><B>contemporary&nbsp;</FONT></A><BR></TD></TR>
+<TR><TD VALIGN=top>
+[if session logged_in]
+[then]
+[set Log out]
+mv_todo=return
+[userdb function=logout clear=1]
+[/set]
+
+	<FORM METHOD="POST" ACTION="[process-target]">
+	<TABLE WIDTH=100% CELLPADDING=1 CELLSPACING=1 BORDER=0 bgcolor="[var BARBG]">
+	<TR>
+		<TD BGCOLOR="[var BARBG]" ALIGN=RIGHT WIDTH="100%"><FONT SIZE=2 FACE=ARIAL,HELVETICA style="text-decoration: none" COLOR="[var BARTEXT]"><BR><B>LOG OUT</B><BR>                       
+		   </FONT>
+		</TD>
+	</TR>
+	<TR>    
+	<TD [var TABLEFG] ALIGN=RIGHT><FONT SIZE=2 FACE=ARIAL,HELVETICA style="text-decoration: none">
+    [loc]Hi[/loc] [value name]! [loc]You are logged in as user[/loc] <B>[data session username]</B>.
+	<BR>
+	<TABLE><TR><TD><FONT SIZE="1" FACE="verdana,arial,helvetica"><INPUT TYPE=submit NAME="mv_click" VALUE="Log out"></TD>
+		<TD><FONT SIZE="1" FACE="verdana,arial,helvetica"><A HREF="[area new_account]">Change your password</A><BR>
+		[if type=data term="userdb::acl::[data session username]"]
+		<A HREF="[area query/check_orders]">Check order status</A>
+		[/if]</TD></TR></TABLE>
+
+	</TD>
+	</TR></TABLE></FORM>
+[/then]
+[else]
+	<TABLE WIDTH=100% CELLPADDING=1 CELLSPACING=1 BORDER=0 bgcolor="[var BARBG]">
+	<TR>
+		<TD BGCOLOR="[var BARBG]" ALIGN=RIGHT WIDTH="100%"><FONT SIZE=2 FACE=ARIAL,HELVETICA style="text-decoration: none" COLOR="[var BARTEXT]"><BR><B>LOG IN</B><BR>                       
+		   </FONT>
+		</TD>
+	</TR>
+	<TR>    
+	<TD [var TABLEFG] ALIGN=RIGHT><FONT SIZE=2 FACE=ARIAL,HELVETICA style="text-decoration: none">
+[set Login]
+[userdb login]
+[/set]
+<P>
+[if session failure]
+[data session failure]
+[/if]
+<P>
+    <FORM ACTION="[process-target]" METHOD=POST>
+    <INPUT TYPE=hidden NAME=mv_click VALUE=Login>
+    <INPUT TYPE=hidden NAME=mv_doit  VALUE=return>
+    <INPUT TYPE=hidden NAME=mv_nextpage VALUE="ord/basket">
+
+                <FONT SIZE="1">UserName:<BR>
+                <INPUT MAXLENGTH="14" NAME="mv_username" SIZE="12" VALUE=""><BR>
+                Password:</FONT><BR>
+                <INPUT MAXLENGTH="14" onChange="this.form.submit()" NAME="mv_password" TYPE="password" SIZE="12"><BR>
+				<FONT SIZE=1>
+					(test/test for testing)<BR>
+					<INPUT TYPE=submit VALUE="Log In">
+				</FONT>
+                </FORM>
+                &#149; <A HREF="[area new_account]">
+					Create a new account</A></FONT><BR>
+	   <INPUT MAXLENGTH="30" NAME="mv_searchspec" SIZE="13" VALUE=""><BR>
+	</TD>
+	</TR></TABLE>
+[/else][/if]
+</TD></TR>
+<TR><TD VALIGN=top BGCOLOR="[var BARBG]" ALIGN=right width=100%><A HREF="[area about]"><FONT SIZE=2 FACE=ARIAL,HELVETICA style="text-decoration: none" COLOR="[var BARTEXT]"><B>
+<BR>DISPLAY&nbsp;</FONT></A><BR></TD></TR>
+
+<TR><TD VALIGN=top [var TABLEFG] ALIGN=right width=100%><A HREF="[area frames]" TARGET="_top"><FONT SIZE=2 FACE=ARIAL,HELVETICA style="text-decoration: none"><B>frames&nbsp;</FONT></A><BR></TD></TR>
+<TR><TD VALIGN=top [var TABLEFG] ALIGN=right width=100%><A HREF="[area noframes]" TARGET="_top"><FONT SIZE=2 FACE=ARIAL,HELVETICA style="text-decoration: none"><B>no frames&nbsp;</FONT></A><BR></TD></TR>
+</TABLE></TD></TR>
+</TABLE>
+<CENTER>
+<BR>
+[rotate floor=3 ceiling=4]
+</TD>
+<TD VALIGN=top WIDTH=10>&nbsp;</TD>
+<TD VALIGN=top WIDTH=460>
+

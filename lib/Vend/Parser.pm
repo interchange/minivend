@@ -142,7 +142,6 @@ sub eof
 
 sub parse
 {
-#::logGlobal("Enter parse with args:" . join '|', @_);
 	my $self = shift;
 	my $buf = \ $self->{'_buf'};
 	unless (defined $_[0]) {
@@ -159,12 +158,10 @@ sub parse
 	while (1) {  # the loop will end by returning when text is parsed
 		# First we try to pull off any plain text (anything before a "<" char)
 		if ($$buf =~ s|^([^\[<]+)||) {
-#::logGlobal("Leading text found. Buf:\n" . $$buf);
 			$self->text($1);
 			return $self unless length $$buf;
 		# Netscapes buggy comments are easy to handle
 		} elsif ($self->{'_netscape_comment'} && $$buf =~ m|^(<!--)|) {
-#::logGlobal("Netscape comment found. Buf:\n" . $$buf);
 			if ($$buf =~ s|^<!--(.*?)-->||s) {
 				$self->comment($1);
 			} else {
@@ -172,7 +169,6 @@ sub parse
 			}
 		# Then, markup declarations (usually either <!DOCTYPE...> or a comment)
 		} elsif ($$buf =~ s|^\[/||) {
-#::logGlobal("End tag found. Buf:\n" . $$buf);
 			# end tag
 			if ($$buf =~ s|^\s*([a-z][-a-z0-9._]*)\s*\]||i) {
 				$self->end(lc($1));
@@ -186,7 +182,6 @@ sub parse
 			}
 		# Then, finally we look for a start tag
 		} elsif ($$buf =~ s|^([<\[])||) {
-#::logGlobal("Start tag found. Buf:\n" . $$buf);
 			# start tag
 			my $eaten = $1;
 			my $end_brack;
@@ -233,7 +228,6 @@ sub parse
 					}
 					$tag = lc $tag;
 				}
-#::logGlobal("Found tag=$tag end_tag=$end_tag buf eaten=$eaten length=" . length $$buf) if $self->{HTML};
 				my $nopush;
 				my $urldecode = ($tag =~ s/^urld?(?:ecode)?$/urldecode/) ? 1 : 0;
 
@@ -248,7 +242,6 @@ sub parse
 					my $attr = lc $2;
 					$attr =~ s/^[Mm][Vv]\.?// || undef $attr
 						if $self->{HTML} and ! $urldecode;
-#::logGlobal("Found attr=$attr eaten=$eaten length=" . length $$buf) if $self->{HTML};
 						
 					my $val;
 					
@@ -301,27 +294,21 @@ sub parse
 						if $self->{HTML};
 					$self->start($tag, \%attr, \@attrseq, "$eaten]");
 				} elsif ($$buf =~ s|^>|| ) {
-#::logGlobal("Found possible HTML-embedded tag");
 					$self->text("$eaten>"), next
 						unless $self->{HTML};
-#::logGlobal("started tag=$tag | attr=@attrseq | eaten=$eaten");
 					$self->start($tag, \%attr, \@attrseq, "$eaten>", $end_tag);
 				} elsif ($$buf =~ s|^([^\]\n]+\])||) {
-#::logGlobal("Started with junk.");
 					$eaten .= $1;
 					$self->start($tag, {}, [], $eaten, $end_tag);
 				} elsif (length $$buf) {
-#::logGlobal("Not conforming.");
 					# Not a conforming start tag, regard it as normal text
 					$self->text($eaten);
 				} else {
-#::logGlobal("Recycle.");
 					$$buf = $eaten;  # need more data to know
 					return $self;
 				}
 
 			} elsif (length $$buf) {
-#::logGlobal("Text found. Buf:\n" . $$buf);
 				$self->text($eaten);
 			} else {
 				$$buf = $eaten . $$buf;  # need more data to parse
@@ -334,7 +321,6 @@ sub parse
 			# The buffer is empty now
 			return $self;
 		}
-#::logGlobal("Return for more. Buf:\n" . $$buf);
 		return $self if $self->{SEND};
 	}
 	$self;

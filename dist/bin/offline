@@ -60,29 +60,36 @@ use Fcntl;
 
 BEGIN {
 
-	$Global::GDBM = $Global::DB_File = $Global::DBI = $Global::Msql = 0;
-    AUTO: {
-		# This is for standard DBI
-		eval {require DBI and $Global::DBI = 1};
-        last AUTO if
-            (defined $ENV{MINIVEND_DBFILE} and $Global::DB_File = 1);
-        last AUTO if
+	$Global::GDBM = $Global::DB_File = $Global::DBI = 0;
+    # Now can use any type of database
+	AUTO: {
+		last AUTO if 
+			(defined $ENV{MINIVEND_DBFILE} and $Global::DB_File = 1);
+		last AUTO if 
 			(defined $ENV{MINIVEND_NODBM});
-        eval {require GDBM_File and $Global::GDBM = 1} ||
-        eval {require DB_File and $Global::DB_File = 1};
-    }
+		eval {require GDBM_File and $Global::GDBM = 1};
+		last AUTO if 
+			(defined $ENV{MINIVEND_GDBM} and $Global::GDBM = 1);
+		eval {require DB_File and $Global::DB_File = 1};
+	}
+
 	if($Global::GDBM) {
 		require Vend::Table::GDBM;
 		import GDBM_File;
 		$Global::GDBM = 1;
+		$Global::Default_database = 'GDBM'
+			unless defined $Global::Default_database;
 	}
-	elsif($Global::DB_File) {
+	if($Global::DB_File) {
 		require Vend::Table::DB_File;
 		import DB_File;
 		$Global::DB_File = 1;
+		$Global::Default_database = 'DB_FILE'
+			unless defined $Global::Default_database;
 	}
-	elsif(! $Global::DBI) {
-		die "No DBM defined! Offline import not necessary.\n";
+	
+	unless($Global::GDBM || $Global::DB_File || $Global::DBI) {
+		die "No DBM or DBI defined! Offline import not necessary.\n";
 	}
 }
 

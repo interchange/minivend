@@ -2,7 +2,7 @@
 #
 # MiniVend session expiration
 #
-# $Id: expire,v 1.11 1998/07/18 11:45:02 mike Exp $
+# $Id: expire,v 1.13 1999/01/23 19:52:35 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -11,7 +11,7 @@
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
 # Enhancements made by and
-# Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
+# Copyright 1996-1999 by Michael J. Heins <mikeh@minivend.com>
 #
 # See the file 'Changes' for information.
 #
@@ -40,6 +40,10 @@ BEGIN {
 	($Global::VendRoot = $ENV{MINIVEND_ROOT})
 		if defined $ENV{MINIVEND_ROOT};
 $Global::VendRoot = $Global::VendRoot || '/home/minivend';
+	$ENV{MINIVEND_STORABLE} = 1
+		if -f "$Global::VendRoot/_session_storable";
+	$ENV{MINIVEND_STORABLE_DB} = 1
+		if -f "$Global::VendRoot/_db_storable";
 	
 }
 ### END CONFIGURABLE VARIABLES
@@ -62,7 +66,7 @@ $Vend::SessionName = 'utility';
 #select a DBM
 
 BEGIN {
-	$Global::GDBM = $Global::DB_File = $Global::Msql = 0;
+	$Global::GDBM = $Global::DB_File = 0;
     AUTO: {
         last AUTO if
             (defined $ENV{MINIVEND_DBFILE} and $Global::DB_File = 1);
@@ -108,7 +112,7 @@ my $catalog;
 my $expiretime;
 my $reorg;
 
-$Vend::Cfg = {};
+$Vend::Cfg = { FileCreationMask => 0600 };
 
 use Getopt::Std;
 

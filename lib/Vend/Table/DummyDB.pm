@@ -1,9 +1,9 @@
 # Table/DummyDB.pm: Autoloader for MiniVend Databases
 #
-# $Id: DummyDB.pm,v 1.10 1998/05/02 03:07:10 mike Exp $
+# $Id: DummyDB.pm,v 1.12 1999/02/15 08:51:49 mike Exp $
 #
 #
-# Copyright 1996-1997 by Mike Heins <mikeh@iac.net>
+# Copyright 1996-1999 by Mike Heins <mikeh@minivend.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -34,12 +34,14 @@ sub close_table { 1; }
 sub database_key_exists {
     my ($self,$key) = @_;
 	my $db = $self->import_db();
+	return undef if ! $db;
 	return $db->record_exists($key);
 }
 
 sub record_exists {
     my ($self,$key) = @_;
 	my $db = $self->import_db();
+	return undef if ! $db;
 	my $result = $db->record_exists($key);
 	wantarray ? ($result, $db) : $result;
 }
@@ -50,6 +52,7 @@ sub import_db {
 	my($self) = @_;
 	my $db = Vend::Data::import_database(
 			$self->{file}, $self->{type}, $self->{name});
+	return undef if ! $db;
 	$Vend::Database{$self->{name}} = $db;
 	Vend::Data::update_productbase($self->{name});
 	return $db;
@@ -59,6 +62,7 @@ sub field {
     my ($self, $key, $field_name) = @_;
 
 	my $db = $self->import_db();
+	return undef if ! $db;
 
 	return '' unless $db->test_record($key);
 	return '' unless defined $db->test_column($field_name);
@@ -67,24 +71,29 @@ sub field {
 
 sub ref {
     my ($self) = @_;
-	return $self->import_db();
+	my $db = $self->import_db();
+	return $self if ! $db;
+	return $db;
 }
 
 sub column_index {
     my ($self, $field_name) = @_;
 	my $db = $self->import_db();
+	return undef if ! $db;
     return $db->column_index($field_name);
 }
 
 sub column_exists {
     my ($self, $field_name) = @_;
 	my $db = $self->import_db();
+	return undef if ! $db;
     return $db->column_exists($field_name);
 }
 
 sub test_column {
     my ($self, $field_name) = @_;
 	my $db = $self->import_db();
+	return undef if ! $db;
     return $db->test_column($field_name);
 }
 

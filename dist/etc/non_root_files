@@ -1,0 +1,8 @@
+admin
+admin/products
+admin/session
+admin/products/database.asc
+admin/products/directive.asc
+admin/products/locale.asc
+admin/products/products.asc
+admin/products/wizard.asc

@@ -2,7 +2,7 @@
 #
 # MiniVend version 1.04
 #
-# $Id: Order.pm,v 1.27 1998/09/01 13:15:22 mike Exp mike $
+# $Id: Order.pm,v 1.34 1999/02/15 08:51:07 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -11,7 +11,10 @@
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
 # Enhancements made by and
-# Copyright 1996 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996-1999 by Michael J. Heins <mike@heins.net>
+#
+# CyberCash 3 native mode enhancements made by and
+# Copyright 1998 by Michael C. McCune <mmccune@ibm.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,7 +33,7 @@
 package Vend::Order;
 require Exporter;
 
-$VERSION = substr(q$Revision: 1.27 $, 10);
+$VERSION = substr(q$Revision: 1.34 $, 10);
 $DEBUG = 0;
 
 @ISA = qw(Exporter);
@@ -44,7 +47,6 @@ mail_order
 
 );
 
-use Carp;
 use Vend::Util;
 use Vend::Interpolate;
 use Vend::Session;
@@ -69,14 +71,18 @@ sub _return {
 }
 
 sub _format {
-	my($ref,$params) = @_;
+	my($ref, $params, $message) = @_;
 	no strict 'refs';
 	my ($routine, $var, $val) = split /\s+/, $params, 3;
 
 	return (undef, $var, "No format check routine for '$routine'")
 		unless defined &{"_$routine"};
 
-	return &{'_' . $routine}($ref,$var,$val);
+	my (@return) = &{'_' . $routine}($ref,$var,$val);
+	if(! $return[0] and $message) {
+		$return[2] = $message;
+	}
+	return @return;
 }
 
 my %Parse = (
@@ -94,6 +100,7 @@ my %Parse = (
 
 my $CC2;
 my $CC3;
+my $CC3server;
 
 eval {
 	require CCLib;
@@ -102,42 +109,21 @@ eval {
 	logGlobal( errmsg('Order.pm:1', "CyberCash module found (CyberCash 2).", $ver ) );
 };
 
+$Vend::CyberCash = ! $@;
+
 eval {
 	require CCMckLib3_2 ;
-	import CCMckLib3_2 qw/InitConfig/;
+	import CCMckLib3_2 qw/InitConfig %Config $MCKversion/;
 	require CCMckDirectLib3_2;
-	import CCMckDirectLib3_2 qw/SendCC2_1Server/;
+	import CCMckDirectLib3_2 qw/SendCC2_1Server doDirectPayment/;
 	require CCMckErrno3_2;
 	import CCMckErrno3_2 qw/MCKGetErrorMessage/;
 	$CC3 = 1;
+	$CC3server = 0;
 	logGlobal( errmsg('Order.pm:2', "CyberCash module found (CyberCash 3).") );
 };
 
-$Vend::CyberCash = ! $@;
-
-# Uncomment this to test CyberCash
-# in debug mode (start -D)
-#$Vend::CyberCash = 1;
-#sub SetServer {
-#	my %options = @_;
-#	if ($Global::DEBUG) {
-#		for(sort keys %options) {
-#			print "$_=$options{$_}\n";
-#		}
-#	}
-#	1;
-#}
-#
-#sub sendmserver {
-#	my ($type, %options) = @_;
-#print "type=$type\n" if $Global::DEBUG;
-#	if ($Global::DEBUG) {
-#		for(sort keys %options) {
-#			print "$_=$options{$_}\n";
-#		}
-#	}
-#	return ('MStatus', 'success', 'order-id', 1);
-#}
+$Vend::CyberCash = $Vend::CyberCash || ! $@;
 
 sub testSetServer {
 	my %options = @_;
@@ -145,7 +131,6 @@ sub testSetServer {
 	for(sort keys %options) {
 		$out .= "$_=$options{$_}\n";
 	}
-#	logError("Test CyberCash SetServer:\n$out\n");
 	logError( errmsg('Order.pm:3', "Test CyberCash SetServer:\n%s\n" , $out) );
 	1;
 }
@@ -159,7 +144,6 @@ sub testsendmserver {
 	logError("Test CyberCash sendmserver:\n$out\n");
 	return ('MStatus', 'success', 'order-id', 1);
 }
-
 
 sub cyber_charge {
 
@@ -207,7 +191,7 @@ sub cyber_charge {
 		$actual{$key} = $val->{$map{$secondary}} ||
 						$CGI::values{$map{$secondary}};
 	}
-
+#::logGlobal ("cyber_charge, mode $CGI::values{mv_cyber_mode}");
     my $currency = $Vend::Cfg->{Variable}->{CYBER_CURRENCY} || 'usd';
     $actual{mv_credit_card_exp_month} =~ s/\D//g;
     $actual{mv_credit_card_exp_month} =~ s/^0+//;
@@ -219,38 +203,8 @@ sub cyber_charge {
     my $exp = $actual{mv_credit_card_exp_month} . '/' .
     		  $actual{mv_credit_card_exp_year};
 
-    #
-    # Constants to find the merchant payment server
-    #
-    my %payment = (
-		'host' => $Vend::Cfg->{Variable}->{CYBER_HOST} || 'localhost',
-		'port' => $Vend::Cfg->{Variable}->{CYBER_PORT} || 8000,
-		'secret' => $Vend::Cfg->{Variable}->{CYBER_SECRET} || '',
-    );
-
-	$actual{cyber_mode} = 'mauthcapture'
+    $actual{cyber_mode} = 'mauthcapture'
 		unless $actual{cyber_mode};
-
-    unless ($actual{cyber_mode} eq 'minivend_test') {
-		undef $CC3
-			unless	defined $Vend::Cfg->{Variable}{CYBER_VERSION}
-			and		        $Vend::Cfg->{Variable}{CYBER_VERSION} >= 3;
-		if($CC3) {
-			my $status = InitConfig($Vend::Cfg->{Variable}{CYBER_CONFIGFILE});
-			if ($status != 0) {
-				$Vend::Session->{cybercash_error} = MCKGetErrorMessage($status);
-				return undef;
-			}
-			*sendmserver = \&CCMckDirectLib3_2::SendCC2_1Server;
-		}
-		else {
-			*sendmserver = \&CCLib::sendmserver;
-			CCLib::SetServer(%payment);
-		}
-	}
-	else {
-		*sendmserver = \&testSetServer;
-	}
 
     my($orderID);
     my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = gmtime(time());
@@ -260,7 +214,7 @@ sub cyber_charge {
     # $mon is the month index where Jan=0 and Dec=11, so we use
     # $mon+1 to get the more familiar Jan=1 and Dec=12
     $orderID = sprintf("%02d%02d%02d%02d%02d%05d%s",
-            $year,$mon+1,$mday,$hour,$min,$Vend::SessionName);
+            $year + 1900,$mon + 1,$mday,$hour,$min,$Vend::SessionName);
 
     # The following characters are illegal in an order ID:
     #    : < > = + @ " % = &
@@ -279,9 +233,11 @@ sub cyber_charge {
     # to strip any characters here. You might have to if you
     # use a different scheme.
 
-    $amount = Vend::Interpolate::tag_total_cost;
-    $amount =~ s/[^.\d]//g;
+	my $precision = $Vend::Cfg->{Variable}{CYBER_PRECISION} || 2;
+    $amount = Vend::Interpolate::total_cost();
+	$amount = sprintf("%.${precision}f", $amount);
     $amount = "$currency $amount";
+
 # DEBUG
 #Vend::Util::logDebug
 #("cyber_charge: amount is '$amount'\n")
@@ -289,19 +245,133 @@ sub cyber_charge {
 # END DEBUG
 
     my %result;
-	%result = sendmserver(
-		$actual{cyber_mode},
-		'Order-ID'     => $orderID,
-		'Amount'       => $amount,
-		'Card-Number'  => $actual{mv_credit_card_number},
-		'Card-Name'    => $actual{b_name},
-		'Card-Address' => $actual{b_address},
-		'Card-City'    => $actual{b_city},
-		'Card-State'   => $actual{b_state},
-		'Card-Zip'     => $actual{b_zip},
-		'Card-Country' => $actual{b_country},
-		'Card-Exp'     => $exp,
-	);
+
+    unless ($actual{cyber_mode} eq 'minivend_test') {
+		# Live interface operations follow
+		unless	(defined	$Vend::Cfg->{Variable}{CYBER_VERSION}
+				and			$Vend::Cfg->{Variable}{CYBER_VERSION} >= 3 )
+		{
+			undef $CC3;
+			undef $CC3server;
+		}
+		elsif ( $Vend::Cfg->{Variable}{CYBER_VERSION} >= 3.2 ) {
+			$CC3server = 1;
+		}
+
+		if($CC3){
+			# Cybercash 3.x libraries to be used.
+			# Initialize the merchant configuration file
+			my $status = InitConfig($Vend::Cfg->{Variable}{CYBER_CONFIGFILE});
+			if ($status != 0) {
+				$Vend::Session->{cybercash_error} = MCKGetErrorMessage($status);
+				return undef;
+			}
+			unless($Vend::Cfg->{Variable}->{CYBER_HOST}) {
+				$Vend::Cfg->{Variable}->{CYBER_HOST} = $Config{CCPS_HOST};
+			}
+		}
+		if($CC3server) {
+			# Cybercash 3.x server and libraries to be used.
+
+			if ($status != 0) {
+				$Vend::Session->{cybercash_error} = MCKGetErrorMessage($status);
+				return undef;
+			}
+			$sendurl = $Vend::Cfg->{Variable}->{CYBER_HOST} . 'directcardpayment.cgi';
+
+			my %paymentNVList;
+			$paymentNVList{'mo.cybercash-id'} = $Config{'CYBERCASH_ID'};
+			$paymentNVList{'mo.version'} = $MCKversion;
+
+			$paymentNVList{'mo.signed-cpi'} = "no";
+			$paymentNVList{'mo.order-id'} = $orderID;
+			$paymentNVList{'mo.price'} = $amount;
+
+			$paymentNVList{'cpi.card-number'} = $actual{mv_credit_card_number};
+			$paymentNVList{'cpi.card-exp'} = $exp;
+			$paymentNVList{'cpi.card-name'} = $actual{b_name};
+			$paymentNVList{'cpi.card-address'} = $actual{b_address};
+			$paymentNVList{'cpi.card-city'} = $actual{b_city};
+			$paymentNVList{'cpi.card-state'} = $actual{b_state};
+			$paymentNVList{'cpi.card-zip'} = $actual{b_zip};
+			$paymentNVList{'cpi.card-country'} = $actual{b_country};
+
+			my (  $POPref, $tokenlistref, %tokenlist );
+			($POPref, $tokenlistref ) = 
+							  doDirectPayment( $sendurl, \%paymentNVList );
+			
+			%tokenlist = %$tokenlistref;
+			$result{MStatus}    = $POPref->{'pop.status'};
+			$result{MErrMsg}     = $POPref->{'pop.error-message'};
+			$result{'order-id'} = $POPref->{'pop.order-id'};
+
+			$Vend::Session->{cybercash_result} = $POPref;
+
+			# other values found in POP which might be used in some way:
+			#		$POP{'pop.auth-code'};
+			#		$POP{'pop.ref-code'};
+			#		$POP{'pop.txn-id'};
+			#		$POP{'pop.sale_date'};
+			#		$POP{'pop.sign'};
+			#		$POP{'pop.avs_code'};
+			#		$POP{'pop.price'};
+		}
+		else {
+			# Cybercash 2.x server interface follows
+			if ($CC3){
+				# Use Cybercash 3.x libraries
+				*sendmserver = \&CCMckDirectLib3_2::SendCC2_1Server;
+			}
+			else {
+				# Constants to find the merchant payment server
+				#
+				my %payment = (
+					'host' => $Vend::Cfg->{Variable}->{CYBER_HOST} || 'localhost',
+					'port' => $Vend::Cfg->{Variable}->{CYBER_PORT} || 8000,
+					'secret' => $Vend::Cfg->{Variable}->{CYBER_SECRET} || '',
+				);
+				*sendmserver = \&CCLib::sendmserver;
+				# Use Cybercash 2.x libraries
+				CCLib::SetServer(%payment);
+			}
+			%result = sendmserver(
+				$actual{cyber_mode},
+				'Order-ID'     => $orderID,
+				'Amount'       => $amount,
+				'Card-Number'  => $actual{mv_credit_card_number},
+				'Card-Name'    => $actual{b_name},
+				'Card-Address' => $actual{b_address},
+				'Card-City'    => $actual{b_city},
+				'Card-State'   => $actual{b_state},
+				'Card-Zip'     => $actual{b_zip},
+				'Card-Country' => $actual{b_country},
+				'Card-Exp'     => $exp,
+			);
+			$Vend::Session->{cybercash_result} = \%result;
+		}
+    }
+    else {
+		# Minivend test mode
+		my %payment = (
+			'host' => $Vend::Cfg->{Variable}->{CYBER_HOST} || 'localhost',
+			'port' => $Vend::Cfg->{Variable}->{CYBER_PORT} || 8000,
+			'secret' => $Vend::Cfg->{Variable}->{CYBER_SECRET} || '',
+		);
+		&testSetServer ( %payment );
+		%result = testsendmserver(
+					$actual{cyber_mode},
+			'Order-ID'     => $orderID,
+			'Amount'       => $amount,
+			'Card-Number'  => $actual{mv_credit_card_number},
+			'Card-Name'    => $actual{b_name},
+			'Card-Address' => $actual{b_address},
+			'Card-City'    => $actual{b_city},
+			'Card-State'   => $actual{b_state},
+			'Card-Zip'     => $actual{b_zip},
+			'Card-Country' => $actual{b_country},
+			'Card-Exp'     => $exp,
+		);
+    }
 
 	if($result{MStatus} !~ /^success/) {
 		$Vend::Session->{cybercash_error} = $result{MErrMsg};
@@ -326,8 +396,11 @@ sub cyber_charge {
 			$val->{mv_credit_card_error}
 		)	= Vend::ValidCC::encrypt_standard_cc(\%CGI::values);
 	}
+        logError( errmsg('Order.pm:3', "Order id: 
+                          $Vend::Session->{cybercash_id}\n") );
 	return $result{'order-id'};
 }
+
 
 
 
@@ -496,12 +569,14 @@ sub mail_order {
 
 	$body = interpolate_html($body) if $new;
 
-	track_order($order_no, $body);
-
     $body .= "\n" . order_list()
 		unless $new;
 
-	$subject = $::Values{mv_order_subject} || "ORDER %n";
+	$body = pgp_encrypt($body) if $Vend::Cfg->{PGP};
+
+	track_order($order_no, $body);
+
+	$subject = $::Values->{mv_order_subject} || "ORDER %n";
 
 	if(defined $order_no) {
 	    $subject =~ s/%n/$order_no/;
@@ -509,8 +584,6 @@ sub mail_order {
 			unless $Vend::Cfg->{NewReport};
 	}
 	else { $subject =~ s/\s*%n\s*//g; }
-
-	$body = pgp_encrypt($body) if $Vend::Cfg->{PGP};
 
     $ok = send_mail($email, $subject, $body);
     $ok;
@@ -564,10 +637,20 @@ sub check_order {
 	my($var,$val);
 	my $status = 1;
 	my(@param) = split /[\r\n]+/, $params;
+	my $m;
+	my $join;
 
 	for(@param) {
+		if($join) {
+			$_ = "$join$_";
+			undef $join;
+		}
 		next unless /\S/;
 		next if /^\s*#/;
+		if(s/\\$//) {
+			$join = $_;
+			next;
+		}
 		s/^\s+//;
 		s/\s+$//;
 		$parameter = $_;
@@ -577,18 +660,20 @@ sub check_order {
 		elsif ($parameter =~ /(\w+)[\s=]+(.*)/) {
 			$k = $1;
 			$v = $2;
+			$m = $v =~ s/\s+(.*)// ? $1 : undef;
 			($var,$val) =
-				('&format', $v . ' ' . $k  . ' ' .
-					$Vend::Session->{'values'}->{$k} );
+				('&format',
+				  $v . ' ' . $k  . ' ' .  $::Values->{$k}
+				  );
 		}
 		else {
 			logError("Unknown order check '$parameter' in profile $profile");
-				next;
+			next;
 		}
 		$val =~ s/&#(\d+);/chr($1)/ge;
 
 		if (defined $Parse{$var}) {
-			($val, $var, $message) = &{$Parse{$var}}($ref, $val);
+			($val, $var, $message) = &{$Parse{$var}}($ref, $val, $m || undef);
 		}
 		else {
 			logError("Unknown order check parameter in profile $profile:\n" .
@@ -622,7 +707,7 @@ sub check_order {
 my $state = <<EOF;
 AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD
 MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA PR RI
-SC SD TN TX UT VT VA WA WV WI WY DC 
+SC SD TN TX UT VT VA WA WV WI WY DC AP FP FPO APO GU VI
 EOF
 
 my $province = <<EOF;
@@ -705,7 +790,7 @@ sub _phone_us {
 
 sub _email {
 	my($ref, $var, $val) = @_;
-	if($val and $val =~ /\w+@[-A-Za-z0-9.]+\.[A-Za-z]+/) {
+	if($val and $val =~ /[\040-\176]+\@[-A-Za-z0-9.]+\.[A-Za-z]+/) {
 		return (1, $var, '');
 	}
 	else {
@@ -817,11 +902,14 @@ sub route_order {
 			counter		=> '',
 			increment	=> 0,
 			supplant	=> 0,
+			track   	=> 1,
 			errors_to	=> $Vend::Cfg->{MailOrderTo},
 		};
 	}
 
 	my $main = $Vend::Cfg->{Route};
+
+	my $save_mime = $Vend::MIME || undef;
 
 	my $encrypt_program = $main->{encrypt_program} || 'pgpe -fat -r %s';
 	my (@routes);
@@ -832,7 +920,7 @@ sub route_order {
 		next unless $item->{mv_order_route};
 		my(@r) = split /[\s\0,]+/, $item->{mv_order_route};
 		for(@r) {
-			next unless $_;
+			next unless /\S/;
 			$shelf->{$_} = [] unless defined $shelf->{$_};
 			push @routes, $_;
 			push @{$shelf->{$_}}, $item;
@@ -840,8 +928,8 @@ sub route_order {
 	}
 	my %seen;
 
-	@routes = grep !$seen{$_}, @routes;
-	my (@main) = split /[\s\0,]+/, $route;
+	@routes = grep !$seen{$_}++, @routes;
+	my (@main) = grep /\S/, split /[\s\0,]+/, $route;
 	for(@main) {
 		next unless $_;
 		$shelf->{$_} = [ @$cart ];
@@ -857,20 +945,49 @@ sub route_order {
 
 	my $value_save = { %{$::Values} };
 
-	BUILD:
+		BUILD:
 	foreach $c (@routes) {
 		$Data::Dumper::Indent = 3;
-::logGlobal("main:\n" . Data::Dumper::Dumper($main) .
-							"route:\n" .  Data::Dumper::Dumper($route) .
-							"values:\n" .  Data::Dumper::Dumper($::Values)
-							);
+		my $route = $Vend::Cfg->{Route_repository}{$c};
+#::logGlobal("Route $c:\n" . Data::Dumper::Dumper($route) 
+#						.	"values:\n" .  Data::Dumper::Dumper($::Values)
+#							);
 		$::Values = { %$value_save };
+		my $pre_encrypted;
+		my $credit_card_info;
+		if ( $Vend::Cfg->{CreditCardAuto} )
+		{
+			$pre_encrypted = 1;
+		}
+		else {
+			if(! $CGI::values{mv_credit_card_type} and
+				 $CGI::values{mv_credit_card_number} )
+			{
+				if($CGI::values{mv_credit_card_number} =~ /\s*4/) {
+					$CGI::values{mv_credit_card_type} = 'visa';
+				}
+				elsif($CGI::values{mv_credit_card_number} =~ /\s*5/) {
+					$CGI::values{mv_credit_card_type} = 'mc';
+				}
+				elsif($CGI::values{mv_credit_card_number} =~ /\s*3/) {
+					$CGI::values{mv_credit_card_type} = 'amex';
+				}
+				else {
+					$CGI::values{mv_credit_card_type} = 'diners/other';
+				}
+			}
+			$::Values->{mv_credit_card_info} = join "\t", 
+								$CGI::values{mv_credit_card_type},
+								$CGI::values{mv_credit_card_number},
+								$CGI::values{mv_credit_card_exp_month} .
+								"/" . $CGI::values{mv_credit_card_exp_year};
+		}
+
 		$Vend::Items = $shelf->{$c};
 		if(! defined $Vend::Cfg->{Route_repository}{$c}) {
 			logError(errmsg('Order.pm:4', "Non-existent order routing %s", $c));
 			next;
 		}
-		my $route = $Vend::Cfg->{Route_repository}{$c};
 	eval {
 
 		if($route->{profile}) {
@@ -889,6 +1006,7 @@ sub route_order {
 				$glob->{$_} = $Vend::Cfg->{Variable}{$_};
 				$Vend::Cfg->{Variable}{$_} = $route->{$_};
 			}
+			my $ok;
 			eval {
 				$ok = cyber_charge();
 			};
@@ -905,11 +1023,11 @@ sub route_order {
 							);
 			}
 		}
-		elsif($route->{credit_card}) {
+		elsif($route->{credit_card} and ! $pre_encrypted) {
 			$::Values->{mv_credit_card_info} = pgp_encrypt(
 								$::Values->{mv_credit_card_info},
-								$route->{pgp_cc_key} || $route->{pgp_key},
-								$route->{encrypt_program} || $encrypt_program,
+								($route->{pgp_cc_key} || $route->{pgp_key}),
+								($route->{encrypt_program} || $encrypt_program),
 							);
 		}
 
@@ -922,7 +1040,15 @@ sub route_order {
 		my $page = readfile($route->{'report'} || $main->{'report'});
 		die "No order report $route->{'report'} or $main->{'report'} found."
 			unless defined $page;
+
+		my $use_mime;
+		undef $Vend::MIME;
 		$page = interpolate_html($page);
+
+#::logGlobal("MIME=$Vend::MIME");
+		$use_mime   = $Vend::MIME || undef;
+		$Vend::MIME = $save_mime  || undef;
+
 		if($route->{encrypt}) {
 			$page = pgp_encrypt($page,
 								$route->{pgp_key},
@@ -941,13 +1067,16 @@ sub route_order {
 			$reply   = $route->{reply} || $main->{reply};
 			$reply   = $::Values->{$reply} if $reply =~ /^\w+$/;
 			$to		 = $route->{email};
-			push @out, [$to, $subject, $page, $reply];
+			push @out, [$to, $subject, $page, $reply, $use_mime];
 		}
 		elsif ($route->{empty}) {
 			# Do nothing
 		}
 		else {
 			die "Empty order routing $c (and not explicitly empty)";
+		}
+		if ($route->{supplant}) {
+			track_order($::Values->{mv_order_number}, $page);
 		}
 	};
 		if($@) {
@@ -964,7 +1093,6 @@ sub route_order {
 	my $msg;
 
 	foreach $msg (@out) {
-		$::Values->{mv_email} = pop @$msg;
 		eval {
 			send_mail(@$msg);
 		};
@@ -982,6 +1110,7 @@ sub route_order {
 		}
 	}
 
+	$Vend::MIME = $save_mime  || undef;
 	$::Values = $value_save;
 	$Vend::Items = $save_cart;
 
@@ -992,7 +1121,7 @@ sub route_order {
 		$Vend::Session->{order_error} = $errors;
 		send_mail(
 			$main->{errors_to},
-			errmsg('Order.pm:8', "ERRORS on ORDER %s", $::Values{mv_order_number}),
+			errmsg('Order.pm:8', "ERRORS on ORDER %s", $::Values->{mv_order_number}),
 			$errors
 			);
 	}
@@ -1001,7 +1130,7 @@ sub route_order {
 		::logError(
 			errmsg('Order.pm:9',
 					"ERRORS on ORDER %s:\n%s",
-					$::Values{mv_order_number},
+					$::Values->{mv_order_number},
 					$errors
 				)
 		);

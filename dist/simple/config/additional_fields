@@ -1,0 +1,87 @@
+COMPANY
+Your company name
+The Art Store
+
+ADDRESS
+Your company address
+123 Any St.
+
+CITY
+Your company city/state/zip
+Anytown, USA 00000
+
+PHONE
+Your company phone
+(555) 555-5555
+
+FAX
+Your company fax number
+(555) 555-5556
+
+TOLLFREE
+Your company tollfree number (if any)
+(888) 555-5555
+
+LOGO
+URL to your large logo image
+artstore.gif
+
+SMLOGO
+URL to your small logo image
+artsmall.gif
+
+HEADERBG
+Header bar background color
+BGCOLOR=#00F0F0
+
+TABLEFG
+Table background color for menus
+BGCOLOR=#EEEEEE
+
+HEADERTEXT
+Header bar text color
+#000000
+
+BARBG
+Menu bar background color
+#00F0F0
+
+BARTEXT
+Menu bar text color
+#FF0000
+
+BGIMAGE
+Default background image for pages
+blue_pap.gif
+
+BGCOLOR
+Default background color for pages
+#FFFFFF
+
+TAXAREA
+Area(s) to tax in
+OH IL
+
+TAXRATE
+Percentage rate(s) for tax in different areas
+OH=6, IL=7.25
+
+TAXSHIPPING
+Areas(s) that tax shipping
+OH
+
+UPSADDER
+Amount to add on to standard UPS costs
+3.00
+
+SUPERUSER
+Account name that will control this catalog
+minivend
+
+NOCRYPT
+Leave blank to encrypt passwords, set to 1 to NOT encrypt:
+0
+
+SUPASSWD
+Password for superuser account (encrypted)
+sWbRjRhdHtEec

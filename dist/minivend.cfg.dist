@@ -1,10 +1,10 @@
-## Default: blank
+## Catalog                     Default: blank
 #
 # Specify a catalog to be run by this MiniVend server. The three required
 # parameters are the name, the directory, and the script name that (the path
 # vlink is named to) will run the catalog.  Additional parameters are aliases
 # for the catalog.
-# 
+#
 # If FullUrl is enabled, you will need to set the full server and script path.
 #
 # This is a multiple directive -- the number of catalogs that can be defined is
@@ -14,7 +14,7 @@
 
 
 
-## Default: blank
+## AdminUser                    Default: blank
 #
 # The user and password which will allow access to the special mv_admin
 # administration catalog. No default; if not present then access is
@@ -27,7 +27,7 @@ Variable   MV_NO_CRYPT   1
 AdminUser  minivend:nevairbe
 
 
-## Default: blank
+## AllowGlobal                  Default: blank
 #
 # Normally MiniVend does not allow references to global routines for catalog
 # subroutines and UserTag definitions.  Set to the name of any catalogs allowed
@@ -38,7 +38,7 @@ AdminUser  minivend:nevairbe
 AllowGlobal _mv_admin
 
 
-## Default: blank
+## CheckHTML                    Default: blank
 #
 # The name and arguments of an external program for checking page HTML.
 #
@@ -51,26 +51,35 @@ AllowGlobal _mv_admin
 # CheckHTML
 
 
-## Default: No
+## DisplayErrors                Default: No
 #
 # Controls whether program errors will be appended to the browser display.
 #
 # DisplayErrors Yes
 
 
-## Default: Yes
+## DomainTail                   Default: Yes
 #
 # Implements the domain/ip session qualifiers so that only the major domain is
 # used to qualify the session ID.  This is a compromise on security, but it
 # allows non-cookie-accepting browsers like AOL's V2.0 to use multiple proxy
 # servers.
-# 
+#
 # Default is yes, since most everyone wants AOL to work.
 #
 # DomainTail
 
 
-## Default: No
+## DumpStructure                Default: No
+#
+# Causes MiniVend to dump complete configuration hash to a file 
+# with a .structure extension. Useful for seeing what the catalog
+# and MV configuration really are.
+#
+# DumpStructure
+
+
+## FullURL                      Default: No
 #
 # Normally MiniVend determines which catalog to call by determining the
 # SCRIPT_NAME from the CGI call. This means that different (and maybe virtual)
@@ -82,7 +91,7 @@ AllowGlobal _mv_admin
 # FullUrl
 
 
-## Default: blank
+## GlobalSub                    Default: blank
 #
 # Defines a F<global> subroutine for use by the B<[perl sub] subname arg
 # [/perl]> construct.
@@ -96,14 +105,14 @@ AllowGlobal _mv_admin
 GlobalSub sub test_global_sub { return 'Test of global subroutine OK.' }
 
 
-## Default: 30
+## HammerLock                   Default: 30
 #
 # The number of seconds after which a locked or running session could be
 # considered to be lost due to malfunction.
 #
 # Controls the timeout for killing an apparently hung process, like a glimpse
 # search, as well as the lock on a session.
-# 
+#
 # If you don't have long-running searches or long-running database imports,
 # consider setting this to 15 seconds or less. If you may have long-running
 # searches, consider setting to 60 seconds.  The default of 30 is probably a
@@ -112,7 +121,7 @@ GlobalSub sub test_global_sub { return 'Test of global subroutine OK.' }
 # HammerLock
 
 
-## Default: 60
+## HouseKeeping              Default: 60
 #
 # How often (in seconds) MiniVend will wake up to look for user reconfiguration
 # requests and check for hung processes.
@@ -123,22 +132,32 @@ GlobalSub sub test_global_sub { return 'Test of global subroutine OK.' }
 HouseKeeping 5
 
 
-## Default: No
+## IpHead                    Default: No
 #
-# Implements the domain/ip session qualifiers so that only the first two
-# dot-quads of the IP address are used to qualify the session ID.  This is a
+# Implements the domain/ip session qualifiers so that only the first
+# dot-quad of the IP address is used to qualify the session ID. This is a
 # compromise on security, but it allows non-cookie-accepting browsers like
 # AOL's V2.0 to use multiple proxy servers.
 #
 # DomainTail is preferable unless one of your HTTP servers does not do host
 # name lookups.
-# 
+#
 # Default is no, and DomainTail must be set to 'no' for it to operate.
 #
 # IpHead
 
 
-## Default: blank
+## IpQuad                    Default: 1
+#
+# Modifies IpHead to set the number of dot-quads checked.
+#
+# If you use PGP or CyberCash, you should probably use the 
+# catalog.cfg directive "WideOpen" instead.
+#
+# IpQuad 1
+
+
+## LockoutCommand            Default: blank
 #
 # The name of a command (as you would enter it from the shell) that will lock
 # out the host IP of an offending system. The IP address will be substituted
@@ -148,7 +167,7 @@ HouseKeeping 5
 
 
 
-## Default: No
+## Mall                      Default: No
 #
 # Whether MiniVend will send cookies corresponding to only the CGI program in
 # use.  Allows different stores in the same domain to each store separate
@@ -159,15 +178,15 @@ HouseKeeping 5
 # Mall
 
 
-## Default: 4
+## MaxServers                Default: 4
 #
 # The number of servers that MiniVend will allow to serve requests
 # simultaneously.  Set lower if you wish to conserve memory at all costs.
 #
-# MaxServers
+MaxServers 5
 
 
-## Default: No
+## NoAbsolute                 Default: No
 #
 # Whether MiniVend [file ...] and other tags can read any file on the system.
 # The default is to allow any file to be read -- this should be changed in a
@@ -176,7 +195,24 @@ HouseKeeping 5
 # NoAbsolute
 
 
-## Default: ftfile sort
+## PIDcheck                   Default: No
+#
+# If non-zero, enables a check of running MiniVend processes during the
+# housekeeping routine. If a process has been running (or is hung) for
+# longer than PIDcheck seconds then a kill -9 will be issued and the
+# server count decremented.
+# 
+# During the housekeeping routine, the number of servers checked by
+# MaxServers will be recounted based on PID files.
+# 
+# Default is 0, disabling the check. It is recommended that you
+# use this only for MiniVend 3.12 or higher, and it is recommended that
+# you *do* use it for that version.
+# 
+PIDcheck  300
+
+
+## SafeUntrap                   Default: ftfile sort
 #
 # Sets the codes that will be untrapped in the Safe.pm module, used for
 # embedded Perl and conditional operations.  You can see the Safe.pm
@@ -188,21 +224,7 @@ HouseKeeping 5
 # SafeUntrap
 
 
-## Default: Yes
-#
-# If your operating system does not have a re-entrant C library that can
-# guarantee that signal race conditions will not occur, then set this to NO.
-#
-# BSDI and FreeBSD libraries are NOT safe, and SafeSignals will automatically
-# be disabled for those operating systems.
-#
-# In general, if MiniVend ever just "hangs", particularly if you can see a
-# perl.core file, disable this directive.
-#
-# SafeSignals
-
-
-## Default: none
+## SubCatalog                   Default: none
 #
 # Allows definition of a catalog which shares most of the characteristics of
 # another catalog.  Only the items that are changed from the base catalog are
@@ -217,7 +239,7 @@ HouseKeeping 5
 # SubCatalog   sample2 sample /usr/catalogs/sample /cgi-bin/sample2
 
 
-## Default: localhost
+## TcpHost                      Default: localhost
 #
 # The host(s) that will be allowed to generate MiniVend requests when running
 # in INET mode.  You are responsible for security!  Remember that socket
@@ -225,45 +247,42 @@ HouseKeeping 5
 #
 # TcpHost
 
+## TcpMap                       Default: localhost#
+#
+# The port(s) that will be monitored for running MiniVend requests.
+# Specified by a port name and then a catalog name (or - for all
+# catalogs).
+#
+TcpMap  7786 -
 
-## Default: 7786
+
+## TcpPort                      Default: 7786
 #
 # The port that will be monitored for MiniVend requests when running in INET
-# mode. 
+# mode.
+#
+# This is deprecated by TcpMap.
 #
 # TcpPort
 
 
-## Default: No
+## TolerateGet                  Default: No
 #
 # Allows forms to use METHOD=GET instead of POST.
 #
-# TolerateGet
+TolerateGet  Yes
 
 
-## Default: No
-#
-# Whether user-stimulated page builds are allowed.  If you don't have large
-# user catalogs, should be no problem to enable.  But if there are
-# multi-megabyte databases, could cause a huge performance problem.
-#
-# If allowed, pages will be built presuming the proper StaticAll/StaticPage
-# setting is present and mv_build_static is set in the CGI values.
-#
-# UserBuild
-
-
-########### Variable
-##
-## Default: none
+## Variable                     Default: none
 #
 # Variable values that can be accessed on pages of ALL catalogs with
-# @@VARIABLE@@ notation.
+# @@VARIABLE@@ notation. A few special ones have MV_ prefixes, if you
+# don't use that prefix you will be fine.
 #
 Variable TEST_VARIABLE Test of global variable OK.
 
 
-## Default: none
+## UserTag                      Default: none
 #
 # Custom tag for every catalog served by this MiniVend.
 #
@@ -294,6 +313,57 @@ sub {
 }
 EOF
 
+# [var name=variablename global=1]
+#
+# This tag is the equivalent of __VARIABLE__ except that it will
+# works in other variables
+#
+UserTag var Interpolate 1
+UserTag var PosNumber 2
+UserTag var Order name global
+UserTag var Routine <<EOF
+sub {
+    $_[1] and return $Global::Variable->{shift @_};
+    return $Vend::Cfg->{Variable}{shift @_};
+}
+EOF
+
+# [summary  amount=n.nn
+#           name=label*
+#           hide=1*
+#           total=1*
+#           reset=1*
+#           format="%.2f"*
+#           currency=1* ]
+#
+# Calculates column totals (if used properly. 8-\)
+# 
+#
+UserTag summary Order amount name currency format total reset hide
+UserTag summary PosNumber 6
+UserTag summary Routine <<EOF
+use vars qw/%summary_hash/;
+sub {
+    my ($amount, $name, $currency, $format, $total, $reset, $hide) = @_;
+	unless ($name) {
+		$name = 'ONLY0000';
+		%summary_hash = () if Vend::Util::is_yes($reset);
+	}
+	else {
+		$summary_hash{$name} = 0 if Vend::Util::is_yes($reset);
+	}
+	$summary_hash{$name} += $amount if length $amount;
+	$amount = $summary_hash{$name} if Vend::Util::is_yes($total);
+	return '' if defined $hide && Vend::Util::is_yes($hide);
+	return sprintf $format, $amount if $format;
+    return Vend::Util::currency($amount) if $currency;
+    return $amount;
+}
+EOF
+
+
+
+
 # [db-date table format]
 #
 # This tag returns the last-modified time of a database table,
@@ -315,11 +385,56 @@ sub {
 }
 EOF
 
-### The user database stuff
-#include userdb.cfg
+# [db-count table]
+#
+# This tag returns the number of records in a database table,
+# 'products' by default.
+#
+UserTag  db-count  Order table
+UserTag  db-count  PosNumber 1
+UserTag  db-count  Routine <<EOF
+sub {
+    my ($db) = @_;
+
+    $db = 'products' unless $db;
+
+    my $ref = Vend::Data::database_exists_ref($db)
+        or return "Bad table $db";
+    $ref = $ref->ref();
+    my $count;
+    while ($ref->each_record()) {
+        $count++;
+    }
+    return $count;
+}
+EOF
+
+UserTag bar-button Order page current
+UserTag bar-button PosNumber 2
+UserTag bar-button HasEndTag 1
+UserTag bar-button Routine   <<EOR
+sub {
+	use strict;
+	my ($page, $current, $html) = @_;
+	$current = $Global::Variable->{MV_PAGE}
+		if ! $current;
+	$html =~ s:\[selected\]([\000-\377]*)\[/selected]::i;
+	my $alt = $1;
+	return $html if $page ne $current;
+	return $alt;
+}
+EOR
+
+### The old user database stuff
+### DON'T ### include userdb.cfg
 
 ### The minivend administration stuff
 #include admin/mv_admin.cfg
 
+### Include if you want non-English error messages. Not complete.
 # #include locale.error
+
+#include flycat.cfg
+#include form_mail.cfg
+
 

@@ -1,8 +1,9 @@
 # Table/Import.pm: import a table
 #
-# $Id: Import.pm,v 1.17 1998/08/01 07:04:30 mike Exp $
+# $Id: Import.pm,v 1.21 1999/02/15 08:51:52 mike Exp mike $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+# Copyright 1996-1999 by Mike Heins <mikeh@minivend.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +20,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::Import;
-$VERSION = substr(q$Revision: 1.17 $, 10);
+$VERSION = substr(q$Revision: 1.21 $, 10);
 
 require Exporter;
 @ISA = qw(Exporter);
@@ -29,18 +30,30 @@ use Vend::Table::Quoted qw(read_quoted_fields);
 use Vend::Util;
 
 sub import_csv {
-    my ($source, $create) = @_;
+    my ($source, $options, $table_name) = @_;
 
     die "The source file '$source' does not exist\n" unless -e $source;
 
     open(Vend::Table::Import::IN, "+<$source")
 		or die "Can't open '$source' read/write: $!\n";
 	lockfile(\*Vend::Table::Import::IN, 1, 1) or die "lock\n";
-    my @columns = read_quoted_fields(\*IN);
-    die "$source is empty\n" unless @columns;
-    $Vend::FIRST_COLUMN_NAME = shift @columns;
+    my @field_names = read_quoted_fields(\*IN);
+    die "$source is empty\n" unless @field_names;
+    $options->{FIRST_COLUMN_NAME} = shift @field_names;
 
-    my $out = &$create(@columns);
+	no strict 'refs';
+	my $out;
+	if($options->{ObjectType}) {
+		$out = &{"$options->{ObjectType}::create"}(
+									$options->{ObjectType},
+									$options,
+									\@field_names,
+									$table_name,
+								);
+	}
+	else {
+		$out = $options->{Object};
+	}
     my (@fields,$key);
     while (@fields = read_quoted_fields(\*IN)) {
         $out->set_row(@fields);
@@ -66,74 +79,95 @@ my %Sort = (
 );
 
 sub import_ascii_delimited {
-    my ($infile, $delimiter, $create) = @_;
-	my ($options, $format);
+    my ($infile, $options, $table_name) = @_;
+	my ($format);
 
-	if(ref $delimiter) {
-		$options = $delimiter;
-		$delimiter = quotemeta($options->{'delimiter'});
-		$format = uc ($options->{CONTINUE} || 'NONE');
-	}
-	else {
-		$delimiter = quotemeta($delimiter);
-		$format = 'NONE';
-	}
+	my $delimiter = quotemeta($options->{'delimiter'});
+	$format = uc ($options->{CONTINUE} || 'NONE');
 
     open(Vend::Table::Import::IN, "+<$infile")
 		or die "Couldn't open '$infile' read/write: $!\n";
 	lockfile(\*Vend::Table::Import::IN, 1, 1) or die "lock\n";
-
-    my $field_names = <IN>;
-    chomp $field_names;
-	$field_names =~ s/\s+$// unless $format eq 'NOTES';
-    my @field_names = split(/$delimiter/, $field_names);
-	my $field_count = scalar @field_names;
 
 	my $field_hash;
 	my $para_sep;
 	my $codere = '[\w-_#/.]+';
 	my $idx = 0;
 
-	if($format eq 'NOTES') {
-		$field_hash = {};
-		for(@field_names) {
-			s/:.*//;	
-			if(/\S[ \t]+/) {
-				die "Only one notes field allowed in NOTES format.\n"
-					if $para_sep;
-				$para_sep = $_;
-				$_ = '';
-			}
-			else {
+	my($field_count, @field_names);
+	if($options->{field_names}) {
+		@field_names = @{$options->{field_names}};
+		if($options->{CONTINUE} eq 'NOTES') {
+			$para_sep = $options->{SEPARATOR} || "\f";
+			$field_hash = {};
+			for(@field_names) {
 				$field_hash->{$_} = $idx++;
 			}
+			$idx = $#field_names;
 		}
-		my $msg;
-		@field_names = grep $_, @field_names;
-		$para_sep =~ s/($codere)[\t ]*(.)/$2/;
-		push(@field_names, ($1 || 'notes_field'));
-		$idx = $#field_names;
-		if ($para_sep) {
-			$para_sep =~ s/[ \t\r\n].*//;
-			$msg = length($para_sep) != 1	? "'$para_sep'"
-											: sprintf '0x%02x', ord $para_sep;
-#			::logError("notes_field='$field_names[$idx]' delimiter: $msg")
-			::logError( Vend::Util::errmsg('Table/Import.pm:1', "notes_field='%s' delimiter: %s" , $field_names[$idx], $msg) )
-				if $Vend::Cfg->{DisplayErrors};
-		}
-		else {
-			$para_sep = "\f";
-		}
-		push(@field_names, $para_sep);
+	}
+	else {
+		my $field_names = <IN>;
+		chomp $field_names;
+		$field_names =~ s/\s+$// unless $format eq 'NOTES';
+		@field_names = split(/$delimiter/, $field_names);
 
+
+		if($format eq 'NOTES') {
+			$field_hash = {};
+			for(@field_names) {
+				s/:.*//;	
+				if(/\S[ \t]+/) {
+					die "Only one notes field allowed in NOTES format.\n"
+						if $para_sep;
+					$para_sep = $_;
+					$_ = '';
+				}
+				else {
+					$field_hash->{$_} = $idx++;
+				}
+			}
+			my $msg;
+			@field_names = grep $_, @field_names;
+			$para_sep =~ s/($codere)[\t ]*(.)/$2/;
+			push(@field_names, ($1 || 'notes_field'));
+			$idx = $#field_names;
+			if ($para_sep) {
+				$para_sep =~ s/[ \t\r\n].*//;
+				$msg = length($para_sep) != 1	? "'$para_sep'"
+												: sprintf '0x%02x', ord $para_sep;
+	#			::logError("notes_field='$field_names[$idx]' delimiter: $msg")
+				::logError( Vend::Util::errmsg('Table/Import.pm:1', "notes_field='%s' delimiter: %s" , $field_names[$idx], $msg) )
+					if $Vend::Cfg->{DisplayErrors};
+			}
+			else {
+				$para_sep = "\f";
+			}
+			push(@field_names, $para_sep);
+
+		}
 	}
 	local($/) = "\n" . $para_sep ."\n"
 		if $para_sep;
 
-	# HACK!
-    $Vend::FIRST_COLUMN_NAME = shift @field_names;
+	$field_count = scalar @field_names;
 
-    my $out = &$create(@field_names);
+	# HACK!
+    $options->{FIRST_COLUMN_NAME} = shift @field_names;
+
+	no strict 'refs';
+    my $out;
+	if($options->{ObjectType}) {
+		$out = &{"$options->{ObjectType}::create"}(
+									$options->{ObjectType},
+									$options,
+									\@field_names,
+									$table_name,
+								);
+	}
+	else {
+		$out = $options->{Object};
+	}
 	my $fields;
     my (@fields, $key);
 	my @addl;
@@ -141,8 +175,9 @@ sub import_ascii_delimited {
 	my $excel_addl = '';
 
 	if($options->{EXCEL}) {
+	#Fix for quoted includes supplied by Larry Lesczynski
 		$excel = <<'EndOfExcel';
-			if(/"[^\t]*,/) {
+			if(/"[^\t]*(?:,|"")/) {
 				for (@fields) {
 					next unless /[,"]/;
 					s/^"//;
@@ -152,7 +187,7 @@ sub import_ascii_delimited {
 			}
 EndOfExcel
 		$excel_addl = <<'EndOfExcel';
-			if(/"[^\t]*,/) {
+			if(/"[^\t]*(?:,|"")/) {
 				for (@addl) {
 					next unless /,/;
 					s/^"//;
@@ -164,6 +199,7 @@ EndOfExcel
 	
 	my $index = '';
 	my @fh; # Array of file handles for sort
+	my @fc; # Array of file handles for copy when symlink fails
 	my @i;  # Array of field names for sort
 	my @o;  # Array of sort options
 	if($options->{INDEX}) {
@@ -199,13 +235,15 @@ EndOfExcel
 			for($i = 0; $i < @i; $i++) {
 				my $fnum = $i[$i];
 				$fh = new IO::File "> $infile.$i[$i]";
-				eval {
-					unlink "$infile.$n[$i]" if -l "$infile.$n[$i]";
-					symlink "$infile.$i[$i]", "$infile.$n[$i]"; 
-				};
 				die "Couldn't create $infile.$i[$i]: $!\n"
 					unless defined $fh;
-				push(@fh, $fh);
+				eval {
+					unlink "$infile.$n[$i]" if -l "$infile.$n[$i]";
+					symlink "$infile.$i[$i]", "$infile.$n[$i]";
+				};
+				push @fc, ["$infile.$i[$i]", "$infile.$n[$i]"]
+					if $@;
+				push @fh, $fh;
 				$index .= <<EndOfIndex;
 			print { \$fh[$i] } "\$fields[$fnum]\\t\$fields[0]\\n";
 EndOfIndex
@@ -222,10 +260,10 @@ my %format = (
 			s/\\r?\\n\\r?\\n([\\000-\\377]*)//
 				and \$fields[$idx] = \$1;
 
-		while(s!($codere):\\s*(.*)\\n?!!) {
-			next unless defined \$field_hash->{\$1};
-			\$fields[\$field_hash->{\$1}] = \$2;
-		}
+			while(s!($codere):[ \\t]*(.*)\\n?!!) {
+				next unless defined \$field_hash->{\$1};
+				\$fields[\$field_hash->{\$1}] = \$2;
+			}
 			$index
             \$key = shift \@fields;
             \$out->set_row(\$key, \@fields);
@@ -310,9 +348,10 @@ EndOfRoutine
 	if(@fh) {
 		my $no_sort;
 		my $sort_sub;
-		my $cmd = 'echo junk | sort -f -n';
+		my $ftest = Vend::Util::catfile($Vend::Cfg->{ScratchDir}, 'sort.test');
+		my $cmd = "echo you_have_no_sort_but_we_will_cope | sort -f -n -o $ftest";
 		system $cmd;
-		$no_sort = 1 if $?;
+		$no_sort = 1 if ! -f $ftest;
 		
 		my $fh;
 		my $i;
@@ -333,6 +372,12 @@ EndOfRoutine
 				print $fh @lines;
 				close $fh or die "close: $!";
 			}
+		}
+	}
+	if(@fc) {
+		require File::Copy;
+		for(@fc) {
+			File::Copy::copy(@{$_});
 		}
 	}
 	unlockfile(\*Vend::Table::Import::IN) or die "unlock\n";

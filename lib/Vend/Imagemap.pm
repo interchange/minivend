@@ -54,7 +54,6 @@ require Exporter;
 @ISA = qw(Exporter);
 
 @EXPORT = qw(action_map);
-use Carp;
 use strict;
 use vars qw($VERSION);
 $VERSION = substr(q$Revision: 1.6 $, 10);
@@ -70,7 +69,7 @@ sub action_map {
   my($matched,$method,$action,$points);
 
   unless(@map) {
-  	carp "No map sent";
+  	::logError("No map sent");
 	return undef;
   }
 
@@ -82,7 +81,7 @@ sub action_map {
   }
   my $query = "$x,$y";
   unless ($query =~ m/\d+,\d+/) {
-	  carp "Wrong arguments; browser may not support ISMAP";
+	  ::logError ("Wrong arguments; browser may not support ISMAP");
 	  return undef;
   }
 
@@ -93,7 +92,7 @@ sub action_map {
 	$points = '' unless defined $points;
     eval("\$matched = &pointIn_${method}('$action','$query','$points');");
     if ($@ ne "") {
-	 	carp "Malformed imagemap: $method unknown";
+	 	::logError("Malformed imagemap: $method unknown");
 		return undef;
 	}
     last if $matched;

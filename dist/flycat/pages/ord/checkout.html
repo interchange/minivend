@@ -1,0 +1,673 @@
+<HTML>
+<HEAD>
+<TITLE>Check Out: [dv site_name]</TITLE>
+</HEAD>
+<BODY [dv body]>
+
+[perl arg=config interpolate=1]
+	$Safe{config}{TaxShipping} = '[dv tax_shipping]';
+	$Safe{config}{SalesTax}    = '[dv tax_based_on]';
+	return '';
+[/perl]
+
+<TABLE WIDTH=600>
+<TR><TD WIDTH=20% VALIGN=BOTTOM>
+[if-dv smlogo]
+<CENTER>
+<A HREF="[dv url]"><IMG SRC="[dv smlogo]" ALT="[dv company] Logo" BORDER=0></A>
+</CENTER>
+[/if-dv]
+	</TD>
+	<TD VALIGN=BOTTOM><FONT SIZE="-2" FACE="arial, helvetica">
+	[dv company]<BR>
+	[dv address]<BR>
+	[dv city]<BR>
+	<BR>
+	Phone: [dv phone] [dv tollfree]<BR>
+	FAX: [dv fax]
+	</FONT></TD>
+</TR>
+</TABLE>
+[if session logged_in]
+[then]
+
+[set [L]Log out[/L]]
+mv_todo=return
+mv_nextpage=ord/checkout
+[userdb function=logout options="clear=yes"]
+[/set]
+
+    <TABLE CELLSPACING=0 CELLPADDING=0 WIDTH="100%">
+    <TR><TD ALIGN=CENTER>
+    <FORM ACTION="[process-target]" METHOD=POST>
+    [L]Hi[/L] [value name]! [L]You are logged in as user[/L] <B>[value mv_username]</B>.<BR>
+	<TABLE><TR><TD><INPUT TYPE=submit NAME="mv_click" VALUE="Log out"></TD>
+		<TD><A HREF="[area new_account]">Change your password</A><BR>
+		[if type=data term="userdb::acl::[data session username]"]
+		<A HREF="[area query/check_orders]">Check order status</A>
+		[/if]</TD></TR></TABLE>
+	</FORM>
+	</TD></TR></TABLE>
+
+    <TABLE CELLSPACING=0 CELLPADDING=0 WIDTH="100%">
+    <TR><TD ALIGN=CENTER>
+    <FORM ACTION="[process-target]" METHOD=POST>
+	</FORM>
+	</TD></TR></TABLE>
+
+
+[/then]
+[else]
+
+[set Login]
+mv_todo=return
+mv_nextpage=ord/checkout
+[userdb login]
+[/set]
+<P>
+[if session failure]
+[data session failure]
+[/if]
+<P>
+[L]If you have an account with us, please enter your user name and password[/L]. (test/test for testing)
+<P>
+    <FORM ACTION="[process-target]" METHOD=POST>
+    <INPUT TYPE=hidden NAME=mv_click VALUE=Login>
+    <INPUT TYPE=hidden NAME=mv_doit  VALUE=return>
+    <INPUT TYPE=hidden NAME=mv_nextpage VALUE="ord/checkout">
+
+    <TABLE CELLSPACING=0 CELLPADDING=0>
+	<TR><TD ALIGN=RIGHT>[L]Username[/L]</TD>
+        <TD><INPUT NAME=mv_username VALUE="[value mv_username]" SIZE=10>
+		[page new_account][L]Create a new account[/L][/page]
+        </TD></TR>
+
+    <TR><TD ALIGN=RIGHT>[L]Password[/L]</TD>
+        <TD><INPUT
+				onChange="this.form.submit()"
+			  TYPE=password NAME=mv_password VALUE="" SIZE=10>
+        <INPUT TYPE=submit VALUE="Log in"> &nbsp;&nbsp;
+        </TD></TR>
+    </TABLE>
+
+    </FORM>
+
+[/else][/if]	
+<SCRIPT>    // JavaScript Form Validation Demo    // by Paul Colton
+    function check_tax(form) {
+        // Make sure the email field is not blank
+        var foundState = false;
+        var ch = form.state.value;
+        ch = ch.toUpperCase();
+		[loop arg="[dv tax_area]"]
+        if(ch == "[loop-code]") {
+            alert("You will be charged [currency][fly-tax [loop-code]][/currency] sales tax\nsince you are shipping to [loop-code]. Click UPDATE to see the amount in your total.");
+            foundState = true;
+        }
+		[/loop]
+        return foundState;
+    }
+</SCRIPT>
+
+<FORM ACTION="[process-target secure=1]" METHOD="POST">
+<INPUT TYPE=hidden NAME=mv_session_id VALUE="[data session id]">
+[if items]
+[then]
+<TABLE WIDTH=600>
+<TR><TD COLSPAN=4 BGCOLOR="[dv header_bgcolor]">
+	<FONT SIZE="+2" COLOR="[dv header_textcolor]">[L]Order details[/L]</FONT>
+	</TD>
+</TR>
+[item-list]
+<TR>
+	<TD VALIGN=TOP MARGINWIDTH=12 MARGINHEIGHT=12>
+	<FONT SIZE="-2"><INPUT TYPE=checkbox NAME="[quantity-name]"
+                        VALUE=0 onClick="document.forms[0].submit()"> remove</FONT>
+	<INPUT TYPE="hidden" NAME="[quantity-name]" value="[item-quantity]">
+	</TD>
+	<TD VALIGN=TOP MARGINWIDTH=12 MARGINHEIGHT=12>
+	[item-description]</A>
+	</TD>
+	<TD VALIGN=TOP>[item-quantity] @ [item-price]</TD>
+	<TD VALIGN=TOP ALIGN=RIGHT>[item-subtotal]</TD>
+</TR>
+[/item-list]
+<TR>
+	<TD COLSPAN=2><A HREF="[area ord/basket]">Back to cart</A><BR></TD>
+	<TD>[L]Subtotal[/L]</TD>
+	<TD ALIGN=RIGHT>[subtotal]</TD>
+</TR>
+<TR>
+	<TD COLSPAN=2></TD>
+	<TD>[L]Sales Tax[/L]</TD>
+	<TD ALIGN=RIGHT>[salestax]</TD>
+</TR>
+<TR>
+	<TD COLSPAN=2></TD>
+	<TD>[L]Shipping[/L]</TD>
+	<TD ALIGN=RIGHT>[shipping]</TD>
+</TR>
+<TR>
+	<TD COLSPAN=2></TD>
+	<TD>[L]TOTAL[/L]</TD>
+	<TD ALIGN=RIGHT>[total-cost]</TD>
+</TR>
+</TABLE>
+<P>
+[/then]
+[else]
+
+<H2>[L]No items in your basket.[/L]</H2>
+<P>
+<I>[L]You can enter information, and it will be saved, but no checkout will happen until you order something![/L]</I>
+
+[/else]
+[/if]
+
+<INPUT TYPE="hidden" NAME="mv_doit" VALUE="refresh">
+<INPUT TYPE="hidden" NAME="mv_orderpage" VALUE="ord/checkout">
+<INPUT TYPE="hidden" NAME="mv_order_report" VALUE="../etc/report">
+<INPUT TYPE="hidden" NAME="mv_failpage" VALUE="special/needfield">
+<INPUT TYPE="hidden" NAME="mv_order_profile" VALUE="checkout_profile">
+
+<TABLE WIDTH=600><TR><TD BGCOLOR="[dv header_bgcolor]">
+<FONT SIZE="+2" COLOR="[dv header_textcolor]">[L]Shipping Address[/L]</FONT>
+</TD></TR></TABLE>
+
+<TABLE WIDTH=90%>
+
+<TR>
+	<TD ALIGN=RIGHT>
+		<IMG WIDTH=12 HEIGHT=12 SRC="redball.gif">
+	</TD>
+	<TD ALIGN=RIGHT><B>[L]Name[/L]</B></TD>
+	<TD>
+	<INPUT TYPE="text" NAME="name" VALUE="[value name]" size=40>
+	</TD>
+</TR>
+
+<TR>
+	<TD ALIGN=RIGHT>
+		<IMG WIDTH=12 HEIGHT=12 SRC="redball.gif">
+	</TD>
+	<TD ALIGN=RIGHT><B>[L]Address[/L]</B></TD>
+	<TD ALIGN=LEFT>
+		<INPUT TYPE="text" NAME="address" VALUE="[value address]" size=40>
+	</TD>
+</TR>
+
+<TR>
+	<TD ALIGN=RIGHT>
+		<BR>
+	<IMG WIDTH=12 HEIGHT=12 SRC="redball.gif">
+	</TD>
+	<TD ALIGN=RIGHT><BR><B>[L]City[/L]</B></TD>
+	<TD VALIGN=BOTTOM>
+	<TABLE CELLPADDING=0 MARGINWIDTH=0>
+	<TR>
+		<TD VALIGN=BOTTOM>
+		<INPUT TYPE="text" NAME="city" VALUE="[value city]" size=20>
+		</TD>
+		<TD ALIGN=RIGHT>
+		<BR>
+		<IMG WIDTH=12 HEIGHT=12 SRC="redball.gif">
+		</TD>
+		<TD ALIGN=CENTER VALIGN=BOTTOM>
+		[L]State/Province[/L]<BR>
+		<INPUT onChange="check_tax(this.form)"
+			TYPE="text" NAME="state" VALUE="[value state]" size=8>
+		</TD>
+		<TD ALIGN=RIGHT>
+		<BR>
+		<IMG WIDTH=12 HEIGHT=12 SRC="redball.gif">
+		</TD>
+		<TD ALIGN=CENTER VALIGN=BOTTOM>
+		[L]Zip/Postal Code[/L]<BR>
+		<INPUT TYPE="text" NAME="zip" VALUE="[value zip]" size=10>
+
+		</TD> 
+	</TR>
+	</TABLE>
+	</TD>
+</TR>
+
+<TR>
+	<TD ALIGN=RIGHT>
+	<IMG WIDTH=12 HEIGHT=12 SRC="redball.gif">
+	</TD>
+	<TD ALIGN=RIGHT><B>[L]Email Address[/L]</B></TD>
+	<TD>
+	<TABLE>
+	<TR>
+		<TD>
+		<INPUT TYPE="text" NAME="email" VALUE="[value email]" size=16>
+		</TD>
+		<TD ALIGN=RIGHT>
+		<IMG WIDTH=12 HEIGHT=12 SRC="bg.gif">
+		</TD>
+		<TD ALIGN=RIGHT>
+		<B>[L]Country[/L]</B>
+		</TD>
+		<TD ALIGN=RIGHT>
+		[if value country =~ /(^$|US|CA)/]
+		<SELECT NAME=country onChange="this.form.submit()">
+			<OPTION VALUE="US"> United States
+			<OPTION VALUE="CA"> Canada
+			<OPTION VALUE="JP"> Other (select to change)
+		</SELECT>
+		[else]
+		<SELECT MV="loop"
+			MV.PREPEND="[sort country:name]"
+			MV.SEARCH="ra=yes/fi=country.asc/ml=1000"
+			onChange="this.form.submit()"
+			MV.OPTION="country"
+			NAME="country">
+			<OPTION VALUE="[loop-code]"> [loop-data country name] 
+		</SELECT>
+		[/else]
+		[/if]<BR>
+		</TD>
+	</TR>
+	</TABLE>
+	</TD>
+</TR>
+
+<TR>	
+	<TD ALIGN=RIGHT>
+	<IMG WIDTH=12 HEIGHT=12 SRC="redball.gif">
+	</TD>
+	<TD ALIGN=RIGHT><B>[L]Daytime Phone[/L]</B></TD>
+	<TD>
+	<TABLE>
+	<TR>
+		<TD>
+		<INPUT TYPE="text" NAME="phone_day" VALUE="[value phone_day]" size=16>
+		</TD>
+		<TD ALIGN=RIGHT>
+		<IMG WIDTH=12 HEIGHT=12 SRC="bg.gif">
+		</TD>
+		<TD ALIGN=RIGHT>
+		<B>[L]Evening[/L]</B>
+		</TD>
+		<TD>
+		<INPUT TYPE="text" NAME="phone_night" VALUE="[value phone_night]" size=16>
+		</TD>
+	</TR>
+	</TABLE>
+</TR>
+
+<TR>
+	<TD ALIGN=RIGHT>
+	<IMG WIDTH="12" HEIGHT="12" SRC="redball.gif">
+	</TD>
+	<TD COLSPAN=2>
+		<I>[L]We need these fields to process your order[/L]</I>
+	</TD>
+</TR>
+</TABLE>
+
+[if session logged_in]
+		[userdb function=get_shipping_names]
+
+[set [L]Save shipping[/L]]
+mv_todo=return
+mv_nextpage=ord/checkout
+[userdb function=set_shipping]
+[/set]
+
+[set [L]Recall shipping[/L]]
+mv_todo=return
+mv_nextpage=ord/checkout
+[userdb function=get_shipping]
+[/set]
+
+[set [L]DELETE shipping[/L]]
+mv_todo=return
+mv_nextpage=ord/checkout
+[userdb function=delete_shipping]
+[/set]
+<TABLE CELLPADDING=0 CELLSPACING=0 BORDER=1 WIDTH=600>
+	<TR>
+	<TD VALIGN=TOP>
+	<FONT SIZE="-1">
+	You can create a new entry for the shipping address in your address book.<BR>Nickname:
+	<INPUT TYPE=text   NAME="s_nickname" SIZE=10>
+	<INPUT TYPE=submit NAME="mv_check" VALUE="[L]Save shipping[/L]"><BR>
+	</FONT>
+	</TD>
+	[if value address_book]
+	<TD>
+	<FONT SIZE="-1">
+	You can save the shipping address to an entry in your address book.<BR>
+		[loop arg="[value address_book]" ]
+		<INPUT TYPE=checkbox NAME="s_nickname" VALUE="[loop-code]"> [loop-code]
+		[/loop]
+	<INPUT TYPE=submit NAME="mv_check" VALUE="[L]Save shipping[/L]">
+	</FONT>
+	</TD></TR><TR>
+	<TD>
+	<FONT SIZE="-1">
+	You can recall a shipping address from your address book.<BR>
+		[loop arg="[value address_book]" ]
+		<INPUT TYPE=checkbox NAME="s_nickname" VALUE="[loop-code]"> [loop-code]
+		[/loop]
+	<INPUT TYPE=submit NAME="mv_check" VALUE="[L]Recall shipping[/L]">
+	</FONT>
+	</TD>
+	<TD>
+	<FONT SIZE="-1">
+	You can DELETE a shipping address from your address book.<BR>
+		[loop arg="[value address_book]" ]
+		<INPUT TYPE=checkbox NAME="s_nickname" VALUE="[loop-code]"> [loop-code]
+		[/loop]
+	<INPUT TYPE=submit NAME="mv_check" VALUE="[L]DELETE shipping[/L]">
+	</FONT>
+	</TD>
+	[/if]
+	</TR>
+</TABLE>
+[/if]
+
+<P>
+<TABLE WIDTH=600><TR><TD BGCOLOR="[dv header_bgcolor]">
+<FONT SIZE="+2" COLOR="[dv header_textcolor]">[L]Choose your shipping method[/L]</FONT>
+</TD></TR></TABLE>
+
+<P>
+<TABLE WIDTH=600>
+<TR><TD>
+	[if data vendor::only_shipmodes::__STORE_ID]
+	<SELECT MV=loop
+		MV.ARG="[dv only_shipmodes]"
+		MV.OPTION="mv_shipmode"
+		NAME="mv_shipmode">
+    <OPTION VALUE="[loop-code]"> [shipping-desc [loop-code]] [shipping [loop-code]]
+	</SELECT>
+	[elsif value country =~ /(^$|US)/]
+	<SELECT MV=loop
+		MV.ARG="[dv us_shipmodes]"
+		MV.OPTION="mv_shipmode"
+		NAME="mv_shipmode">
+    <OPTION VALUE="[loop-code]"> [shipping-desc [loop-code]] [shipping [loop-code]]
+	</SELECT>
+	[/elsif]
+	[elsif data vendor::intl_shipmodes::__STORE_ID__]
+	<SELECT MV=loop
+		MV.ARG="[dv intl_shipmodes]"
+		MV.OPTION="mv_shipmode"
+		NAME="mv_shipmode">
+    <OPTION VALUE="[loop-code]"> [shipping-desc [loop-code]] [shipping [loop-code]]
+	</SELECT>
+	[/elsif]
+	[else]
+	  <B>Shipping not supported to your country.</B>
+	  	<A HREF="mailto:[dv email_info]">Contact us for more information</A>.
+	[/else]
+	[/if]
+</TD>
+<TD ALIGN=RIGHT><INPUT TYPE=submit VALUE="[L]Update[/L]"></TD>
+</TR>
+
+<TR>
+<TD COLSPAN=2 ALIGN=CENTER>
+[if session ship_message]
+<BR><B>[L]Note[/L]:</B> [data session ship_message]<BR>
+[/if]
+</TD>
+</TR></TABLE>
+
+<TABLE WIDTH=600><TR><TD BGCOLOR="[dv header_bgcolor]">
+<FONT SIZE="+2" COLOR="[dv header_textcolor]">[L]Credit Card Information[/L]</FONT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<IMG SRC="smallvisa.gif">&nbsp;&nbsp;<IMG SRC="smallmc.gif">
+</TD></TR></TABLE>
+
+<P>  
+<TABLE><TR><TD VALIGN=TOP>
+[L]Card Number[/L] <FONT SIZE=1>(test number 4111 1111 1111 1111)</FONT><BR>
+<input type="text" name="mv_credit_card_number"
+		value="" size=19>
+</TD>
+<TD VALIGN=TOP>
+ [L]Expires[/L] 
+<BR>
+  	<SELECT name="mv_credit_card_exp_month">
+		<OPTION VALUE=1 [selected mv_credit_card_exp_month 1]> 01 - [L]January[/L]
+		<OPTION VALUE=2 [selected mv_credit_card_exp_month 2]> 02 - [L]February[/L]
+		<OPTION VALUE=3 [selected mv_credit_card_exp_month 3]> 03 - [L]March[/L]
+		<OPTION VALUE=4 [selected mv_credit_card_exp_month 4]> 04 - [L]April[/L]
+		<OPTION VALUE=5 [selected mv_credit_card_exp_month 5]> 05 - [L]May[/L]
+		<OPTION VALUE=6 [selected mv_credit_card_exp_month 6]> 06 - [L]June[/L]
+		<OPTION VALUE=7 [selected mv_credit_card_exp_month 7]> 07 - [L]July[/L]
+		<OPTION VALUE=8 [selected mv_credit_card_exp_month 8]> 08 - [L]August[/L]
+		<OPTION VALUE=9 [selected mv_credit_card_exp_month 9]> 09 - [L]September[/L]
+		<OPTION VALUE=10 [selected mv_credit_card_exp_month 10]> 10 - [L]October[/L]
+		<OPTION VALUE=11 [selected mv_credit_card_exp_month 11]> 11 - [L]November[/L]
+		<OPTION VALUE=12 [selected mv_credit_card_exp_month 12]> 12 - [L]December[/L]
+	</SELECT>
+	<SELECT name="mv_credit_card_exp_year">
+		<OPTION VALUE=98 [selected mv_credit_card_exp_year 98]> 1998
+		<OPTION VALUE=99 [selected mv_credit_card_exp_year 99]> 1999
+		<OPTION VALUE=00 [selected mv_credit_card_exp_year 00]> 2000
+		<OPTION VALUE=01 [selected mv_credit_card_exp_year 01]> 2001
+		<OPTION VALUE=02 [selected mv_credit_card_exp_year 02]> 2002
+		<OPTION VALUE=03 [selected mv_credit_card_exp_year 03]> 2003
+		<OPTION VALUE=04 [selected mv_credit_card_exp_year 04]> 2004
+		<OPTION VALUE=05 [selected mv_credit_card_exp_year 05]> 2005
+		<OPTION VALUE=06 [selected mv_credit_card_exp_year 06]> 2006
+		<OPTION VALUE=07 [selected mv_credit_card_exp_year 07]> 2007
+		<OPTION VALUE=08 [selected mv_credit_card_exp_year 08]> 2008
+		<OPTION VALUE=09 [selected mv_credit_card_exp_year 09]> 2009
+		<OPTION VALUE=10 [selected mv_credit_card_exp_year 10]> 2010
+	</SELECT>
+</TD></TR></TABLE>
+<INPUT TYPE=radio NAME="fax_order" VALUE=0
+	[if !value fax_order]CHECKED[/if]>
+<I>[L]Pay by credit card[/L]</I><BR>
+<INPUT TYPE=radio NAME="fax_order" VALUE=1 [checked fax_order 1]>
+<I>[L]I will call with payment information[/L]</I><BR>
+[if value tried_credit_card]
+<INPUT TYPE=checkbox NAME="mv_credit_card_force" VALUE=1>
+<I>[L]Force this card number to be taken[/L]</I><BR>
+[/if]
+
+<TABLE WIDTH=600><TR><TD BGCOLOR="[dv header_bgcolor]">
+<FONT SIZE="+2" COLOR="[dv header_textcolor]">[L]Billing Address (if different)[/L]</FONT>
+</TD></TR></TABLE>
+
+<TABLE>
+<TR>
+	<TD ALIGN=RIGHT><B>[L]Name[/L]</B></TD>
+	<TD>
+	<INPUT TYPE="text" NAME="b_name" VALUE="[value b_name]" size=60>
+	</TD>
+</TR>
+
+<TR>
+	<TD ALIGN=RIGHT><B>[L]Address[/L]</B></TD>
+	<TD ALIGN=LEFT>
+		<INPUT TYPE="text" NAME="b_address" VALUE="[value b_address]" size=60>
+	</TD>
+</TR>
+<TR>
+	<TD ALIGN=RIGHT><B>[L]City[/L], [L]State[/L], [L]Postal Code[/L]</B></TD>
+	<TD>
+	<INPUT TYPE="text" NAME="b_city" VALUE="[value b_city]" size=60>
+	</TD>
+</TR>
+</TABLE>
+
+[if session logged_in]
+		[userdb function=get_billing_names]
+[set [L]Save billing[/L]]
+mv_todo=return
+mv_nextpage=ord/checkout
+[userdb function=set_billing]
+[/set]
+
+[set [L]Recall billing[/L]]
+mv_todo=return
+mv_nextpage=ord/checkout
+[userdb function=get_billing]
+[/set]
+
+[set [L]DELETE billing[/L]]
+mv_todo=return
+mv_nextpage=ord/checkout
+[userdb function=delete_billing]
+[/set]
+<TABLE CELLPADDING=0 CELLSPACING=0 BORDER=1 WIDTH=600>
+	<TR>
+	<TD VALIGN=TOP>
+	<FONT SIZE="-1">
+	You can create a new entry for the billing address in your account book.<BR>Nickname:
+	<INPUT TYPE=text   NAME="b_nickname" SIZE=10>
+	<INPUT TYPE=submit NAME="mv_check" VALUE="[L]Save billing[/L]"><BR>
+	</FONT>
+	</TD>
+	[if value accounts]
+	<TD>
+	<FONT SIZE="-1">
+	You can save the billing address to an entry in your account book.<BR>
+		[loop arg="[value accounts]" ]
+		<INPUT TYPE=checkbox NAME="b_nickname" VALUE="[loop-code]"> [loop-code]
+		[/loop]
+	<INPUT TYPE=submit NAME="mv_check" VALUE="[L]Save billing[/L]">
+	</FONT>
+	</TD></TR><TR>
+	<TD>
+	<FONT SIZE="-1">
+	You can recall a billing address from your account book.<BR>
+		[loop arg="[value accounts]" ]
+		<INPUT TYPE=checkbox NAME="b_nickname" VALUE="[loop-code]"> [loop-code]
+		[/loop]
+	<INPUT TYPE=submit NAME="mv_check" VALUE="[L]Recall billing[/L]">
+	</FONT>
+	</TD>
+	<TD>
+	<FONT SIZE="-1">
+	You can DELETE a billing address from your account book.<BR>
+		[loop arg="[value accounts]" ]
+		<INPUT TYPE=checkbox NAME="b_nickname" VALUE="[loop-code]"> [loop-code]
+		[/loop]
+	<INPUT TYPE=submit NAME="mv_check" VALUE="[L]DELETE billing[/L]">
+	</FONT>
+	</TD>
+	[/if]
+	</TR>
+</TABLE>
+[/if]
+
+[set [L]Place Order![/L]]
+mv_todo=submit
+[if-dv cybercash]mv_cyber_mode=[dv cyber_mode]
+[set CreditCardAuto][/set]
+[else][perl arg="config" interpolate=1]
+	$Safe{config}{CreditCardAuto} = 1;
+	my $tmp;
+	$tmp = q{[dv encrypt_program]};
+	$Safe{config}{EncryptProgram} = $tmp       if $tmp;
+	$tmp = q{[dv pgp_program]};
+	$Safe{config}{PGP}            = $tmp       if $tmp;
+	$tmp = q{[dv pgp_key]};
+	$Safe{config}{EncryptProgram} =~ s/%r/"$tmp"/       if $tmp;
+	return '';
+[/perl][/else][/if-dv]
+[/set]
+
+<TABLE><TR><TD>
+<INPUT TYPE=radio NAME=email_copy [checked email_copy 1] VALUE="1">Yes
+<INPUT TYPE=radio NAME=email_copy [checked name=email_copy value=0 default=1] VALUE="0">No
+</TD><TD>
+<I>Send an email copy of my receipt</I>
+</TD></TR>
+[if session logged_in]
+<TR><TD ALIGN=RIGHT>
+<INPUT TYPE=checkbox NAME=mv_click CHECKED VALUE="Save_database">
+</TD><TD>
+<I> Save my information in the database</I>
+[set Save_database]
+[userdb save]
+[/set]
+[/if]
+</TD></TR></TABLE>
+
+<CENTER>
+<B><INPUT TYPE=submit NAME=mv_click VALUE="[L]Place Order![/L]"></B><BR>
+<FONT SIZE="-1"><INPUT TYPE=submit VALUE="[L]Update info, don't place order[/L]"></FONT>
+</CENTER>
+<P>
+<B>Gift note or Special Instructions<BR>
+<TEXTAREA NAME=gift_note ROWS=5 COLS=72>[value gift_note]</TEXTAREA>
+</FORM>
+<P>
+<CENTER><A HREF="[dv url]">Return to [dv company] home page</A> (make sure you save first!)</CENTER>
+</body> </html>
+
+[set checkout_profile]
+[set name=config_results int]
+[perl arg=config interpolate=1]
+	my $ref = $Safe{config};
+	$ref->{MailOrderTo}    = q{[dv email_order]} || $ref->{MailOrderTo};
+	#[if-dv encrypt_program]
+		$ref->{EncryptProgram} = q{[dv encrypt_program]};
+	#[/if-dv]
+	#[if-dv pgp_program]
+		$ref->{PGP} = q{[dv pgp_program]};
+	#[/if-dv]
+	#[if-dv pgp_key]
+		$ref->{EncryptProgram} =~ s/%r/"[dv pgp_key]"/;
+	#[/if-dv]
+
+	$cyber = (q{[dv cybercash]} =~ /^\s*[y1]/i);
+	$ref->{CyberCash}      = $cyber;
+	$ref->{CreditCardAuto} = ! $cyber;
+	return <<EOF;
+CyberCash======> $ref->{CyberCash}
+CreditCardAuto=> $ref->{CreditCardAuto}
+EncryptProgram=> $ref->{EncryptProgram}
+EOF
+[/perl]
+[/set]
+name=required
+address=required
+city=required
+country=required
+[calc]
+	my $country = q{[cgi country]};
+	$country =~ s/\W+//g;
+	return 'phone_day=phone' unless $country =~ /^(US|CA|USA|UnitedStates|Canada)$/i;
+	return "state=state_province\nzip=zip\nphone_day=phone_us";
+[/calc]
+email=required
+email=email
+&fatal = yes
+
+[if value fax_order]
+&set = mv_payment Call Us
+[elsif config CyberCash]
+	[perl arg=config interpolate=1]
+		my $ref = $Safe{config}{Variable};
+		$ref->{CYBER_MODE}           = q{[dv cyber_mode]};
+		$ref->{CYBER_HOST}           = q{[dv cyber_host]};
+		$ref->{CYBER_PORT}           = q{[dv cyber_port]};
+		$ref->{CYBER_VERSION}        = q{[dv cyber_version]};
+		$ref->{CYBER_CURRENCY}       = q{[dv cyber_currency]};
+		$ref->{CYBER_SERVER_VERSION} = q{[dv cyber_version]};
+		$ref->{CYBER_CONFIGFILE}     = q{[dv cyber_configfile]};
+		$ref->{CYBER_SECRET}         = q{[dv cyber_secret]};
+		return '';
+	[/perl]
+&set=mv_payment CyberCash Credit Card
+[/elsif]
+[elsif config CreditCardAuto]
+&set=mv_payment Credit Card ([default mv_credit_card_type unknown])
+mv_credit_card_info=required
+[/elsif]
+[else]
+&set=mv_payment Will Call
+[/else]
+[/if]
+
+&final = yes
+&set=mv_email [value email]
+
+[/set]
