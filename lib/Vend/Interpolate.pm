@@ -469,19 +469,6 @@ sub substitute_image {
 		}
 	}
 
-	if ( $::Pragma->{path_adjust} ) {
-		my $dir = $Vend::Cfg->{StaticPath};
-#::logDebug("have a dir for path_adjust, $dir");
-		if ($dir) {
-			$$text =~ s{(<a(?:rea)?\s+[^>]*?href=)"(/[^"]+)"} {$1'$dir$2'}ig;
-			$$text =~ s{(<link\s+[^>]*?href=)"(/[^"]+)"}      {$1'$dir$2'}ig;
-			$$text =~ s{(<i\w+\s+[^>]*?src=)"(/[^"]*)"}       {$1'$dir$2'}ig;
-	        $$text =~ s{(<body\s+[^>]*?background=)"(/[^"]+)"}{$1'$dir$2'}ig;
-	        $$text =~ s{(<t(?:[dhr]|able)\s+[^>]*?background=)"(/[^"]+)"}
-					   {$1'$dir$2'}ig;
-		}
-	}
-
     if($Vend::Cfg->{ImageAlias}) {
 		for (keys %{$Vend::Cfg->{ImageAlias}} ) {
         	$$text =~ s#(<i\w+\s+[^>]*?src=")($_)#
