@@ -700,6 +700,25 @@ BEGIN {
 
 }
 
+sub http_log_msg {
+	my($status, $env, $request) = @_;
+	my(@params);
+
+	# IP, Session, REMOTE_USER (if any) and time
+    push @params, ($$env{REMOTE_HOST} || $$env{REMOTE_ADDR});
+	push @params, ($$env{SERVER_PORT} || '-');
+	push @params, ($$env{REMOTE_USER} || '-');
+	push @params, logtime();
+
+	# Catalog name
+	push @params, qq{"$request"};
+
+	push @params, $status;
+
+	push @params, '-';
+	return join " ", @params;
+}
+
 sub http_soap {
 	my($fh, $env, $entity) = @_;
 
@@ -776,6 +795,14 @@ sub http_soap {
 #::logDebug("found catalog $catname");
 		$$env{SCRIPT_NAME} = $catname;
 	}
+
+	logData("$Global::VendRoot/etc/access_log",
+			http_log_msg(
+						"SOAP$status",
+						$env,
+						($$env{REQUEST_METHOD} .  " " .  $request),
+						)
+		);
 
 	populate($env);
 	map_misc_cgi();
