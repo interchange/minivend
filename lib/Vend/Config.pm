@@ -318,7 +318,7 @@ sub global_directives {
 	['HitCount',		 'yesno',            'No'],
 	['IpHead',			 'yesno',            'No'],
 	['IpQuad',			 'integer',          '1'],
-	['TemplateDir',      'root_dir', 	     ''],
+	['TemplateDir',      'root_dir_array', 	 ''],
 	['DomainTail',		 'yesno',            'Yes'],
 	['AcrossLocks',		 'yesno',            'No'],
 	['TolerateGet',		 'yesno',            'No'],
@@ -2092,6 +2092,15 @@ sub parse_regex {
 # unless it already starts with a leading /.
 
 sub parse_root_dir {
+	my($var, $value) = @_;
+	return '' unless $value;
+	$value = "$Global::VendRoot/$value"
+		unless Vend::Util::file_name_is_absolute($value);
+	$value =~ s./+$..;
+	return $value;
+}
+
+sub parse_root_dir_array {
 	my($var, $value) = @_;
 	return [] unless $value;
 	$value = "$Global::VendRoot/$value"
