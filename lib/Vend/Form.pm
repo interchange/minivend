@@ -235,13 +235,18 @@ sub show_data {
 sub show_options {
 	my $opt = shift;
 	my $ary = shift;
+	my $idx = shift || 0;
 	return undef if ! $ary;
 	my @out;
 	eval {
-		@out = map {$_->[0]} @$ary;
+		@out = map {$_->[$idx]} @$ary;
 	};
 	my $delim = Vend::Interpolate::get_joiner($opt->{delimiter}, ',');
 	return join $delim, @out;
+}
+
+sub show_labels {
+	return show_options($_[0], $_[1], 1);
 }
 
 sub template_sub {
@@ -1196,6 +1201,7 @@ if($opt->{debug}) {
 		noyes		=> \&noyes,
 		option_format => \&option_widget,
 		options     => \&show_options,
+		labels      => \&show_labels,
 		radio       => \&box,
 		select      => \&dropdown,
 		show        => \&show_data,
