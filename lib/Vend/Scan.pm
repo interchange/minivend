@@ -340,7 +340,7 @@ sub parse_profile {
 	return undef unless $params;
 
 	if ( index($params, '[') != -1 or index($params, '__') != -1) {
-		$params = interpolate_html($params);
+		$params = ::interpolate_html($params);
 	}
 
 	my($p, $var,$val);
