@@ -269,8 +269,7 @@ sub charge {
 	### We get the payment base information from a route with the
 	### same name as $charge_type if it is there
 	if($Vend::Cfg->{Route}) {
-		$pay_route = $Vend::Cfg->{Route_repository}{$charge_type}
-					|| $Vend::Cfg->{Route};
+		$pay_route = $Vend::Cfg->{Route_repository}{$charge_type} || {};
 	}
 	else {
 		$pay_route = {};
