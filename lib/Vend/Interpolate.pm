@@ -674,7 +674,7 @@ sub filter_value {
 	for (@filters) {
 		next unless length($_);
 		@args = @passed_args;
-		if(/%/) {
+		if(/^[^.]*%/) {
 			$value = sprintf($_, $value);
 			next;
 		}
@@ -1167,7 +1167,18 @@ sub tag_data {
 					return $_[0];
 				},
 	'strftime' => sub {
-					return scalar localtime(shift);
+					my $time = shift(@_);
+					shift(@_);
+					my $fmt = shift(@_);
+					while(my $add = shift(@_)) {
+						$fmt .= " $add";
+					}
+					if($fmt) {
+						return POSIX::strftime($fmt, localtime($time));
+					}
+					else {
+						return scalar localtime($time);
+					}
 				},
 	'encode_entities' => sub {
 					return HTML::Entities::encode(shift, $ESCAPE_CHARS::std);
