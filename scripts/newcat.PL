@@ -54,7 +54,7 @@ DOIT: {
 #
 # $Id$
 #
-# Copyright (C) 1996-2001 Red Hat, Inc. <interchange@redhat.com>
+# Copyright (C) 1996-2002 Red Hat, Inc. <interchange@redhat.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -3062,7 +3062,7 @@ sub tty_close_display {
 
 init_display();
 help_message(1);
-root_message('Red Hat Interchange Catalog Configurator');
+root_message('Interchange Catalog Configurator');
 
 #
 # go through screens
