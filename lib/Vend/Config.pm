@@ -325,6 +325,7 @@ sub global_directives {
 	['PIDcheck',		 'integer',          '0'],
 	['LockoutCommand',    undef,             ''],
 	['SafeUntrap',       'array',            'ftfile sort'],
+	['SafeTrap',         'array',            ':base_io'],
 	['NoAbsolute',		 'yesno',			 'No'],
 	['AllowGlobal',		 'boolean',			 ''],
 	['AddDirective',	 'directive',		 ''],
@@ -451,6 +452,7 @@ sub catalog_directives {
 	['ExtraSecure',		 'yesno',     	     'No'],
 	['FallbackIP',		 'yesno',     	     'No'],
 	['WideOpen',		 'yesno',     	     'No'],
+	['Promiscuous',		 'yesno',     	     'No'],
 	['Cookies',			 'yesno',     	     'Yes'],
 	['CookieName',		 undef,     	     ''],
 	['CookiePattern',	 'regex',     	     '[-\w:.]+'],
@@ -3011,6 +3013,7 @@ sub parse_tag {
 			my $code = $val;
 			$code =~ s'$Vend::Session->'$foo'g;
 			$code =~ s'$Vend::Cfg->'$bar'g;
+			$safe->trap(@{$Global::SafeTrap});
 			$safe->untrap(@{$Global::SafeUntrap});
 			$sub = $safe->reval($code);
 			if($@) {

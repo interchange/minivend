@@ -1545,6 +1545,7 @@ sub config_named_catalog {
 	eval {
 		$Vend::Cfg = $c;	
 		$::Variable = $Vend::Cfg->{Variable};
+		$::Pragma   = $Vend::Cfg->{Pragma};
 		Vend::Data::read_salestax();
 		Vend::Data::read_shipping();
 		open_database(1);

@@ -96,11 +96,11 @@ sub parse
 		return $self;
 	}
 	$$buf .= $_[0];
-	$Find_tag	= $Vend::Cfg->{Pragma}{no_html_parse}
+	$Find_tag	= $::Pragma->{no_html_parse}
 				?  qr{^([^[]+)}
 				:  qr{^([^[<]+)}
 				;
-#::logDebug("no_html_parse=$Vend::Cfg->{Pragma}{no_html_parse} Find_tag=$Find_tag");
+#::logDebug("no_html_parse=$::Pragma->{no_html_parse} Find_tag=$Find_tag");
 
 	my $eaten;
 	# Parse html text in $$buf.  The strategy is to remove complete

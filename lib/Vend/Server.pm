@@ -411,7 +411,7 @@ sub respond {
 	}
 
 	$$body =~ s/^\s+//
-		if ! $Vend::ResponseMade and $Vend::Cfg->{Pragma}{strip_white};
+		if ! $Vend::ResponseMade and $::Pragma->{strip_white};
 
 	if(! $s and $Vend::StatusLine) {
 		$Vend::StatusLine = "HTTP/1.0 $status\r\n$Vend::StatusLine"
