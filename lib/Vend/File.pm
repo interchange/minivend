@@ -38,6 +38,7 @@ require Exporter;
 	file_name_is_absolute
 	get_filename
 	lockfile
+	log_file_violation
 	readfile
 	readfile_db
 	set_lock_type
@@ -172,10 +173,7 @@ sub readfile {
     local($/);
 
 	unless(allowed_file($ifile)) {
-		my $msg = $Vend::File::errstr
-				|| ::errmsg("Can't read file '%s' with NoAbsolute set" , $ifile);
-		::logError($msg);
-		::logGlobal({ level => 'auth'}, $msg);
+		log_file_violation($ifile);
 		return undef;
 	}
 
@@ -693,6 +691,24 @@ sub allowed_file {
 	
 #::logDebug("allowed_file check for $fn: $status");
 	return $status;
+}
+
+sub log_file_violation {
+	my ($file, $action) = @_;
+	my $msg;
+
+	unless ($msg = $Vend::File::errstr) {
+		if ($action) {
+			$msg = ::errmsg ("%s: Can't use file '%s' with NoAbsolute set",
+							 $action, $file);
+		} else {
+			$msg = ::errmsg ("Can't use file '%s' with NoAbsolute set",
+							 $file);
+		}
+	}
+
+	::logError($msg);
+	::logGlobal({ level => 'auth'}, $msg);
 }
 
 1;
