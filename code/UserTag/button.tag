@@ -220,8 +220,9 @@ sub {
 		$a_after = '</a>';
 	}
 
+	$opt->{link_href} ||= 'javascript: void 0';
 	$out .= <<EOF;
-<A HREF="javascript:void 0"$opt->{extra} onMouseOver="window.status='$wstatus'"
+<A HREF="$opt->{link_href}"$opt->{extra} onMouseOver="window.status='$wstatus'"
 	onClick="$confirm mv_click_map_unique(document.$opt->{form}, '$clickname', '$text') && $opt->{form}.submit(); return(false);"
 	ALT="$wstatus"><IMG ALT="$wstatus" SRC="$src" border=$opt->{border}$position>$a_before$anchor$a_after
 EOF
