@@ -2129,7 +2129,7 @@ sub tag_perl {
 }
 
 sub ed {
-	return $_[0] if $Safe_data or $::Pragma->{safe_data};
+	return $_[0] if ! $_[0] or $Safe_data or $::Pragma->{safe_data};
 	$_[0] =~ s/\[/&#91;/g;
 	return $_[0];
 }

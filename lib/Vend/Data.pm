@@ -361,11 +361,11 @@ sub sql_query {
 	my ($db);
 
 	$opt->{table} = $Vend::Cfg->{ProductFiles}[0] unless defined $opt->{table};
-	$db = $Vend::Database{$opt->{table}}
+	$db = database_exists_ref($opt->{table})
 		or die "dbi_query: unknown base table $opt->{table}.\n";
-	$db = $db->ref();
 
 	$type = lc $type;
+	$type ||= 'list';
 
 	if ($list and $type ne 'list') {
 		$query = '' if ! defined $query;

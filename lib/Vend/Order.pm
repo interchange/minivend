@@ -804,7 +804,7 @@ sub pgp_encrypt {
 	print PGP $body;
 	close PGP;
 	if($?) {
-		logError("PGP failed with status %s: %s", $? << 8, $!);
+		logError("PGP failed with status %s: %s", $? >> 8, $!);
 		return 0;
 	}
 	$body = readfile("$fpre.out");

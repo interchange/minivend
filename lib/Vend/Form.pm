@@ -945,9 +945,14 @@ if($opt->{debug}) {
 		$data = options_to_array($opt->{passed}, $opt);
 	}
 	elsif($opt->{column} and $opt->{table}) {
+		GETDATA: {
 		my $key = $opt->{outboard} || $item->{code} || $opt->{code};
-		$opt->{passed} = $Tag->data($opt->{table}, $opt->{column}, $key);
+			last GETDATA unless length($key);
+			last GETDATA unless ::database_exists_ref($opt->{table});
+			$opt->{passed} = $Tag->data($opt->{table}, $opt->{column}, $key)
+				and
 		$data = options_to_array($opt->{passed}, $opt);
+	}
 	}
 	elsif(! $Global::VendRoot) {
 		# Not in Interchange
@@ -1076,8 +1081,7 @@ if($opt->{debug}) {
 		radio       => \&box,
 		select      => \&dropdown,
 		show        => \&show_data,
-		value       => \&processed_value,
-		value       => sub { my $opt = shift; return $opt->{value} },
+		value       => sub { my $opt = shift; return $opt->{encoded} },
 		yesno		=> \&yesno,
 	);
 

@@ -66,9 +66,13 @@ my %Order =	(
 				unless			=> [qw( type term op compare )],
 				or				=> [qw( type term op compare )],
 				and				=> [qw( type term op compare )],
+				restrict		=> [qw( enable )],
 			);
 
 my %addAttr = (
+				qw(
+					restrict		1
+				)
 			);
 
 my %hasEndTag = (
@@ -76,6 +80,7 @@ my %hasEndTag = (
 				qw(
                         if              1
                         unless          1
+					restrict		1
 				)
 			);
 
