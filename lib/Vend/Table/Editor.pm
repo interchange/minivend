@@ -1729,6 +1729,9 @@ show_times("begin table editor call item_id=$key") if $Global::ShowTimes;
 		$db = database_exists_ref($tab);
 
 		if($db) {
+			if($db->config('COMPOSITE_KEY') and $key !~ /\0/) {
+				$key =~ s/-_NULL_-/\0/g;
+			}
 			if($opt->{ui_clone_id} and $db->record_exists($opt->{ui_clone_id})) {
 				$data = $db->row_hash($opt->{ui_clone_id});
 			}
