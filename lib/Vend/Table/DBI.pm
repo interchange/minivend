@@ -1072,8 +1072,8 @@ sub set_slice {
 		}
 		for(my $i = 0; $i < @$fary; $i++) {
 			next unless $fary->[$i] eq $s->[$KEY];
-			splice @$fary, $i;
-			splice @$vary, $i;
+			splice @$fary, $i, 1;
+			splice @$vary, $i, 1;
 			last;
 		}
 			unshift @$fary, $s->[$KEY];
