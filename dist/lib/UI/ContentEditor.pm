@@ -987,7 +987,7 @@ sub get_content_data {
 	my @data;
 	for(get_content_filenames($spec, $opt)) {
 #::logDebug("Looking at filename $_");
-		push @data, [ Vend::Util::readfile($_, $Global::NoAbsolute, 0), $_ ];
+		push @data, [ Vend::Util::readfile($_, undef, 0), $_ ];
 	}
 	
 	return @data if wantarray;
