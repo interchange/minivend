@@ -481,7 +481,7 @@ my %Routine = (
 				'salestax'		=> \&Vend::Interpolate::tag_salestax,
 				scratch			=> \&Vend::Interpolate::tag_scratch,
 				scratchd		=> \&Vend::Interpolate::tag_scratchd,
-				search			=> \&Vend::Interpolate::tag_search,
+				search			=> \&Vend::Interpolate::tag_search_region,
 				record			=> \&Vend::Interpolate::tag_record,
 				region			=> \&Vend::Interpolate::region,
 				search_region	=> \&Vend::Interpolate::tag_search_region,
@@ -519,6 +519,7 @@ my %attrAlias = (
 	 query          => { 'query' => 'sql' },
 	 perl          	=> { 'table' => 'tables' },
 	 mvasp         	=> { 'table' => 'tables' },
+	 price         	=> { 'base' => 'mv_ib' },
 	 page          	=> {
 	 						'base' => 'arg',
 						},
