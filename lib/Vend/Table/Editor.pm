@@ -1731,7 +1731,15 @@ show_times("begin table editor call item_id=$key") if $Global::ShowTimes;
 		}
 	}
 
+	my $regin = $opt->{all_opts} ? 1 : 0;
+
 	resolve_options($opt, undef, $data);
+
+	if($regin) {
+		## Must reset these in case they get set from all_opts.
+		$hidden = $opt->{hidden};
+	}
+
 	$table = $opt->{table};
 	$key = $opt->{item_id};
 	if($opt->{save_meta}) {
