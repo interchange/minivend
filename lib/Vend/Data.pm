@@ -291,7 +291,7 @@ sub set_field {
 
 sub product_field {
     my ($field_name, $code, $base) = @_;
-	return database_field($Vend::OnlyProducts, $field_name, $code)
+	return database_field($Vend::OnlyProducts, $code, $field_name)
 		if $Vend::OnlyProducts;
 	my ($db);
     $db = product_code_exists_ref($code, $base || undef)
