@@ -269,7 +269,7 @@ sub search {
 		if($s->{mv_dict_end} && defined $limit_sub) {
 			while(<SEARCH>) {
 #::logDebug("$_");
-				last if &$dict_limit($_);
+				last if $dict_limit->($_);
 				next unless &$f();
 				next unless $limit_sub->($_);
 				(push @out, $searchfile and last)
@@ -325,7 +325,7 @@ sub search {
 		$s->hash_fields($s->{mv_field_names}, qw/mv_sort_field/);
 #::logDebug("after hash fields: self=" . ::Vend::Util::uneval_it({%$s}));
 		$s->sort_search_return(\@out);
-		$delayed_return = $s->get_return(1,1);
+		$delayed_return = $s->get_return(1);
 		@out = map { $delayed_return->($_) } @out;
 	}
 #::logDebug("after delayed return: self=" . ::Vend::Util::uneval_it({%$s}));
