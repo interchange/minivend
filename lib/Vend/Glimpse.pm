@@ -122,12 +122,12 @@ sub search {
 	$s->{mv_return_delim} = $s->{mv_index_delim}
 		unless defined $s->{mv_return_delim};
 
+	return $s->search_error("Search with glimpse, no glimpse configured.")
+		if ! $s->{glimpse_cmd};
+
 	@specs = @{$s->{mv_searchspec}};
 
 	@pats = $s->spec_check(@specs);
-
-	return $s->search_error("Search with glimpse, no glimpse configured.")
-		if ! $s->{glimpse_cmd};
 
 	return undef if $s->{matches} == -1;
 
@@ -204,6 +204,16 @@ sub search {
 	
 	my $spec = join $joiner, @pats;
 	$spec =~ s/'/./g;
+
+	if(length($spec) < $s->{mv_min_string}) {
+		my $msg = errmsg(
+					"Glimpse search string less than minimum %s characters: %s",
+					$s->{mv_min_string},
+					$spec,
+				);
+		return $s->search_error($msg);
+	}
+
 	push @cmd, "'$spec'";
 
 	$joiner = $spec;

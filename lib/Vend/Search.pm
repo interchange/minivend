@@ -257,14 +257,6 @@ sub spec_check {
 		    splice(@specs, $i, 1);
 		}
 		else {
-			if(length($specs[$i]) < $s->{mv_min_string}) {
-				my $msg = <<EOF;
-Search strings must be at least $s->{mv_min_string} characters.
-You had '$specs[$i]' as one of your search strings.
-EOF
-				$s->{matches} = -1;
-				return undef;
-			}
 			COLOP: {
 				last COLOP unless $s->{mv_coordinate};
 #::logDebug("i=$i, begin_string=$s->{mv_begin_string}[$i]");

@@ -144,8 +144,6 @@ sub search {
 
 	@pats = $s->spec_check(@specs);
 
-	return undef if $s->{matches} == -1;
-
 	if ($s->{mv_coordinate}) {
 		undef $f;
 	}
