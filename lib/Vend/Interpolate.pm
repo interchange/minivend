@@ -832,6 +832,13 @@ sub tag_data {
 					my $val = shift;
 					return crypt($val, ::random_string(2));
 				},
+	'html2text' => sub {
+					my $val = shift;
+					$val =~ s|\s*<BR>\s*|\n|gi;
+					$val =~ s|\s*<P>\s*|\n|gi;
+					$val =~ s|\s*</P>\s*||gi;
+					return $val;
+				},
 	'namecase' => sub {
 					use locale;
 					my $val = shift;
@@ -904,8 +911,8 @@ sub tag_data {
 				},
 	'text2html' => sub {
 					my $val = shift;
-					$val =~ s|\r?\n\r?\n|<P>|;
-					$val =~ s|\r?\n|<BR>|;
+					$val =~ s|\r?\n\r?\n|<P>|g;
+					$val =~ s|\r?\n|<BR>|g;
 					return $val;
 				},
 	'urlencode' => sub {
