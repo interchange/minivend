@@ -1746,16 +1746,27 @@ my %action = (
 	ui_wrap => \&UI::Primitive::ui_wrap,
     ui=> sub { 
 					&UI::Primitive::ui_acl_global();
-					\&do_process(@_);
+					&do_process(@_);
 				   },
     minimate=> sub { 
 					&MiniMate::CfgMgr::mm_acl_global;
-					\&do_process(@_);
+					&do_process(@_);
 				   },
     scan	=> \&do_scan,
     search	=> \&do_search,
     order	=> \&do_order,
     obtain	=> \&do_order,
+    silent	=> sub {
+						$Vend::StatusLine = "Status: 204 No content";
+						my $extra_click = $Vend::FinalPath;
+						$extra_click =~ s:/:\0:g;
+						$CGI->{mv_click} =  $CGI->{mv_click}
+											? "$CGI->{mv_click}\0$extra_click"
+											:  $extra_click;
+						do_process(@_);
+						::respond('');
+						return 0;
+					},
 );
 
 sub dispatch {
