@@ -242,7 +242,9 @@ sub gen_order_id {
 	elsif($opt->{counter}) {
 		$opt->{order_id} = Vend::Interpolate::tag_counter(
 						$opt->{counter},
-						{ start => $opt->{counter_start} || 100000 },
+						{ start => $opt->{counter_start} || 100000,
+						  sql   => $opt->{sql_counter},
+						},
 					);
 	}
 	else {

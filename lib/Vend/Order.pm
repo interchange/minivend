@@ -1542,7 +1542,11 @@ sub route_order {
 											);
 		}
 		elsif($route->{increment}) {
-			$::Values->{mv_order_number} = counter_number();
+			$::Values->{mv_order_number} = counter_number(
+												$main->{counter},
+												$main->{sql_counter},
+												$main->{first_order_number},
+											);
 		}
 		my $pagefile;
 		my $page;
