@@ -323,7 +323,7 @@ sub create {
 					|| $DBI::errstr
 					|| "unknown error. Driver '$dname' installed?";
 		}
-		die ::errstr("connect failed (create) -- %s\n",$msg);
+		die ::errmsg("connect failed (create) -- %s\n",$msg);
 	}
 
 	# Allow multiple tables in different DBs to have same local name
