@@ -1610,10 +1610,13 @@ sub server_page {
 	my $rout;
 	my $pid;
 	my $spawn;
+	my $start_time = $Global::ChildLife ? time() : 0;
+	my $end_of_life;
 	my $handled = 0;
 	
 	$Global::Foreground ||= $no_fork;
 
+#::logDebug("Start time is $start_time");
     for (;;) {
 
 	  my $n;
@@ -1640,7 +1643,12 @@ my $pretty_vector = unpack('b*', $rin);
         }
 		elsif($n == 0) {
 			undef $spawn;
-			#indiv_housekeeping();
+			if($start_time) {
+				my $current_time = time();
+				next unless $current_time - $start_time > $Global::ChildLife;
+				$end_of_life = 1;
+				last;
+			}
 			next;
 		}
         else {
@@ -1753,12 +1761,15 @@ my $pretty_vector = unpack('b*', $rin);
 
 		}
 
-		return 1
-			if $no_fork
-			and $Global::MaxRequestsPerChild
-			and $handled >= $Global::MaxRequestsPerChild;
-
 		return if $Signal_Terminate;
+
+		next unless $no_fork;
+		
+		return 1   if $end_of_life;
+
+		return 1   if  $Global::MaxRequestsPerChild
+				   and $handled >= $Global::MaxRequestsPerChild;
+
 
     }
 }

@@ -299,6 +299,7 @@ sub global_directives {
 	['SOAP_Socket',       'array',            ''],
 	['SOAP_Perms',        'integer',          0600],
 	['MaxRequestsPerChild','integer',           50],
+	['ChildLife',         'time',             0],
 	['StartServers',      'integer',          0],
 	['PreFork',		      'yesno',            0],
 	['SOAP_MaxRequests', 'integer',           50],
@@ -2916,7 +2917,9 @@ sub parse_time {
 	my($var, $value) = @_;
 	my($n);
 
-	$C->{Source}->{$var} = [$value];
+	return $value unless $value;
+
+#	$C->{Source}->{$var} = [$value];
 
 	$n = time_to_seconds($value);
 	config_error("Bad time format ('$value') in the $var directive\n")
