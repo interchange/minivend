@@ -593,22 +593,9 @@ eval {
 
 	if($update) {
 #::logDebug("Updating, update=$update");
-#		$relocate = $stmt->{MV_VALUE_RELOCATE}
-#			if defined $stmt->{MV_VALUE_RELOCATE};
 		$opt->{row_count} = 1;
 		die "Reached update query without object"
 			if ! $s;
-#		if($relocate) {
-#			my $code = splice(@vals, $stmt->{MV_VALUE_RELOCATE}, 1);
-#			unshift(@vals, $code) if $update ne 'UPDATE';
-##::logDebug("relocating values col=$relocate: columns='@na' vals='@vals'"); 
-#		}
-#		elsif (!defined $relocate) {
-#			die "Must have code field to insert"
-#				 if $update eq 'INSERT';
-#			unshift(@na, $codename);
-##::logDebug("NOT defined relocating values col=$relocate: columns='@na' vals='@vals'"); 
-#		}
 		my $sub = $update eq 'DELETE'
 					? sub { delete_record($s, @_) }
 					: $s->row_settor(@na);

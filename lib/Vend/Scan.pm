@@ -616,15 +616,6 @@ sub sql_statement {
 
 	my $update = $stmt->command();
 	undef $update if $update eq 'SELECT';
-#	CODECHECK: {
-#		last CODECHECK if ! $update;
-#		my $i = 0;
-#		for($stmt->columns()) {
-#			($stmt->{MV_VALUE_RELOCATE} = $i, last)
-#				if $_ eq $codename || $_ eq '0';
-#			$i++;
-#		}
-#	}
 
 	for($stmt->tables()) {
 		my $t = $_->name();
@@ -653,21 +644,11 @@ sub sql_statement {
 
 	for($stmt->columns()) {
 		my $name = $_->name();
-		#($stmt->{MV_VALUE_RELOCATE} = 0, last) if $name eq '*';
 		push_spec('rf', $name, $ary, $hash);
 		last if $name eq '*';
 #::logDebug("column name=" . $_->name() . " table=" . $_->table());
 	}
-#	if(! $update) {
-#		# do nothing
-#	}
-#	elsif ($stmt->{mv_value_relocate}) {
-#		splice(@{$hash->{rf}}, $stmt->{mv_value_relocate}, 1);
-#	}
-#	elsif ($update eq 'insert') {
-#		$stmt->{mv_value_relocate} = 0 if ! $stmt->columns();
-#	}
-#
+
 	my @order;
 
 	@order = $stmt->order();
