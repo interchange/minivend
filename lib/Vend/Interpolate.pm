@@ -2720,7 +2720,6 @@ sub tag_value {
 	$value = defined $::Values->{$var} ? ($::Values->{$var}) : '';
     if ($value) {
 		# Eliminate any Interchange tags
-		$value =~ s~<([A-Za-z]*[^>]*\s+[Mm][Vv]\s*=\s*)~&lt;$1~g;
 		$value =~ s/\[/&#91;/g;
     }
 	if($opt->{filter}) {
