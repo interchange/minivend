@@ -640,7 +640,7 @@ my $rsession;
 sub each_nokey {
     my ($s, $qual) = @_;
 	$s = $s->import_db() if ! defined $s->[$TIE_HASH];
-    my ($key);
+    my ($key, $hf);
 
 	if (! defined $restrict) {
 		# Support hide_field
@@ -648,10 +648,14 @@ sub each_nokey {
 #::logDebug("Found qual=$qual");
 			$hfield = $qual;
 			if($hfield =~ s/^\s+WHERE\s+(\w+)\s*!=\s*1($|\s+)//) {
-				my $hf = $1;
+				$hf = $1;
 #::logDebug("Found hf=$hf");
 				$s->test_column($hf) and $hfield = $s->column_index($hf);
 			}
+			else {
+				undef $hfield;
+			}
+
 #::logDebug("hf index=$hfield");
 		}
 		if($restrict = ($Vend::Cfg->{TableRestrict}{$s->config('name')} || 0)) {
@@ -669,7 +673,9 @@ sub each_nokey {
 			$rsession = $Vend::Session->{$rsession};
 		}
 	}
-		$restrict = 1 if $hfield and $s->[$CONFIG]{HIDE_FIELD} eq $hfield;
+
+		$restrict = 1 if $hfield and $s->[$CONFIG]{HIDE_FIELD} eq $hf;
+
 	}
 
     for (;;) {
