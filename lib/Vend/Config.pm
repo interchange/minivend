@@ -1561,6 +1561,16 @@ my %IllegalValue = (
 
 my $Have_set_global_defaults;
 my %Default = (
+		UserDB => sub {
+							shift;
+							my $set = $C->{UserDB_repository};
+							for(keys %$set) {
+								next unless defined $set->{$_}{admin};
+								$C->{AdminUserDB} = {} unless $C->{AdminUserDB};
+								$C->{AdminUserDB}{$_} = $set->{$_}{admin};
+							}
+							return 1;
+						},
 		TcpMap => sub {
 							shift;
 							return 1 if defined $Have_set_global_defaults;

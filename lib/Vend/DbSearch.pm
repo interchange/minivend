@@ -251,7 +251,7 @@ sub search {
 
 	if($s->{mv_unique}) {
 		my %seen;
-		@out = grep ! $seen{$_}++, @out;
+		@out = grep ! $seen{$_->[0]}++, @out;
 		$s->{matches} = scalar(@out);
 	}
 

@@ -782,6 +782,11 @@ sub tag_data {
 					$val =~ s/\0+/::/g;
 					return $val;
 				},
+	'space_to_null' =>		sub {
+					my $val = shift;
+					$val =~ s/\s+/\0/g;
+					return $val;
+				},
 	'colons_to_null' =>		sub {
 					my $val = shift;
 					$val =~ s/::/\0/g;
@@ -814,6 +819,10 @@ sub tag_data {
 					my $val = shift;
 					$val =~ s/\\+//g;
 					return $val;
+				},
+	'crypt' => sub {
+					my $val = shift;
+					return crypt($val, ::random_string(2));
 				},
 	'namecase' => sub {
 					use locale;
