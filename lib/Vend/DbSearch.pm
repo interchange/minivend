@@ -226,7 +226,7 @@ sub search {
 
 		if(! $s->{mv_no_hide} and my $hf = $dbref->config('HIDE_FIELD')) {
 #::logDebug("found hide_field $hf");
-			$lqual =~ s/^\s*WHERE\s+/ WHERE $hf != 1 /
+			$lqual =~ s/^\s*WHERE\s+/ WHERE $hf != 1 AND /
 				or $lqual = " WHERE $hf != 1";
 #::logDebug("lqual now '$lqual'");
 		}
