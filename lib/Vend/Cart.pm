@@ -2,7 +2,7 @@
 #
 # MiniVend version 2.03
 #
-# $Id: Cart.pm,v 1.6 1997/06/17 04:22:52 mike Exp $
+# $Id: Cart.pm,v 1.7 1997/12/02 22:27:31 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -30,12 +30,6 @@
 package Vend::Cart;
 require Exporter;
 
-# AUTOLOAD
-#use AutoLoader;
-#@ISA = qw(Exporter Autoloader);
-#*AUTOLOAD = \&AutoLoader::AUTOLOAD;
-# END AUTOLOAD
-
 # NOAUTO
 @ISA = qw(Exporter);
 # END NOAUTO
@@ -44,17 +38,12 @@ require Exporter;
 @EXPORT_OK = qw(create add set);
 
 
-$VERSION = substr(q$Revision: 1.6 $, 10);
+$VERSION = substr(q$Revision: 1.7 $, 10);
 $DEBUG   = 0;
 
 use Carp;
 use vars qw($DEBUG $VERSION);
 use strict;
-
-# AUTOLOAD
-#1;
-#__END__
-# END AUTOLOAD
 
 sub create {
     my($name, @attributes) = @_;

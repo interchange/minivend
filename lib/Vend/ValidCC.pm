@@ -1,4 +1,4 @@
-# $Id: ValidCC.pm,v 1.6 1997/11/03 11:11:13 mike Exp $
+# $Id: ValidCC.pm,v 1.10 1997/12/14 05:44:54 mike Exp $
 #
 # ValidCC.pm - validate credit card numbers
 #
@@ -7,16 +7,10 @@
 # Modified by Mike to make more forgiving in the parameters.
 
 package Vend::ValidCC;
-$VERSION = substr(q$Revision: 1.6 $, 10);
+$VERSION = substr(q$Revision: 1.10 $, 10);
 require 5.000;
 require Exporter;
 use Carp;
-
-# AUTOLOAD
-#use AutoLoader;
-#@ISA = qw(Exporter Autoloader);
-#*AUTOLOAD = \&AutoLoader::AUTOLOAD;
-# END AUTOLOAD
 
 # NOAUTO
 @ISA = qw(Exporter);
@@ -59,11 +53,6 @@ been exceeded, etc.
 Bruce Albrecht (bruce@zuhause.mn.org)
 
 =cut
-
-# AUTOLOAD
-#1;
-#__END__
-# END AUTOLOAD
 
 
 sub ValidCreditCard
@@ -143,21 +132,11 @@ sub encrypt_cc {
 	my $infile    = 0;
 
 	$cmd = $Vend::Cfg->{'EncryptProgram'};
-
-	# This is the internal function, will return the value
-	# only if it was found. Takes the IVEC from the first
-	# eight characters of the encrypted password
-	if (defined @Des::EXPORT and $cmd =~ /^internal/i ) {
-		my($password) = $Vend::Cfg->{'Password'} || return undef;
-		my($ivec) = $Vend::Cfg->{'Pw_Ivec'} || return undef;
-		my $key = string_to_key($password);
-		my $sched = set_key($key);
-		$encrypted = pcbc_encrypt($enclair,undef,$sched,$ivec);
-		return $encrypted;
-	}
+	$cmd = '' if "\L$cmd" eq 'none';
+	
 
 	#Substitute the password
-	unless ($cmd =~ /\bpgp\b/ or $cmd =~ s/%p/$password/ ) {
+	unless (! $cmd or $cmd =~ /\bpgp\b/ or $cmd =~ s/%p/$password/ ) {
 		$firstline = 1;
 	}
 
@@ -177,6 +156,7 @@ sub encrypt_cc {
 			die "Couldn't write $tempfile: $!\n";
 		# Put the cardnumber there, and maybe password first
 		print CARD "$password\n" if $firstline;
+		$enclair .= "\r\n\cZ\r\n" if $Global::Windows;
 		print CARD $enclair;
 		close CARD;
 
@@ -188,10 +168,11 @@ sub encrypt_cc {
 		$status = $?;
 	}
 	else {
-		open(CRYPT, "| $cmd >$tempfile ") || die "Couldn't fork: $!\n";
+		$cmd = "| $cmd " if $cmd;
+		open(CRYPT, "$cmd>$tempfile ") || die "Couldn't fork: $!\n";
 		print CRYPT $enclair;
 		close CRYPT;
-		$status = $?;
+		$status = $cmd ? $? : 0;
 
 		open(CARD, $tempfile) || warn "open $tempfile: $!\n";
 		$encrypted = <CARD>;

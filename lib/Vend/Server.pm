@@ -1,6 +1,6 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.27 1997/11/03 11:31:36 mike Exp $
+# $Id: Server.pm,v 1.30 1997/12/11 12:42:46 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>
@@ -24,7 +24,7 @@ require Vend::Http;
 @ISA = qw(Vend::Http::CGI);
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.27 $, 10);
+$VERSION = substr(q$Revision: 1.30 $, 10);
 
 use POSIX 'strftime';
 use strict;
@@ -197,11 +197,12 @@ $Vend::Server::Num_servers = 0;
 
 # might also trap: QUIT
 
-my ($Routine_USR1, $Routine_USR2, $Routine_TERM, $Routine_INT);
+my ($Routine_USR1, $Routine_USR2, $Routine_HUP, $Routine_TERM, $Routine_INT);
 my ($Sig_inc, $Sig_dec, $Counter);
 
 $Routine_USR1 = sub { $SIG{USR1} = $Routine_USR1; $Vend::Server::Num_servers++};
 $Routine_USR2 = sub { $SIG{USR2} = $Routine_USR2; $Vend::Server::Num_servers--};
+$Routine_HUP  = sub { $SIG{HUP} = $Routine_HUP; $Signal_Restart = 1};
 $Routine_TERM = sub { $SIG{TERM} = $Routine_TERM; $Signal_Terminate = 1 };
 $Routine_INT  = sub { $SIG{INT} = $Routine_INT; $Signal_Terminate = 1 };
 
@@ -222,6 +223,7 @@ sub setup_signals {
 	else {
 		$SIG{'INT'}  = sub { $Signal_Terminate = 1; };
 		$SIG{'TERM'} = sub { $Signal_Terminate = 1; };
+		$SIG{'HUP'}  = sub { $Signal_Restart = 1; };
 		$SIG{'USR1'} = sub { $Vend::Server::Num_servers++; };
 		$SIG{'USR2'} = sub { $Vend::Server::Num_servers--; };
 	}
@@ -270,8 +272,10 @@ sub housekeeping {
 		closedir(Vend::Server::CHECKRUN)
 			or die "closedir $Global::ConfDir: $!\n";
 		($reconfig) = grep $_ eq 'reconfig', @files;
-		($restart) = grep $_ eq 'restart', @files;
+		($restart) = grep $_ eq 'restart', @files
+			if $Signal_Restart;
 		if (defined $restart) {
+			$Signal_Restart = 0;
 			open(Vend::Server::RESTART, "+<$Global::ConfDir/restart")
 				or die "open $Global::ConfDir/restart: $!\n";
 			lockfile(\*Vend::Server::RESTART, 1, 1)
@@ -294,6 +298,9 @@ EOF
 				eval {
 					if($directive =~ /^\s*(sub)?catalog$/i) {
 						::add_catalog("$directive $value");
+					}
+					elsif($directive =~ /^remove\s+catalog\s+(\S+)$/i) {
+						::remove_catalog($1);
 					}
 					else {
 						::change_global_directive($directive, $value);
@@ -384,6 +391,8 @@ sub server_both {
 		$so_max = 128;
 	}
 
+	unlink "$Global::ConfDir/mode.inet", "$Global::ConfDir/mode.unix";
+
 	if($Global::Unix_Mode) {
 		socket(Vend::Server::USOCKET, AF_UNIX, SOCK_STREAM, 0) || die "socket: $!";
 
@@ -397,6 +406,9 @@ sub server_both {
 		$rin = '';
 		vec($rin, fileno(Vend::Server::USOCKET), 1) = 1;
 		$vector |= $rin;
+		open(Vend::Server::INET_MODE_INDICATOR, ">$Global::ConfDir/mode.unix")
+			or die "creat mode.inet: $!";
+		close(Vend::Server::INET_MODE_INDICATOR);
 
 		chmod 0600, $socket_filename;
 
@@ -421,6 +433,9 @@ sub server_both {
 			$rin = '';
 			vec($rin, fileno(Vend::Server::ISOCKET), 1) = 1;
 			$vector |= $rin;
+			open(Vend::Server::INET_MODE_INDICATOR, ">$Global::ConfDir/mode.inet")
+				or die "creat mode.inet: $!";
+			close(Vend::Server::INET_MODE_INDICATOR);
 		}
 		elsif ($Global::Unix_Mode) {
 			logGlobal "INET mode error: $@\n\nContinuing in UNIX MODE ONLY\n";
@@ -434,7 +449,7 @@ sub server_both {
 
 	my $no_fork;
 
-	if($Global::DEBUG or $Config{osname} =~ /win32/i) {
+	if($Global::DEBUG or $Global::Windows) {
 		$no_fork = 1;
 	}
 
@@ -515,10 +530,11 @@ sub server_both {
 				exit(0);
 			}
 			close Vend::Server::MESSAGE;
+			last SPAWN if $no_fork;
 			wait;
 		}
 	  };
-	  logGlobal("Died in server spawn, retry.\n") if $@;
+	  logGlobal("Died in server spawn: $@\n") if $@;
 
         last if $Signal_Terminate || $Signal_Debug;
 
@@ -602,8 +618,11 @@ sub run_server {
 	
     open_pid();
 
-	unless($Global::Inet_Mode || $Global::Unix_Mode) {
+	unless($Global::Inet_Mode || $Global::Unix_Mode || $Global::Windows) {
 		$Global::Inet_Mode = $Global::Unix_Mode = 1;
+	}
+	elsif ( $Global::Windows ) {
+		$Global::Inet_Mode = 1;
 	}
 
 	my @types;
@@ -611,7 +630,7 @@ sub run_server {
 	push (@types, 'UNIX') if $Global::Unix_Mode;
 	my $server_type = join(" and ", @types);
 
-    if ($debug) {
+    if ($Global::Windows || $debug) {
         $pid = grab_pid();
         if ($pid) {
             print "The MiniVend server is already running ".
@@ -702,8 +721,6 @@ sub run_server {
 						"Couldn't unlink status file $Global::ConfDir/$_: $!\n";
 				}
 				unlink $Pidfile;
-				system "$Global::VendRoot/bin/minivend $Signal_Restart"
-					if $Signal_Restart;
                 exit 0;
             }
         }

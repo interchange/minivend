@@ -7,7 +7,7 @@
 <H1>
 Browse __COMPANY__
 </H1>
-[loop 00-0011 00-343 00-342 00-341 21-221 34-101 19-202 ]
+[tag each products]
 [sort products:category products:price:rn]
 [loop-change 1]
 [condition][loop-field category][/condition]
@@ -29,9 +29,9 @@ Price: $[loop-price]
 <P>
 [page [loop-code]]<IMG BORDER=0 SRC="details.gif">[/page]
 [order [loop-code]]<IMG BORDER=0 SRC="ordernow.gif" ALT="(ORDER NOW)">[/order]
-[/loop]
+[/tag]
 <HR>
-[[buttonbar 0]][finish-order]
+[buttonbar 0][finish-order]
 </CENTER>
 
 </BODY>

@@ -1,6 +1,6 @@
 # Parse.pm - Parse MiniVend tags
 # 
-# $Id: Parse.pm,v 1.14 1997/11/08 16:45:21 mike Exp mike $
+# $Id: Parse.pm,v 1.17 1997/12/15 02:13:02 mike Exp mike $
 #
 # Copyright 1997 by Michael J. Heins <mikeh@iac.net>
 #
@@ -20,12 +20,12 @@
 
 package Vend::Parse;
 
-# $Id: Parse.pm,v 1.14 1997/11/08 16:45:21 mike Exp mike $
+# $Id: Parse.pm,v 1.17 1997/12/15 02:13:02 mike Exp mike $
 
 require Vend::Parser;
 
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.14 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.17 $ =~ /(\d+)\.(\d+)/);
 
 use Safe;
 use Vend::Util;
@@ -36,17 +36,11 @@ use Vend::PageBuild;
 
 require Exporter;
 
-# AUTOLOAD
-#use AutoLoader;
-#@ISA = qw(Exporter AutoLoader Vend::Parser);
-#*AUTOLOAD = \&AutoLoader::AUTOLOAD;
-# END AUTOLOAD
-
 # NOAUTO
 @ISA = qw(Exporter Vend::Parser);
 # END NOAUTO
 
-$VERSION = substr(q$Revision: 1.14 $, 10);
+$VERSION = substr(q$Revision: 1.17 $, 10);
 @EXPORT = ();
 @EXPORT_OK = qw(find_matching_end find_end);
 
@@ -56,31 +50,6 @@ use strict;
 use vars qw($VERSION);
 # END NOAUTO
 
-# AUTOLOAD
-#use vars qw(
-#
-#$VERSION
-#%Implicit
-#%InvalidateCache
-#%Order
-#%PosNumber
-#%PosRoutine
-#%Required
-#%Routine
-#%canNest
-#%Interpolate
-#%Alias
-#%hasEndTag
-#%isEndAnchor
-#
-#);
-#
-# END AUTOLOAD
-
-
-# AUTOLOAD
-#%PosNumber =	(
-# END AUTOLOAD
 
 # NOAUTO
 my %PosNumber =	(
@@ -117,7 +86,7 @@ my %PosNumber =	(
 				process_order	=> 2,
 				process_search	=> 1,
 				process_target	=> 2,
-				rotate			=> 1,
+				rotate			=> 2,
 				row				=> 1,
 				salestax		=> 1,
 				scratch			=> 1,
@@ -134,10 +103,6 @@ my %PosNumber =	(
 				value			=> 2,
 
 			);
-
-# AUTOLOAD
-#%Order =	(
-# END AUTOLOAD
 
 # NOAUTO
 my %Order =	(
@@ -170,7 +135,7 @@ my %Order =	(
 				last_page		=> [qw( target arg )],
 				lookup			=> [qw( table field key value )],
 				loop			=> [qw( arg )],
-				msql			=> [qw( base type arg )],
+				msql			=> [qw( type query list true base)],
 				nitems			=> [qw( name  )],
 				order			=> [qw( code href base )],
 				page			=> [qw( href arg )],
@@ -182,7 +147,7 @@ my %Order =	(
 				process_search	=> [qw( target )],
 				process_target	=> [qw( target secure )],
 				random			=> [],
-				rotate			=> [qw( ceiling )],
+				rotate			=> [qw( ceiling floor )],
 				row				=> [qw( width )],
 				salestax		=> [qw( name  )],
 				scratch			=> [qw( name  )],
@@ -192,17 +157,13 @@ my %Order =	(
 				shipping		=> [qw( name  )],
 				shipping_desc	=> [qw( name  )],
 				shipping_description	=> [qw( name  )],
-				sql				=> [qw( base type arg )],
+				sql				=> [qw( type query list false base)],
 				subtotal		=> [qw( name  )],
 				tag				=> [qw( op base file type )],
 				total_cost		=> [qw( name )],
 				value			=> [qw( name escaped )],
 
 			);
-
-# AUTOLOAD
-#%Required = (
-# END AUTOLOAD
 
 # NOAUTO
 my %Required = (
@@ -236,10 +197,6 @@ my %Required = (
 
 			);
 
-# AUTOLOAD
-#%InvalidateCache = (
-# END AUTOLOAD
-
 # NOAUTO
 my %InvalidateCache = (
 # END NOAUTO
@@ -270,10 +227,6 @@ my %InvalidateCache = (
 			   )
 			);
 
-# AUTOLOAD
-#%Implicit = (
-# END AUTOLOAD
-
 # NOAUTO
 my %Implicit = (
 # END NOAUTO
@@ -297,10 +250,6 @@ my %Implicit = (
 
 			);
 
-# AUTOLOAD
-#%PosRoutine = (
-# END AUTOLOAD
-
 # NOAUTO
 my %PosRoutine = (
 # END NOAUTO
@@ -309,10 +258,6 @@ my %PosRoutine = (
 				tag				=> \&Vend::Interpolate::do_tag,
 			);
 
-
-# AUTOLOAD
-#%Routine = (
-# END AUTOLOAD
 
 # NOAUTO
 my %Routine = (
@@ -355,7 +300,7 @@ my %Routine = (
 				last_page		=> \&Vend::Interpolate::tag_last_page,
 				lookup			=> \&Vend::Interpolate::tag_lookup,
 				loop			=> \&Vend::Interpolate::tag_loop_list,
-				msql			=> \&Vend::Data::msql_query,
+				msql			=> \&Vend::Data::sql_query,
 				nitems			=> \&Vend::Util::tag_nitems,
 				order			=> \&Vend::Interpolate::tag_order,
 				page			=> \&Vend::Interpolate::tag_page,
@@ -377,17 +322,13 @@ my %Routine = (
 				shipping		=> \&Vend::Interpolate::tag_shipping,
 				shipping_desc	=> \&Vend::Interpolate::tag_shipping_desc,
 				shipping_description => \&Vend::Interpolate::tag_shipping_desc,
-				sql				=> \&Vend::Data::dbi_query,
+				sql				=> \&Vend::Data::sql_query,
 				subtotal	=> \&Vend::Interpolate::tag_subtotal,
 				tag			=> \&Vend::Interpolate::do_parse_tag,
 				total_cost	=> \&Vend::Interpolate::tag_total_cost,
 				value		=> \&Vend::Interpolate::tag_value,
 
 			);
-
-# AUTOLOAD
-#%Alias = (
-# END AUTOLOAD
 
 # NOAUTO
 my %Alias = (
@@ -399,10 +340,6 @@ my %Alias = (
 				)
 			);
 
-# AUTOLOAD
-#%canNest = (
-# END AUTOLOAD
-
 # NOAUTO
 my %canNest = (
 # END NOAUTO
@@ -413,10 +350,6 @@ my %canNest = (
 				)
 			);
 
-
-# AUTOLOAD
-#%hasEndTag = (
-# END AUTOLOAD
 
 # NOAUTO
 my %hasEndTag = (
@@ -440,10 +373,6 @@ my %hasEndTag = (
 				)
 			);
 
-# AUTOLOAD
-#%Interpolate = (
-# END AUTOLOAD
-
 # NOAUTO
 my %Interpolate = (
 # END NOAUTO
@@ -453,10 +382,6 @@ my %Interpolate = (
 						row			1
 				)
 			);
-
-# AUTOLOAD
-#%isEndAnchor = (
-# END AUTOLOAD
 
 # NOAUTO
 my %isEndAnchor = (
@@ -471,11 +396,6 @@ my %isEndAnchor = (
 						last_page	1
 				)
 			);
-
-# AUTOLOAD
-#1;
-#__END__
-# END AUTOLOAD
 
 my $Initialized = 0;
 
@@ -571,16 +491,14 @@ sub comment
 }
 
 my %Monitor = ( qw(
-					if 1
-					data 1
-					compat 1
 					) );
 
 sub start
 {
     my($self, $tag, $attr, $attrseq, $origtext) = @_;
 	$tag =~ tr/-/_/;   # canonical
-	local($Global::DEBUG) = defined $Monitor{$tag} ? 1 : 0;
+	local($Global::DEBUG);
+	$Global::DEBUG = defined $Monitor{$tag} ? 1 : 0;
 print("called start $tag with attributes" . @$attrseq . "\n") if $Global::DEBUG;
 	my($tmpbuf);
     # $attr is reference to a HASH, $attrseq is reference to an ARRAY

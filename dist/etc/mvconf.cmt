@@ -15,9 +15,10 @@ directory paths will start from. You can just press enter
 if you want the current directory.
 
 SendMailLocation	/usr/lib/sendmail
-BSD, among others, has sendmail(1) in /usr/sbin.  We want to
-make sure an executable is there at program start, so we
-wire in the executable.
+This is the program you need to send emailed orders.
+If you don't have one (common on Windows) then you can
+enter none and orders will be logged to disk in the file
+etc/tracking.asc.
  
 The suggested value is probably correct, if it isn't blank.
 

@@ -32,7 +32,6 @@
 	<TD VALIGN=TOP>
 		<INPUT TYPE="radio" NAME="mv_orsearch" VALUE="no" CHECKED>Must match all
 		<INPUT TYPE="hidden" NAME="mv_searchtype" VALUE="glimpse">
-		<INPUT TYPE="hidden" NAME="mv_return_fields" VALUE="0,artist,title,price">
 		<INPUT TYPE="radio" NAME="mv_orsearch" VALUE="yes">Match any<BR>
 		<INPUT TYPE="checkbox" NAME="mv_case" VALUE="yes">Case sensitive<BR>
 		<INPUT TYPE="checkbox" NAME="mv_substring_match" VALUE="yes">
@@ -54,28 +53,31 @@
 		<CENTER><B>Sort order<B></CENTER><BR>
 		<FONT SIZE=-1>
 		<SELECT NAME="sort_field1">
-			<OPTION VALUE="title:"> Title
-			<OPTION VALUE="artist:"> Artist
-			<OPTION VALUE="price:n"> Price
-			<OPTION VALUE="title:r"> Reverse Title
-			<OPTION VALUE="artist:r"> Reverse Artist
-			<OPTION VALUE="price:nr"> Reverse Price
+			<OPTION VALUE="products:title"> Title
+			<OPTION VALUE="products:artist"> Artist
+			<OPTION VALUE="products:price:n"> Price
+			<OPTION VALUE="products:title:r"> Reverse Title
+			<OPTION VALUE="products:artist:r"> Reverse Artist
+			<OPTION VALUE="products:price:nr"> Reverse Price
+			<OPTION VALUE=""> none
 		</SELECT>
 		<SELECT NAME="sort_field2">
-			<OPTION VALUE="artist:"> Artist
-			<OPTION VALUE="price:n"> Price
-			<OPTION VALUE="title:"> Title
-			<OPTION VALUE="artist:r"> Reverse Artist
-			<OPTION VALUE="price:rn"> Reverse Price
-			<OPTION VALUE="title:r"> Reverse Title
+			<OPTION VALUE=""> none
+			<OPTION VALUE="products:artist"> Artist
+			<OPTION VALUE="products:price:n"> Price
+			<OPTION VALUE="products:title"> Title
+			<OPTION VALUE="products:artist:r"> Reverse Artist
+			<OPTION VALUE="products:price:rn"> Reverse Price
+			<OPTION VALUE="products:title:r"> Reverse Title
 		</SELECT>
 		<SELECT NAME="sort_field3">
-			<OPTION VALUE="price:n"> Price
-			<OPTION VALUE="title:"> Title
-			<OPTION VALUE="artist:"> Artist
-			<OPTION VALUE="price:nr"> Reverse Price
-			<OPTION VALUE="title:r"> Reverse Title
-			<OPTION VALUE="artist:r"> Reverse Artist
+			<OPTION VALUE=""> none
+			<OPTION VALUE="products:price:n"> Price
+			<OPTION VALUE="products:title:"> Title
+			<OPTION VALUE="products:artist:"> Artist
+			<OPTION VALUE="products:price:nr"> Reverse Price
+			<OPTION VALUE="products:title:r"> Reverse Title
+			<OPTION VALUE="products:artist:r"> Reverse Artist
 		</SELECT>
 		</FONT>
 	</TD>

@@ -4,7 +4,8 @@
 </HEAD>
 [body 1]
 <CENTER>
-<FORM ACTION="[process-target none]" METHOD=POST>
+<FORM ACTION="[process-target none secure]" METHOD=POST>
+<INPUT TYPE=hidden NAME=mv_session_id VALUE="[data session id]">
 <input type="hidden" name="mv_doit" value="refresh">
 <input type="hidden" name="mv_orderpage" value="ord/basket">
 <input type="hidden" name="mv_checkout" value="ord/checkout">

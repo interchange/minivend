@@ -1,6 +1,6 @@
 # Session.pm - Minivend Sessions
 #
-# $Id: Session.pm,v 1.15 1997/11/03 11:31:39 mike Exp $
+# $Id: Session.pm,v 1.17 1997/12/14 05:43:50 mike Exp $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>
@@ -23,13 +23,7 @@ package Vend::Session;
 require Exporter;
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.15 $, 10);
-
-# AUTOLOAD
-#use AutoLoader;
-#@ISA = qw(Exporter AutoLoader);
-#*AUTOLOAD = \&AutoLoader::AUTOLOAD;
-# END AUTOLOAD
+$VERSION = substr(q$Revision: 1.17 $, 10);
 
 # NOAUTO
 @ISA = qw(Exporter);
@@ -68,10 +62,6 @@ BEGIN {
 		require Vend::SessionFile;
 	}
 }
-
-# AUTOLOAD
-#use vars qw($Session_open $File_sessions);
-# END AUTOLOAD
 
 # NOAUTO
 my ($Session_open, $File_sessions);
@@ -355,6 +345,8 @@ sub read_session {
 
 ## SESSIONS
 
+my $joiner = $Global::Windows ? '_' : ':';
+
 sub session_name {
     my($host, $user, $fn, $proxy);
 
@@ -369,7 +361,7 @@ sub session_name {
 		$host = escape_chars($host);
 	}
 #print("name session user=$CGI::user host=$host ($CGI::host)\n") if $Global::DEBUG;
-    $fn = $Vend::SessionID . ':' . $host;
+    $fn = $Vend::SessionID . $joiner . $host;
 #print("name session id=$Vend::SessionID  name=$fn\n") if $Global::DEBUG;
     $fn;
 }
@@ -379,7 +371,7 @@ sub init_session {
 #print("init session id=$Vend::SessionID  name=$Vend::SessionName\n") if $Global::DEBUG;
     $Vend::Session = {
 	'version' => 1,
-	'frames' => $Vend::Cfg::FramesDefault,
+	'frames' => $Vend::Cfg->{FramesDefault},
 	'login' => '',
 	'browser' => $CGI::useragent,
 	'referer' => $CGI::referer,
@@ -392,11 +384,6 @@ sub init_session {
 	$Vend::Session->{'secure'} = $Vend::Cfg->{'AlwaysSecure'} ? 1 : 0;
 	$Vend::Session->{'values'}->{'mv_shipmode'} = $Vend::Cfg->{'DefaultShipping'};
 }
-
-# AUTOLOAD
-#1;
-#__END__
-# END AUTOLOAD
 
 sub remove_session_marker {
 	my ($id) = @_;

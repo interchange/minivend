@@ -1,0 +1,164 @@
+-------------------------------------------------------------
+
+                      I N S T A L L A T I O N
+
+We IMPLORE you to read all of the verbiage below.  We know how most
+of us are, so we put the install procedure up here, but if you have
+problems please read all of this file, PLUS the MiniVend documentation
+in doc/minivend.html.  Also, please check out the official MiniVend
+FAQ at http://www.minivend.com/minivend/faq/ before you call for help.
+And send your system, Perl, and Minivend information, VERSIONS AND ALL!
+
+IMPORTANT NOTE: If you don't give evidence of having read and
+                heeded the above heartfelt plea, your email
+                may well be ignored.  Caveat Emptor.
+
+
+WINDOWS INSTALLATION
+--------------------
+
+	Obtain the self-extracting executable minivend-3.05.exe
+	and double-click on it.
+	
+	If you already have the CYGWIN.DLL executable or plan on using the
+	Perl link CGI, you can download the file minivend-3.05-nodll.exe
+	and do the same.
+
+	The defaults are set for Microsoft Personal Web Server on Win95 --
+	if you use another HTTP server you will have to know where to
+	place CGI executables (the CGI-BIN) and HTML documents (DocumentRoot).
+
+	If the program does not find BLAT, you can just enter 'none' when
+	asked for SendMailProgram -- that will place all orders in the
+	CATALOG_DIR/etc/tracking.asc and CATALOG_DIR/error.log as the
+	demo is configured.
+
+	You should get PGP as soon as possible so that you might have
+	secure credit card number storage.
+
+	Many features are untested in the Windows version, and it 
+	can be considered a beta.
+
+UNIX INSTALLATION
+------------------
+Here is the short version:
+
+    gzip -dc minivend-3.05.tar.gz | tar xvf -
+    cd minivend-3.05
+    perl Makefile.PL
+    make
+    make test
+    make install
+    (change directory to MiniVend root)
+    bin/makecat simple
+    bin/start
+
+With comments:
+
+    # Unzip and untar the file -- if you have GNU tar, you can substitute
+    # 'tar xzf minivend-3.05.tar.gz'
+    gzip -dc minivend-3.05.tar.gz | tar xvf -
+
+    # Change directory to the one that was created 
+    #
+    cd minivend-3.05
+
+    # If you have trouble with picking up the wrong Perl version,
+    # try  '/dir/where/perl/is/perl Makefile.PL
+    #
+    # If you aren't already the user ID of the user who will run the
+    # minivend server, you might want to 'su' to that user before
+    # running this step.
+    #
+    # This step will set the MiniVend directory and Perl location,
+    # and build the Makefile.
+    #
+    # If you are upgrading from a previous version, put the 
+    # former MiniVend root directory in when prompted for
+    # VendRoot.
+    #
+    perl Makefile.PL
+
+    # Make the library modules and docs
+    make
+
+    # Run a rudimentary test to ensure the server and sockets
+    # run on your system
+    make test
+
+    # Install the files and compile the link programs
+    #
+    make install
+
+    ####
+
+       At this point, you can follow the instructions that
+       the configure program generates.  If you installed
+       MiniVend in another directory besides the current one,
+       you will have to change directories to that directory
+       before continuing.
+
+    ####
+
+    # Become superuser if you are an ISP or other organization that
+    # will be running multiple catalogs. If you don't have root access,
+    # don't worry about it.
+    #
+
+    # Make the demo catalog. You will be prompted for some initial
+	# server-wide parameters, then the catalog-specific parameters.
+    #
+    bin/makecat simple
+
+    # Start the MiniVend server
+    #
+    bin/start
+
+That should be it.  If you have problems, please do what is asked above,
+and pretty please reference the web site. And
+
+    -- WHEN IN DOUBT, RE-START THE SERVER.  It won't take but a few
+       seconds, and changes in configurable options don't take effect
+       until it is done. You may even change a page and not see the
+       effect until the server is restarted.
+
+-------------------------------------------------------------
+
+
+------------------------------------------------------------------
+
+                     S E T T I N G   U P
+                   Y O U R   C A T A L O G
+
+Setting up a MiniVend catalog can be quite complex, and that
+is why the documentation and demos were provided.  They should
+be sufficient to get you started. Many hours have been spent
+in documenting the features of MiniVend, and thoughtful users
+should almost always find their answers there.
+
+Key things that people sometimes don't understand:
+
+    -- The actual pages of the catalog are NOT in HTML document
+       space.  They are in the catalog directory of the catalog
+       that is in question.
+
+    -- The highly interpolative nature of MiniVend and HTML tags
+       means that order is often important.
+
+    -- The first thing to do in setting up a custom MiniVend catalog
+       is to define the database.  Everything with MiniVend stems
+       from the products database -- many of the custom features
+       depend on the shipping, salestax, accessories, pricing,
+       and other databases.  Determine your data set first.
+
+    -- The demo pages are there to be played with.  With MiniVend
+       3.00, you can't stop the system simply by changing a page.
+
+    -- Many of the configurable features of MiniVend are determined
+       by the directives in catalog.cfg (or minivend.cfg in a standalone
+       catalog).
+
+    -- WHEN IN DOUBT, RE-CONFIGURE THE CATALOG.  It won't take but a few
+       seconds, and changes to many of the configurable options don't
+       take effect until it is done.
+

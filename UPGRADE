@@ -1,0 +1,58 @@
+		  U P G R A D I N G   F R O M  3 . 0 x
+
+You should normally be able to simply install over the
+current software and then restart the server.  The only 
+incompatible changes are bug fixes (which may fool any
+workarounds you have made) and the addition of a "Static Yes"
+switch for statically-built catalogs.
+
+IMPORTANT NOTE:  It is highly recommended that you copy the
+current software to a backup directory or an archive in case
+there is a problem and you wish to return to the earlier
+version.
+
+See the file WHATSNEW for more information.
+
+			 U P G R A D I N G   F R O M  2 . 0 3
+
+There are a few "gotchas" for 2.0x upgrades:
+
+    * If you have not changed the PriceBreaks directive from
+      the demo (you should disable it unless you are actually
+      using quantity pricing) you will get a message in the
+      error log that "no pricing database is defined". If you
+      are using quantity pricing, you will have to set it up
+      as a database with at least the fields "sku" and "price"
+      by placing those words on the first line, separated by
+      a TAB -- and your pricing must be separated from the 
+      part number by a TAB as well.
+
+    * The CheckoutFrame, OrderFrame, SearchFrame, and any
+      other frame settings are now empty by default. If you
+      use frames, you must explicitly define those directives.
+
+    * Perl 5.002 will not work with MiniVend 3.0, and you
+      must update.
+
+    * The Cookies directive is now enabled by default.
+
+    * If you have produced a custom catalog template for use
+      by the makecat program, you cannot place two directives
+      directly after one another.  An example is the 
+      VendURL definition of '__MVC_SERVERNAME__MVC_CGIURL'.
+      That now must be '__MVC_SERVERNAME____MVC_CGIURL__' 
+      which places underscores around the entire name of the
+      substitution target.
+
+    * If you are still using the old-style report with $variable
+      substitution, you must define the NewReport directive to 'No'.
+
+    * If you use the 'f' formula shipping type in shipping.asc, you
+      must either replace the 'x' that was used for the substitution
+      of the total to @@TOTAL@@, or you must set the OldShipping 
+      to Yes.  The change to the shipping.asc file is recommended,
+      as without it you will not be able to use the new shipping
+      features of MiniVend.
+
+-------------------------------------------------------------
+

@@ -2,7 +2,7 @@
 #
 # MiniVend version 1.04
 #
-# $Id: Order.pm,v 1.10 1997/11/03 11:10:25 mike Exp $
+# $Id: Order.pm,v 1.14 1997/12/15 03:02:39 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -30,14 +30,8 @@
 package Vend::Order;
 require Exporter;
 
-$VERSION = substr(q$Revision: 1.10 $, 10);
+$VERSION = substr(q$Revision: 1.14 $, 10);
 $DEBUG = 0;
-
-# AUTOLOAD
-#use AutoLoader;
-#@ISA = qw(Exporter AutoLoader);
-#*AUTOLOAD = \&AutoLoader::AUTOLOAD;
-# END AUTOLOAD
 
 # NOAUTO
 @ISA = qw(Exporter);
@@ -58,20 +52,6 @@ use Vend::Interpolate;
 use Vend::Session;
 use Vend::Data;
 use Text::ParseWords;
-
-# AUTOLOAD
-#use vars qw(
-#@Errors
-#$Fatal
-#$Final
-#);
-# END AUTOLOAD
-
-# AUTOLOAD
-#@Errors = ();
-#$Fatal = 0;
-#$Final = 0;
-# END AUTOLOAD
 
 # NOAUTO
 my @Errors = ();
@@ -100,10 +80,6 @@ sub _format {
 	return &{'_' . $routine}($ref,$var,$val);
 }
 
-# AUTOLOAD
-#%Parse = (
-# END AUTOLOAD
-
 # NOAUTO
 my %Parse = (
 # END NOAUTO
@@ -122,6 +98,7 @@ eval {
 
 	require CCLib;
 	import CCLib qw(SetServer sendmserver);
+	print "CyberCash module found.\n";
 
 };
 
@@ -150,6 +127,26 @@ $Vend::CyberCash = ! $@;
 #	}
 #	return ('MStatus', 'success', 'order-id', 1);
 #}
+
+sub testSetServer {
+	my %options = @_;
+	my $out = '';
+	for(sort keys %options) {
+		$out .= "$_=$options{$_}\n";
+	}
+	logError("Test CyberCash SetServer:\n$out\n");
+	1;
+}
+
+sub testsendmserver {
+	my ($type, %options) = @_;
+	my $out ="type=$type\n";
+	for(sort keys %options) {
+		$out .= "$_=$options{$_}\n";
+	}
+	logError("Test CyberCash sendmserver:\n$out\n");
+	return ('MStatus', 'success', 'order-id', 1);
+}
 
 
 sub cyber_charge {
@@ -218,8 +215,16 @@ sub cyber_charge {
     'port' => $Vend::Cfg->{Variable}->{CYBER_PORT} || 8000,
     'secret' => $Vend::Cfg->{Variable}->{CYBER_SECRET} || '',
         );
+
+	$actual{cyber_mode} = 'mauthcapture'
+		unless $actual{cyber_mode};
 	
-    SetServer(%payment);
+    unless ($actual{cyber_mode} eq 'minivend_test') {
+		SetServer(%payment);
+	}
+	else {
+		testSetServer(%payment);
+	}
 
     my($orderID);
     my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = gmtime(time());
@@ -253,22 +258,38 @@ sub cyber_charge {
     $amount = "$currency $amount";
 #print "cyber_charge: amount is '$amount'\n" if $Global::DEBUG;
 
-	$actual{cyber_mode} = 'mauthcapture'
-		unless $actual{cyber_mode};
 
-    my %result = sendmserver(
-		$actual{cyber_mode},
-        'Order-ID'     => $orderID,
-        'Amount'       => $amount,
-        'Card-Number'  => $actual{mv_credit_card_number},
-        'Card-Name'    => $actual{b_name},
-        'Card-Address' => $actual{b_address},
-        'Card-City'    => $actual{b_city},
-        'Card-State'   => $actual{b_state},
-        'Card-Zip'     => $actual{b_zip},
-        'Card-Country' => $actual{b_country},
-        'Card-Exp'     => $exp,
-    );
+    my %result;
+    if ($actual{cyber_mode} ne 'minivend_test') {
+		%result = sendmserver(
+			$actual{cyber_mode},
+			'Order-ID'     => $orderID,
+			'Amount'       => $amount,
+			'Card-Number'  => $actual{mv_credit_card_number},
+			'Card-Name'    => $actual{b_name},
+			'Card-Address' => $actual{b_address},
+			'Card-City'    => $actual{b_city},
+			'Card-State'   => $actual{b_state},
+			'Card-Zip'     => $actual{b_zip},
+			'Card-Country' => $actual{b_country},
+			'Card-Exp'     => $exp,
+		);
+	}
+	else {
+		%result = testsendmserver(
+			$actual{cyber_mode},
+			'Order-ID'     => $orderID,
+			'Amount'       => $amount,
+			'Card-Number'  => $actual{mv_credit_card_number},
+			'Card-Name'    => $actual{b_name},
+			'Card-Address' => $actual{b_address},
+			'Card-City'    => $actual{b_city},
+			'Card-State'   => $actual{b_state},
+			'Card-Zip'     => $actual{b_zip},
+			'Card-Country' => $actual{b_country},
+			'Card-Exp'     => $exp,
+		);
+	}
 
 	if($result{MStatus} !~ /^success/) {
 		$Vend::Session->{cybercash_error} = $result{MErrMsg};
@@ -297,11 +318,6 @@ sub cyber_charge {
 }
 
 
-
-# AUTOLOAD
-#1;
-#__END__
-# END AUTOLOAD
 
 sub report_field {
     my($field_name, $seen) = @_;
@@ -516,7 +532,7 @@ sub check_order {
 
 	my($var,$val);
 	my $status = 1;
-	my(@param) = split /\n+/, $params;
+	my(@param) = split /[\r\n]+/, $params;
 
 	for(@param) {
 		next unless /\S/;
@@ -527,13 +543,16 @@ sub check_order {
 		if (/^&/) {
 			($var,$val) = split /[\s=]+/, $parameter, 2;
 		}
-		else {
-			$parameter =~ /(\w+)[\s=]+(.*)/;
+		elsif ($parameter =~ /(\w+)[\s=]+(.*)/) {
 			$k = $1;
 			$v = $2;
 			($var,$val) =
 				('&format', $v . ' ' . $k  . ' ' .
 					$Vend::Session->{'values'}->{$k} );
+		}
+		else {
+			logError("Unknown order check '$parameter' in profile $profile");
+				next;
 		}
 		$val =~ s/&#(\d+);/chr($1)/ge;
 

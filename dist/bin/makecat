@@ -29,7 +29,7 @@ BEGIN {
     };
 	($VendRoot = $ENV{MINIVEND_ROOT})
 		if defined $ENV{MINIVEND_ROOT};
-$VendRoot = $VendRoot || '/home/minivend';
+$VendRoot = $VendRoot || '/home/mike/mvend';
 }
 
 ## END CONFIGURABLE VARIABLES
@@ -69,7 +69,7 @@ EOF
 use vars qw($opt_i $opt_F $opt_f $opt_r);
 getopts('rf') or die "Couldn't get options: $@\n$USAGE\n";
 
-my $catalog_name = shift || (print( STDOUT $USAGE), prompt ("Catalog name? "));
+my $catalog_name = shift || (prompt ("Catalog name? "));
 die "$USAGE\n" unless $catalog_name;
 
 $Vend::MakeCat::Force = 1 if $opt_F;
@@ -78,6 +78,8 @@ $Reconfigure = 1 if $opt_r;
 my $Configfile = $opt_f || "$0.cfg";
 my $Servername;
 my $Servers;
+my $CgiDefault		= $ENV{MVC_CGIDIR} || undef;
+my $DocrootDefault	= $ENV{MVC_DOCROOT} || undef;
 
 print <<EOF;
 makecat -- MiniVend catalog installation program.
@@ -86,9 +88,96 @@ makecat -- MiniVend catalog installation program.
 
 EOF
 
+my $Windows;
+if($Config{osname} =~ /win32/i) {
+	$Windows = 1;
+	$ENV{HOME}		= $ENV{HOME} || $ENV{MINIVEND_ROOT} || '';
+	$ENV{MVC_ENCRYPTOR} = $ENV{MVC_ENCRYPTOR} || 'none';
+	$CgiDefault		= 'c:/webshare/scripts';
+	$CgiUrlDefault	= '/scripts';
+	$DocrootDefault = 'c:/webshare/wwwroot';
+}
+else {
+	$ENV{MVC_ENCRYPTOR} = $ENV{MVC_ENCRYPTOR} || 'none';
+}
+
+FINDDOCROOT: {
+	last FINDDOCROOT if defined $DocrootDefault;
+	for(qw/www html web web-public public_html public-html/) {
+		-d "$ENV{HOME}/$_" and -w _
+			and $DocrootDefault = "$ENV{HOME}/$_"
+		and last FINDDOCROOT;
+	}
+
+	for(	glob("$ENV{HOME}/*html*"),
+			glob("$ENV{HOME}/*www*"),
+			glob("$ENV{HOME}/*web*")
+		)
+	{
+		-d $_ and -w _
+			and $DocrootDefault = $_
+		and last FINDDOCROOT;
+	}
+
+	for(
+		 '/usr/local/etc/httpd/htdocs',
+		 '/usr/local/apache/htdocs',
+		 '/home/httpd/htdocs',
+		 glob("/*/httpd/*docs"),
+		 glob("/*web*/*docs"),
+		 glob("/*/ns-home/docs"),
+		 glob("/export/*/ns-home/http*/docs"),
+		 glob("/usr/*/ns-home/http*/docs"),
+		 glob("/home/*/ns-home/http*/docs")
+		)
+	{
+		-d $_ and -w _
+			and $DocrootDefault = $_
+		and last FINDDOCROOT;
+	}
+
+	$DocrootDefault = '';
+}
+
+FINDCGIDIR: {
+	last FINDCGIDIR if defined $CgiDefault;
+	for(qw/cgi-bin cgi cgibin web-scripts scripts cgiwrap cgi-wrap/) {
+		-d "$ENV{HOME}/$_" and -w _
+			and $CgiDefault = "$ENV{HOME}/$_"
+			and $CgiUrlDefault = "/$_"
+		and last FINDCGIDIR;
+	}
+
+	for( glob("$ENV{HOME}/*cgi*"), glob("$ENV{HOME}/*scripts*") ) {
+		-d $_ and -w _
+			and $CgiDefault = $_
+			and ($CgiUrlDefault = $_) =~ s:.*/:/:
+		and last FINDCGIDIR;
+	}
+
+	for(
+			 '/usr/local/etc/httpd/cgi-bin',
+			 '/usr/local/apache/cgi-bin',
+			 '/home/httpd/cgi-bin',
+			 glob("/*web*/cgi*"),
+			 glob("/*/ns-home/cgi*"),
+			 glob("/export/*/ns-home/http*/cgi*"),
+			 glob("/usr/*/ns-home/http*/cgi*"),
+			 glob("/home/*/ns-home/http*/cgi*"),
+		)
+	{
+		-d $_ and -w _
+			and $CgiDefault = $_
+			and ($CgiUrlDefault = $_) =~ s:.*/:/:
+		and last FINDCGIDIR;
+	}
+
+	$CgiDefault = $CgiUrlDefault = '';
+}
+
 my $isroot = 0;
 if ($< == 0) {
-	$isroot = 1;
+	$isroot = 1 unless $Windows;
 }
 
 my %Conf;
@@ -99,23 +188,30 @@ my %IfRoot = (qw( minivenduser 1 minivendgroup 1 catuser 1));
 my %Prefix = (
 	vendroot     =>  $VendRoot,
 	basedir      =>  sub { $isroot ? '' : "$ENV{HOME}/catalogs" },
-	minivenduser =>  sub { $isroot ? '' : get_id(); },
+	minivenduser =>  sub {  return 'everybody' if $Windows;
+							$isroot ? '' : get_id(); },
 	minivendgroup=>  sub {
+						return 'nogroup' if $Windows;
 						my $gid = (getpwnam($Conf{minivenduser}))[3];
 						(getgrgid($gid))[0];
 					 },
-    documentroot =>  "$ENV{HOME}/www",
-	cgidir       =>  "$ENV{HOME}/cgi-bin",
-	cgibase      =>  '/cgi-bin',
+    documentroot =>  $DocrootDefault,
+	cgidir       =>  $CgiDefault,
+	cgibase      =>  $CgiUrlDefault,
 	demotype     =>  'simple',
     catuser      =>  sub { $isroot ? '' : $Conf{'minivenduser'} },
-    mailorderto  =>  sub {  if($Conf{servername} =~ s:(/~[^/]+)$:: ) {
+    mailorderto  =>  sub {  return 'webmaster' if $Windows;
+							if($Conf{servername} =~ s:(/~[^/]+)$:: ) {
 								$Tilde = $1;
 							}
     						$Conf{catuser} },
 	catroot      =>  sub { $Conf{basedir} . "/" . $catalog_name },
 	cgiurl       =>  sub { my $url = '';
-							if ($Conf{cgibase} eq '') {
+							if ($Windows) {
+								$url .= $Conf{cgibase} . '/' .
+										$catalog_name  . '.exe';
+							}
+							elsif ($Conf{cgibase} eq '') {
 								$url =	$Tilde if defined $Tilde;
 								$url .=	'/' .
 										$catalog_name .
@@ -205,6 +301,7 @@ my %History = (
 					},
 
 	minivenduser  =>   sub {
+						return 'everybody' if $Windows;
 						my @return = (@_);
 						my $u;
 						if(defined $Servers->{$Servername}) {
@@ -220,6 +317,7 @@ my %History = (
 					},
 
 	minivendgroup  =>   sub {
+						return 'nogroup' if $Windows;
 						my @return = (@_);
 						my $u;
 						if(defined $Servers->{$Servername}) {
@@ -296,6 +394,7 @@ my @Servers;
 
 FINDCONF: {
 
+	last FINDCONF if $Windows;
 	my $httpdconf;
 	print <<EOF unless @conf;
 
@@ -379,7 +478,7 @@ SETDEFAULTS: {
 	PERMS: {
 
 		unless ($isroot) {
-			print <<EOF ;
+			print <<EOF unless $Windows;
 
 This demo configuration sometimes requires root permissions,
 depending on your ISP.  It needs to copy a few files to the CGI
@@ -634,7 +733,7 @@ EOF
 
 }
 
-$mvuid = getpwnam($Conf{minivenduser});
+$mvuid = $Windows ? 'everybody' : (getpwnam($Conf{minivenduser}))[0];
 unless (defined $mvuid) {
 	die "$Conf{minivenduser} is not a valid user name on this machine.\n";
 }
@@ -645,18 +744,23 @@ if($isroot) {
 }
 
 if ($Conf{minivendgroup}) {
-	$mvgid = getgrnam($Conf{minivendgroup});
+	$mvgid = $Windows ? 'nogroup' : getgrnam($Conf{minivendgroup});
 	unless (defined $mvgid) {
 		die "$Conf{minivendgroup} is not a valid group name on this machine.\n";
 	}
 }
 else {
-	$mvgid = (getpwnam($Conf{minivenduser}))[3];
+	$catgid = $Windows ? 'nogroup' : (getpwnam($Conf{minivenduser}))[3];
 }
 
-($catuid,$catgid) = (getpwnam($Conf{catuser}))[2,3];
-unless (defined $catuid) {
-	die "$Conf{catuser} is not a valid user name on this machine.\n";
+if($Windows) {
+	($catuid,$catgid) = ('everybody', 'nogroup');
+}
+else {
+	($catuid,$catgid) = (getpwnam($Conf{catuser}))[2,3];
+	unless (defined $catuid) {
+		die "$Conf{catuser} is not a valid user name on this machine.\n";
+	}
 }
 
 # Find the perl path
@@ -677,7 +781,14 @@ for ( $Conf{catroot}, $Conf{documentroot}, $Conf{basedir},
 }
 die "\n" if $warn;
 
-print <<EOF;
+my $prog;
+
+SETLINKMODE: {
+	if ($Windows) {
+		$prog = "$VendRoot/bin/tlink.exe";
+		last SETLINKMODE;
+	}
+	print <<EOF;
 
 MiniVend can use either UNIX- or internet-domain sockets.
 Most ISPs would prefer UNIX mode, and it is more secure.
@@ -687,19 +798,23 @@ and the FullURL directive, select NONE. You will then need
 to copy the program by hand or otherwise ensure its presence.
 
 EOF
-print "(You can use the up/down arrows to toggle).\n" if $Vend::MakeCat::Prompt_sub;
+	print "(You can use the up/down arrows to toggle).\n"
+		if $Vend::MakeCat::Prompt_sub;
 
-sethistory("NONE", "UNIX", "INET");
-$default = ($Config{osname} =~ /bsd/i and $Config{osvers} gt '3') ? 'INET' : 'UNIX';
-$ask = prompt("INET or UNIX mode? ", $default);
+	sethistory("NONE", "UNIX", "INET");
+	$default = ($Config{osname} =~ /bsd/i and $Config{osvers} gt '3')
+				? 'INET' : 'UNIX';
+	$ask = prompt("INET or UNIX mode? ", $default);
 
-my $prog = "$VendRoot/bin/vlink";
+	$prog = "$VendRoot/bin/vlink";
 
-if($ask =~ /^\s*i/i) {
-	$prog = "$VendRoot/bin/tlink";
-}
-elsif($ask =~ /^\s*n/i) {
-	$prog = "NONE";
+	if($ask =~ /^\s*i/i) {
+		$prog = "$VendRoot/bin/tlink";
+	}
+	elsif($ask =~ /^\s*n/i) {
+		$prog = "NONE";
+	}
+
 }
 
 FINDPROG: {
@@ -713,7 +828,7 @@ FINDPROG: {
 	Please give the complete path to the link program.
 
 EOF
-		if($Conf{osname} =~ /win32/i) {
+		if($Config{osname} =~ /win32/i) {
 			# do nothing
 		}
 		elsif(findexe('locate')) {
@@ -721,7 +836,7 @@ EOF
 		}
 		else {
 			@history = `find . -name \*[vt]link\* -print`;
-			chop @history;
+			chomp @history;
 		}
 		sethistory(@history);
 		$prog = prompt("Link program? ", $history[0]);
@@ -766,7 +881,7 @@ if($warn) {
 		(warn "\n$_ is empty, skipping.\n", next)
 			unless $dir =~ /\S/;
 		unless(-d $dir) {
-			File::Path::mkpath([$dir], 1, 0775)
+			File::Path::mkpath([$dir], 0, 0775)
 				or die "Couldn't make directory $dir: $!\n";
 		}
 		if($isroot) {
@@ -802,13 +917,17 @@ else {
 }
 chdir $dir || die "Couldn't change directory to $dir: $!\n";
 
-system "tar -cf - * | (cd $Conf{catroot}; tar -xf -)";
+# Before Archive::Tar -- thank you, Calle!
+#system "tar -cf - * | (cd $Conf{catroot}; tar -xf -)";
 
-if($?) {
+eval {
+	copy_current_to_dir($Conf{catroot});
+};
+
+if($@) {
 	die <<EOF . "\n";
 There were errors in copying the demo files.  Cannot
-continue.  Check to see if permissions are correct, and
-that the 'tar' program is available.
+continue.  Check to see if permissions are correct.
 
 EOF
 }
@@ -859,6 +978,9 @@ else {
 
 sub substitute {
 	my($parm,$new) = @_;
+
+	return $ENV{"MVC_$parm"} if defined $ENV{"MVC_$parm"};
+
 	if($new) {
 		return $Conf{lc $parm} || '';
 	}
@@ -896,7 +1018,11 @@ sub wanted {
 		rename ("$file.new", $file)
 			or die "Couldn't rename $name.new to $name: $!\n";
 	}
-	if(defined $Mfile{$file} or $file =~ /\.gdbm$|\.asc$|\.txt$|\.csv$|\.db$/) {
+	if($Windows) {
+		# None of this stuff applies for Windows, I don't think.
+		# Put Win-specific stuff here.
+	}
+	elsif(defined $Mfile{$file} or $file =~ /\.gdbm$|\.asc$|\.txt$|\.csv$|\.db$/) {
 		if($isroot) {
 			chown ($mvuid, $mvgid, $file)
 				or die "\nCouldn't set ownership of $name: $!\n";
@@ -933,17 +1059,16 @@ sub wanted {
 
 		print do_msg("Moving link program to $cginame");
 
-		system "mv $Conf{catroot}/executable $cginame";
-		if($?) {
-			die "Couldn't move link executable from $prog to $cginame: $!\n";
-		}
+		File::Copy::copy("$Conf{catroot}/executable", $cginame)
+			or die "Couldn't copy link executable from $prog to $cginame: $!\n";
+		unlink "$Conf{catroot}/executable";
 
 		if($isroot) {
 			chown ($mvuid, $mvgid, $cginame)
 				or die "\nCouldn't set ownership of $cginame: $!\n";
 		}
 
-		unless ($isroot or can_do_suid()) {
+		unless ($isroot or $Windows or can_do_suid()) {
 			print <<EOF;
 
 My test indicates you can't change vlink to SUID mode.
@@ -967,20 +1092,28 @@ EOF
 	
 	unless($Conf{samplehtml} eq 'NONE') {
 		print do_msg("Moving HTML files to $Conf{samplehtml}");
-		system "mv html/* $Conf{samplehtml}";
-		if($?) {
-			die "Couldn't move HTML files $Conf{samplehtml}: $!\n";
+		eval {
+			chdir 'html';
+			copy_current_to_dir($Conf{samplehtml});
+			chdir '..';
+			File::Path::rmtree('html');
+		};
+		if($@) {
+			die "Couldn't move HTML files $Conf{samplehtml}: $@\n";
 		}
-		rmdir 'html'
-			or die "Couldn't remove HTML directory: $!\n";
 		print "done.\n";
 	}
 
 	unless($Conf{imagedir} eq 'NONE') {
 		print do_msg("Moving image files to $Conf{imagedir}");
-		system "mv images/* $Conf{imagedir}";
-		if($?) {
-			die "Couldn't move image files to $Conf{imagedir}: $!\n";
+		eval {
+			chdir 'images';
+			copy_current_to_dir($Conf{imagedir});
+			chdir '..';
+		};
+	
+		if($@) {
+			die "Couldn't move HTML files $Conf{imagedir}: $@\n";
 		}
 		if($isroot) {
 			opendir(CHGIT,$Conf{imagedir})
@@ -992,8 +1125,7 @@ EOF
 					or die "Couldn't chown image files in $Conf{imagedir}: $!\n";
 			}
 		}
-		rmdir 'images'
-			or die "Couldn't remove image directory: $!\n";
+		File::Path::rmtree('images');
 		print "done.\n";
 	}
 
@@ -1064,6 +1196,9 @@ $newcfgline
 EOF
 	}
 
+    my $start_string = $Windows	? "$Conf{vendroot}\\minivend"
+								: "$Conf{vendroot}/bin/restart";
+
 	print <<EOF;
 
 Done with installation. If my reading of your input is correct, you
@@ -1078,10 +1213,10 @@ In any case, you should get direct access at:
 That is, after you START or RESTART the MiniVend server.  8-)
 It is best done with:
 
-	$Conf{vendroot}/bin/restart
+	$start_string
 
 EOF
-	print "Good luck with MiniVend 2.0!\n" if defined $newconfig;
+	print "Good luck with MiniVend!\n" if defined $newconfig;
 
 __END__
 

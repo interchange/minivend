@@ -144,6 +144,8 @@ sub locked
 sub lock
 {
     my($self) = @_;
+	# MODIFICATION FOR WIN32, UGGH
+	return $self if $ =~ /win32/i;
     $self->unlock if $self->locked;
 
     my $fh = gensym();

@@ -1,4 +1,4 @@
-# MiniVend V3.04
+# MiniVend V3.05
 # 
 # Copyright 1996,1997 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -31,483 +31,56 @@
 # Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139,
 # USA.
 
-Welcome to MiniVend, based on Vend, Andrew Wilcox's fine
-shopping cart program.  This program is completely unsupported,
-without warranty of any kind -- but that doesn't mean the
-author is not interested in problems, suggestions, or comments.
-Please feel free to send them to Mike Heins, <mikeh@minivend.com>.
+Welcome to MiniVend, originally based on Vend.  This program is
+completely unsupported, without warranty of any kind. The author is
+interested in problems, suggestions, or comments, but does not have time
+to offer free individual support in most cases. See the MiniVend website at
+http://www.minivend.com/minivend/ for more information.
 
--------------------------------------------------------------
+   IMPORTANT NOTE:  MiniVend 3.05 requires Perl 5.004 or higher.
+   (It will probably work with 5.003 on some UNIX systems and *may*
+   work with Perl 5.002. Neither are supported.)
 
-                      W H A T ' S   N E W 
+The information you need is in the following files:
 
-MiniVend 3.04 is a minor release to fix bugs in 3.03:
-
-    * If file test was failing on a Safe trap. Fixed.
-
-    * PIPE databases did not work in 3.03 (only) -- they now
-      work well even for searching.
-
-    * Major bug in new parser fixed, now virtually every
-      tag should be parsed by MiniVend in 'NewTags Yes'
-      mode.  Switching to the new parser is recommended,
-      as new features will not be added to the old parser.
-
-    * New [elsif ...] addition to [if ...] was not
-      documented or announced.
-
-    * Perl 5.003 should run MiniVend without changes.
-
-    * Escape mechanism for values works properly.
-
-    * [include file] tag added.
-
-    * UserTag now accepts Interpolate option.
-
-    * Other minor bug fixes.
-
-MiniVend 3.03 has many bug fixes and feature set improvements.
-
-There is one incompatible change:
-
-    * If you are using Static builds, you must now define
-      'Static Yes' in the catalog.cfg file to get static
-      pages to build or run.  This was done to provide a
-      single "on/off" switch for static builds.
-
-As well as adding the following features/fixes:
-
-    * The new tag syntax is more reliable and trouble-free, 
-      and a UserTag directive allows user-defined tags. For example,
-      you can do:
-
-        UserTag  caps  Routine  sub { return "\U@_" }
-        UserTag  caps  HasEndTag
-
-      and have "[caps]uppercase[/caps]" become "UPPERCASE".
-
-      In addition, almost all old-style tags will be parsed
-      properly by the new tag parser.
-
-    * Sorting has been improved and regularized. All iterative
-      lists may be sorted with the same syntax, and all may be sorted
-      on any database field entry.
-
-        [search-list]
-        [sort products:category products:name:f]
-        ...
-        [/search-list]
-
-      The above will sort a search return on two fields in
-      the database -- and will work the same for shopping carts,
-      loop lists, and [tag each products].
-      
-      There are unlimited levels of sort, and all sorts may individually
-      have options for numeric, case-insensitive, and reverse. See the
-      section SORTING in minivend.html.
-
-    * Added [on-change name] tag to allow conditional nested search
-      display.
-
-    * Salestax bug fixed, 'default' now works.
-
-    * AllowGlobal lets certain "trusted" catalogs define global
-      subroutines. AdminSub restricts certain subroutine names.
-
-    * ImageAlias does the same thing for MiniVend images that
-      Apache/NCSA does with Alias.
-
-    * A robot defense now allows you to limit the number of line
-      items in the shopping cart or cut off access to a host that
-      accesses a certain number of pages without at least one 30 
-      second pause. Implemented with OrderLineLimit and RobotLimit
-      directives on a per-catalog basis, and the LockoutCommand
-      directive as a global parameter.
+    README     Copyright info, roadmap to installation
+               and pointers to support system
     
-    * SQL numerical types are now handled properly if you set the
-      NUMERIC option in catalog.cfg, i.e.:
-        
-        Database  products  NUMERIC price
-        Database  inventory NUMERIC on_hand
+    Copying    Your MiniVend license -- please read.
+
+    INSTALL    Installation instructions
+
+    README.OS  OS-specific information, if any
+
+    doc/       The MiniVend documentation.
+
+    WHATSNEW   Change information for all versions in this
+               version family.
+
+    MANIFEST   List of all core distribution files.
     
-    * The server will now fall back to UNIX mode only if the
-      TcpPort (7786 by default) is occupied and it cannot bind().
-      This does not apply if MiniVend was started in INET mode only,
-      but there will now be a better log message indicating the
-      server is stopped.
-
-    * Started allowing a lower case POST method -- many browsers
-      seem to violate the HTTP spec in that regard. This mitigates
-      the common "interaction error" problem.
-
-    * Fixed bug in CyberCash processing that allowed only the
-      'mauthcapture' mode.
-
-    * Deleted SearchOverMsg directive -- you must now set 
-      mv_search_over_msg directly if you want to use it.
-
-MiniVend 3.02 adds full SQL support. In addition, several minor
-demo flaws have been polished, and some bugs in the new geographic
-shipping changes have been fixed.
-
-Changes include:
-
-    * Full SQL support, including for ODBC, using the powerful
-      DBI/DBD interface. It should operate on all DBI-compliant drivers -- it
-      has been tested with MySQL, mSQL, Solid, ODBC, and PostgreSQL.
-
-    * All database documentation greatly improved.
-
-    * Geographic qualification for shipping works.
-
-    * mv_credit_card_valid now returned as blank false value
-      instead of 0 false value.
-
-    * =true added to order profile checks, will pass on Yes|True|1
-      and fail on anything else.
-
-MiniVend 3.00 is greatly changed from MiniVend 2.03, though catalogs
-should be almost completely compatible. The exceptions are one or two
-pricing and shipping database changes.  In both cases, there is available
-backward compatibility. 
-
-Changes include:
-
-    * Installation has been changed to fit the Perl model
-      of 'perl Makefile.PL; make; make test; make install'.
-      You can also just type './configure' to perform this
-      in one step.
-
-      Perl 5.004 allows retrieval and installation of MiniVend
-      with 'perl -MCPAN -e 'install Vend::Cart' at the 
-      command line.
-
-    * Catalog builder program improved to read Apache/NCSA-style
-      configuration files and supply some intelligent defaults.
-      Command-line editing and history are supported when teh
-      Term::Readline package is available.
-
-    * Optional modules automatically fetched with CPAN module
-      if available.
-
-    * A powerful static page building capability is in place.
-      This allows completely automated generation of static HTML
-      pages based on MiniVend databases.  Use it to build static
-      category lists and product pages that will load quickly without
-      the necessity of MiniVend parsing them.
-    
-    * Dynamic page parsing speed is increased by about 30% when
-      using the standard syntax.
-
-    * Multiple product databases allow the breakout of product lines,
-      new-used product separation, multi-vendor order routing, and
-      more.  The database an item is ordered from is kept with the
-      item in the shopping cart, so items ordered with the same part
-      number from different databases will not overwrite each other.
-
-    * Database tables are now writeable.  Atomic incrementation is
-      supported, which means that reliable inventory counts can be
-      kept.  Form-based database updates are expanded to encompass
-      all databases, not just mSQL.
-
-    * Transactions can be logged to an arbitrary file in an arbitrary
-      format with [tag log file]data[/tag].
-
-    * Databases can be exported to an ASCII file with the [tag export ...]
-      [/tag] construct.
-
-    * Shipping is much improved, with built-in subroutine calls, 
-      error messages for out of bounds condtions, drop-in UPS zone
-      files, configurable handling charges, UPS cost rounding, geographic
-      qualification, and more regular syntax.
-
-    * Item attribute selection greatly improved, with automated building
-      of the item attribute selection.  Item attributes can easily be 
-      specified at the time of order.
-
-    * Item attributes can cause price adjustments on either an
-      item basis or attribute basis.
-
-    * Uses Data::Dumper's C-based uneval code when available,
-      improving session storage speed.
-
-    * Database tables are only actually opened when referenced,
-      improving speed greatly on systems that have a large number
-      of tables in the database.
-
-    * Experimental DBI/DBD example interface provided, which
-      will allow attachment of supported SQL databases like Solid,
-      Oracle, or Sybase. THIS IS EARLY ALPHA SOFTWARE. Use only on
-      an experimental basis, never with live data.
-
-    * Search engine has improved coordinated matching, with full
-      field-independent case-sensitivity, substring matching, and
-      negation.
-
-    * Search speed greatly improved when doing complex
-      field-coordinated searches.
-
-    * The FullUrl directive allows different virtual hosts to have
-      link programs with the same name, i.e. all named /cgi-bin/shop.
-
-    * A new (and still experimental) page syntax allows more regular
-      parsing of tags, removing some of the interpolation-order anomalies
-      inherent in the old-style tags. It can be invoked on individual
-      pages with the [new] tag.
-
-    * Search cacheing is much improved, and searches can be pre-built
-      when using the static page build capability.
-
-    * Pages can be cached, which especially improves performance of
-      large parsed pages. Static build is preferred to cache, but
-      with large databases it is not practical to build every item
-      in advance.
-
-    * Supports Perl 5.004 transparently, making runtime changes to
-      affected modules.
-
-    * Better security with the NoAbsolute, AdminPage, .access, and
-      AdminDatabase tags.
-
-    * Improved handling of cookies, with savable sessions and dynamic
-      expire times.
-
-    * Mailed orders may have MIME attachements. Though the author
-      loathes routinely-used MIME, it has value as a way to attach
-      an encrypted credit card number for easy processing by an
-      order entry workstation.
-
-    * Search sorting bugs fixed.
-
-    * New $Safe{'cgi'}->{form_value} access in embedded Perl allows
-      complex conditional search or order routines to be more
-      intelligent with regard to user input.
-
-    * New FormIgnore directive allows certain variables to be
-      expunged from the user session.
-
-    * Discounted prices can be displayed directly
-      with [discount-price].
-
-    * Cookies can be configured for expiration times and multiple
-      servers in a domain.
-
-    * Runs with taint checking enabled, even when using
-      most embedded Perl code.
-
-    * Many other minor bug fixes, improvements, and changes.
-
--------------------------------------------------------------
-
-
-                      I N S T A L L A T I O N
-
-We IMPLORE you to read all of the verbiage below.  We know
-how most of us are, so we put the install procedure up here,
-but if you have problems please read all of this file, PLUS the
-MiniVend documentation in doc/minivend.html.  Also, please check
-out the official MiniVend FAQ at http://www.minivend.com/faq/
-before you call for help.  And send your system, Perl, and
-Minivend information, VERSIONS AND ALL!
-
-IMPORTANT NOTE: If you don't give evidence of having read and
-                heeded the above heartfelt plea, your email
-                may well be ignored.  Caveat Emptor.
-
-Here is the short version:
-
-    gzip -dc minivend-3.00.tar.gz | tar xvf -
-    cd minivend-3.00
-    perl Makefile.PL
-    make
-    make test
-    make install
-    (change directory to MiniVend root)
-    bin/makecat simple
-    bin/start
-
-With comments:
-
-    # Unzip and untar the file -- if you have GNU tar, you can substitute
-    # 'tar xzf mvend300.tar.gz'
-    gzip -dc minivend-3.00.tar.gz | tar xvf -
-
-    # Change directory to the one that was created 
-    #
-    cd minivend-3.00
-
-    # If you have trouble with picking up the wrong Perl version,
-    # try  '/dir/where/perl/is/perl Makefile.PL
-    #
-    # If you aren't already the user ID of the user who will run the
-    # minivend server, you might want to 'su' to that user before
-    # running this step.
-    #
-    # This step will set the MiniVend directory and Perl location,
-    # and build the Makefile.
-    #
-    # If you are upgrading from a previous version, put the 
-    # former MiniVend root directory in when prompted for
-    # VendRoot.
-    #
-    perl Makefile.PL
-
-    # Make the library modules and docs
-    make
-
-    # Run a rudimentary test to ensure the server and sockets
-    # run on your system
-    make test
-
-    # Install the files and compile the link programs
-    #
-    make install
-
-    ####
-
-       At this point, you can follow the instructions that
-       the configure program generates.  If you installed
-       MiniVend in another directory besides the current one,
-       you will have to change directories to that directory
-       before continuing.
-
-    ####
-
-    # Become superuser if you are an ISP or other organization that
-    # will be running multiple catalogs. If you don't have root access,
-    # don't worry about it.
-    #
-
-    # Make the demo catalogs -- either one or both. On the first
-    # one, you will be prompted for some initial parameters, then
-    # asked to re-run.  This is OK.
-    #
-    bin/makecat sample
-
-    # Make the other catalog. The extension .cat will be
-    # put on the catalog configuration file that is created.
-    #
-    # If you want to make it with a different name, just use:
-    #
-    #      bin/makecat yourname
-    #
-    bin/makecat simple
-
-    # Start the MiniVend server
-    #
-    bin/start
-
-That should be it.  If you have problems, please do what is asked above,
-and pretty please reference the web site. And
-
-    -- WHEN IN DOUBT, RE-START THE SERVER.  It won't take but a few
-       seconds, and changes in configurable options don't take effect
-       until it is done. You may even change a page and not see the
-       effect until the server is restarted.
-
--------------------------------------------------------------
-
-                     D O C U M E N T A T I O N
-
-The documentation is in 3 files in the doc/ subdirectory of
-the main MiniVend directory:
-
-           toc.html       Table of contents
-           minivend.html  Main documentation file
-           tags.html      Complete MiniVend tag reference
-
-These files will be copied to the same HTML directory as
-the sample and simple demo gateway files -- they would normally
-be referenced as:
-
-           http:/www.yourserver.com/sample/toc.html
-
--------------------------------------------------------------
-
-                 U P G R A D I N G   F R O M  2 . 0 3
-
-There are a few "gotchas" for 2.0x upgrades:
-
-    * If you have not changed the PriceBreaks directive from
-      the demo (you should disable it unless you are actually
-      using quantity pricing) you will get a message in the
-      error log that "no pricing database is defined". If you
-      are using quantity pricing, you will have to set it up
-      as a database with at least the fields "sku" and "price"
-      by placing those words on the first line, separated by
-      a TAB -- and your pricing must be separated from the 
-      part number by a TAB as well.
-
-    * The CheckoutFrame, OrderFrame, SearchFrame, and any
-      other frame settings are now empty by default. If you
-      use frames, you must explicitly define those directives.
-
-    * Perl 5.002 will not work with MiniVend 3.0, and you
-      must update.
-
-    * The Cookies directive is now enabled by default.
-
-    * If you have produced a custom catalog template for use
-      by the makecat program, you cannot place two directives
-      directly after one another.  An example is the 
-      VendURL definition of '__MVC_SERVERNAME__MVC_CGIURL'.
-      That now must be '__MVC_SERVERNAME____MVC_CGIURL__' 
-      which places underscores around the entire name of the
-      substitution target.
-
-    * If you are still using the old-style report with $variable
-      substitution, you must define the NewReport directive to 'No'.
-
-    * If you use the 'f' formula shipping type in shipping.asc, you
-      must either replace the 'x' that was used for the substitution
-      of the total to @@TOTAL@@, or you must set the OldShipping 
-      to Yes.  The change to the shipping.asc file is recommended,
-      as without it you will not be able to use the new shipping
-      features of MiniVend.
-
--------------------------------------------------------------
-
-                    K N O W N   P R O B L E M S
-
-
-IRIX, Solaris, Digital UNIX:
-           The server may not terminate immediately,
-           as the select() call blocks signals. It
-           will stop at the next request, or at the
-           end of the occasional houskeeping
-           cycle, set by the directive HouseKeeping in
-           minivend.cfg.  If you want it to stop more
-           quickly than the default (up to) 60 seconds,
-           either make a page request or set HouseKeeping
-           to a lower number.
-
-IRIX:      The UNIX-domain socket version may not work on
-           some operating system versions -- patch 596
-           is recommended.
-
-BSDI, FreeBSD:
-           The BSDI library code is not safely re-entrant
-           when used in combination with signals, so no
-           signals are sent during server usage.  This is
-           transparent to the user.
-
-           MiniVend will not as of this writing work with
-           BSDI 3.0 in UNIX mode, so you must use the INET
-           mode and the tlink program.
-
-           If the kernel parameter CHILD_MAX is not configured
-           above the default of 40, expect problems. Same with
-           SO_MAXCONN and some other kernel parameters. 
-
-Solaris:   You must use the File::Lock module -- flock()
-           emulation in Perl 5.003 does not work properly, and fcntl()
-           locking must be used.  This version of MiniVend includes
-           File::Lock, and attempts to install it.
-
-           If you have Perl 5.004 you can disregard
-           File::Lock.
-
--------------------------------------------------------------
+Major files/directories in the distribution:
+
+    configure
+    configure.bat
+    Makefile.PL The installation scripts. Try typing "./configure"
+                or "configure" to install.
+
+    dist/       The distribution files, exclusive of library
+                modules. Includes:
+
+                minivend.cfg.dist   Distribution minivend.cfg
+                simple/             The simple demo application.
+                bin/                Executables including scripts
+                src/                C and Perl code for CGI links
+
+    doc/        The documentation.
+
+    lib/        The library modules needed to run MiniVend.
+                 
+    win/        Windows-specific files
+            
+--------------------------------------------------------------
 
                         M I N I V E N D
                                        
@@ -519,12 +92,7 @@ Solaris:   You must use the File::Lock module -- flock()
    MiniVend is freely-redistributable under the GNU General Public
    License -- you can download it via FTP.
 
-   IMPORTANT NOTE:  MiniVend requires Perl 5.003 or higher and GDBM
-   or DB_File databases. The program is no longer compatible with 
-   NDBM or Perl 5.001.  It *may* work with Perl 5.002, but it is
-   no longer supported.
-
-    MiniVend 3.00 Features
+    MiniVend 3.0 Features
 
        * Users maintain a "shopping cart" for ordered items
        * Multiple independent or shared catalogs allow one server
@@ -607,17 +175,15 @@ Solaris:   You must use the File::Lock module -- flock()
 
                          D E M O
 
-There are two demos supplied. The 'sample' demo demonstrates
-frames on MiniVend, the 'simple' demo does not use frames.
+There is a simple demo application included. 
 
-To install the demos, go to the MiniVend installation directory
+To install the demo, go to the MiniVend installation directory
 and run:
 
     bin/makecat simple
-    bin/makecat sample
 
 Follow the prompts and after restarting the MiniVend server you
-should be able to access the new catalogs.
+should be able to access the demo catalogs.
 
 -------------------------------------------------------------------
 
@@ -626,118 +192,126 @@ should be able to access the new catalogs.
                      C O M P A T I B I L I T Y
 
 MiniVend has been well-tested on Solaris 2, SunOS, Linux, HP-UX,
-and OSF/Alpha.  It should work on any UNIX with Perl 5.003 or
-higher.
+BSDI, FreeBSD, and OSF/Alpha. It also reportedly runs on SCO,
+AIX, and other Unix ports.  It should work on any UNIX or Win32
+OS with Perl 5.004 or higher. It may run with Perl 5.003 or
+Perl 5.002, but the author disavows all responsibility for
+the results.
+
+IMPORTANT NOTE FOR WINDOWS: MiniVend will NOT run with the
+ActiveState port, otherwise known as 5.003 build 1XX. It
+REQUIRES, repeat REQUIRES, the standard version Perl 5.004. See
+http://www.perl.com/ for information on how to obtain it.
+
+Windows does not support fork(), so the server runs in the
+foreground. You need the DB_File module for best results,
+and that is not included in the standard distribution. You can
+get it at http://www.perl.com/CPAN-local (or any CPAN archive)
+in the ports/win32/Standard/x86/ directory.
 
 BSDI and FreeBSD are known to have problems with Perl socket
-code, which MiniVend relies heavily upon. You can expect some
-reliability problems with those operating systems.
+code, which MiniVend relies heavily upon. You will probably
+need to run in INET/TLINK mode instead of UNIX/VLINK mode.
 
-DB_File is the fastest DBM for use with MiniVend -- GDBM is
-the easiest to build if you must install it yourself.
+-------------------------------------------------------------
 
-For Solaris 2, you may need the File::Lock module, which is
-now included with MiniVend (installation is attempted).
+                      I N S T A L L A T I O N
 
-Please let the author know if you have successfully run MiniVend
-on any additional platforms -- patches would be appreciated.
+WINDOWS INSTALLATION
+--------------------
 
--------------------------------------------------------------------
+    Obtain the self-extracting executable minivend-3.0x.exe
+    and double-click on it.
 
-                     S E T T I N G   U P
-                   Y O U R   C A T A L O G
+UNIX INSTALLATION
+------------------
+Here is the short version:
 
-Setting up a MiniVend catalog can be quite complex, and that
-is why the documentation and demos were provided.  They should
-be sufficient to get you started. Many hours have been spent
-in documenting the features of MiniVend, and thoughtful users
-should almost always find their answers there.
+    gzip -dc minivend-3.0x.tar.gz | tar xvf -
+    cd minivend-3.0x
+    ./configure
 
-Key things that people sometimes don't understand:
+More information is in the file INSTALL.
 
-    -- The actual pages of the catalog are NOT in HTML document
-       space.  They are in the catalog directory of the catalog
-       that is in question.
+-- WHEN IN DOUBT, RE-START THE SERVER.  It won't take but a few
+   seconds, and changes in configurable options don't take effect
+   until it is done. You may even change a page and not see the
+   effect until the server is restarted.
 
-    -- The highly interpolative nature of MiniVend and HTML tags
-       means that order is often important.
+-------------------------------------------------------------
 
-    -- The first thing to do in setting up a custom MiniVend catalog
-       is to define the database.  Everything with MiniVend stems
-       from the products database -- many of the custom features
-       depend on the shipping, salestax, accessories, pricing,
-       and other databases.  Determine your data set first.
+                     D O C U M E N T A T I O N
 
-    -- The demo pages are there to be played with.  With MiniVend
-       3.00, you can't stop the system simply by changing a page.
+The documentation is in 3 files in the doc/ subdirectory of
+the main MiniVend directory:
 
-    -- Many of the configurable features of MiniVend are determined
-       by the directives in catalog.cfg (or minivend.cfg in a standalone
-       catalog).
+       toc.html       Table of contents
+       minivend.html  Main documentation file
+       tags.html      Complete MiniVend tag reference
 
-    -- WHEN IN DOUBT, RE-CONFIGURE THE CATALOG.  It won't take but a few
-       seconds, and changes to many of the configurable options don't
-       take effect until it is done.
+These files will be copied to the same HTML directory as
+the sample and simple demo gateway files -- they would normally
+be referenced as:
 
-The author is very interested in learning your problems with
-MiniVend, and is interested in clarifying the documentation for
-future improvements.  (He isn't much interested in BEING your
-documentation, though, unless you pay well and promptly.) Please
+           http:/www.yourserver.com/sample/toc.html
+
+-------------------------------------------------------------
+
+                    K N O W N   P R O B L E M S
+
+
+IRIX, Solaris, Digital UNIX:
+           The server may not terminate immediately,
+           as the select() call blocks signals. It
+           will stop at the next request, or at the
+           end of the occasional houskeeping
+           cycle, set by the directive HouseKeeping in
+           minivend.cfg. Set to less than 10 to achieve
+           decent response.
+
+BSDI, FreeBSD:
+           The BSDI library code is not safely re-entrant
+           when used in combination with signals, so no
+           signals are sent during server usage.  This is
+           transparent to the user.
+
+           MiniVend will not as of this writing work with
+           BSDI 3.0 in UNIX mode, so you must use the INET
+           mode and the tlink program.
+
+           If the kernel parameter CHILD_MAX is not configured
+           above the default of 40, expect problems. Same with
+           SO_MAXCONN and some other kernel parameters. 
+
+Solaris:   If you are trying to run with Perl 5.003, which is
+           NOT recommended, you must use the File::Lock
+           module -- flock() emulation in Perl 5.003 does not
+           work properly, and fcntl() locking must be used.
+           This version of MiniVend includes File::Lock,
+           and attempts to install it.
+
+           If you have Perl 5.004 you can disregard File::Lock.
+
+           It is STRONGLY RECOMMENDED that you update to Perl 5.004
+           when running on Solaris.
+
+Windows:   This is a new port, and just a few things don't work the
+           same as UNIX. See the README-win.txt file for more information.
+
+---------------------------------------------------------------------
+
+I, the author, am very interested in learning your problems with
+MiniVend, and am interested in clarifying the documentation for
+future improvements.  I am not much interested in BEING your
+documentation, though, unless you pay well and promptly. Please
 send kudos, comments, questions, and complaints to:
 
        mikeh@minivend.com
 
+Note that I receive thousands of emailed questions per year and cannot
+answer them all. The more research you do on your own the more likely
+I am to respond. Helpful suggestions and real bug reports are almost
+always acknowledged.
 
--------------------------------------------------------------------
-
-                   M I S C E L L A N E O U S
-                         O S   N O T E S
-
-            Recommended DBM    Tested on     Notes
-           -----------------  ------------  -----------------------
-Linux         GDBM             2.0.x & up    This is what MiniVend is
-                                             developed on -- all features
-                                             should work normally.
-
-
-FreeBSD       DB_File          2.1.0, 2.1.5  Many users run MiniVend on
-                                             this OS. You will want to
-                                             set SafeSignals to No.
-
-
-BSDI          DB_File          2.1, 3.0      Many users run MiniVend on
-                                             this OS. The vlink UNIX mode
-                                             will not work with V3.x but
-                                             tlink/INET works fine.
-
-
-Solaris 2     GDBM             2.4,2.5       Many users run MiniVend on
-                                             this OS, no known problems
-                                             once you get it going.
-                                             File::Lock not needed for
-                                             Perl 5.004 -- using Perl 5.004
-                                             is highly recommended.
-
-
-SunOS 4.1.x   DB_File          4.1.x         Some users run MiniVend on
-                                             this OS, no known problems
-
-
-DEC/OSF, aka  GDBM             3.0           Some users run MiniVend on
-Digital UNIX                                 this OS, no known problems
-                                             
-
-IRIX          GDBM             5.3,6.2       Server may be difficult to
-                                             stop for re-configuration.
-                                             No other known problems.
-
-HP/UX          -               10.1          A few users, may be some
-                                             trouble with vlink/tlink
-                                             compilation.
-
-SCO            -               3.2           Should work fine as of 3.04
-
-AIX            -               4.1           Reported to work with little
-                                             difficulty
-
+Good luck with MiniVend!
 

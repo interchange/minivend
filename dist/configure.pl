@@ -31,6 +31,10 @@ use File::Path;
 use ExtUtils::Install;
 use lib "./lib";
 
+# Check for Windows
+my $Windows;
+$Windows = 1 if $Config{osname} =~ /win32/i;
+
 # Find external commands
 
 my $param;
@@ -86,7 +90,7 @@ sub prompt {
 
     print $pr;
     print "[$def] " if $def;
-    chop($ans = <STDIN>);
+    chomp($ans = <STDIN>);
     $ans ? $ans : $def;
 }
 
@@ -304,7 +308,12 @@ sub findexe {
 	}
 	$path =~ s/\(\)//g;
 	$path =~ s/\s+/\s/g;
-	my(@dirs) = split /[\s:]+/, $path;
+	my(@dirs);
+	if(! $Windows)	{ @dirs = split /[\s:]+/, $path; }
+	else {
+		@dirs = split /;+/, $path;
+		for(@dirs) { tr:\\:/: }
+	}
 	foreach $dir (@dirs) {
 		return "$dir/$exe" if -x "$dir/$exe";
 	}
@@ -373,7 +382,12 @@ else {
 
 my @params = qw(PERL);
 
-unless (-x '/usr/lib/sendmail') {
+if ($Windows) {
+	$Initial{SendMailLocation} = findexe('blat.exe') || 'none';
+	$Initial{SendMailLocation} =~ s/\.exe$/ - -t/i;
+	push @params, 'SendMailLocation';
+}
+elsif (! -x '/usr/lib/sendmail') {
 	$Initial{SendMailLocation} = findexe('sendmail');
 	push @params, 'SendMailLocation';
 }
@@ -401,7 +415,7 @@ $Upgrade = -f 'minivend.cfg' ? 1 : 0;
 					"$Initial{VendRoot}/etc",
 				);
 	# Change ownership of key files if we are root.
-if($< == 0) {
+if(! $Windows and $< == 0) {
 	print <<EOF;
 
 The root user cannot run the MiniVend server for security reasons.
@@ -430,9 +444,9 @@ EOF
 				or die "Couldn't change ownership of $Initial{VendRoot}: $!\n";
 		}
 		print "\n";
-	}
+}
 elsif (! $NoAsk{VendRoot}) {
-	print <<EOF;
+	print <<EOF unless $Windows;
 
 -------------------------------------------------------------------
 FYI, if you are installing this software as another user name than
@@ -549,50 +563,56 @@ print "done.\n";
 
 } # end ADJUST
 
+COMPILE: {
+
+	last COMPILE if $Windows;
+
 $default = $ans = 'yes';
-if($Upgrade) {
-	$default = 'no';
-	print <<EOF;
+
+	if($Upgrade) {
+		$default = 'no';
+		print <<EOF;
 You only need to re-make vlink if you have changed directories.
 
 EOF
-	$ans = prompt "Make the dispatch programs vlink and tlink? ", $default;
-}
-if ($ans =~ /^\s*y/i) {
-	my($vfail, $tfail);
-	my $CC = findexe('cc') || findexe('gcc');
-	warn "No C compiler found, this phase will not be successful, I bet...\n"
-		unless $CC;
-	$? = 1;
-	chdir 'src' || die "Couldn't change to source directory: $!\n";
-	system "./configure";
-	eval `cat syscfg`;
-	print "Compiling, this may take a sec...";
-	unless($?) {
+		$ans = prompt "Make the dispatch programs vlink and tlink? ", $default;
+	}
+	if ($ans =~ /^\s*y/i) {
+		my($vfail, $tfail);
+		my $CC = findexe('cc') || findexe('gcc');
+		warn "No C compiler found, this phase will not be successful, I bet...\n"
+			unless $CC;
 		$? = 1;
-        print "Compiling with $CC $CFLAGS $LIBS -o vlink vlink.c'\n"
-                      if $DEBUG;
-		system "$CC $CFLAGS $LIBS -o ../bin/vlink vlink.c";
-		if($?) {
-			warn "\nCompiliation of vlink.c FAILED.\n";
-			$vfail = 1;
+		chdir 'src' || die "Couldn't change to source directory: $!\n";
+		system "./configure";
+		eval `cat syscfg`;
+		print "Compiling, this may take a sec...";
+		unless($?) {
+			$? = 1;
+			print "Compiling with $CC $CFLAGS $LIBS -o vlink vlink.c'\n"
+						  if $DEBUG;
+			system "$CC $CFLAGS $LIBS -o ../bin/vlink vlink.c";
+			if($?) {
+				warn "\nCompiliation of vlink.c FAILED.\n";
+				$vfail = 1;
+			}
+			system "$CC $CFLAGS $LIBS -o ../bin/tlink tlink.c";
+			if($?) {
+				warn "\nCompiliation of tlink.c FAILED.\n";
+				$tfail = 1;
+			}
 		}
-		system "$CC $CFLAGS $LIBS -o ../bin/tlink tlink.c";
-		if($?) {
-			warn "\nCompiliation of tlink.c FAILED.\n";
-			$tfail = 1;
+		else {
+			$vfail = 1; 
+			$tfail = 1; 
+			warn "\nConfiguration of link programs FAILED.\n";
 		}
+		print "done.\n";
+		chdir '..' || die "Couldn't change back to $Initial{'VendRoot'}: $!\n";
+		$Compile_failed = 1 if (defined $vfail or defined $tfail);
 	}
-	else {
-		$vfail = 1; 
-		$tfail = 1; 
-		warn "\nConfiguration of link programs FAILED.\n";
-	}
-	print "done.\n";
-	chdir '..' || die "Couldn't change back to $Initial{'VendRoot'}: $!\n";
-	$Compile_failed = 1 if (defined $vfail or defined $tfail);
-}
 
+}
 print <<EOF;
 
 That takes care of the program configuration.
@@ -615,24 +635,103 @@ EOF
 	exit 1;
 }
 
-print <<EOF;
+if($Upgrade) {
+	my $start = -f "etc/minivend.pid" ? 'restart' : 'start';
+	print <<EOF;
 
-If you are updating from a previous version of MiniVend, you
-will want to look at the README file for possible small changes
-you must make to your catalog configuration.
+MiniVend is updated. You may $start the server at any time.
+
+EOF
+	exit 0;
+}
+
+my $Runcommand;
+my $Makecat;
+
+FINISHMESSAGE: {
+	my $dir = $Initial{VendRoot};
+	$Runcommand = ! $Windows ? "$Initial{VendRoot}/bin/restart" : <<EOF;
+$dir\\minivend
+
+You may also use the shortcuts that should be present in that folder.
+EOF
+	$Makecat = ! $Windows ? "$Initial{VendRoot}/bin/makecat simple" : "$dir\\makecat simple";
+	if($Windows) {
+		$Makecat    =~ s:/:\\:g;
+		$Runcommand =~ s:/:\\:g;
+	}
+	print <<EOF;
 
 If this is your first time using MiniVend, you will want to make
 a sample catalog.  If you decide not to do it now, then you will
 need to run:
 
-	cd $Initial{VendRoot}
-	bin/makecat
+    $Makecat
 
 At that point, MiniVend will be ready to run. Start the daemon
 with:
 
-	$Initial{VendRoot}/bin/start
+    $Runcommand
 
 Welcome to MiniVend!
 
 EOF
+}
+
+$Runcommand =~ s/\n.*//s;
+
+MAKECAT: {
+	last MAKECAT if -f "minivend.cfg";
+	print <<EOF;
+If you choose, you can make the "simple" demo catalog now, which will
+fully test MiniVend and give you a starting point for your own catalog.
+
+EOF
+	$ans = prompt "Make the simple demo? ", "yes";
+	system $Makecat;
+	if($?) {
+		print <<EOF;
+The configuration did not appear to succeed. You can re-run it at
+any time, including now.
+
+EOF
+		$ans = prompt "Re-try making catalog? ", "yes";
+		redo MAKECAT if $ans =~ /^\s*y/i;
+	}
+}
+
+RUNSERVER: {
+	if(! -f "minivend.cfg") {
+		print <<EOF;
+
+Apparently there are no catalogs made. When you make one, you
+can start the MiniVend server with:
+
+    $Runcommand
+EOF
+		exit;
+	}
+	print <<EOF;
+The MiniVend server must be running for your catalog to operate.
+
+EOF
+	print <<EOF if $Windows;
+To start the Minivend server when your system comes up, place
+the "Start MiniVend Server" shortcut in your Start Menu. You will
+probably want to set it to run minimized by default -- use the
+Properties menu and select "Run minimized".
+
+To stop the MiniVend server, close the window -- you cannot
+stop it from the keyboard.
+
+To start the server, double click on the "Start MiniVend Server"
+icon.
+
+EOF
+	last RUNSERVER if $Windows;
+	$ans = prompt("Start the MiniVend server? ", "yes");
+	last RUNSERVER unless $ans =~ /^\s*y/i;
+	exec $Runcommand;
+}
+
+exit;

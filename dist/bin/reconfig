@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 #
 # reconfig - script for user reconfiguration of MiniVend catalog
 #
@@ -8,32 +8,90 @@
 # 
 
 use Getopt::Std;
+use CGI;
 
-getopts('m:') or die "Couldn't get options: $@\n";
+$VendRoot = $VendRoot || '/home/minivend';
+## END CONFIGURABLE VARIABLES
 
-$Store = shift || die "usage: reconfig store_id\n";
+BEGIN {
+    eval {
+        require 5.004;
+        require FindBin;
+        $VendRoot = $FindBin::RealBin;
+        $VendRoot =~ s/.bin$//;
+    };
+    ($VendRoot = $ENV{MINIVEND_ROOT})
+        if defined $ENV{MINIVEND_ROOT};
+}
 
-# Replace this with the URL PATH for the CGI directory.
-# The passed argument specifies the individual catalog 
-#
-# Value for most sites would be "/cgi-bin/$Store"
-# Set to "$Store" to pass the script name with the full path
-#
+my $query;
 
-$Script    = "/cgi-bin/$Store";
+$USAGE = <<EOF;
+Reconfigure a MiniVend catalog. Will read information from
+configuration file.
 
-# Replace this with the DIRECTORY containing the CGI calling an
-# individual catalog -- makecat will do this for you if you
-# copy this file to the template directory (the demos have it).
-#
-# Value for a standard Apache configuration might be
-# '/usr/local/apache/cgi-bin'
-#
-$ScriptDir = '/usr/local/etc/httpd/cgi-bin';
+usage: reconfig [-i] [-e executable] store_id
 
-# Set this to 0 if you don't want the user to be prompted 
-# for a password in command line mode
-$Prompt = 1;
+	-e executable    Proper executable if not in $VendRoot/bin/vlink
+	-i               Use $VendRoot/bin/tlink for INET mode
+
+If called as a CGI program, ignores command line options.
+EOF
+
+unless (@ARGV) {
+	$query = new CGI;
+}
+else {
+	getopts('im:e:') or die "Couldn't get options: $@\n$USAGE\n";
+	$Store = shift || die "usage: reconfig store_id\n";
+}
+
+# Parse the minivend.cfg file to look for script/catalog info
+PARSECFG: {
+	my $file;
+	my @cfglines;
+	eval {
+		$file = "$VendRoot/etc/active.catalogs";
+		open(MVCFG, $file) or die "Couldn't read $file: $!\n";
+		while(<MVCFG>) {push @cfglines, $_}
+		close MVCFG;
+		rename $file, "$file.bak";
+	};
+	if($@) {
+		$file = "$VendRoot/minivend.cfg";
+		open(MVCFG, $file) or die "Couldn't read $file: $!\n";
+		while(<MVCFG>) {push @cfglines, $_}
+		close MVCFG;
+	}
+
+	$file = "$VendRoot/etc/active.catalogs";
+	open(MVOUT, ">$file") or die "Couldn't write $file: $!\n";
+	
+	my($name,$script,@vals);
+	for(@cfglines) {
+		next unless /^\s*(sub)?catalog\s+/i;
+		print MVOUT $_;
+		chomp;
+		@vals = split /\s+/, $_;
+		shift @vals if $vals[0] =~ /sub/i;
+		$vals[3] =~ s:^([^/]+):: and $Servers{$vals[1]} = $1;
+		$Dirs{$vals[1]} = $vals[2];
+		$Scripts{$vals[1]} = $vals[3];
+	}
+
+	close MVOUT;
+
+}
+
+unless (defined $Scripts{$Store}) {
+	die "$Store is not a configured catalog.\n";
+}
+
+$Script = $Scripts{$Store};
+
+# Only used if problem with reconfiguration
+$Dir	= $Dirs{$Store};
+
 
 # Values for the demo, refresh is almost always right.
 # You could put in some other stuff here to save a
@@ -49,12 +107,18 @@ my %preset = (
 			mv_orderpage => 'special/reconfig',
 			);
 
+$ENV{SERVER_NAME} = $Servers{$Store} if $Servers{$Store};
+
 ### END CONFIGURABLE VARIABLES
 
 use FileHandle;
 use POSIX 'tmpnam';
 use strict;
-use vars qw($ScriptDir $ScriptPath $Script $Prompt);
+use vars qw($USAGE $Store $Dir $VendRoot %Scripts %Dirs
+			$ScriptDir $ScriptPath $Script $Prompt $opt_i $opt_e);
+
+$ENV{PATH} = "/bin:/usr/bin";
+$ENV{IFS} = "";
 
 my %env = (
 	REQUEST_METHOD			=> 'POST',
@@ -65,7 +129,6 @@ my %env = (
 	REMOTE_ADDR				=> 'LOCAL',
 );
 
-
 # 
 # Must generate one with htpasswd.pl or the like and install it
 # as Password directive in catalog.cfg for it to work
@@ -73,7 +136,7 @@ my %env = (
 
 GETPASS: {
 
-	my $pass;
+	my $pass = '';
 
 	if (defined $ENV{GATEWAY_INTERFACE}) {
 	# Allow passing of the password with query string parameter 
@@ -81,9 +144,14 @@ GETPASS: {
 	#
 	# Not very secure -- HTTP basic auth is better, as is POST.
 	# You can add in the POST code if you wish.
-		my $pass = $ENV{QUERY_STRING};
-		$pass =~ s!^.*password=!!;
-		$pass =~ s!&.*!!;
+		$pass = $ENV{QUERY_STRING};
+		if( $ENV{QUERY_STRING} !~ /=/) {
+			$pass =~ s!.*\+!!;
+		}
+		else {
+			$pass =~ s!^.*password=!!;
+			$pass =~ s!&.*!!;
+		}
 		$env{RECONFIGURE_MINIVEND} = $pass;
 	}
 	else {
@@ -91,7 +159,7 @@ GETPASS: {
 		last GETPASS unless $Prompt;
 		system("stty -echo"); 				 # Turn off echo
 		print				"Password:";     # Prompt
-		chop				($pass = <>);    # Get new password
+		chomp				($pass = <>);    # Get new password
 		system("stty echo"); 				 # Turn echo back on
 		print 				"\n";			 # Return wasn't echoed, supply
 		$env{RECONFIGURE_MINIVEND} = $pass;
@@ -99,9 +167,19 @@ GETPASS: {
 
 }
 
-$ScriptPath = $Script;
-$ScriptPath =~ s:.*/::;
-$ScriptPath = "$ScriptDir/$ScriptPath";
+$ScriptPath = "$VendRoot/bin/vlink";
+
+if ($opt_e) {
+	die "-i and -e are mutually exclusive.\n$USAGE\n"
+		if $opt_i;
+	$ScriptPath = $opt_e;
+}
+elsif($ =~ /win32/i) {
+	$ScriptPath = "$VendRoot/bin/tlink.exe";
+}
+elsif($opt_i or -f "$VendRoot/etc/mode.inet") {
+	$ScriptPath = "$VendRoot/bin/tlink";
+}
 
 my %Data;
 
@@ -120,6 +198,49 @@ Content-type: text/html
 
 <H2>Error: $string</H2>
 
+Store=$Store<BR>
+Script=$Script<BR>
+QUERY=$ENV{QUERY_STRING}<BR>
+EOF
+	for(@ARGV) {
+		print "arg=$_<BR>\n";
+	}
+	print "No args.<BR>\n" unless @ARGV;
+
+	print <<EOF;
+<P>
+Check the error log for problems in configuration:<BR>
+(<A HREF="#ten">10 lines from bottom</A>)
+<PRE>
+EOF
+	my $fi = "$Dir/error.log";
+	my @lines;
+	eval {
+		if( open ERRS, $fi ) {
+			seek(ERRS, -10000, 2)	or
+				seek (ERRS, 0, 0)	or
+					die "seek $fi: $!\n";
+			my $contents;
+			if (read(ERRS, $contents, 10000) ) {
+				$contents =~ s/^.*//;
+				@lines = reverse split /\n/, $contents;
+				$lines[9] = "<A NAME=ten>$lines[9]</A>";
+			}
+		}
+		else {
+			die "Error log not readable.\n";
+		}
+	};
+	if($@) {
+		print $@;
+	}
+	else {
+		for (reverse @lines) {
+			print "$_\n"; 
+		}
+	}
+	print <<EOF;
+</PRE>
 </BODY>
 </HTML>
 EOF

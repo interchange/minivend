@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 #
-# MiniVend version 3.04
+# MiniVend version 3.05
 #
-# $Id: minivend,v 1.11 1997/11/03 13:16:04 mike Exp mike $
+# $Id: minivend,v 1.13 1997/12/09 09:24:51 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -37,6 +37,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+use Config;
 BEGIN {
 
 	eval {
@@ -56,6 +57,11 @@ die "MiniVend not configured. Did you make a catalog?\n"
 
 $Global::ConfDir = "$Global::VendRoot/etc";
 
+$Global::SendMailLocation = '/usr/lib/sendmail';
+
+if($Config{osname} =~ /win32/i) {
+	$Global::Windows = 1;
+}
 # Uncomment next line if you want to guarantee use of DB_File
 #$ENV{MINIVEND_DBFILE} = 1;
 
@@ -70,22 +76,20 @@ $Global::ConfDir = "$Global::VendRoot/etc";
 $Global::ErrorFile = 'error.log';
 }
 
-$Global::SendMailLocation = '/usr/lib/sendmail';
 
 ### END CONFIGURABLE VARIABLES
 
 use lib "$Global::VendRoot/lib";
 use vars qw($VERSION);
 
-$VERSION = '3.04';
+$VERSION = '3.05';
 use strict;
 use Fcntl;
-use Config;
 
 # BSD, among others, defines sendmail to be in /usr/sbin, and
 # we want to make sure the program is there. Insert the location
 # of you sendmail binary (the configure script should do this)
-$Global::SendMailLocation = 
+$Global::SendMailLocation = ($Global::Windows and $Global::SendMailLocation) ||
 	(-x $Global::SendMailLocation and $Global::SendMailLocation) ||
 	(-x '/usr/lib/sendmail' and '/usr/lib/sendmail') ||
 	(-x '/usr/sbin/sendmail' and '/usr/sbin/sendmail') ||
@@ -98,7 +102,12 @@ BEGIN {
 		or die "Couldn't change directory to $Global::VendRoot: $!\n";
 	$Global::GDBM = $Global::DB_File = $Global::Msql = $Global::DBI = 0;
 	eval {require Msql and $Global::Msql = 1};
+	# This is for standard DBI
 	eval {require DBI and $Global::DBI = 1};
+
+	# This is for experimenting with Win32::ODBC
+	#use DBI::W32ODBC;
+	#$Global::DBI = 1;
 
 	AUTO: {
 		last AUTO if 
@@ -217,18 +226,44 @@ sub interaction_error {
 
 # Check that a form is being submitted.
 
+sub minidump() {
+	my $s = $Vend::Session;
+	my $v = $Vend::Session->{'values'};
+    my $host = http()->Client_Hostname;
+    my $ip   = http()->Client_IP_Address;
+    my $query = http()->Query;
+	my $out = <<EOF;
+Full client host name:  $host
+Full client IP address: $ip
+Query string was:       $query
+EOF
+	for(qw/browser last_url prev_url/) {
+		$out .= "$_: $s->{$_}\n";
+	}
+
+	for(keys %{$s->{carts}}) {
+		$out .= scalar @{$s->{carts}->{$_}};
+		$out .= " items in $_ cart.\n";
+	}
+
+	return $out;
+}
+
 sub expect_form {
     if ( uc($CGI::request_method) ne 'POST') {
-		interaction_error("Request method for form submission is not POST\n");
+		interaction_error("Request method '$CGI::request_method' for form submission is not POST\n");
+		logError(minidump());
 		return 0;
     }
+
+	return 1 if $Global::TolerateGet;
 
     if ( lc($CGI::content_type) ne 'application/x-www-form-urlencoded') {
-		interaction_error("Content type for form submission is not\n" .
-				  "application/x-www-form-urlencoded\n");
+		interaction_error("Content type '$CGI::content_type' for form submission" .
+				" is not application/x-www-form-urlencoded");
+		logError(minidump());
 		return 0;
     }
-
     return 1;
 }
 
@@ -1186,7 +1221,7 @@ sub do_msg {
 sub change_catalog_directive {
 	my($cat, $line) = @_;
 	$line =~ s/^\s+//;
-	my($dir,$val) = split /\s+/, $line;
+	my($dir,$val) = split /\s+/, $line, 2;
 	my $ref = Vend::Config::set_directive($dir,$val);
 	die "Bad directive '$line'.\n" unless defined $ref;
 	$cat->{$ref->[0]} = $ref->[1];
@@ -1195,12 +1230,14 @@ sub change_catalog_directive {
 
 sub change_global_directive {
 	my($line) = @_;
+	chomp $line;
 	$line =~ s/^\s+//;
-	my($dir,$val) = split /\s+/, $line;
-	my $ref = Vend::Config::set_directive($dir,$val);
+	my($dir,$val) = split /\s+/, $line, 2;
+	my $ref = Vend::Config::set_directive($dir,$val,1);
 	die "Bad directive '$line'.\n" unless defined $ref;
 	no strict 'refs';
 	${"Global::" . $ref->[0]} = $ref->[1];
+#logGlobal("Set $ref->[0]=$ref->[1]");
 	$Global::Structure{$ref->[0]} = $ref->[1];
 
 	dump_structure($Global::Structure, $Global::ConfigFile)
@@ -1791,7 +1828,17 @@ sub map_cgi {
 		$CGI::script_path = http()->Script;
 	}
 
-	$CGI::post_input = http()->read_entity_body();
+	if("\U$CGI::request_method" eq 'POST') {
+		$CGI::post_input = http()->read_entity_body();
+	}
+	elsif ($Global::TolerateGet) {
+		my $idx = index($CGI::query_string,'&');
+		if($idx > 0) {
+			logError("Triggered TolerateGet: \n" . minidump());
+			$CGI::request_method = 'POST';
+			$CGI::post_input = $CGI::query_string;
+		}
+	}
 	parse_post();
 }
 
@@ -2067,7 +2114,13 @@ sub parse_post {
 		else {
 			$CGI::values{$key} .= "\0" . $value;
 		}
-	 }
+	}
+	if($Global::TolerateGet and !$CGI::query_string  ) {
+		$CGI::query_string =	$CGI::values{mv_session_id} || '';
+		$CGI::query_string .=	';';
+		$CGI::query_string .=	$CGI::values{mv_argument}   || '';
+		$CGI::query_string .=	';0';
+	}
 }
 
 ## COMMAND LINE OPTIONS
@@ -2228,22 +2281,6 @@ Command line options:
 END
 }
 
-sub scrub_sockets {
-
-	my (@sockets);
-	my $dir = $Global::ConfDir;
-
-	opendir(Vend::SCRUBSOCK,$dir) ||
-		die "Couldn't read $dir: $!\n";
-	@sockets =  grep -S "$dir/$_", readdir(Vend::SCRUBSOCK);
-	closedir(Vend::SCRUBSOCK);
-
-	for(@sockets) {
-		unlink "$dir/$_";
-	}
-
-}
-
 ## FILE PERMISSIONS
 
 sub set_file_permissions {
@@ -2317,9 +2354,11 @@ EOF
 
 sub main_loop {
 	# Setup
-	$ENV{'PATH'} = '/bin:/usr/bin';
-	$ENV{'SHELL'} = '/bin/sh';
-	$ENV{'IFS'} = '';
+	unless ($Global::Windows) {
+		$ENV{'PATH'} = '/bin:/usr/bin';
+		$ENV{'SHELL'} = '/bin/sh';
+		$ENV{'IFS'} = '';
+	}
 	srand;
 	setup_escape_chars();
 	my $status = 0;
@@ -2423,7 +2462,6 @@ EOF
 		# We set debug mode to -1 to communicate with the server
 		# that no output is desired
 		$0 = 'minivend';
-		scrub_sockets();
 
         select STDERR; 
         $| = 1;

@@ -221,6 +221,13 @@
 
 ## Default: No
 #
+# Allows forms to use METHOD=GET instead of POST.
+#
+# TolerateGet
+
+
+## Default: No
+#
 # Whether user-stimulated page builds are allowed.  If you don't have large
 # user catalogs, should be no problem to enable.  But if there are
 # multi-megabyte databases, could cause a huge performance problem.

@@ -9,7 +9,7 @@
 </CENTER>
 
 <FORM ACTION="[process-target none secure]" METHOD="POST">
-
+<INPUT TYPE=hidden NAME=mv_session_id VALUE="[data session id]">
 [if items]
 [then]
 <TABLE>
@@ -234,26 +234,26 @@ Card Number<BR>
   Expires
 <BR>
   	<SELECT name="mv_credit_card_exp_month">
-		<OPTION VALUE=1 [selected mv_credit_card_exp_month 1]> January
-		<OPTION VALUE=2 [selected mv_credit_card_exp_month 2]> February
-		<OPTION VALUE=3 [selected mv_credit_card_exp_month 3]> March
-		<OPTION VALUE=4 [selected mv_credit_card_exp_month 4]> April
-		<OPTION VALUE=5 [selected mv_credit_card_exp_month 5]> May
-		<OPTION VALUE=6 [selected mv_credit_card_exp_month 6]> June
-		<OPTION VALUE=7 [selected mv_credit_card_exp_month 7]> July
-		<OPTION VALUE=8 [selected mv_credit_card_exp_month 8]> August
-		<OPTION VALUE=9 [selected mv_credit_card_exp_month 9]> September
-		<OPTION VALUE=10 [selected mv_credit_card_exp_month 10]> October
-		<OPTION VALUE=11 [selected mv_credit_card_exp_month 11]> November
-		<OPTION VALUE=12 [selected mv_credit_card_exp_month 12]> December
+		<OPTION VALUE=1 [selected mv_credit_card_exp_month 1]> 01 - January
+		<OPTION VALUE=2 [selected mv_credit_card_exp_month 2]> 02 - February
+		<OPTION VALUE=3 [selected mv_credit_card_exp_month 3]> 03 - March
+		<OPTION VALUE=4 [selected mv_credit_card_exp_month 4]> 04 - April
+		<OPTION VALUE=5 [selected mv_credit_card_exp_month 5]> 05 - May
+		<OPTION VALUE=6 [selected mv_credit_card_exp_month 6]> 06 - June
+		<OPTION VALUE=7 [selected mv_credit_card_exp_month 7]> 07 - July
+		<OPTION VALUE=8 [selected mv_credit_card_exp_month 8]> 08 - August
+		<OPTION VALUE=9 [selected mv_credit_card_exp_month 9]> 09 - September
+		<OPTION VALUE=10 [selected mv_credit_card_exp_month 10]> 10 - October
+		<OPTION VALUE=11 [selected mv_credit_card_exp_month 11]> 11 - November
+		<OPTION VALUE=12 [selected mv_credit_card_exp_month 12]> 12 - December
 	</SELECT>
 	<SELECT name="mv_credit_card_exp_year">
-		<OPTION VALUE=97 [selected mv_credit_card_exp_year 97]> 1997
 		<OPTION VALUE=98 [selected mv_credit_card_exp_year 98]> 1998
 		<OPTION VALUE=99 [selected mv_credit_card_exp_year 99]> 1999
 		<OPTION VALUE=00 [selected mv_credit_card_exp_year 00]> 2000
 		<OPTION VALUE=01 [selected mv_credit_card_exp_year 01]> 2001
 		<OPTION VALUE=02 [selected mv_credit_card_exp_year 02]> 2002
+		<OPTION VALUE=03 [selected mv_credit_card_exp_year 02]> 2003
 	</SELECT>
 </TD></TR></TABLE>
 <INPUT TYPE=checkbox NAME="fax_order" VALUE=on [checked fax_order]>

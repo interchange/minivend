@@ -27,7 +27,7 @@
 #
 package Vend::Search;
 
-$VERSION = substr(q$Revision: 1.11 $, 10);
+$VERSION = substr(q$Revision: 1.12 $, 10);
 $DEBUG = 0;
 
 =head1 NAME
@@ -791,7 +791,7 @@ sub more_matches {
 			}
 		}
 		return undef unless exists $h->{$id};
-		$count = (@out = split /\n/, $h->{$id});
+		$count = (@out = split /\r?\n/, $h->{$id});
 		@out = splice(@out,$next,$g->{match_limit});
 	}
 	else {

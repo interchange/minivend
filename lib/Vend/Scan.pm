@@ -1,6 +1,6 @@
 # Vend/Scan.pm:  Prepare searches for MiniVend
 #
-# $Id: Scan.pm,v 1.18 1997/11/08 17:34:49 mike Exp mike $
+# $Id: Scan.pm,v 1.22 1997/12/15 02:13:13 mike Exp mike $
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ require Exporter;
 			perform_search
 			);
 
-$VERSION = substr(q$Revision: 1.18 $, 10);
+$VERSION = substr(q$Revision: 1.22 $, 10);
 
 use strict;
 use Vend::Util;
@@ -44,8 +44,10 @@ my @Sql = ( qw(
 					mv_list_only
 					mv_range_min
 					mv_range_max
+					mv_range_alpha
 					mv_numeric
 					mv_return_fields
+					mv_coordinate
 					mv_substring_match
 					mv_search_field
 					mv_search_page
@@ -215,7 +217,6 @@ my %Parse = (
 	range_min	        =>	\&_array,
 	range_max	        =>	\&_array,
 	range_alpha	        =>	\&_array,
-	numeric				=>	\&_array,
 	search_spec       	=>	\&_scalar_or_array,
 	return_file_name    =>	\&_yes,
 	all_chars		    =>	\&_yes,
@@ -298,7 +299,7 @@ sub parse_profile {
     }
 	my($params) = $Vend::Cfg->{'SearchProfile'}->[$profile];
 	return undef unless $params;
-	if($params =~ /\[\[/) {
+	if($params =~ /\[/) {
 		$params = interpolate_html($params);
 	}
 	else {
@@ -309,7 +310,7 @@ sub parse_profile {
 	my($p, $var,$val);
 	my $status = $profile;
 	undef %Save;
-	my(@param) = split /\n+/, $params;
+	my(@param) = split /[\r\n]+/, $params;
 	for(@param) {
 		next unless /\S/;
 		s/^\s+//;
@@ -337,7 +338,6 @@ sub do_more {
    	return($q,$out);
 }
 
-
 sub sql_search {
 	my($c,$options,$second) = @_;
 	my ($out, $table, @fields);
@@ -345,7 +345,8 @@ sub sql_search {
 	my (@range);
 	my (@range_min);
 	my (@range_max);
-	my (@numeric);
+	my (@range_alpha);
+	my ($numeric,$substring);
 
 	unless(defined $second) {
 		for( @Sql ) {
@@ -366,7 +367,11 @@ sub sql_search {
 										'search_spec', 'dict_look' ];
 	}
 
-	@numeric	= _yes_array(split /[,\000]/, $options->{numeric});
+	$substring = _yes_array('', $options->{substring_match});
+	$substring = [$substring] unless ref $substring;
+
+	$numeric = _yes_array('', $options->{numeric});
+	$numeric = [$numeric] unless ref $numeric;
 
 	my(@tables) = split /[\s,\000]+/, ($options->{search_file} || 'products');
 
@@ -389,8 +394,8 @@ FORMULATE: {
 	if($options->{sql_query}) {
 		$i = 0;
 		for(@specs) {
-			$specs[$i] = "'$specs[$i]'" unless $numeric[$i];
-			$options->{sql_query} =~ s/([\s=%])\?([\s%]|$)/$1$specs[$i]$2/;
+			$specs[$i] = $db->quote($specs[$i]) unless $numeric->[$i];
+			$options->{sql_query} =~ s/(\s)\?([\s]|$)/$1$specs[$i]$2/;
 			$i++;
 		}
 print("mv_sql_query: $options->{sql_query}\n") if $Global::DEBUG;
@@ -402,6 +407,7 @@ print("mv_sql_query: $options->{sql_query}\n") if $Global::DEBUG;
 		@range			= split /[,\000]/, $options->{range_look};
 		@range_min		= split /[,\000]/, $options->{range_min};
 		@range_max		= split /[,\000]/, $options->{range_max};
+		@range_alpha	= split /[,\000]/, $options->{range_alpha};
 	}
 
 	if($options->{sort_field}) {
@@ -442,76 +448,97 @@ print("mv_sql_query: $options->{sql_query}\n") if $Global::DEBUG;
 
 	$joiner = ' OR ' if _yes($options->{or_search});
 
-	if($coord == 0) {
+	if(! @specs) {
+		# do nothing here
+	}
+	elsif($coord == 0) {
 		$i = 0;
-		$op = '=';
-		$qb = $qe = "'";
 		for (@specs) {
-
-			if( _yes($options->{substring_match} and ! $numeric[$i]) ) {
+			$op = '=';
+			$qb = $qe = "";
+			if( $substring->[$i] and ! $db->numeric($fields[$i]) ) {
 					$op  = 'like';
-					$qb = "'%";
-					$qe = "%'";
+					$qb = $qe = "%";
+			}
+			if(! $db->numeric($fields[$i]) ) {
+print("quoting field $i=$specs[$i]\n") if $Global::DEBUG;
+				$specs[$i] = $db->quote("$qb$specs[$i]$qe");
+print("quoted field $i=$specs[$i]\n") if $Global::DEBUG;
 			}
 
-			push(@query, "$fields[$i] $op $qb$specs[$i]$qe");
+			push(@query, "$fields[$i] $op $specs[$i]");
 			$i++;
 		}
 	}
 	elsif ($coord == -1) {
 		$joiner = ' OR ';
 		$i = 0;
+		my $spec;
+		$op = '=';
+		$qb = $qe = "";
+		if( $substring->[$i] and ! $db->numeric($fields[$i]) ) {
+				$op  = 'like';
+				$qb = $qe = "%";
+		}
+		if(! $db->numeric($fields[$i]) ) {
+			$specs[$i] = $db->quote("$qb$specs[$i]$qe");
+		}
 		for(@fields) {
-			if( _yes($options->{substring_match} and ! $numeric[0]) ) {
-					$op  = 'like';
-					$qb = "'%";
-					$qe = "%'";
-			}
-			push(@query, "$fields[$i] $op $qb$specs[0]$qe");
+			push(@query, "$fields[$i] $op $specs[0]");
+			$i++;
 		}
 	}
 	else {
 		$joiner = ' OR ';
 		$i = 0;
+		if( $substring->[$i] and ! $db->numeric($fields[0]) ) {
+				$op  = 'like';
+				$qb = $qe = "%";
+		}
 		for(@specs) {
-			if( _yes($options->{substring_match} and ! $numeric[$i]) ) {
-				unless ($numeric[$i]) {
+			$op = '=';
+			$qb = $qe = "";
+			if( $substring->[$i] and ! $db->numeric($fields[0]) ) {
 					$op  = 'like';
-					$qb = "'%";
-					$qe = "%'";
-				}
+					$qb = $qe = "%";
 			}
-			push(@query, "$fields[0] $op $qb$specs[$i]$qe");
+			if(! $db->numeric($fields[0]) ) {
+				$specs[$i] = $db->quote("$qb$specs[$i]$qe");
+			}
+			push(@query, "$fields[0] $op $specs[$i]");
+			$i++;
 		}
 	}
 
 
 
-	$query .= join $joiner, @query;
+	$query .= join ($joiner, @query) if @query;
+
+	$joiner = ' AND ' unless _yes($options->{or_search});
 
 	@query = ();
 
 	$i = 0;
 	foreach $range (@range) {
-		$qe = $qb = "'";
-		if ($numeric[$i]) {
-			$qe = $qb = "";
-		}
 		if(length $range_min[$i]) {
 			$op = '>=';
-			push @query, "$range $op $qb$range_min[$i]$qe";
+			$range_min[$i] = $db->quote($range_min[$i]) if $range_alpha[$i];
+			push @query, "$range $op $range_min[$i]";
 		}
 		if(length $range_max[$i]) {
 			$op = '<=';
-			push @query, "$range $op $qb$range_max[$i]$qe";
+			$range_max[$i] = $db->quote($range_max[$i]) if $range_alpha[$i];
+			push @query, "$range $op $range_max[$i]";
 		}
 		$i++;
 	}
 
 	if(@query) {
-		$query .= scalar(@specs) ? ' AND ' : '';
+		$query .= ' AND ' unless $query =~ /where\s+$/i;
 		$query .= join ' AND ', @query;
 	}
+
+	$query .= '1 = 1 ' if $query =~ /where\s+$/i;
 
 	if ($options->{sort_field}) {
 		$query .= " ORDER by $options->{sort_field}";
@@ -531,6 +558,7 @@ print("complex query: $query\n") if $Global::DEBUG;
 	}
 	my $q = new Vend::Search %{$options};
 	my $matches = $q->{'global'}->{matches} = scalar @$out;
+	$q->specs(@specs);
 #print("matches: $matches\n@out\n") if $Global::DEBUG;
 	if($matches > $q->{global}->{match_limit}) {
 		$q->save_more(\@out);

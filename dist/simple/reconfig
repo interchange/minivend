@@ -80,7 +80,7 @@ GETPASS: {
 		last GETPASS unless $Prompt;
 		system("stty -echo"); 				 # Turn off echo
 		print				"Password:";     # Prompt
-		chop				($pass = <>);    # Get new password
+		chomp				($pass = <>);    # Get new password
 		system("stty echo"); 				 # Turn echo back on
 		print 				"\n";			 # Return wasn't echoed, supply
 		$env{RECONFIGURE_MINIVEND} = $pass;

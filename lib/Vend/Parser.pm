@@ -1,6 +1,6 @@
 package Vend::Parser;
 
-# $Id: Parser.pm,v 1.7 1997/11/08 16:46:27 mike Exp mike $
+# $Id: Parser.pm,v 1.7 1997/11/08 16:46:27 mike Exp $
 
 =head1 NAME
 

@@ -18,7 +18,7 @@
                         # (I'll add file locking later)
 print &Prompt;          # Prompt for password
 system("stty -echo");   # Turn off echo
-chop($pass=<>);         # Get new password
+chomp($pass=<>);         # Get new password
 system("stty echo");    # Turn on echo again
 print "\n";             # Our enter wasn't echoed, print one now
 &MakeNewPassword;       # Encrypt the newly entered password with "salt".
@@ -82,7 +82,7 @@ sub LoadPwFile {
 		return load_catalog_config() if $MiniVend; 
         open(HP, "$file") || open(HP, ">$file");
         while (<HP>) {
-                chop;
+                chomp;
                 ($tname,$tpw) = split(':',$_);
                 $list{$tname} = $tpw;
         }

@@ -1,8 +1,26 @@
 use ExtUtils::MakeMaker;
 require ExtUtils::Install;
+
+BEGIN {
+	eval {
+		require FindBin;
+		chdir $FindBin::RealBin;
+	};
+
+}
+
+use lib './lib';
 use Config;
+
+# Turn off compression warning, provide facility for future
+# warning suppression
+BEGIN { $SIG{"__WARN__"} = sub { warn $_[0] if $DOWARN } }
+use Archive::Tar;
+BEGIN { $DOWARN = 1 }
+
+use File::Copy;
 use Cwd;
-require 5.002;
+require 5.003;
 
 use strict;
 
@@ -12,6 +30,7 @@ my $TermRead;
 my $Prompt_sub;
 my @mods_to_get;
 my $Lock_troubles;
+my $Windows;
 
 # See if we have the CPAN module
 my $Cpan = 0;
@@ -51,18 +70,33 @@ if($TermRead) {
 }
 
 if($Config{osname} eq 'solaris') {
-			eval { require 5.004 or require File::Lock };
-			if($@) {
-				push @mods_to_get, "File::Lock";
-				$Lock_troubles = 1;
-			}
+	eval { require 5.004 or require File::Lock };
+	if($@) {
+		push @mods_to_get, "File::Lock";
+		$Lock_troubles = 1;
+	}
+}
+elsif($Config{osname} =~ /win32/i) {
+	$Windows = 1;
+	eval { require 5.004; };
+	if($@) {
+				print <<EOF;
+Sorry -- this version of MiniVend for Windows requires
+Perl 5.004 -- the standard port of Perl.  The ActiveState
+5.003 version will not run MiniVend.
+
+See http://www.perl.com/ for information on how to get
+the standard Perl distribution.
+EOF
+	}
+
 }
 
 sub copyright_prompt {
 
 	print <<'EOF';
 
- MiniVend V3.04
+ MiniVend V3.05
  
  Copyright 1996,1997 by Michael J. Heins <mikeh@minivend.com>
 
@@ -72,7 +106,7 @@ sub copyright_prompt {
  sending SPAM (or causing it to be sent) may not use MiniVend
  for a period of one year after any SPAM incident. If use
  is not discontinued immediately upon written notice to the
- organization, a $10,000 per day license fee will be charged
+ organization, a $1,000 per day license fee will be charged
  until such time as MiniVend use is discontinued. The author
  of MiniVend, Michael J. Heins, shall be the sole judge of
  what constitutes a SPAM incident.
@@ -89,7 +123,7 @@ sub my_prompt {
 
     print $pr;
     print "[$def] " if $def;
-    chop($ans = <STDIN>);
+    chomp($ans = <STDIN>);
     $ans ? $ans : $def;
 }
 
@@ -97,20 +131,31 @@ sub cpan_get {
 	my($module, $libdir, $prompt) = @_;
 	
 	print <<EOF unless defined $CpanInit;
-		
-Since you have the CPAN module installed, we can go
-and get any modules that need installation -- that is, 
-if you are connected to the Internet and have one of
-the following on your machine:
-	
+
+Since you have the CPAN module installed, we can go and
+get optional modules that help MiniVend work a bit better
+and faster. At least we can if you are connected to the
+Internet and have one of the following on your machine:
+
 		Perl LWP libraries
 		Perl Net::FTP library
 		ncftp (a nice FTP program)
 		lynx  (the text-based web browser)
 
+In case you were wondering, CPAN is a worldwide network
+of over 40 FTP sites which maintain the latest Perl software.
+If you don't know a URL to use, you can try:
+
+	ftp://uiarchive.uiuc.edu/pub/lang/perl/CPAN
+	ftp://ftp.funet.fi/pub/languages/perl/CPAN
+
 If you have never used CPAN before, you may want to reply NO.
 MiniVend should work anyway -- it just won't be quite as
 easy to build the demo catalogs.
+
+If you have errors during the process, don't worry. Either
+just continue on or stop the program and try again, replying
+No when prompted for CPAN.
 
 EOF
 	$prompt = "Get $module module? [yes]" unless defined $prompt;
@@ -143,13 +188,14 @@ sub initialize {
 
 	unless ($install) {
 
+		#exec("perl install.pl") if $Windows;
 		&copyright_prompt();
 
 		my @mvdir = (
 						"$ENV{HOME}/mvend",
-						"$ENV{HOME}/minivend",
 						"/home/minivend",
 						"/usr/local/lib/minivend",
+						"$ENV{HOME}/minivend",
 					);
 		if(defined $Lock_troubles) {
 				print <<EOF;
@@ -180,12 +226,22 @@ EOF
 		$realdir ||= $mvdir[0];
 		$realdir=my_prompt("Where is your MiniVend to be installed? ",$realdir);
 
-		$realdir =~ s:/\s*$::;
+		$realdir =~ s:[\\/]\s*$::;
 		$X{INSTALLARCHLIB}	= "$realdir/lib";
 		$X{INSTALLPRIVLIB}	= "$realdir/lib";
 		$X{INSTALLMAN1DIR}	= "$realdir/doc";
 		$X{INSTALLMAN3DIR}	= "$realdir/doc";
 		$X{INSTALLDIRS}     = "perl";
+
+		if($Windows) {
+			open(WINBAT, ">configure2.bat")
+				or die "create configure2.bat: $!\n";
+			print WINBAT <<EOF;
+$Config{perlpath} Makefile.PL install $realdir\r
+EOF
+			close WINBAT;
+			exit;
+		}
 
 		return \%X;
 	}
@@ -197,6 +253,7 @@ EOF
 MODCHECK: {
 
 	last MODCHECK unless $Cpan;
+	last MODCHECK if $Windows;
 	eval {
 			require MD5;
 		};
@@ -273,31 +330,129 @@ EOF
 	# Would like to use module, but changes mode to read only!
 	#ExtUtils::Install::install( {'dist', $realdir }, 1);
 
-	my (@files);
-	if(-d $realdir) {
-		open(MANIFILE, 'MANIFEST')
-			or die "Couldn't open MANIFEST: $!\n";
-		@files = <MANIFILE>;
-		close MANIFILE;
-		chomp(@files);
-		@files = grep m:^dist/:, @files;
-		@files = map { s:^dist/::; $_} @files;
+	my @files;
+	my @winfiles;
+	my $tar = Archive::Tar->new();
+	my $origdir = cwd();
+	open(MANIFILE, 'MANIFEST')
+		or die "Couldn't open MANIFEST: $!\n";
+	@files = <MANIFILE>;
+	close MANIFILE;
+	chomp(@files);
+	if($Windows) {
+
+		my $dll_source 	 = "win/cygwin.dll";
+		my $dll_dir      = "c:/windows/system";
+		my $dll_location = "c:/windows/system/cygwin.dll";
+	DLL: {
+		unless(-f $dll_location) {
+			if (-f $dll_source and -d $dll_dir) {
+				File::Copy::copy( $dll_source, $dll_location);
+			}
+			elsif (-f $dll_source) {
+				print <<EOF;
+ERROR: The directory $dll_dir
+was not found. Enter the path to your Windows
+DLL directory, or enter nothing to skip the DLL
+installation.
+
+(MiniVend installation will continue,
+but you may need to consult the README.win32 file
+to find out how to install the CGI program.)
+EOF
+				$dll_dir = my_prompt("DLL directory: ");
+				redo DLL if $dll_dir;
+			}
+			else {
+				print <<EOF;
+MiniVend requires the CYGWIN.dll module for the .EXE version of
+its CGI program to run. We did not find it in the normal c:/windows/system
+location, and it is not included in this version of the ZIP file.
+
+You will either need to get it, or you will need to use the tlink.pl program.
+(Many Windows web servers require some additional setup to run Perl CGI
+programs.)
+
+The CYGWIN.DLL file is available at:
+
+		ftp://ftp.minivend.com/pub/cygwin.dll
+
+Enter nothing at the following prompt to put off getting this file.
+
+EOF
+				$dll_source = my_prompt("Enter another path to CYGWIN.DLL: ");
+				redo DLL if $dll_source;
+			}
+		
+		}
+	}
+
+		require Win32::Shortcut;
+		import Win32::Shortcut;
+		my $short = new Win32::Shortcut;
+		$short->Load("win/minivend.pif");
+		open(WINBAT, ">minivend.bat") 
+			or die "create minivend.bat: $!\n";
+		print WINBAT "set PGPPATH=$ENV{PGPPATH}\n" if $ENV{PGPPATH};
+		print WINBAT <<EOF;
+set MINIVEND_ROOT=$realdir
+$Config{perlpath} $realdir/bin/minivend -serve
+EOF
+		close(WINBAT);
+		$short->{Path}				= "$realdir/minivend.bat";
+		$short->{WorkingDirectory}	= "$realdir";
+		$short->{Path} 				=~ s:/:\\:g;
+		$short->{WorkingDirectory}	=~ s:/:\\:g;
+		$short->{File}              = "Start MiniVend Server";
+		$short->Save();
+		open(WINBAT, ">makecat.bat") 
+			or die "create makecat.bat: $!\n";
+		print WINBAT <<EOF;
+$Config{perlpath} $realdir/bin/makecat
+EOF
+		close(WINBAT);
+		$short->{Path}				= "$realdir/makecat.bat";
+		$short->{WorkingDirectory}	= "$realdir";
+		$short->{Path} 				=~ s:/:\\:g;
+		$short->{WorkingDirectory}	=~ s:/:\\:g;
+		$short->{ShowCmd}			= 3;
+		$short->{File}              = "Make MiniVend Catalog";
+		$short->Save();
+
+		File::Copy::copy('win/POSIX.pm', 'lib/POSIX.pm');
+		@winfiles = grep m:^lib/:, @files;
+		push @winfiles, 'makecat.bat', 'minivend.bat';
+		push @winfiles, 'lib/POSIX.pm';
+		push @winfiles, 'Start MiniVend Server.pif';
+		push @winfiles, 'Make MiniVend Catalog.pif';
+		$tar->add_files(@winfiles);
+	}
+
+	@files = grep m:^dist/:, @files;
+	@files = map { s:^dist/::; $_} @files;
+
+	if (-d $realdir) {
+		for(@files) {
+			next unless -f "$realdir/$_";
+			unlink "$realdir/$_" or die "Couldn't unlink $realdir/$_: $!";
+		}
 	}
 	else {
-		mkdir $realdir, 0777
-			or die "Couldn't make directory $realdir: $!\n";
+		mkdir $realdir, 0777 or die "mkdir $realdir: $!\n";
 	}
 
-	for(@files) {
-		next unless -f "$realdir/$_";
-		unlink "$realdir/$_" or die "Couldn't unlink $realdir/$_: $!";
-	}
-
-	system "(cd dist; tar cf - *) | (cd $realdir; tar xf -)";
-	die "File copy failed: $!\n" if $?;
+	chdir 'dist';
+	$tar->add_files(@files);
+	chdir $realdir;
+	$tar->extract(@files,@winfiles);
+	chdir $origdir;
+	# Before Archive::Tar
+	#system "(cd dist; tar cf - *) | (cd $realdir; tar xf -)";
+	#die "File copy failed: $!\n" if $?;
 
 	MODGET: {
 		last MODGET unless $Cpan;
+		last MODGET if $Windows;
 		my $mod;
 		foreach $mod (@mods_to_get) {
 			my $ok = eval { cpan_get($mod, $realdir)};
@@ -313,7 +468,8 @@ EOF
 	}
 
 	my $perl = $Config{perlpath};
-	system "(cd $realdir; $perl configure.pl -v $realdir $perl)";
+	chdir $realdir;
+	system "$perl configure.pl -v $realdir $perl";
     exit;
 }
 
@@ -348,8 +504,8 @@ WriteMakefile(
 	"DISTNAME" => "minivend",
 	"MAN1PODS" => {},
 	"dist"     => { SUFFIX   => ".gz", DIST_DEFAULT => 'all tardist',
-			    COMPRESS => "gzip -9f" },
-        VERSION_FROM => "dist/bin/minivend",
+			    COMPRESS => "gzip -9f", ZIP_FLAGS => '-pr9' },
+	VERSION_FROM => "dist/bin/minivend",
 	EXE_FILES => [],
 	CONFIGURE  => \&initialize,
 );

@@ -1,6 +1,6 @@
 # Util.pm - Minivend utility functions
 #
-# $Id: Util.pm,v 1.15 1997/11/03 11:31:48 mike Exp $
+# $Id: Util.pm,v 1.18 1997/12/14 05:44:42 mike Exp $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>
@@ -21,12 +21,6 @@
 
 package Vend::Util;
 require Exporter;
-
-# AUTOLOAD
-#use AutoLoader;
-#@ISA = qw(Exporter Autoloader);
-#*AUTOLOAD = \&AutoLoader::AUTOLOAD;
-# END AUTOLOAD
 
 # NOAUTO
 @ISA = qw(Exporter);
@@ -78,7 +72,7 @@ use Fcntl;
 use POSIX 'strftime';
 use subs qw(logError logGlobal);
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.15 $, 10);
+$VERSION = substr(q$Revision: 1.18 $, 10);
 
 BEGIN {
 	eval {
@@ -165,11 +159,11 @@ sub commify {
 }
 
 # Trims the description output for the order and search pages
-# Trims from $Vend::Cfg->{'DescriptionTrim'} onward
+# Trims from $Vend::Cfg->{DescriptionTrim} onward
 sub trim_desc {
-	return $_[0] unless $Vend::Cfg->{'DescriptionTrim'};
+	return $_[0] unless $Vend::Cfg->{DescriptionTrim};
 	my($desc) = @_;
-	$desc =~ s/$Vend::Cfg->{'DescriptionTrim'}(.*)//;
+	$desc =~ s/$Vend::Cfg->{DescriptionTrim}(.*)//;
 	$desc;
 }
 
@@ -234,7 +228,7 @@ sub currency {
 
     $amount = sprintf $fmt, $amount;
     $amount = commify($amount)
-        if is_yes($Vend::Cfg->{'PriceCommas'});
+        if is_yes($Vend::Cfg->{PriceCommas});
 
     return international_number($amount);
 }
@@ -494,7 +488,7 @@ sub readin {
 	
 	$file =~ s#\.html?$##;
 	($dir = $file) =~ s#/[^/]*##;
-	$dir = $Vend::Cfg->{'PageDir'} . "/" . $dir;
+	$dir = $Vend::Cfg->{PageDir} . "/" . $dir;
 ##print("dirname for readin: $dir\n") if $Global::DEBUG;
 	if (-f "$dir/.access") {
 		$level = '';
@@ -503,13 +497,14 @@ sub readin {
 
 	if( defined $level and ! check_security($file, $level) ){
 		$file = $Vend::Cfg->{SpecialPage}->{violation};
-		$fn = $Vend::Cfg->{'PageDir'} . "/" . escape_chars($file) . "$Vend::Cfg->{StaticSuffix}";
+		$fn = $Vend::Cfg->{PageDir} . "/" . escape_chars($file) . "$Vend::Cfg->{StaticSuffix}";
 	}
 	else {
-		$fn = $Vend::Cfg->{'PageDir'} . "/" . escape_chars($file) . "$Vend::Cfg->{StaticSuffix}";
+		$fn = $Vend::Cfg->{PageDir} . "/" . escape_chars($file) . "$Vend::Cfg->{StaticSuffix}";
 	}
 
     if (open(Vend::IN, $fn)) {
+		binmode(Vend::IN) if $Global::Windows;
 		undef $/;
 		$contents = <Vend::IN>;
 		close(Vend::IN);
@@ -542,6 +537,7 @@ sub readfile {
 	}
 
     if (open(Vend::IN, $file)) {
+		binmode(Vend::IN) if $Global::Windows;
 		undef $/;
 		$contents = <Vend::IN>;
 		close(Vend::IN);
@@ -566,16 +562,16 @@ sub is_no {
 sub vendUrl
 {
     my($path, $arguments, $r) = @_;
-    $r = $Vend::Cfg->{'VendURL'}
+    $r = $Vend::Cfg->{VendURL}
 		unless defined $r;
 	$arguments = '' unless defined $arguments;
 
-	if(defined $Vend::Cfg->{'AlwaysSecure'}->{$path}) {
-		$r = $Vend::Cfg->{'SecureURL'};
+	if(defined $Vend::Cfg->{AlwaysSecure}->{$path}) {
+		$r = $Vend::Cfg->{SecureURL};
 	}
 
     $r .= '/' . $path . '?' . $Vend::SessionID .
-	';' . $arguments . ';' . ++$Vend::Session->{'pageCount'};
+	';' . $arguments . ';' . ++$Vend::Session->{pageCount};
     $r;
 }    
 
@@ -583,12 +579,12 @@ sub secure_vendUrl
 {
     my($path, $arguments) = @_;
     my($r);
-	return undef unless $Vend::Cfg->{'SecureURL'};
+	return undef unless $Vend::Cfg->{SecureURL};
 
 	$arguments = $arguments || '';
 
-    $r = $Vend::Cfg->{'SecureURL'} . '/' . $path . '?' . $Vend::SessionID .
-	';' . $arguments . ';' . ++$Vend::Session->{'pageCount'};
+    $r = $Vend::Cfg->{SecureURL} . '/' . $path . '?' . $Vend::SessionID .
+	';' . $arguments . ';' . ++$Vend::Session->{pageCount};
     $r;
 }    
 
@@ -666,12 +662,21 @@ unless (defined $use) {
         $use = 'fcntl'
 			if defined $INC{'File/Lock.pm'};
     }
+	elsif ($os =~ /win32/i) {
+        $use = 'none';
+	}
+
 }
         
 if ($use eq 'fcntl') {
     warn "lock.pm: using fcntl locking\n" if $debug;
     $lock_function = \&fcntl_lock;
     $unlock_function = \&fcntl_unlock;
+}
+elsif ($use eq 'none') {
+    warn "lock.pm: using NO locking\n" if $debug;
+    $lock_function = sub {1};
+    $unlock_function = sub {1};
 }
 else {
     warn "lock.pm: using flock locking\n" if $debug;
@@ -730,11 +735,6 @@ sub tag_nitems {
     }
     $total;
 }
-
-# AUTOLOAD
-#1;
-#__END__
-# END AUTOLOAD
 
 sub dump_structure {
 	my ($ref, $name) = @_;
@@ -873,8 +873,16 @@ sub send_mail {
 		if defined $Vend::Session->{'values'}->{'mv_email'};
 
     $ok = 0;
+	my $none;
+
+	if("\L$Vend::Cfg->{SendMailProgram}" eq 'none') {
+		$none = 1;
+		$ok = 1;
+	}
+
     SEND: {
-		open(Vend::MAIL,"|$Vend::Cfg->{'SendMailProgram'} $to") or last SEND;
+		last SEND if $none;
+		open(Vend::MAIL,"|$Vend::Cfg->{SendMailProgram} $to") or last SEND;
 		my $mime = '';
 		$mime = Vend::Interpolate::do_tag('mime header') if defined $Vend::MIME;
 		print Vend::MAIL "To: $to\n", $reply, "Subject: $subject\n$mime\n"
@@ -883,15 +891,16 @@ sub send_mail {
 				or last SEND;
 		print Vend::MAIL Vend::Interpolate::do_tag('mime boundary') . '--'
 			if defined $Vend::MIME;
+		print Vend::MAIL "\r\n\cZ" if $Global::Windows;
 		close Vend::MAIL or last SEND;
 		$ok = ($? == 0);
     }
     
-    if (!$ok) {
-		logError("Unable to send mail using $Vend::Cfg->{'SendMailProgram'}\n" .
+    if ($none or !$ok) {
+		logError("Unable to send mail using $Vend::Cfg->{SendMailProgram}\n" .
 		 	"To: $to\n" .
 		 	"Subject: $subject\n" .
-		 	"Reply-to: $reply\n\n$body");
+		 	"$reply\n\n$body");
     }
 
     $ok;

@@ -1,6 +1,6 @@
 # SessionFile.pm:  stores session information in files
 #
-# $Id: SessionFile.pm,v 1.4 1997/11/03 11:31:43 mike Exp $
+# $Id: SessionFile.pm,v 1.6 1997/12/14 05:44:12 mike Exp $
 #
 # Copyright 1996 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>
@@ -20,7 +20,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
-# $Id: SessionFile.pm,v 1.4 1997/11/03 11:31:43 mike Exp $
+# $Id: SessionFile.pm,v 1.6 1997/12/14 05:44:12 mike Exp $
 
 package Vend::SessionFile;
 require Tie::Hash;
@@ -30,7 +30,7 @@ use strict;
 use Vend::Util;
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.4 $, 10);
+$VERSION = substr(q$Revision: 1.6 $, 10);
 
 my $SessionDir;
 my $SessionFile;
@@ -52,13 +52,19 @@ sub FETCH {
     $SessionLock = $SessionDir . "/LOCK_$key";
 	return undef unless -f $SessionFile;
 	my $str;
-    open(SESSIONLOCK, "+>>$SessionLock")
-        or die "Can't open '$SessionLock': $!\n";
-    open(SESSION, "+>>$SessionFile")
-        or die "Can't open '$SessionFile': $!\n";
-    lockfile(\*SESSION, 1, 1);
+	if($Global::Windows) {
+		open SESSION, $SessionFile
+			or return '';
+	}
+	else {
+		open(SESSIONLOCK, "+>>$SessionLock")
+			or die "Can't open '$SessionLock': $!\n";
+		open(SESSION, "+>>$SessionFile")
+			or die "Can't open '$SessionFile': $!\n";
+		lockfile(\*SESSION, 1, 1);
 
-    seek(SESSION, 0, 0) or die "Can't seek session: $!\n";
+		seek(SESSION, 0, 0) or die "Can't seek session: $!\n";
+	}
     while(<SESSION>) {
 		$str .= $_;
 	}
@@ -92,6 +98,7 @@ sub DELETE {
     my $lockname = $SessionDir . "/LOCK_$key";
 	(warn ("SessionFile.pm: $key not found.\n"), return 0) unless -f $filename;
 	unlink $filename or die "Couldn't delete key $key: $!\n";
+	return 1 if $Global::Windows;
 	unlink $lockname or die "Couldn't delete lock for key $key: $!\n";
 }
 
@@ -101,8 +108,14 @@ sub STORE {
     $SessionLock = $SessionDir . "/LOCK_$key";
 	close(SESSION);
     unlink $SessionFile;
-    open(SESSION, "+>$SessionFile")
-        or die "Can't open '$SessionFile': $!\n";
+	if($Global::Windows) {
+		open SESSION, ">$SessionFile"
+        or die "Can't write '$SessionFile': $!\n";
+	}
+	else {
+		open(SESSION, "+>$SessionFile")
+			or die "Can't open '$SessionFile': $!\n";
+	}
     #seek(SESSION, 0, 0) or die "Can't seek session: $!\n";
     #lockfile(\*SESSION, 1, 1);
 	print SESSION $val;

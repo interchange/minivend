@@ -1,6 +1,6 @@
 # Vend/TextSearch.pm:  Search indexes with Perl
 #
-# $Id: TextSearch.pm,v 1.9 1997/11/08 17:32:07 mike Exp mike $
+# $Id: TextSearch.pm,v 1.10 1997/12/02 22:29:09 mike Exp $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::TextSearch
 #
@@ -27,26 +27,15 @@
 package Vend::TextSearch;
 require Vend::Search;
 
-# AUTOLOAD
-#use AutoLoader;
-#@ISA = qw(Vend::Search);
-#sub import {}
-# END AUTOLOAD
-
 # NOAUTO
 @ISA = qw(Vend::Search);
 # END NOAUTO
 
-$VERSION = substr(q$Revision: 1.9 $, 10);
+$VERSION = substr(q$Revision: 1.10 $, 10);
 
 use Text::ParseWords;
 use Search::Dict;
 use strict;
-
-# AUTOLOAD
-#1;
-#__END__
-# END AUTOLOAD
 
 sub new {
     my ($class, %options) = @_;
@@ -115,8 +104,13 @@ sub search {
 		$g->{matches} = -1;
 		return undef; # If it makes it this far
 	}
-	@searchfiles = grep s!^([^/])!$g->{base_directory}/$1!, @searchfiles
-			if $g->{base_directory};
+
+	if($g->{base_directory}) {
+		my $pre = '';
+		$pre = '(?:[A-Za-z]:)?' if $Global::Windows;
+		@searchfiles =
+			grep s!^($pre[^/])!$g->{base_directory}/$1!, @searchfiles;
+	}
 
  	$return_file_name = $g->{return_file_name};
  	$index_delim = $g->{index_delim};
@@ -298,7 +292,10 @@ EOF
 
 	foreach $searchfile (@searchfiles) {
 		$searchfile = "$g->{base_directory}/$searchfile"
-			unless ($sort_string || $searchfile =~ m:^/: || ! $g->{base_directory});
+			unless ($sort_string						||
+					$searchfile =~ m!^(?:[A-Za-z]:)?/!	||
+					! $g->{base_directory}
+					);
 		open(Vend::TextSearch::SEARCH, $searchfile)
 			or &{$g->{log_routine}}( "Couldn't open search file '$searchfile': $!"), next;
 		my $line;

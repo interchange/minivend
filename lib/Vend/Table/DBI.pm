@@ -1,6 +1,6 @@
 # Table/DBI.pm: access a table stored in an DBI/DBD Database
 #
-# $Id: DBI.pm,v 1.9 1997/11/01 12:19:39 mike Exp $
+# $Id: DBI.pm,v 1.12 1997/12/15 03:03:23 mike Exp mike $
 #
 # Copyright 1997 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -19,7 +19,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::DBI;
-$VERSION = substr(q$Revision: 1.9 $, 10);
+$VERSION = substr(q$Revision: 1.12 $, 10);
 
 use Carp;
 use strict;
@@ -61,7 +61,8 @@ sub find_dsn {
 	}
 	foreach $param (keys %$config) {
 		if(defined $Dattr{$param}) {
-			$dattr = {} unless defined $dattr;
+			$dattr = { AutoCommit => 1, PrintError => 1 }
+				unless defined $dattr;
 			$dattr->{$Dattr{$param}} = $config->{$param};
 		}
 		next unless defined $Cattr{$param};
@@ -204,6 +205,8 @@ sub open_table {
 
 	$cols = $config->{NAME} || [list_fields($db, $tablename)];
 
+	$config->{NUMERIC} = {} unless $config->{NUMERIC};
+
 	croak "DBI: no column names returned for $tablename\n"
 			unless defined $$cols[1];
 
@@ -240,6 +243,17 @@ sub test_column {
 
 	return $col - 1;
 
+}
+
+sub quote {
+	return $_[0]->[$DBI]->quote($_[1]);
+}
+
+sub numeric {
+print("called numeric with @_: status=") if $Global::DEBUG;
+	my $status = exists $_[0]->[$CONFIG]->{NUMERIC}->{$_[1]};
+print("$status\n") if $Global::DEBUG;
+	return exists $_[0]->[$CONFIG]->{NUMERIC}->{$_[1]};
 }
 
 sub inc_field {

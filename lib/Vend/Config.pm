@@ -61,6 +61,13 @@ my %DontDump = (qw(
 					QuantityPriceRoutine 1
 				));
 
+my %UseExtended = (qw(
+					Catalog				1
+					SubCatalog			1
+					Variable			1
+
+				));
+
 #my %SetGlobals;
 
 sub setcat {
@@ -75,25 +82,27 @@ sub global_directives {
 #   Directive name      Parsing function    Default value
 
 	['ConfigDir',		  undef,	         'etc/lib'],
+	['ConfigDatabase',	 'config_db',	     ''],
     ['DumpStructure',	 'yesno',     	     'No'],
     ['PageCheck',		 'yesno',     	     'No'],
     ['DisplayErrors',    'yesno',            'No'],
     ['DisplayComments',  'yesno',            'No'],
-    ['TcpPort',           undef,             '7786'],
+    ['TcpPort',          'integer',          '7786'],
 	['Environment',      'array',            ''],
     ['TcpHost',           undef,             'localhost'],
-	['SendMailProgram',  'executable',       $Global::SendMailLocation
+	['SendMailProgram',  'executable',		$Global::SendMailLocation
 												|| '/usr/lib/sendmail'],
     ['ForkSearches',	  undef,     	     ''],  # Prevent errors on 2.02 upgrade
-	['HouseKeeping',      undef,             60],
+	['HouseKeeping',     'integer',          60],
 	['Mall',	          'yesno',           'No'],
-	['MaxServers',        undef,             2],
+	['MaxServers',       'integer',          2],
 	['GlobalSub',		 'subroutine',       ''],
 	['FullUrl',			 'yesno',            'No'],
 	['IpHead',			 'yesno',            'No'],
 	['DomainTail',		 'yesno',            'Yes'],
 	['SafeSignals',	 	 'yesno',            'Yes'],
 	['AcrossLocks',		 'yesno',            'No'],
+    ['LockoutCommand',    undef,             ''],
     ['LogFile', 		  undef,     	     'etc/log'],
     ['SafeUntrap',       'array',            do { my $r = '249 148';
                                                   eval {require 5.00320};
@@ -107,7 +116,8 @@ sub global_directives {
 	['AdminSub',		 'boolean',			 ''],
 	['AdminUser',		  undef,			 ''],
 	['AdminHost',		  undef,			 ''],
-    ['HammerLock',		  undef,     	     30],
+    ['HammerLock',		 'integer',     	 30],
+    ['TolerateGet',		 'yesno',     	 	'No'],
     ['DebugMode',		  undef,     	     0],
     ['CheckHTML',		  undef,     	     ''],
 	['Variable',	  	 'variable',     	 ''],
@@ -134,6 +144,7 @@ sub catalog_directives {
 	['OfflineDir',       'relative_dir',     'offline'],
 	['DataDir',          'relative_dir',     'products'],
 	['ConfigDir',        'relative_dir',     'config'],
+	['ConfigDatabase',	 'config_db',	     ''],
 	['Delimiter',        'delimiter',        'TAB'],
     ['DisplayErrors',    'yesno',            'No'],
 	['RecordDelimiter',  'variable',         ''],
@@ -158,7 +169,7 @@ sub catalog_directives {
 	['SessionExpire',    'time',             '1 day'],
 	['SaveExpire',       'time',             '30 days'],
 	['MailOrderTo',      undef,              undef],
-	['SendMailProgram',  'executable',       $Global::SendMailProgram],
+	['SendMailProgram',  'executable',		$Global::SendMailProgram],
 	['PGP',              undef,       		 ''],
     ['Glimpse',          'executable',       ''],
     ['Locale',           'locale',           ''],
@@ -225,7 +236,6 @@ sub catalog_directives {
     ['UserDatabase',	 undef,		     	 ''],  #undocumented, unused
     ['AdminDatabase',	 'boolean',     	 ''], 
     ['AdminPage',		 'boolean',     	 ''],
-    ['LockoutCommand',	 undef,		     	 ''],  #undocumented
     ['RobotLimit',		 'integer',		      0],  #undocumented
     ['OrderLineLimit',	 'integer',		      0],  #undocumented
     ['PasswordFile',	 undef,		     	 ''],  #undocumented, unused
@@ -274,25 +284,30 @@ sub catalog_directives {
 }
 
 sub set_directive {
-	my ($directive, $value) = @_;
-	my $directives = catalog_directives();
-	my ($d, $dir, $parse);
-	no strict 'refs';
-	foreach $d (@$directives) {
-		next unless (lc $directive) eq (lc $d->[0]);
-		if (defined $d->[1]) {
-			$parse = 'parse_' . $d->[1];
-		} else {
-			$parse = undef;
-		}
-		$dir = $d->[0];
-		$value = &{$parse}($dir, $value)
-			if defined $parse;
-		last;
-	}
-	return [$dir, $value] if defined $dir;
-	return undef;
+    my ($directive, $value, $global) = @_;
+    my $directives;
+
+	if($global)	{ $directives = global_directives(); }
+	else		{ $directives = catalog_directives(); }
+
+    my ($d, $dir, $parse);
+    no strict 'refs';
+    foreach $d (@$directives) {
+        next unless (lc $directive) eq (lc $d->[0]);
+        if (defined $d->[1]) {
+            $parse = 'parse_' . $d->[1];
+        } else {
+            $parse = undef;
+        }
+        $dir = $d->[0];
+        $value = &{$parse}($dir, $value)
+            if defined $parse;
+        last;
+    }
+    return [$dir, $value] if defined $dir;
+    return undef;
 }
+
 
 sub get_catalog_default {
 	my ($directive) = @_;
@@ -320,18 +335,18 @@ sub get_global_default {
 
 sub substitute_variable {
 	my($val) = @_;
-print "before=$val\n" if $Global::DEBUG;
+#print "before=$val\n" if $Global::DEBUG;
 	# Return after globals so can others can be contained
 	$val =~ s/\@\@([A-Z][A-Z_0-9]+[A-Z0-9])\@\@/$Global::Variable->{$1}/g
 		and return $val;
 	return $val unless $val =~ /([_%])\1/;
-	1 while $val =~ s/__([A-Z][A-Z_0-9]+[A-Z0-9])__/$C->{Variable}->{$1}/g;
-print " after=$val\n" if $Global::DEBUG;
+	1 while $val =~ s/__([A-Z][A-Z_0-9]*?[A-Z0-9])__/$C->{Variable}->{$1}/g;
+#print " after=$val\n" if $Global::DEBUG;
 	# YALOS (yet another level)
 	return $val unless $val =~ /%%[A-Z]/;
 	$val =~ s/%%([A-Z][A-Z_0-9]+[A-Z0-9])%%/$Global::Variable->{$1}/g;
-	$val =~ s/__([A-Z][A-Z_0-9]+[A-Z0-9])__/$C->{Variable}->{$1}/g;
-print "  post=$val\n" if $Global::DEBUG;
+	$val =~ s/__([A-Z][A-Z_0-9]*?[A-Z0-9])__/$C->{Variable}->{$1}/g;
+#print "  post=$val\n" if $Global::DEBUG;
 	return $val;
 }
 
@@ -392,7 +407,23 @@ sub config {
 
 	my(@include) = ();
 	my $done_one;
+	my ($db, $dname, $nm);
 	my ($before, $after);
+	my $recno = 'C0001';
+	
+	# Create closure that reads and sets config values
+	my $read = sub {
+		my ($lvar, $value) = @_;
+		$parse = $parse{$lvar};
+					# call the parsing function for this directive
+		if($C->{ParseVariables} and $value =~ /([_%@])\1/) {
+			save_variable($name{$lvar}, $value);
+			$value = substitute_variable($value);
+		}
+		$value = &$parse($name{$lvar}, $value) if defined $parse;
+		# and set the $C->directive variable
+		$C->{$name{$lvar}} = $value;
+	};
 
 CONFIGLOOP: {
 
@@ -429,7 +460,7 @@ CONFIGLOOP: {
 			my $ref = $before->{structure};
 			for (keys %$ref) {
 				$ref->{$_} = eval $ref->{$_} if 
-					$ref->{$_} =~ /^\s*[{\[]/;
+					$ref->{$_} =~ /^\s*[{\[]/; # Balance }
 			}
 			copyref $before->{structure}, $C;
 		}
@@ -512,18 +543,68 @@ CONFIGLOOP: {
 		# Now we can give an unknown error
 		config_error("Unknown directive '$var'") unless defined $name{$lvar};
 
-		$parse = $parse{$lvar};
-					# call the parsing function for this directive
-		if($C->{ParseVariables} and $value =~ /([_%@])\1/) {
-			save_variable($name{$lvar}, $value);
-			$value = substitute_variable($value);
+		&$read($lvar, $value);
+		last if $C->{ConfigDatabase}->{ACTIVE};
+
+		# See if we want to load the config database
+		if(! $db and $C->{ConfigDatabase}->{LOAD}) {
+			$db = $C->{ConfigDatabase}->{OBJECT}
+				or config_error(
+					"ConfigDatabase $C->{ConfigDatabase}->{'name'} not active.");
+			$dname = $C->{ConfigDatabase}{name};
 		}
-		$value = &$parse($name{$lvar}, $value) if defined $parse;
-					# and set the $C->directive variable
-		$C->{$name{$lvar}} = $value;
+
+		# Actually load ConfigDatabase if present
+		if($db) {
+			$nm = $name{$lvar};
+			my ($extended, $status);
+			undef $extended;
+
+			# set directive name
+			$status = Vend::Data::set_field($db, $recno, 'directive', $nm);
+			config_error("ConfigDatabase failed for $dname, field 'directive'")
+				unless defined $status;
+
+			# use extended value field if necessary or directed
+			if (length($value) > 250 or $UseExtended{$nm}) {
+				$extended = $value;
+				$extended =~ s/(\S+)\s*//;
+				$value = $1 || '';
+				$status = Vend::Data::set_field($db, $recno, 'extended', $extended);
+				config_error("ConfigDatabase failed for $dname, field 'extended'")
+					unless defined $status;
+			}
+
+			# set value -- just a name if extended was used
+			$status = Vend::Data::set_field($db, $recno, 'value', $value);
+			config_error("Configdatabase failed for $dname, field 'value'")
+				unless defined $status;
+
+			$recno++;
+		}
+		
     }
 	$done_one = 1;
     close Vend::CONFIG;
+
+	# See if we have an active configuration database
+	if($C->{ConfigDatabase}->{ACTIVE}) {
+		my ($key,$value,$dir,@val);
+		my $name = $C->{ConfigDatabase}->{name};
+		$db = $C->{ConfigDatabase}{OBJECT} or 
+			config_error("ConfigDatabase called ACTIVE with no database object.\n");
+		my $items = $db->array_query("select * from $name order by code");
+		my $one;
+		foreach $one ( @$items ) {
+			($key, $dir, @val) = @$one;
+			$value = join " ", @val;
+			$value =~ s/\s/\n/ if $value =~ /\n/;
+			$value =~ s/^\s+//;
+			$value =~ s/\s+$//;
+			$lvar = lc $dir;
+			&$read($lvar, $value);
+		}
+	}
 
 	# See if anything is defined in options to do after the
 	# main configuration file.  This includes any command-line
@@ -552,7 +633,7 @@ CONFIGLOOP: {
 			my $ref = $after->{replace};
 			for (keys %$ref) {
 				$ref->{$_} = eval $ref->{$_} if 
-					$ref->{$_} =~ /^\s*[{\[]/;
+					$ref->{$_} =~ /^\s*[{\[]/; # } to balance
 			}
 			for (keys %{$after->{replace}}) {
 				$C->{$_} = $after->{replace}->{$_};
@@ -562,7 +643,7 @@ CONFIGLOOP: {
 			my $ref = $after->{structure};
 			for (keys %$ref) {
 				$ref->{$_} = eval $ref->{$_} if 
-					$ref->{$_} =~ /^\s*[{\[]/;
+					$ref->{$_} =~ /^\s*[{\[]/; # }
 			}
 			copyref $after->{structure}, $C;
 		}
@@ -657,7 +738,37 @@ sub global_config {
 
 	my (@include);
 	my $configfile = $Global::ConfigFile;
-GLOBLOOP: {
+
+	# Create closure for reading of value
+
+	my $read = sub {
+	my ($lvar, $value) = @_;
+	# Error out on extra parameters only if we know
+	# we are not standalone
+	unless (defined $name{$lvar}) {
+		next unless $seen_catalog;
+		config_error("Unknown directive '$var'")
+	}
+	else {
+		$seen_catalog = 1 if $lvar eq 'catalog';
+		$SetGlobals{$lvar} = 1;
+	}
+
+	$parse = $parse{$lvar};
+				# call the parsing function for this directive
+
+	if (defined $DumpSource{$name{$directive}}) {
+		$Global::Structure{ $name{$directive} } = $value;
+	}
+
+	$value = &$parse($name{$lvar}, $value) if defined $parse;
+				# and set the Global::directive variable
+	${'Global::' . $name{$lvar}} = $value;
+	$Global::Structure{ $name{$lvar} } = $value
+		unless defined $DontDump{ $name{$lvar} };
+	};
+
+ GLOBLOOP: {
     open(Vend::GLOBAL, $configfile)
 		or die "Could not open configuration file '" .
                 $configfile . "':\n$!\n";
@@ -712,30 +823,9 @@ GLOBLOOP: {
 			$value .= $tmpval;
 		}
 
-		# Error out on extra parameters only if we know
-		# we are not standalone
-		unless (defined $name{$lvar}) {
-			next unless $seen_catalog;
-			config_error("Unknown directive '$var'")
-		}
-		else {
-			$seen_catalog = 1 if $lvar eq 'catalog';
-			$SetGlobals{$lvar} = 1;
-		}
+		&$read($lvar, $value);
 
-		$parse = $parse{$lvar};
-					# call the parsing function for this directive
-
-		if (defined $DumpSource{$name{$directive}}) {
-			$Global::Structure{ $name{$directive} } = $value;
-		}
-
-		$value = &$parse($name{$lvar}, $value) if defined $parse;
-					# and set the Global::directive variable
-		${'Global::' . $name{$lvar}} = $value;
-		$Global::Structure{ $name{$lvar} } = $value
-			unless defined $DontDump{ $name{$lvar} };
-    }
+   }
     close Vend::GLOBAL;
     if(@include) {
         $configfile = shift @include;
@@ -1166,8 +1256,12 @@ sub parse_executable {
 	my $root = $value;
 	$root =~ s/\s.*//;
 
+	return $value if $Global::Windows;
 	if( ! defined $value or $value eq '') {
 		$x = '';
+	}
+	elsif( $value eq 'none') {
+		$x = 'none';
 	}
 	elsif ($root =~ m#^/# and -x $root) {
 		$x = $value;
@@ -1230,14 +1324,121 @@ print "parsing name=$name dir=$dir script=$script\n" if $Global::DEBUG;
 
 my %Hash_ref = (  qw!
 							COLUMN_DEF   COLUMN_DEF
+							NUMERIC      NUMERIC
 					! );
 
 my %Ary_ref = (   qw!
 							NAME         NAME
-							NUMERIC      NUMERIC
 							BINARY       BINARY 
 					! );
 
+sub parse_config_db {
+    my($name, $value) = @_;
+	my ($d, $new);
+	unless (defined $value && $value) { 
+		$d = {};
+		return $d;
+	}
+
+	if($C) {
+		$d = $C->{'ConfigDatabase'};
+	}
+	else {
+		$d = $Global::ConfigDatabase;
+	}
+
+	my($database,$remain) = split /[\s,]+/, $value, 2;
+
+	$d->{'name'} = $database;
+	
+	if(!defined $d->{'file'}) {
+		my($file, $type) = split /[\s,]+/, $remain, 2;
+		$d->{'file'} = $file;
+		if(		$type =~ /^\d+$/	) {
+			$d->{'type'} = $type;
+		}
+		elsif(	$type =~ /^(dbi|sql)\b/i	) {
+			$d->{'type'} = 8;
+			if($type =~ /^dbi:/) {
+				$d->{DSN} = $type;
+			}
+		}
+		elsif(	$type =~ /^msql\b/i	) {
+			$d->{'type'} = 7;
+		}
+		elsif(	"\U$type" eq 'TAB'	) {
+			$d->{'type'} = 6;
+		}
+		elsif(	"\U$type" eq 'PIPE'	) {
+			$d->{'type'} = 5;
+		}
+		elsif(	"\U$type" eq 'CSV'	) {
+			$d->{'type'} = 4;
+		}
+		elsif(	"\U$type" eq 'DEFAULT'	) {
+			$d->{'type'} = 1;
+		}
+		elsif(	$type =~ /[%]{1,3}|percent/i	) {
+			$d->{'type'} = 3;
+		}
+		elsif(	$type =~ /line/i	) {
+			$d->{'type'} = 2;
+		}
+		else {
+			$d->{'type'} = 1;
+			$d->{'DELIMITER'} = $type;
+		}
+	}
+	else {
+		my($p, $val) = split /\s+/, $remain, 2;
+		$p = uc $p;
+
+		if(defined $Hash_ref{$p}) {
+			my($k, $v);
+			my(@v) = quoted_comma_string($val);
+			@v = grep defined $_, @v;
+			$d->{$p} = {} unless defined $d->{$p};
+			for(@v) {
+				($k,$v) = split /\s*=\s*/, $_;
+				$d->{$p}->{$k} = $v;
+			}
+		}
+		elsif(defined $Ary_ref{$p}) {
+			my(@v) = quoted_string($val);
+			$d->{$p} = [] unless defined $d->{$p};
+			push @{$d->{$p}}, @v;
+		}
+		else {
+			config_warn "ConfigDatabase scalar parameter '$p' redefined."
+				if defined $d->{$p};
+			$d->{$p} = $val;
+		}
+	}
+
+	if($Global::DEBUG) {
+		print "Defining config database $database\n";
+		for (keys %$d) {
+			print "$_=$d->{$_}\n";
+		}
+	}
+
+	if($d->{ACTIVE} and ! $d->{OBJECT}) {
+		my $name = $d->{'name'};
+		$d->{OBJECT} = Vend::Data::import_database($d)
+			or config_error("Config database $name failed import.\n");
+	}
+	elsif($d->{LOAD} and ! $d->{OBJECT}) {
+		my $name = $d->{'name'};
+		$d->{OBJECT} = Vend::Data::import_database($d)
+			or config_error("Config database $name failed import.\n");
+		if( $d->{type} == 8 ) {
+			$d->{OBJECT}->set_query("delete from $name where 1 = 1");
+		}
+	}
+
+	return $d;
+	
+}
 
 sub parse_database {
 	my ($var, $value) = @_;
@@ -1310,6 +1511,7 @@ sub parse_database {
 		if(defined $Hash_ref{$p}) {
 			my($k, $v);
 			my(@v) = quoted_comma_string($val);
+			@v = grep defined $_, @v;
 			$d->{$p} = {} unless defined $d->{$p};
 			for(@v) {
 				($k,$v) = split /\s*=\s*/, $_;
@@ -1327,13 +1529,7 @@ sub parse_database {
 			$d->{$p} = $val;
 		}
 	}
-	if($Global::DEBUG) {
-		print "Defining database $database\n";
-		for (keys %$d) {
-			print "$_=$d->{$_}\n";
-		}
-	}
-		
+
 	return $c;
 }
 
@@ -1363,7 +1559,7 @@ sub parse_profile {
 		push @$c, (split /\s*[\r\n]+__END__[\r\n]+\s*/, readfile($_));
 	}
 	for($i = 0; $i < @$c; $i++) {
-		if($c->[$i] =~ s/(^|\n)__NAME__\s+(.+)\n//) {
+		if($c->[$i] =~ s/(^|\n)__NAME__\s+([^\n\r]+)\r?\n//) {
 			my $name = $2;
 			$n->{$name} = $i;
 		}
@@ -1438,6 +1634,8 @@ sub parse_tag {
 	$tag =~ s/\W//g
 		and config_warn("Bad characters removed from '$tag'.");
 
+print("Define UserTag $tag $p\n") if $Global::DEBUG;
+
 	unless ($p) {
 		config_warn "Bad user tag parameter '$p' for '$tag', skipping.";
 		return $c;
@@ -1450,7 +1648,9 @@ sub parse_tag {
 		unless($Global::AllowGlobal->{$C->{CatalogName}}) {
 			my $safe = new Safe;
 			my $code = $val;
-#print("Safe check $tag $code\n") if $Global::DEBUG;
+print("Safe check $tag $code\n") if $Global::DEBUG;
+			$code =~ s'$Vend::Session->'$foo'g;
+			$code =~ s'$Vend::Cfg->'$bar'g;
 			$safe->untrap(@{$Global::SafeUntrap});
 			$sub = $safe->reval($code);
 			if($@) {
@@ -1500,6 +1700,7 @@ sub parse_eval {
 sub parse_variable {
 	my ($var, $value) = @_;
 	my ($c, $name, $param);
+#print("setting $var to $value\n") if $Global::DEBUG;
 
 	# Allow certain catalogs global subs
 	if($var eq 'Sub' and $Global::AllowGlobal->{$C->{CatalogName}}) {
@@ -1515,7 +1716,7 @@ sub parse_variable {
 	}
 	else {
 		no strict 'refs';
-print("global ") if $Global::DEBUG;
+#print("global ") if $Global::DEBUG;
 		$c = ${"Global::$var"};
 	}
 
@@ -1537,7 +1738,7 @@ print("global ") if $Global::DEBUG;
 	else {
 		($name, $param) = split /\s+/, $value, 2;
 	}
-print("variable $name\n") if $Global::DEBUG;
+#print("variable $name\n") if $Global::DEBUG;
 	$c->{$name} = $param;
 	return $c;
 }
@@ -1611,7 +1812,7 @@ sub parse_help {
 	$C->{'Source'}->{'Help'} = $value;
 	@files = get_files($C->{'PageDir'}, split /\s+/, $value);
 	foreach $chunk (@files) {
-		@items = split /\n\n/, $chunk;
+		@items = split /\r?\n\r?\n/, $chunk;
 		foreach $item (@items) {
 			($key,$help) = split /\s*\n/, $item, 2;
 			if(defined $c->{$key}) {

@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 #
 # check - MiniVend support program
 #
@@ -341,6 +341,9 @@ We tried:
 
  $RESTART_HARD
 
+Script: $LINK_PROG
+Restart: $RESTART
+
 EOF
                         exit;
                     }
@@ -351,6 +354,9 @@ Subject: MiniVend restarted
 X-From: MiniVend Check Program ($0)
                         
 MiniVend not responding, restarted. OK: $good BAD: $not
+
+Script: $LINK_PROG
+Restart: $RESTART
 EOF
                     }
                 }

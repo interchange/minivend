@@ -1,4 +1,4 @@
-# $Id: Data.pm,v 1.21 1997/11/08 17:30:53 mike Exp mike $
+# $Id: Data.pm,v 1.25 1997/12/15 02:12:28 mike Exp mike $
 
 package Vend::Data;
 require Exporter;
@@ -19,7 +19,6 @@ item_description
 item_field
 item_price
 item_subtotal
-msql_query
 sql_query
 open_database
 product_code_exists_ref
@@ -44,6 +43,8 @@ use Vend::Interpolate;
 use Vend::Table::DummyDB;
 use Vend::Table::Import qw(import_ascii_delimited import_quoted);
 
+File::Basename::fileparse_set_fstype('MSWin32')
+	if $Global::Windows;
 
 BEGIN {
 	if(defined $Msql::VERSION or $Global::Msql) {
@@ -342,11 +343,10 @@ sub create_database_gdbm {
 
 sub close_database {
 	my($db, $name);
-	while( ($name, $db)	= each %{$Vend::Database} ) {
-#print("closing table $name\n") if $Global::DEBUG;
-		next if defined $Vend::Cfg->{SaveDatabase}->{$name};
-    	$db->close_table()
-			or die "Could not untie database: $!\n";
+	while( ($name)	= each %Vend::Database ) {
+    	$Vend::Database{$name}->close_table()
+			unless defined $Vend::Cfg->{SaveDatabase}->{$name};
+		delete $Vend::Database{$name};
 	}
 	undef %Vend::WriteDatabase;
 	undef %Vend::Basefinder;
@@ -379,7 +379,7 @@ sub read_shipping {
 	$Vend::Cfg->{Shipping_cost} = {};
 	UPSZONE: {
 		if($Vend::Cfg->{UpsZoneFile}) {
-			my @zone = split(/\n/, readfile($Vend::Cfg->{'UpsZoneFile'}) );
+			my @zone = split(/[\r\n]+/, readfile($Vend::Cfg->{'UpsZoneFile'}) );
 			unless (@zone) {
 				logError("Bad UPS zone file, UPS lookup disabled.");
 				last UPSZONE;
@@ -430,6 +430,7 @@ sub read_accessories {
 		};
     while(<Vend::ACCESSORIES>) {
 		chomp;
+		tr/\r//d;
 		if (s/\\\s*$//) { # handle continues
 	        $_ .= <Vend::ACCESSORIES>;
 			redo;
@@ -453,6 +454,7 @@ sub read_salestax {
 		};
     while(<Vend::SALESTAX>) {
 		chomp;
+		tr/\r//d;
 		($code, $percent) = split(/\s+/);
 		$Vend::Cfg->{SalesTaxTable}->{"\U$code"} = $percent;
     }
@@ -469,8 +471,8 @@ sub read_salestax {
 sub read_pricing {
     my($code, @breaks);
 	if($Vend::Cfg->{PriceBreaks} || $Vend::Cfg->{PriceAdjustment}) {
-			die "No pricing database defined.\n"
-				 unless $Vend::Cfg->{Database}->{pricing};
+		die "No pricing database defined, PriceBreaks or PriceAdjustment enabled.\n"
+			 unless $Vend::Cfg->{Database}->{pricing};
 	}
 	return ( build_item_price(), build_quantity_price() );
 }
@@ -553,7 +555,7 @@ sub import_database {
 
 	return $Vend::Cfg->{SaveDatabase}->{$name}
 		if defined $Vend::Cfg->{SaveDatabase}->{$name};
-#print("Import database $name $database $type\n" ) if $Global::DEBUG;
+print("Import db: dir=$Vend::Cfg->{DataDir} name=$name db=$database type=$type\n" ) if $Global::DEBUG;
 
 	my ($delimiter, $record_delim, $change_delimiter, $cacheable);
 
@@ -566,11 +568,14 @@ sub import_database {
 	my $data;
 
     my $database_txt = $database;
-    my ($base,$path,$tail) = fileparse $database_txt, '\.[^/.]+$';
-	$path =~ s:^\./?::;
+
+	my ($base,$path,$tail) = fileparse $database_txt, '\.[^/.]+$';
+print("start=$database_txt path='$path' base='$base' tail='$tail'\n") if $Global::DEBUG;
+
+	$path =~ s:^\.[\\/]::;
 
 	unless($path) {
-		$data = $Vend::Cfg->{DataDir};
+		$data = $Vend::Cfg->{DataDir} || $Global::ConfigDir;
 		$database_txt = "$data/$database_txt";
 	}
 	else {
@@ -588,7 +593,7 @@ sub import_database {
 		$New_table_sql = $base;
 		$New_name_sql = $name;
     	$database_dbm = "$data/$base.sql";
-    	$New_database_dbm = "$data/new.$base.sql";
+    	$New_database_dbm = "$data/new_$base.sql";
 		if ($no_import or -f $database_dbm or ! -f $database_txt) {
 			$no_import = 1;
 		}
@@ -604,7 +609,7 @@ sub import_database {
 		$New_table_sql = $base;
 		$New_name_sql = $name;
     	$database_dbm = "$data/$base.sql";
-    	$New_database_dbm = "$data/new.$base.sql";
+    	$New_database_dbm = "$data/new_$base.sql";
 		if ($no_import or -f $database_dbm or ! -f $database_txt) {
 			$no_import = 1;
 		}
@@ -617,13 +622,13 @@ sub import_database {
 		$change_delimiter = $obj->{DELIMITER} if defined $obj->{DELIMITER};
 	}
     elsif($Global::GDBM) {
-		$New_database_dbm = "$data/new.$base.gdbm";
+		$New_database_dbm = "$data/new_$base.gdbm";
     	$database_dbm = "$data/$base.gdbm";
     	$create_sub = \&create_database_gdbm;
 		$cacheable = 1 if $Global::AcrossLocks;
 	}
     elsif($Global::DB_File) {
-		$New_database_dbm = "$data/new.$base.db";
+		$New_database_dbm = "$data/new_$base.db";
     	$database_dbm = "$data/$base.db";
     	$create_sub = \&create_database_dbfile;
 		$cacheable = 1 if $Global::AcrossLocks;
@@ -659,6 +664,8 @@ sub import_database {
 
 		$/ = $save;
 		if(defined $database_dbm) {
+			$db->close_table() if defined $db;
+			undef $db;
         	rename($New_database_dbm, $database_dbm)
             	or die "Couldn't move '$New_database_dbm' to '$database_dbm': $!\n";
 		}

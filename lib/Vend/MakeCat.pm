@@ -24,9 +24,12 @@
 
 package Vend::MakeCat;
 
+use Cwd;
 use File::Find;
 use File::Copy;
-use Config;
+BEGIN { $SIG{"__WARN__"} = sub { warn $_[0] if $DOWARN } }
+use Archive::Tar;
+BEGIN { $DOWARN = 1 }
 
 require Exporter;
 @ISA = qw(Exporter);
@@ -36,6 +39,7 @@ add_catalog
 addhistory
 can_do_suid
 conf_parse_http
+copy_current_to_dir
 description
 do_msg
 findexe
@@ -52,7 +56,7 @@ sethistory
 use strict;
 
 use vars qw($Force $Error $History $VERSION);
-$VERSION = substr(q$Revision: 1.5 $, 10);
+$VERSION = substr(q$Revision: 1.7 $, 10);
 
 $Force = 0;
 $History = 0;
@@ -229,7 +233,7 @@ sub findexe {
  
 sub findfiles {
     my($file) = @_;
-	return undef if $Config{osname} =~ /win32/i;
+	return undef if $ =~ /win32/i;
 	my $cmd;
 	my @files;
     if($cmd = findexe('locate')) {
@@ -254,6 +258,7 @@ sub description {
 }
 
 sub can_do_suid {
+	return 0 if $ =~ /win32/i;
 	my $file = "tmp$$.fil";
 	my $status;
 
@@ -266,6 +271,7 @@ sub can_do_suid {
 }
 
 sub get_id {
+	return 'everybody' if $ =~ /win32/i;
     my $file = -f "$::VendRoot/error.log"
                 ? "$::VendRoot/error.log" : '';
     return '' unless $file;
@@ -277,6 +283,7 @@ sub get_id {
 }
 
 sub get_ids {
+	return ('everybody', 'nogroup') if $ =~ /win32/i;
 	my $file = "tmp$$.fil";
 	my ($name, $group);
 
@@ -287,6 +294,25 @@ sub get_ids {
 	$name = (getpwuid($uid))[0];
 	$group = (getgrgid($gid))[0];
 	return ($name,$group);
+}
+
+sub copy_current_to_dir {
+    my($target_dir, $exclude_pattern) = @_;
+    my $orig_dir = cwd();
+    my @files; 
+    my $wanted = sub {  
+        return unless -f $_;
+        my $name = $File::Find::name;
+        $name =~ s:^\./::;
+        return if $exclude_pattern and $name =~ m{$exclude_pattern}o;
+        push (@files, $name);
+    };
+    File::Find::find($wanted, '.');  
+    my $tar = Archive::Tar->new();   
+    $tar->add_files(@files);
+    chdir $target_dir   or die "Can't change directory to $target_dir: $!\n";
+    $tar->extract(@files);
+    chdir $orig_dir     or die "Can't change directory to $target_dir: $!\n";
 }
 
 use vars q!$Prompt_sub!;
@@ -335,7 +361,7 @@ sub prompt {
 
     print $prompt;
     print "[$default] " if $default;
-    chop($ans = <STDIN>);
+    chomp($ans = <STDIN>);
     $ans ? $ans : $default;
 }
 
@@ -487,7 +513,7 @@ sub conf_parse_http {
 		}
 		
 		if($handle eq ' ') {
-			chop($servname = `hostname`) unless $servname;
+			chomp($servname = `hostname`) unless $servname;
 			$main = $servname;
 		}
 		next unless $servname;

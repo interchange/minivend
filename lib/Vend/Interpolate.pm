@@ -1,6 +1,6 @@
 # Interpolate.pm - Interpret MiniVend tags
 # 
-# $Id: Interpolate.pm,v 1.30 1997/11/08 16:43:57 mike Exp mike $
+# $Id: Interpolate.pm,v 1.35 1997/12/14 05:43:36 mike Exp $
 #
 # Copyright 1996 by Michael J. Heins <mikeh@iac.net>
 #
@@ -20,19 +20,12 @@
 
 package Vend::Interpolate;
 
-# AUTOLOAD
-#use AutoLoader;
-#require Exporter;
-#@ISA = qw(Exporter AutoLoader);
-#*AUTOLOAD = \&AutoLoader::AUTOLOAD;
-# END AUTOLOAD
-
 # NOAUTO
 require Exporter;
 @ISA = qw(Exporter);
 # END NOAUTO
 
-$VERSION = substr(q$Revision: 1.30 $, 10);
+$VERSION = substr(q$Revision: 1.35 $, 10);
 
 @EXPORT = qw (
 
@@ -70,31 +63,8 @@ use POSIX qw(ceil strftime);
 
 use vars qw($New);
 
-# AUTOLOAD
-#use vars qw(
-#$CacheInvalid
-#%Comment_out
-#$Force_old
-#%T
-#$Codere
-#$Coderex
-#$ready_safe
-#@Opts
-#@Flds
-#%Sort
-#%Sort_field
-#);
-# END AUTOLOAD
-
-# AUTOLOAD
-#$CacheInvalid = 1;
-#$Force_old = 0;
-#$ready_safe = new Safe;
-# END AUTOLOAD
-
 # NOAUTO
 my $CacheInvalid = 1;
-my $Force_old = 0;
 my $ready_safe = new Safe;
 # END NOAUTO
 
@@ -273,12 +243,6 @@ TAGBUILD: {
 	}
 }
 
-# AUTOLOAD
-#$Codere = '[\w-_#/.]+';
-#$Coderex = '[\w-_:#=/.%]+';
-#%Comment_out = ( '<' => '&lt;', '[' => '&#91;', '_' => '&#95;', );
-# END AUTOLOAD
-
 # NOAUTO
 my $Codere = '[\w-_#/.]+';
 my $Coderex = '[\w-_:#=/.%]+';
@@ -343,7 +307,7 @@ print("New tags=$New\n") if $Global::DEBUG;
 
 	# Substitute defines from configuration file
 	$html =~ s#\@\@([A-Za-z0-9]\w+[A-Za-z0-9])\@\@#$Global::Variable->{$1}#ge;
-	$html =~ s#__([A-Za-z0-9]\w+[A-Za-z0-9])__#$Vend::Cfg->{Variable}->{$1}#ge;
+	$html =~ s#__([A-Za-z0-9]\w*?[A-Za-z0-9])__#$Vend::Cfg->{Variable}->{$1}#ge;
 
 	# Uncomment to use parallel MV and HTML tags
 	#$html =~ s#<!--\s*$T{'alt'}\]\s*-->[\000-\377]*?<!--\s*$T{'/alt'}\]\s*-->##o;
@@ -408,7 +372,7 @@ print("New tags=$New\n") if $Global::DEBUG;
 
 	# Substitute defines from configuration file
 	$html =~ s#\@\@([A-Za-z0-9]\w+[A-Za-z0-9])\@\@#$Global::Variable->{$1}#ge;
-	$html =~ s#__([A-Za-z0-9]\w+[A-Za-z0-9])__#$Vend::Cfg->{Variable}->{$1}#ge;
+	$html =~ s#__([A-Za-z0-9]\w*?[A-Za-z0-9])__#$Vend::Cfg->{Variable}->{$1}#ge;
 
     # Returns, could be recursive
 	if($New) {
@@ -445,9 +409,6 @@ print("New tags=$New\n") if $Global::DEBUG;
 
 sub cache_scan_html {
     my($html) = @_;
-
-    my($Codere) = '[\w-_#/.]+';
-    my($Coderex) = '[\w-_:#=/.%]+';
 
 	#my $j = 1;  #DEBUG
 #print( "CacheInvalid" . $j++ . ": $CacheInvalid\n") if $Global::DEBUG;
@@ -520,7 +481,8 @@ sub cache_scan_html {
     $html =~ s:$T{'help'}\s+($Codere)\]:tag_help($1):geo;
     $html =~ s:$T{'buttonbar'}\s+($Codere)\]:tag_buttonbar($1):geo;
     $html =~ s:$T{'random'}\]:tag_random():geo;
-    $html =~ s!$T{'rotate'}(?:\s+)?($Codere)?\]!tag_rotate($1)!geo;
+    $html =~ s!$T{'rotate'}(?:\s+)?($Codere)?(?:\s+)?($Codere)?\]!
+					tag_rotate($1,$2)!geo;
 
 	$html =~ s!$T{'checked'}\s+($Codere)(?:\s+)?($Codere)?(?:\s+)?($Codere)?\]!
 					tag_checked($1,$2 || 'on', $3)!geo
@@ -600,9 +562,6 @@ sub cache_scan_html {
 sub scan_html {
     my($html) = @_;
 
-    my($Codere) = '[\w-_#/.]+';
-    my($Coderex) = '[\w-_:#=/.%]+';
-
 	$html =~ s:$T{'tag'}([^\]]*)\]([\000-\377]*?)$T{'/tag'}\]:do_tag($1,$2):geo;
     $html =~ s:\[\s*(\d?)\s*(\[[\000-\377]*?\])\s*\1\s*\]:scan_html($2):ge;
 
@@ -661,7 +620,8 @@ sub scan_html {
     $html =~ s:$T{'help'}\s+($Codere)\]:tag_help($1):geo;
     $html =~ s:$T{'buttonbar'}\s+($Codere)\]:tag_buttonbar($1):geo;
     $html =~ s:$T{'random'}\]:tag_random():geo;
-    $html =~ s!$T{'rotate'}(?:\s+)?($Codere)?\]!tag_rotate($1)!geo;
+    $html =~ s!$T{'rotate'}(?:\s+)?($Codere)?(?:\s+)?($Codere)?\]!
+					tag_rotate($1,$2)!geo;
 
 	$html =~ s!$T{'checked'}\s+($Codere)(?:\s+)?($Codere)?(?:\s+)?($Codere)?\]!
 					tag_checked($1,$2 || 'on', $3)!geo;
@@ -1088,7 +1048,6 @@ sub tag_accessories {
 }
 
 sub safe_tag {
-	$Force_old = 1;
 	return do_tag ('', @_);
 }
 
@@ -1147,6 +1106,8 @@ sub tag_perl {
 	$safe->share('%Safe', '&safe_tag', '&tag_data', '&interpolate_html');
 	$safe->untrap(@{$Global::SafeUntrap})
 		if $Global::SafeUntrap;
+
+	$body =~ tr/\r//d if $Global::Windows;
 
 	unless (defined $file or defined $sub) {
 		$result = $safe->reval($code . $body);
@@ -1231,11 +1192,18 @@ sub do_tag {
 			return $string . ']' unless $text;
 			return $string . '/se=' . $se . "]$text";
 		}
-		elsif($arg =~ m!^\s*sql/(.*)!i ) {
-			my $string = "[page scan/$1";
+		elsif($arg =~ m!^\s*sql
+					(/?$Codere)?
+					(?:\s+)?
+					($Codere)?
+					(?:\s+)?
+					($Codere)?
+					!iox ) {
+			my $string = "scan$1";
+			my $arg = $2;
 			$string .= '/st=sql' unless $string =~ m:/st=sql:;
 			$text =~ s/(\W)/'%' . sprintf("%02x", ord($1))/ge;
-			return $string . '/sq=' . $text . "]";
+			return tag_area(($string . '/sq=' . $text), $arg);
 		}
 		elsif($arg =~ /^\s*import\s+($Codere)(?:\s+)?(.*)/i ) {
 			my $type = $2 || '';
@@ -1393,11 +1361,6 @@ EndOFmiMe
 		return interpolate_html("[$text]");
 	}
 }
-
-# AUTOLOAD
-#1;
-#__END__
-# END AUTOLOAD
 
 sub do_flag {
 	my($flag, $arg) = @_;
@@ -1648,15 +1611,30 @@ sub tag_random {
 
 # Returns a rotating message or image
 sub tag_rotate {
+	return '' unless $Vend::Cfg->{Rotate};
 	my $ceiling = $_[0] || @{$Vend::Cfg->{'Rotate'}} || return '';
+	my $floor = $_[1] || 1;
 
-	$ceiling = $ceiling - 1;
+	$ceiling	= $ceiling - 1;
+	$floor		= $floor - 1;
+
+	if($ceiling < 0 or $floor < 0) {
+		$floor = 1;
+		$ceiling = scalar  @{$Vend::Cfg->{'Rotate'}};
+		logError "Bad ceiling or floor for rotate";
+	}
 
     my $rotate;
-	$rotate = $Vend::Session->{'rotate'} || 0;
-	if(++$Vend::Session->{'rotate'} > $ceiling) {
-		$Vend::Session->{'rotate'} = 0;
+	$rotate = $Vend::Session->{'rotate'} || $floor;
+
+	if($rotate > $ceiling) {
+		$rotate = $Vend::Session->{'rotate'} = $floor;
 	}
+	elsif($rotate < $floor) {
+		$rotate = $Vend::Session->{'rotate'} = $floor;
+	}
+
+	$Vend::Session->{rotate} = $rotate + 1;
 	return $Vend::Cfg->{'Rotate'}->[$rotate];
 }
 
@@ -1875,9 +1853,6 @@ my (@Flds);
 my %Sort = (
 # END NOAUTO
 
-# AUTOLOAD
-#%Sort = (
-# END AUTOLOAD
 	''	=> sub { $a cmp $b				},
 	none	=> sub { $a cmp $b				},
 	f	=> sub { (lc $a) cmp (lc $b)	},
@@ -1889,10 +1864,6 @@ my %Sort = (
 	rn	=> sub { $b <=> $a				},
 );
 
-
-# AUTOLOAD
-#%Sort_field = (
-# END AUTOLOAD
 
 # NOAUTO
 my %Sort_field = (
@@ -1920,15 +1891,17 @@ sub field_sort {
 
 sub tag_sort {
     my($opts, $list, $joiner) = (@_); 
-    $list =~ s/^\s+//; $opts =~ s/^\s+//; 
-    $list =~ s/\s+$//; $opts =~ s/\s+$//; 
-	$joiner = " " unless defined $joiner;
+    $opts =~ s/^\s+//; 
+    $opts =~ s/\s+$//; 
 	my @codes;
-	unless (ref $list) {
-		@codes = split /\s+/, $list;
+	if (ref $list) {
+		undef $joiner;
 	}
 	else {
-		undef $joiner;
+		$list =~ s/^\s+//;
+		$list =~ s/\s+$//;
+		@codes = split /\s+/, $list;
+		$joiner = " " unless defined $joiner;
 	}
 
     my @opts =  split /\s+/, $opts;
@@ -2041,6 +2014,7 @@ sub tag_search_list {
 
 		if($options =~ m#^$Coderex:$Coderex(?::[NnRrRf]{0,2})?($|\s)#o) {
 				$obj = tag_sort($options, $obj);
+				logGlobal("Sorting as expected, options $options");
 		}
 		elsif($options =~ m:^[nrf]{0,2}$:i) {
 			(
@@ -2494,7 +2468,6 @@ sub tag_sql_list {
     my($text,$obj) = @_;
     my($r, $i, $item, $code, $db, $link);
 	my($linkvalue, $run, $count);
-    my($Codere) = '[\w-_#/.]+';
 
 	# get the number to start the increment from
 	$count = 0;
@@ -2603,7 +2576,7 @@ sub tag_loop_list {
 	# Will work fine for others as well
 	# Too bad if you have leading/trailing spaces in list!
 	if($list =~ /\n/) {
-		@list = split /\n/, $list;
+		@list = split /\r?\n/, $list;
 	}
 	else {
 		@list = quoted_comma_string($list);
@@ -2714,7 +2687,6 @@ sub fly_page
 	my($code, $argument) = @_;
 	$code =~ s:.*/::;
     my($page,$selector,$db);
-    my($Codere) = '[\w-_#/.]+';
 
 	my $base = product_code_exists_ref($code, $argument || undef);
 	return undef unless $base;
@@ -3019,6 +2991,7 @@ sub custom_shipping {
 				if($params =~ /\S/) {
 					my $item;
 					my @calls;
+					$params =~ s/\@\@TOTAL\@\@/$total/g;
 					my (@params) = split /\s*,\s*/, interpolate_html($params);
 					my($call, $routine, $database, $field, $code);
 					my(@args);

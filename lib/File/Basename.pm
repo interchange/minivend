@@ -235,7 +235,7 @@ sub dirname {
     if ($fstype =~ /MacOS/i) { return $dirname }
     elsif ($fstype =~ /MSDOS/i) { 
         if ( $dirname =~ /:\\$/) { return $dirname }
-        chop $dirname;
+        chomp $dirname;
         $dirname =~ s:[^\\]+$:: unless $basename;
         $dirname = '.' unless $dirname;
     }

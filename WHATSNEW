@@ -1,0 +1,304 @@
+
+                      W H A T ' S   N E W 
+
+MiniVend 3.05 is a major update that adds the following:
+
+	* Windows95/NT and UNIX versions unified, many changes
+	  to handle line-ending differences
+
+	* SendMailProgram and EncryptProgram now accept 'none'
+	  as parameters, avoid the need for external programs.
+
+	* Removed all autoloading options
+
+	* Added rotate "floor"
+
+	* Makecat program just a bit smarter about some things
+
+	* No UNIX command dependencies
+
+	* Removed sample demo from distribution, too outdated
+
+	* Catalogs can be added online
+
+	* Mode indicator file mode.{inet,unix} in MVROOT/etc
+
+	* Removed final vestiges of DES encryption
+
+	* Workaround for DBI <= 0.90 AutoCommit problem
+
+	* Went to multi-README files
+
+    Bug fixes include:
+
+	* Numerous fixes to sql_search (mv_searchtype=sql)
+
+	* Fixed tag_sort bug for multiple sorting of search lists
+
+	* Fixed [tag sql] query [/tag] to match docs
+
+	* Fixed missing Global variables
+
+	* Fixed close_database, no more SQL disconnect warnings
+
+	* Fixed bug in Windows file-based sessions
+
+MiniVend 3.04 is a minor release to fix bugs in 3.03:
+
+    * If file test was failing on a Safe trap. Fixed.
+
+    * PIPE databases did not work in 3.03 (only) -- they now
+      work well even for searching.
+
+    * Major bug in new parser fixed, now virtually every
+      tag should be parsed by MiniVend in 'NewTags Yes'
+      mode.  Switching to the new parser is recommended,
+      as new features will not be added to the old parser.
+
+    * New [elsif ...] addition to [if ...] was not
+      documented or announced.
+
+    * Perl 5.003 should run MiniVend without changes.
+
+    * Escape mechanism for values works properly.
+
+    * [include file] tag added.
+
+    * UserTag now accepts Interpolate option.
+
+    * Other minor bug fixes.
+
+MiniVend 3.03 has many bug fixes and feature set improvements.
+
+There is one incompatible change:
+
+    * If you are using Static builds, you must now define
+      'Static Yes' in the catalog.cfg file to get static
+      pages to build or run.  This was done to provide a
+      single "on/off" switch for static builds.
+
+As well as adding the following features/fixes:
+
+    * The new tag syntax is more reliable and trouble-free, 
+      and a UserTag directive allows user-defined tags. For example,
+      you can do:
+
+        UserTag  caps  Routine  sub { return "\U@_" }
+        UserTag  caps  HasEndTag
+
+      and have "[caps]uppercase[/caps]" become "UPPERCASE".
+
+      In addition, almost all old-style tags will be parsed
+      properly by the new tag parser.
+
+    * Sorting has been improved and regularized. All iterative
+      lists may be sorted with the same syntax, and all may be sorted
+      on any database field entry.
+
+        [search-list]
+        [sort products:category products:name:f]
+        ...
+        [/search-list]
+
+      The above will sort a search return on two fields in
+      the database -- and will work the same for shopping carts,
+      loop lists, and [tag each products].
+      
+      There are unlimited levels of sort, and all sorts may individually
+      have options for numeric, case-insensitive, and reverse. See the
+      section SORTING in minivend.html.
+
+    * Added [on-change name] tag to allow conditional nested search
+      display.
+
+    * Salestax bug fixed, 'default' now works.
+
+    * AllowGlobal lets certain "trusted" catalogs define global
+      subroutines. AdminSub restricts certain subroutine names.
+
+    * ImageAlias does the same thing for MiniVend images that
+      Apache/NCSA does with Alias.
+
+    * A robot defense now allows you to limit the number of line
+      items in the shopping cart or cut off access to a host that
+      accesses a certain number of pages without at least one 30 
+      second pause. Implemented with OrderLineLimit and RobotLimit
+      directives on a per-catalog basis, and the LockoutCommand
+      directive as a global parameter.
+    
+    * SQL numerical types are now handled properly if you set the
+      NUMERIC option in catalog.cfg, i.e.:
+        
+        Database  products  NUMERIC price
+        Database  inventory NUMERIC on_hand
+    
+    * The server will now fall back to UNIX mode only if the
+      TcpPort (7786 by default) is occupied and it cannot bind().
+      This does not apply if MiniVend was started in INET mode only,
+      but there will now be a better log message indicating the
+      server is stopped.
+
+    * Started allowing a lower case POST method -- many browsers
+      seem to violate the HTTP spec in that regard. This mitigates
+      the common "interaction error" problem.
+
+    * Fixed bug in CyberCash processing that allowed only the
+      'mauthcapture' mode.
+
+    * Deleted SearchOverMsg directive -- you must now set 
+      mv_search_over_msg directly if you want to use it.
+
+MiniVend 3.02 adds full SQL support. In addition, several minor
+demo flaws have been polished, and some bugs in the new geographic
+shipping changes have been fixed.
+
+Changes include:
+
+    * Full SQL support, including for ODBC, using the powerful
+      DBI/DBD interface. It should operate on all DBI-compliant drivers -- it
+      has been tested with MySQL, mSQL, Solid, ODBC, and PostgreSQL.
+
+    * All database documentation greatly improved.
+
+    * Geographic qualification for shipping works.
+
+    * mv_credit_card_valid now returned as blank false value
+      instead of 0 false value.
+
+    * =true added to order profile checks, will pass on Yes|True|1
+      and fail on anything else.
+
+MiniVend 3.00 is greatly changed from MiniVend 2.03, though catalogs
+should be almost completely compatible. The exceptions are one or two
+pricing and shipping database changes.  In both cases, there is available
+backward compatibility. 
+
+Changes include:
+
+    * Installation has been changed to fit the Perl model
+      of 'perl Makefile.PL; make; make test; make install'.
+      You can also just type './configure' to perform this
+      in one step.
+
+      Perl 5.004 allows retrieval and installation of MiniVend
+      with 'perl -MCPAN -e 'install Vend::Cart' at the 
+      command line.
+
+    * Catalog builder program improved to read Apache/NCSA-style
+      configuration files and supply some intelligent defaults.
+      Command-line editing and history are supported when teh
+      Term::Readline package is available.
+
+    * Optional modules automatically fetched with CPAN module
+      if available.
+
+    * A powerful static page building capability is in place.
+      This allows completely automated generation of static HTML
+      pages based on MiniVend databases.  Use it to build static
+      category lists and product pages that will load quickly without
+      the necessity of MiniVend parsing them.
+    
+    * Dynamic page parsing speed is increased by about 30% when
+      using the standard syntax.
+
+    * Multiple product databases allow the breakout of product lines,
+      new-used product separation, multi-vendor order routing, and
+      more.  The database an item is ordered from is kept with the
+      item in the shopping cart, so items ordered with the same part
+      number from different databases will not overwrite each other.
+
+    * Database tables are now writeable.  Atomic incrementation is
+      supported, which means that reliable inventory counts can be
+      kept.  Form-based database updates are expanded to encompass
+      all databases, not just mSQL.
+
+    * Transactions can be logged to an arbitrary file in an arbitrary
+      format with [tag log file]data[/tag].
+
+    * Databases can be exported to an ASCII file with the [tag export ...]
+      [/tag] construct.
+
+    * Shipping is much improved, with built-in subroutine calls, 
+      error messages for out of bounds condtions, drop-in UPS zone
+      files, configurable handling charges, UPS cost rounding, geographic
+      qualification, and more regular syntax.
+
+    * Item attribute selection greatly improved, with automated building
+      of the item attribute selection.  Item attributes can easily be 
+      specified at the time of order.
+
+    * Item attributes can cause price adjustments on either an
+      item basis or attribute basis.
+
+    * Uses Data::Dumper's C-based uneval code when available,
+      improving session storage speed.
+
+    * Database tables are only actually opened when referenced,
+      improving speed greatly on systems that have a large number
+      of tables in the database.
+
+    * Experimental DBI/DBD example interface provided, which
+      will allow attachment of supported SQL databases like Solid,
+      Oracle, or Sybase. THIS IS EARLY ALPHA SOFTWARE. Use only on
+      an experimental basis, never with live data.
+
+    * Search engine has improved coordinated matching, with full
+      field-independent case-sensitivity, substring matching, and
+      negation.
+
+    * Search speed greatly improved when doing complex
+      field-coordinated searches.
+
+    * The FullUrl directive allows different virtual hosts to have
+      link programs with the same name, i.e. all named /cgi-bin/shop.
+
+    * A new (and still experimental) page syntax allows more regular
+      parsing of tags, removing some of the interpolation-order anomalies
+      inherent in the old-style tags. It can be invoked on individual
+      pages with the [new] tag.
+
+    * Search cacheing is much improved, and searches can be pre-built
+      when using the static page build capability.
+
+    * Pages can be cached, which especially improves performance of
+      large parsed pages. Static build is preferred to cache, but
+      with large databases it is not practical to build every item
+      in advance.
+
+    * Supports Perl 5.004 transparently, making runtime changes to
+      affected modules.
+
+    * Better security with the NoAbsolute, AdminPage, .access, and
+      AdminDatabase tags.
+
+    * Improved handling of cookies, with savable sessions and dynamic
+      expire times.
+
+    * Mailed orders may have MIME attachements. Though the author
+      loathes routinely-used MIME, it has value as a way to attach
+      an encrypted credit card number for easy processing by an
+      order entry workstation.
+
+    * Search sorting bugs fixed.
+
+    * New $Safe{'cgi'}->{form_value} access in embedded Perl allows
+      complex conditional search or order routines to be more
+      intelligent with regard to user input.
+
+    * New FormIgnore directive allows certain variables to be
+      expunged from the user session.
+
+    * Discounted prices can be displayed directly
+      with [discount-price].
+
+    * Cookies can be configured for expiration times and multiple
+      servers in a domain.
+
+    * Runs with taint checking enabled, even when using
+      most embedded Perl code.
+
+    * Many other minor bug fixes, improvements, and changes.
+
+-------------------------------------------------------------
+
+

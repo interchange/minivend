@@ -72,7 +72,7 @@ sub prompt {
 
     print $pr;
     print "[$def] " if $def;
-	chop($ans = <STDIN>);
+	chomp($ans = <STDIN>);
     $ans ? $ans : $def;
 }
 

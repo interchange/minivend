@@ -317,7 +317,7 @@ sub ReadConfig {
   open(CF, $self->{cf}) || carp "open $self->{cf}: $!";
   local $_;
   while (<CF>) {
-    chop;
+    chomp;
     $lineno++;
 
     if (/^\s*$/) {				# ignore blank lines
@@ -356,7 +356,7 @@ sub ReadConfig {
 	my $startline = $lineno;
 	my @val = ( );
 	while (<CF>) {
-	  chop;
+	  chomp;
 	  $lineno++;
 	  if ($_ eq $eotmark) {
 	    $foundeot = 1;
