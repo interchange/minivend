@@ -578,7 +578,7 @@ sub each_nokey {
 #::logDebug("each_nokey: $key field=$rfield sup=$sup");
 		if(! defined $key) {
 			undef $restrict;
-			return ();
+			return [];
 		}
 		$key =~ s/^k// or next;
 		if($restrict) {
