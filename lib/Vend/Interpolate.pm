@@ -3503,7 +3503,8 @@ sub tag_more_list {
 #::logDebug("more_list: opt=$opt label=$opt->{label}");
 	return undef if ! $opt;
 	$q = $opt->{object} || $::Instance->{SearchObject}{$opt->{label}};
-	return '' unless $q->{matches} > $q->{mv_matchlimit};
+	return '' unless $q->{matches} > $q->{mv_matchlimit}
+		and $q->{mv_matchlimit} > 0;
 	my($arg,$inc,$last,$m);
 	my($adder,$pages);
 	my $next_tag = '';
@@ -3888,7 +3889,7 @@ sub labeled_list {
 			and $text =~ s,$IE$QR{'/_field'},[/if-$Prefix-data],g;
 	}
 #::logDebug("Past only products.");
-	$end =	$obj->{mv_matchlimit}
+	$end =	($obj->{mv_matchlimit} and $obj->{mv_matchlimit} > 0)
 			? $i + ($opt->{ml} || $obj->{mv_matchlimit}) - 1
 			: $#$ary;
 	$end = $#$ary if $#$ary < $end;

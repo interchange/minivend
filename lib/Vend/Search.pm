@@ -1026,7 +1026,7 @@ sub save_more {
 	delete $s->{dbref} if defined $s->{dbref};
 	my $id = $s->{mv_more_id} || $Vend::SessionID;
 	$id .= ".$s->{mv_cache_key}";
-	if ($s->{matches} > $s->{mv_matchlimit}) {
+	if ($s->{matches} > $s->{mv_matchlimit} and $s->{mv_matchlimit} > 0) {
 		$s->{overflow} = 1;
 		$s->{mv_next_pointer} = $s->{mv_matchlimit};
 	}

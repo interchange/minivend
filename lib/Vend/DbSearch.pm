@@ -320,7 +320,7 @@ sub search {
 
 	$s->{matches} = scalar(@out);
 
-	if ($s->{matches} > $s->{mv_matchlimit}) {
+	if ($s->{matches} > $s->{mv_matchlimit} and $s->{mv_matchlimit} > 0) {
 		$s->save_more(\@out)
 			or ::logError("Error saving matches: $!");
 		if ($s->{mv_first_match}) {
