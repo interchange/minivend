@@ -96,8 +96,8 @@ sub get_id {
 }
 
 if ($< == 0) {
-	$name = get_id() || 'YOUR_MINIVEND_USER_NAME';
-	die "Interchange user ID not set in $Global::VendRoot/_uid.\n" if $name eq 'YOUR_MINIVEND_USER_NAME';
+	$name = get_id() || 'YOUR_INTERCHANGE_USER_NAME';
+	die "Interchange user ID not set in $Global::VendRoot/_uid.\n" if $name eq 'YOUR_INTERCHANGE_USER_NAME';
 	if(-t) {
 		print <<EOM unless $force;
 
