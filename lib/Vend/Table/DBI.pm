@@ -691,6 +691,16 @@ sub open_table {
 			my $stype   = $ores[1];
 			my $slen    = $ores[2];
 			my $slenvar = $ores[3];
+			my $len;
+			if ($slen > 0) {
+				$len = $slen;
+			}
+			elsif ($slenvar > 0) {
+				$len = ($slenvar-4);
+			}
+			else {
+				next;
+			}
 			my $scfg = $config->{FIELD_LENGTH_DATA}{$ores[4]} = {};
 	    
 			$scfg->{TYPE} = $stype;
@@ -699,15 +709,7 @@ sub open_table {
 				$scfg->{LENGTH} = $slenvar;
 			}
 			else {
-				if ($slen > 0) {
-					$scfg->{LENGTH} = $slen;
-				}
-				elsif ($slenvar>0) {
-					$scfg->{LENGTH} = ($slenvar-4);
-				}
-				else {
-					$scfg->{LENGTH} = 'var';
-				}
+				$scfg->{LENGTH} = $len;
 			}
 	    }
 
