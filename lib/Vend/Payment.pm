@@ -28,7 +28,6 @@ $VERSION = substr(q$Revision$, 10);
 
 @EXPORT = qw(
 				charge
-				cyber_charge
 				charge_param
 		);
 
@@ -604,9 +603,6 @@ sub post_data {
 	return \%result;
 }
 
-
-# Old, old, old but still supported
-*cyber_charge = \&Vend::Payment::charge;
 
 1;
 __END__
