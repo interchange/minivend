@@ -1181,7 +1181,7 @@ sub tag_data {
 					my $val = shift;
 					return 'f' if ! defined($val);
 					$val =~ s/\s+//g;
-					return 'f' if $val =~ /^[Ff0]?$/;
+					return 'f' if $val =~ /^(?:0|f(?:alse)?)?$/i;
 					return 't';
 				},
 
@@ -1189,7 +1189,7 @@ sub tag_data {
 					my $val = shift;
 					return if ! defined($val);
 					$val =~ s/\s+//g;
-					return 'f' if $val =~ /^[Ff0]?$/;
+					return 'f' if $val =~ /^(?:0|f(?:alse)?)?$/i;
 					return 't';
 				},
 	);
