@@ -1250,7 +1250,7 @@ sub foreign {
 	$key = $s->[$DBI]->quote($key)
 		unless exists $s->[$CONFIG]{NUMERIC}{$foreign};
 	my $query = "select $s->[$KEY] from $s->[$TABLE] where $foreign = $key";
-#::logDebug("DBI field: key=$key column=$column query=$query");
+#::logDebug("DBI field: key=$key query=$query");
     my $sth;
 	eval {
 		$sth = $s->[$DBI]->prepare($query);
