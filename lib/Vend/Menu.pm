@@ -672,8 +672,8 @@ EOF
 		if(l[${vpf}MV_CHILDREN] < 1) 
 			return;
 
-		var x = ${vpf}getRightX( obj ) + 1;
-		var y = ${vpf}getTopX( obj );
+		var x = ${vpf}getRightX( obj, currentlevel ) + 1;
+		var y = ${vpf}getTopX( obj, currentlevel );
 		var menu = fod.style;
 		menu.left = x + "px";
 		menu.top = y + "px";
@@ -692,13 +692,13 @@ EOF
 		fod.innerHTML = html;
 	}
 
-	function ${vpf}getRightX( obj )
+	function ${vpf}getRightX( obj, level )
 	{
 		if( ${vpf}browserType() == "other" )
 			return;
 		var pos = 0;
 		if( ${vpf}browserType() == "ie" )
-			if(${vpf}anchor_down == 1) 
+			if(${vpf}anchor_down == 1 && level == 0) 
 				pos = obj.getBoundingClientRect().left + 2;
 			else
 				pos = obj.getBoundingClientRect().right - 2;
@@ -710,20 +710,20 @@ EOF
 				x = x.offsetParent;
 			}
 			pos = n + obj.offsetLeft;
-			if(${vpf}anchor_down != 1)
+			if(${vpf}anchor_down != 1 || level > 0)
 				pos += obj.offsetWidth;
 		}
 		return pos;
 	}
 
-	function ${vpf}getTopX( obj )
+	function ${vpf}getTopX( obj, level )
 	{
 		if( ${vpf}browserType() == "other" )
 			return;
 
 		var pos = 0;
 		if( ${vpf}browserType() == "ie" )
-			if(${vpf}anchor_down) 
+			if(${vpf}anchor_down && level == 0) 
 				pos = obj.getBoundingClientRect().bottom + 2;
 			else
 				pos = obj.getBoundingClientRect().top - 2;
@@ -735,7 +735,7 @@ EOF
 				x = x.offsetParent;
 			}
 			pos = n + obj.offsetTop;
-			if(${vpf}anchor_down)
+			if(${vpf}anchor_down && level == 0)
 				pos += obj.offsetHeight;
 		}
 		return pos;
