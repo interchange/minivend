@@ -1665,7 +1665,7 @@ sub parse_varname {
 	return if $Vend::ExternalProgram;
 
 	my($iv,$vn,$k,$v,@set);
-#logDebug("parse_varname: $settings");
+logDebug("parse_varname: $settings");
 	if(defined $C) {
 		return '' if ! $settings;
 		$C->{IV} = { %{$Global::IV} } if ! $C->{IV};
@@ -3765,9 +3765,11 @@ EOF
 
 __DATA__
 mv_all_chars             ac
+mv_arg                   mv_arg
 mv_base_directory        bd
 mv_begin_string          bs
 mv_case                  cs
+mv_cat                   mv_cat
 mv_column_op             op
 mv_coordinate            co
 mv_delay_page            dp
@@ -3790,6 +3792,7 @@ mv_more_matches          MM
 mv_negate                ne
 mv_numeric               nu
 mv_orsearch              os
+mv_pc                    mv_pc
 mv_profile               mp
 mv_range_alpha           rg
 mv_range_look            rl
