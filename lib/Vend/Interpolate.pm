@@ -401,6 +401,9 @@ sub substitute_image {
                          $1 . $dir . $2#ige;
         $$text =~ s#(<body\s+[^>]*?background=")(?!https?:)([^/][^"]+)#
                          $1 . $dir . $2#ige;
+        $$text =~ s#(<t[dhr]\s+[^>]*?background=")(?!https?:)([^/][^"]+)#
+                         $1 . $dir . $2#ige
+            if $Vend::Cfg->{Pragma}{substitute_table_image};
     }
     if($Vend::Cfg->{ImageAlias}) {
 		for (keys %{$Vend::Cfg->{ImageAlias}} ) {
