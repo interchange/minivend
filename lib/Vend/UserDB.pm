@@ -592,10 +592,20 @@ sub clear_values {
 
 	for(@fields) {
 		if($scratch{$_}) {
-			delete $::Scratch->{$_};
+			if (exists $Vend::Cfg->{ScratchDefault}->{$_}) {
+				$::Scratch->{$_} = $Vend::Cfg->{ScratchDefault}->{$_};
+			}
+			else {
+				delete $::Scratch->{$_};
+			}
 		}
 		else {
-			delete $::Values->{$_};
+			if (exists $Vend::Cfg->{ValuesDefault}->{$_}) {
+				$::Values->{$_} = $Vend::Cfg->{ValuesDefault}->{$_};
+			}
+			else{
+				delete $::Values->{$_};
+			}
 			delete $CGI::values{$_};
 		}
 	}
