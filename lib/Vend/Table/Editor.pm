@@ -2949,7 +2949,6 @@ $l_pkey</td>};
 						pointer => $start_ptr,
 						stacker => $tcount,
 						columns => $lf,
-						extra => $opt->{link_extra},
 					);
 					push @lout, qq{<tr><td$lextra>};
 					push @lout, qq{<input size=8 name="${start_ptr}_${l_pkey}__$tcount" value="">};
