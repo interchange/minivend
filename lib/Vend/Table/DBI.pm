@@ -381,14 +381,16 @@ sub field_accessor {
     my ($s, $column) = @_;
 	$s = $s->import_db() if ! defined $s->[$DBI];
 	$column = $s->[$NAME][ $s->column_index($column) ]; 
+	my $q = "select $column from $s->[$TABLE] where $s->[$KEY] = ?";
+	my $sth = $s->[$DBI]->prepare($q)
+		or die "field_accessor statement ($q) -- bad result.\n";
+#::logDebug("binding sub to $q");
     return sub {
         my ($key) = @_;
-		$key = $s->[$DBI]->quote($key)
-			unless exists $s->[$CONFIG]{NUMERIC}{$s->[$KEY]};
-        my $sth = $s->[$DBI]->prepare
-			("select $column from $s->[$TABLE] where $s->[$KEY] = $key")
-				or die $DBI::errstr;
-		($sth->fetchrow)[0];
+		$sth->bind_param(1, $key);
+		$sth->execute();
+        my ($return) = $sth->fetchrow_array();
+		return $return;
     };
 }
 
