@@ -55,8 +55,20 @@ sub create {
 	my $tie = {};
 	my $flags = O_RDWR | O_CREAT;
 
-	my $dbm = tie(%$tie, 'SDBM_File', $filename, $flags, $File_permission_mode)
-		or die "Could not create '$filename': $!";
+	my $dbm;
+	my $failed = 0;
+
+	my $retry = $Vend::Cfg->{Limit}{dbm_open_retries} || 10;
+
+	while( $failed < $retry ) {
+		$dbm = tie(%$tie, 'SDBM_File', $filename, $flags, $File_permission_mode)
+			and undef($failed), last;
+		$failed++;
+		select(undef,undef,undef,$failed * .100);
+	}
+
+	die ::errmsg("%s could not tie to '%s': %s", 'SDBM', $filename, $!)
+		unless $dbm;
 
 #::logDebug("created dbm, hash=" . ::uneval($dbm));
 	$tie->{'c'} = join("\t", @$columns);
