@@ -855,11 +855,8 @@ sub check_gate {
 
 sub string_to_ref {
 	my ($string) = @_;
-	if(! $Vend::Cfg->{ExtraSecure} and $MVSAFE::Safe) {
+	if($MVSAFE::Safe) {
 		return eval $string;
-	}
-	elsif ($MVSAFE::Safe) {
-		die errmsg("not allowed to eval in Safe mode.");
 	}
 	my $safe = $Vend::Interpolate::safe_safe || new Safe;
 	return $safe->reval($string);
