@@ -2900,12 +2900,19 @@ print errmsg("\n##### DEBUG MODE, running in foreground #####\n") if $Global::DE
 
 		# Here we prepare enter the daemon mode.
 
-		# Set the $0 to something not having 'perl' (won't
-		# work on Solaris and IRIX among possibly others)
-		if(defined $Global::Variable->{MV_DOLLAR_ZERO}) {
-			$0 = $Global::Variable->{MV_DOLLAR_ZERO};
-			$0 = "interchange --> $Global::VendRoot"
-					if length($0) < 2;
+		# Set $0 to something pretty for ps(1).
+		# Won't work on Solaris and IRIX among possibly others.
+		# Dumps core on FreeBSD 4 stock Perl build.
+		if (defined $Global::Variable->{MV_DOLLAR_ZERO}) {
+			if ($Global::Variable->{MV_DOLLAR_ZERO}) {
+				if (length($Global::Variable->{MV_DOLLAR_ZERO}) > 1) {
+					$0 = $Global::Variable->{MV_DOLLAR_ZERO};
+				}
+				else {
+					$0 = "interchange --> $Global::VendRoot";
+				}
+			}
+			# do nothing if MV_DOLLAR_ZERO is defined but false
 		}
 		else {
 			$0 = 'interchange';
