@@ -64,12 +64,10 @@ sub display_special_page {
 
 	$subject = $subject || 'unspecified error';
 	
-#::logDebug("looking for special_page=$name");
 	$page = readfile($name, $Global::NoAbsolute, 1) || readin($name);
 
 	die ::get_locale_message(412, "Missing special page: %s\n", $name)
 		unless defined $page;
-#::logDebug("displaying special_page=$name");
 	$page =~ s#\[subject\]#$subject#ig;
 	return ::response(::interpolate_html($page, 1));
 }
@@ -93,7 +91,7 @@ sub display_page {
 		};
 
 	$name = $CGI::values{mv_nextpage} unless $name;
-#::logDebug("display_page: $name");
+
 	if($Vend::Cfg->{ExtraSecure} and
 		$Vend::Cfg->{AlwaysSecure}->{$name}
 		and !$CGI::secure) {
@@ -112,6 +110,13 @@ sub display_page {
 	if(! defined $page) {
 		$page = Vend::Interpolate::fly_page($name)
 			and $opt->{onfly} = 1;
+	}
+
+	# Try one last time for page with index
+	if(! defined $page and $Vend::Cfg->{DirectoryIndex}) {
+		my $try = $name;
+		$try =~ s!/*$!/$Vend::Cfg->{DirectoryIndex}!;
+		$page = readin($try);
 	}
 
 	if (defined $page) {
@@ -136,7 +141,7 @@ sub do_page {
 sub do_search {
 	my($c) = \%CGI::values;
 	::update_user();
-#::logDebug($more);
+
 	if ($c->{mv_more_matches}) {
 		$Vend::Session->{last_search} = "scan/MM=$c->{mv_more_matches}";
 		$c->{mv_more_matches} =~ m/([a-zA-Z0-9])+/;

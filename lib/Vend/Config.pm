@@ -361,6 +361,7 @@ sub catalog_directives {
 	['DisplayErrors',    'yesno',            'No'],
 	['ParseVariables',	 'yesno',     	     'No'],
 	['SpecialPage',		 'special', 'order ord/basket results results search results flypage flypage'],
+	['DirectoryIndex',	 undef,				 ''],
 	['Sub',				 'subroutine',       ''],
 	['VendURL',          'url',              undef],
 	['SecureURL',        'url',              undef],
