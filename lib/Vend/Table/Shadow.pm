@@ -183,7 +183,7 @@ sub row {
 	my ($column, $locale);
 	
 	$s = $s->import_db() if ! defined $s->[$OBJ];
-	$locale = $::Scratch->{mv_locale} || 'default';
+	$locale = $::Scratch->{mv_locale} || $Vend::Cfg->{DefaultLocale};
 	
 	my @row = $s->[$OBJ]->row($key);
 	if (@row) {
@@ -471,7 +471,7 @@ sub _parse_sql {
 sub _map_entries {
 	my ($s, $colsref, $entriesref) = @_;
 	my @matches;
-	my $locale = $::Scratch->{mv_locale};
+	my $locale = $::Scratch->{mv_locale} || $Vend::Cfg->{DefaultLocale};
 	
 	for (my $i = 0; $i < @$colsref; $i++) {
 		if (exists $s->[$CONFIG]->{MAP}->{$colsref->[$i]}->{$locale}) {
@@ -487,7 +487,7 @@ sub _map_field {
 	my ($s, $column) = @_;
 	my ($db, $sdb, $scol);
 	
-	my $locale = $::Scratch->{mv_locale} || 'default';
+	my $locale = $::Scratch->{mv_locale} || $Vend::Cfg->{DefaultLocale};
 
 	if (exists $s->[$CONFIG]->{MAP}->{$column}->{$locale}) {
 		my $map = $s->[$CONFIG]->{MAP}->{$column}->{$locale};
@@ -533,7 +533,7 @@ sub _map_column {
 	my ($s, $key, $column, $done, $orig, $mapentry) = @_;
 	my ($map, $db, $value);
 
-	my $locale = $::Scratch->{mv_locale} || 'default';
+	my $locale = $::Scratch->{mv_locale} || $Vend::Cfg->{DefaultLocale};
 
 	if (! $mapentry && ! $::Scratch->{mv_shadowpass}
 		&& exists $s->[$CONFIG]->{MAP}->{$column}->{$locale}) {
@@ -598,7 +598,7 @@ sub _shared_databases {
 	my ($s) = @_;
 	
 	if ($s->[$CONFIG]->{MAP_OPTIONS}->{share}) {
-		my $tables = $s->[$CONFIG]->{MAP_OPTIONS}->{share}->{$::Scratch->{mv_locale}};
+		my $tables = $s->[$CONFIG]->{MAP_OPTIONS}->{share}->{$::Scratch->{mv_locale} || $Vend::Cfg->{DefaultLocale}};
 		return split(/[\s,]+/, $tables);
 	}
 }
