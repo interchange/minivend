@@ -43,6 +43,7 @@ require Exporter;
 	format_log_msg
 	generate_key
 	get_option_hash
+	hash_string
 	is_hash
 	is_no
 	is_yes
@@ -857,6 +858,26 @@ sub get_option_hash {
 		}
 	}
 	return \%hash;
+}
+
+## This simply returns a hash of words, which may be quoted shellwords
+## Replaces most of parse_hash in Vend::Config
+sub hash_string {
+	my($settings, $ref) = @_;
+
+	return $ref if ! $settings or $settings !~ /\S/;
+
+	$ref ||= {};
+
+	$settings =~ s/^\s+//;
+	$settings =~ s/\s+$//;
+	my(@setting) = Text::ParseWords::shellwords($settings);
+
+	my $i;
+	for ($i = 0; $i < @setting; $i += 2) {
+		$ref->{$setting[$i]} = $setting[$i + 1];
+	}
+	return $ref;
 }
 
 ## READIN

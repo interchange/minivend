@@ -1813,10 +1813,6 @@ sub parse_hash {
 		return $HashDefaultBlank{$item} ? '' : {} if ! $settings;
 	}
 
-	$settings =~ s/^\s+//;
-	$settings =~ s/\s+$//;
-	my(@setting) = Text::ParseWords::shellwords($settings);
-
 	my $c;
 
 	if(defined $C) {
@@ -1827,12 +1823,7 @@ sub parse_hash {
 		$c = ${"Global::$item"} || {};
 	}
 
-	my $i;
-	for ($i = 0; $i < @setting; $i += 2) {
-		$c->{$setting[$i]} = $setting[$i + 1];
-#::logDebug("$item hash $setting[$i]=$setting[$i+1]");
-	}
-	$c;
+	return Vend::Util::hash_string($settings,$c);
 }
 
 # Set up illegal values for certain directives
