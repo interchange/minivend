@@ -174,8 +174,6 @@ sub tables {
 			push @try, $_;
 			last if $last;
 		}
-		$s->{raw_columns} =~ s/^\s*distinct\s+//i
-			and $s->{distinct} = 1;
 	}
 	elsif ($s->{command} eq 'UPDATE') {
 		$st =~ s/(\w+(?:\s*,\s*\w+)*)\s+set\s+//is;
@@ -201,12 +199,6 @@ sub tables {
 
 	$s->{tables} = \@tab;
 	return @tab;
-}
-
-sub distinct {
-	my $s = shift;
-	$s->tables() unless $s->{tables};
-	return $s->{distinct};
 }
 
 sub limit {
@@ -795,6 +787,15 @@ sub name {
 	return shift->{name};
 }
 
+sub distinct {
+	my $s = shift;
+	return $s->{distinct};
+}
+
+sub as {
+	return shift->{as};
+}
+
 sub new {
 	my $class = shift;
 	my $self = { @_ };
@@ -813,6 +814,19 @@ sub new {
 		elsif ($space =~ /^c/i) {
 			$name = $CGI::values{$sel};
 		}
+	}
+	elsif($raw =~ /\s/) {
+		$self->{distinct} = 1 if s/^distinct\s+//i;
+		my $title;
+		$title = $1 if $raw =~ s/\s+as\s+(.*)//;
+		if($title) {
+			my $match;
+			$title =~ s/^(["']?)(.*)\1$/$2/
+				and $match = $1
+				and $title =~ s/$match$match/$match/g;
+			$self->{as} = $title;
+		}
+		$name = $raw;
 	}
 	else {
 		$name = $raw;
