@@ -302,6 +302,18 @@ sub setlocale {
             @{$Vend::Cfg->{$_}} = split (/\s+/, $loc->{$_})
                 if $loc->{$_};
         }
+
+        for(@Vend::Config::Locale_directives_code) {
+			next unless $loc->{$_->[0]};
+			my ($routine, $args) = @{$_}[1,2];
+			if($args) {
+				$routine->(@$args);
+			}
+			else {
+				$routine->();
+			}
+        }
+
 		no strict 'refs';
 		for(qw/LC_COLLATE LC_CTYPE LC_TIME/) {
 			next unless $loc->{$_};

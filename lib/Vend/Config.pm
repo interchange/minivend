@@ -89,6 +89,7 @@ use strict;
 use vars qw(
 			$VERSION $C $CanTie
 			@Locale_directives_ary @Locale_directives_scalar
+			@Locale_directives_code
 			@Locale_directives_currency @Locale_keys_currency
 			);
 use Safe;
@@ -169,6 +170,18 @@ qw/
 	UseModifier
 	AutoModifier
 /   );
+
+# These are extra routines that are run if certain directives are
+# updated
+# Form:
+#
+# [ 'Directive', \&routine, [ @args ] ],
+# 
+# @args are optional.
+# 
+@Locale_directives_code = (
+	[ 'ProductFiles', \&Vend::Data::update_productbase ],
+);
 
 my %DumpSource = (qw(
 					SpecialPage			1
