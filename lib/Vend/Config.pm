@@ -1160,7 +1160,7 @@ sub global_config {
 	undef $C;
 
 	foreach my $d (@$directives) {
-		($directive = $d->[0]) =~ tr/A-Z/a-z/;
+		$directive = lc $d->[0];
 		$CDname{$directive} = $d->[0];
 		$parse = get_parse_routine($d->[1]);
 		$parse{$directive} = $parse;
