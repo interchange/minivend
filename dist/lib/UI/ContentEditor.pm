@@ -978,7 +978,7 @@ sub page_component_editor {
 		$meta->{$st} = {
 			label => 'how to set',
 			type => 'select',
-			passed => qq{tmp-no=Unparsed and temporary,
+			passed => qq{tmpn=Unparsed and temporary,
 					set=Unparsed and persistent,
 					tmp=Parsed and temporary,
 					seti=Parsed and persistent},
@@ -1054,7 +1054,7 @@ sub page_control_editor {
 			label => 'how to set',
 			type => 'select',
 			passed => qq{
-					tmp-no=Unparsed and temporary,
+					tmpn=Unparsed and temporary,
 					set=Unparsed and persistent,
 					tmp=Parsed and temporary,
 					seti=Parsed and persistent,
@@ -1397,7 +1397,7 @@ sub format_page {
 	# n=name k=key v=value
 	for my $n (@$order) {
 		my $r;
-		my $stype = $scratches->{$n} || 'tmp-no'; 
+		my $stype = $scratches->{$n} || 'tmpn'; 
 		push @sets, "[$stype $n]" . $vals->{$n} . "[/$stype]";
 	}
 	
