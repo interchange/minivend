@@ -104,7 +104,7 @@ my $Tag = new Vend::Tags;
 	password =>
 		qq({PREPEND}<input type="password" name="{NAME}" value="{ENCODED}")
 		.
-		qq({COLS?} size="{COLS}"{/COLS?}>)
+		qq({COLS?} size="{COLS}"{/COLS?})
 		.
 		qq({EXTRA?} {EXTRA}{/EXTRA?})
 		.
