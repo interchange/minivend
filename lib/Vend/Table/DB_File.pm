@@ -135,11 +135,13 @@ sub open_table {
 *config			= \&Vend::Table::Common::config;
 *delete_record	= \&Vend::Table::Common::delete_record;
 *each_record	= \&Vend::Table::Common::each_record;
+*errstr     	= \&Vend::Table::Common::errstr;
 *field			= \&Vend::Table::Common::field;
 *field_accessor	= \&Vend::Table::Common::field_accessor;
 *field_settor	= \&Vend::Table::Common::field_settor;
 *inc_field		= \&Vend::Table::Common::inc_field;
 *isopen			= \&Vend::Table::Common::isopen;
+*log_error  	= \&Vend::Table::Common::log_error;
 *name			= \&Vend::Table::Common::name;
 *numeric		= \&Vend::Table::Common::numeric;
 *quote			= \&Vend::Table::Common::quote;

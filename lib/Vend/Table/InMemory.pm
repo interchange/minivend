@@ -230,7 +230,9 @@ sub ref {
 # Unfortunate hack need for Safe searches
 *test_column	= \&Vend::Table::Common::test_column;
 *column_index	= \&Vend::Table::Common::column_index;
+*errstr     	= \&Vend::Table::Common::errstr;
 *field			= \&Vend::Table::Common::field;
+*log_error  	= \&Vend::Table::Common::log_error;
 *name			= \&Vend::Table::Common::name;
 *numeric		= \&Vend::Table::Common::numeric;
 *set_field		= \&Vend::Table::Common::set_field;
