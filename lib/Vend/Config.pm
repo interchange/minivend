@@ -3637,6 +3637,7 @@ my %tagCanon = ( qw(
 	alias			Alias
 	addattr  		addAttr
 	attralias		attrAlias
+	attrdefault		attrDefault
 	cannest			canNest
 	description  	Description
 	documentation	Documentation
@@ -3662,6 +3663,7 @@ my %tagAry 	= ( qw! Order 1 Required 1 Version 1 ! );
 my %tagHash	= ( qw!
                 attrAlias   1
                 Implicit    1
+				attrDefault	1
 				! );
 my %tagBool = ( qw!
                 ActionMap   1
