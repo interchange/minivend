@@ -384,7 +384,8 @@ sub read_session {
     $::Values	= $Vend::Session->{'values'};
     $::Scratch	= $Vend::Session->{scratch};
     $::Carts	= $Vend::Session->{carts};
-    $::Control	= $Vend::Session->{control} = [];
+    $Vend::Interpolate::Tmp ||= {};
+    $::Control	= $Vend::Interpolate::Tmp->{control} = [];
 	tie $Vend::Items, 'Vend::Cart';
 }
 

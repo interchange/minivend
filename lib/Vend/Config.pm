@@ -382,6 +382,14 @@ sub catalog_directives {
 	['Profile',			 'locale',     	 	 ''],
 	['ValuesDefault',	 'hash',     	 	 ''],
 	['ProductFiles',	 'array_complete',  'products'],
+	['PageTables',		 'array_complete',  ''],
+	['PageTableMap',	 'hash',			qq{
+												expiration_date expiration_date
+												show_date       show_date
+												page_text       page_text
+												base_page       base_page
+												code            code
+											}],
 	['DisplayErrors',    'yesno',            'No'],
 	['ParseVariables',	 'yesno',     	     'No'],
 	['SpecialPage',		 'special', 'order ord/basket results results search results flypage flypage'],
