@@ -704,7 +704,7 @@ sub start {
 			return 1;
 		}
 		elsif($tag eq 'bounce') {
-#::logDebug("bouncing...");
+#::logDebug("bouncing...options=" . ::uneval($attr));
 			return 1 if resolve_if_unless($attr);
 			if(! $attr->{href} and $attr->{page}) {
 				$attr->{href} = Vend::Interpolate::tag_area($attr->{page});
@@ -719,8 +719,16 @@ EOF
 Status: $attr->{status}
 Location: $attr->{href}
 EOF
+#::logDebug("bouncing...status line=\n$Vend::StatusLine");
 			$$buf = '';
 			$Initialized->{_buf} = '';
+			
+            my $body = qq{Redirecting to <A href="%s">%s</a>.};
+            $body = errmsg($body, $attr->{href}, $attr->{href});
+#::logDebug("bouncing...body=$body");
+			$::Pragma->{download} = 1;
+			::response($body);
+			$Vend::Sent = 1;
 			$self->{SEND} = 1;
 			return 1;
 		}
