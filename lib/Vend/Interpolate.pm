@@ -2464,7 +2464,11 @@ sub mvtime {
 		my $neg = $opt->{adjust} =~ s/^\s*-\s*//;
 		my $diff;
 		$opt->{adjust} =~ s/^\s*\+\s*//;
-		if($opt->{adjust} !~ /[A-Za-z]/) {
+		if($opt->{hours}) {
+			$diff = (60 * 60) * ($opt->{adjust} || $opt->{hours});
+		}
+		elsif($opt->{adjust} !~ /[A-Za-z]/) {
+			$opt->{adjust} =~ s:(\d+)(\d[05])$:$1 + $2 / 60:e;
 			$opt->{adjust} =~ s/00$//;
 			$diff = (60 * 60) * $opt->{adjust};
 		}
