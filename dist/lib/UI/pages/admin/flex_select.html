@@ -215,7 +215,9 @@
 	$Scratch->{keyname} = $ref->config('KEY');
 
 	$CGI->{ui_show_fields} ||= $meta->{ui_show_fields} || $meta->{field};
-	$CGI->{ui_meta_specific} ||= $meta->{ui_meta_specific};
+	for(qw/ui_more_alpha ui_more_decade ui_meta_specific/) {
+		$CGI->{$_} ||= $meta->{$_};
+	}
 	$Config->{NoSearch} = '';
 	$ui_text_qualification = $CGI->{ui_text_qualification};
 	if ($ui_text_qualification and $CGI->{ui_text_qualification} =~ /[<!=>\^]/ ) {
@@ -408,7 +410,8 @@ EOF
 	st=db
 	$CGI->{ui_text_qualification}
 	su=1
-	md=1
+	ma=$CGI->{ui_more_alpha}
+	md=$CGI->{ui_more_decade}
 	ml=$CGI->{ui_list_size}
 	tf=$CGI->{ui_sort_field}
 	to=$CGI->{ui_sort_option}
