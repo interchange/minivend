@@ -242,12 +242,11 @@ sub display_options_matrix {
 			push @rf, ($map->{$_} || $_);
 		}
 		my $ccol = $map->{code} || 'code';
-		my $cval = $db->quote("$sku-%");
 		my $lcol = $map->{sku} || 'sku';
 		my $lval = $db->quote($sku, $lcol);
 
 		my $q = "SELECT " . join(",", @rf);
-		$q .= " FROM $tname where $lcol = $lval AND $ccol like $cval $rsort";
+		$q .= " FROM $tname where $lcol = $lval AND code <> $lval $rsort";
 #::logDebug("tag_options matrix query: $q");
 		my $ary = $db->query($q); 
 #::logDebug("tag_options matrix ary: " . ::uneval($ary));
