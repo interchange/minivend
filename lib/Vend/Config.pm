@@ -1130,7 +1130,7 @@ GLOBLOOP:
 		Vend::Parse::global_init;
 	}
 
-	dump_structure($Global::Structure, "$Global::ConfDir/$Global::ConfigFile")
+	dump_structure($Global::Structure, "$Global::ConfDir/$Global::ExeName")
 		if $Global::DumpStructure;
 	return 1;
 }
