@@ -1797,7 +1797,7 @@ sub tag_perl {
 	}
 
 	if ($MVSAFE::Safe) {
-		logGlobal({ level => 'alert' }, "Attempt to call perl from within Safe.");
+#::logDebug("tag_perl: Attempt to call perl from within Safe.");
 		return undef;
 	}
 
