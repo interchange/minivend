@@ -1197,8 +1197,6 @@ sub tag_data {
 $Filter{upper} = $Filter{uc};
 $Filter{lower} = $Filter{lc};
 $Filter{entities} = $Filter{encode_entities};
-$Filter{ee} = $Filter{encode_entities};
-$Filter{de} = $Filter{decode_entities};
 $Filter{e} = $Filter{encode_entities};
 
 sub input_filter_do {
