@@ -1,6 +1,6 @@
 # Catalog.pm: on-line ordering abstract class
 #
-# $Id: Catalog.pm,v 1.17 1995/12/04 20:23:38 amw Exp $
+# $Id: Catalog.pm,v 1.18 1995/12/15 20:06:14 amw Exp $
 #
 package Vend::Catalog;
 
@@ -38,21 +38,44 @@ sub order_values;               # ($input, $quantities, $submitted)
 sub validate_fields;            # ()
 sub process_order;              # ($items)
 
+
+# what should a placeholder return if the record isn't found?
+
+sub na {
+    return "NA";
+}
+
+
+# return the product code of an item code
+
+sub product_code {
+    return $_[1];
+}
+
+
+sub create_table_placeholder {
+    my ($class, $table, $field_name) = @_;
+    my $field_accessor = $table->field_accessor($field_name);
+
+    return sub {
+        my ($code) = @_;
+        my $product_code = $class->product_code($code);
+        return $class->na() unless defined $product_code;
+        return &$field_accessor($product_code)
+            if $table->record_exists($product_code);
+        return $class->na();
+    };
+}
+
 sub create_table_placeholders {
     my ($class, $name, $table) = @_;
 
     my $column;
     foreach $column ($table->columns()) {
-        my $ph = "$name-$column";
-        define_placeholder "[$ph \$key]", $table->field_accessor($column);
+        my $ph = "[$name-$column \$key]";
+        my $sub = $class->create_table_placeholder($table, $column);
+        define_placeholder $ph, $sub;
     }
-
-    # my $exists = sub {
-    #     my ($key) = @_;
-    #     return $table->record_exists($key);
-    # };
-    #
-    # define_placeholder("[$name-exists \$key]", $exists);
 }
 
 
@@ -95,11 +118,11 @@ sub shopping_list_link {
 
 ## ORDER AN ITEM
 
-# Returns an url to place an order for the product PRODUCT_CODE.
+# Returns an url to place an order for the product ITEMCODE.
         
 sub order_url {
-    my ($class, $product) = @_;
-    vend_url('order', {order => $product});
+    my ($class, $itemcode) = @_;
+    vend_url('order', {order => $itemcode});
 }
 
 
@@ -107,7 +130,7 @@ sub order_url {
 
 sub action_order {
     my ($class, $action_name, $path, $args) = @_;
-    my ($i, $found, $item);
+    my ($found, $item);
 
     my $item_code = $args->{order};
 
@@ -123,10 +146,11 @@ sub action_order {
     }
 
     # Item already on order form?
-    undef $i;
-    foreach $item (@{Item()}) {
-	$i = $item, last if ($item->{code} eq $item_code);
-    }
+    my $i = $class->lookup_item($item_code);
+    # undef $i;
+    # foreach $item (@{Item()}) {
+    #     $i = $item, last if ($item->{code} eq $item_code);
+    # }
 
     if (defined $i) {
         $i->{quantity} = 1 if $i->{quantity} < 1;

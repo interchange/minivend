@@ -1,6 +1,6 @@
 # Startup.pm:  startup Vend program and process command line arguments
 #
-# $Id: Startup.pm,v 1.19 1995/12/05 21:14:26 amw Exp $
+# $Id: Startup.pm,v 1.21 1995/12/15 21:55:28 amw Exp $
 #
 package Vend::Startup;
 
@@ -34,7 +34,7 @@ use Vend::Server;
 use Vend::Session;
 use Vend::Uneval;
 
-my $Vend_version = "0.3.2";
+my $Vend_version = "0.3.3";
 
 my $Running_as_cgi_bin;
 my $Mode;
@@ -191,6 +191,12 @@ sub startup {
     }
 
     read_phds(Phd_directory);
+    read_templates(Phd_directory);
+
+    if ($Mode eq 'test') {
+        test_pages();
+        exit 0;
+    }
 
     initialize_Session(Database,
                        Data_directory,
@@ -206,7 +212,6 @@ sub startup {
     elsif ($Mode eq 'restart')       { restart_server() }
     elsif ($Mode eq 'expire')        { expire_sessions() }
     elsif ($Mode eq 'dump-sessions') { dump_sessions() }
-    elsif ($Mode eq 'test')          { test_pages(); }
     else {
         die "Unknown mode: $Mode\n";
     }

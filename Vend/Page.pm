@@ -1,6 +1,6 @@
 # Page.pm:  compiles and processes pages and placeholders
 #
-# $Id: Page.pm,v 1.11 1995/11/28 18:34:24 amw Exp $
+# $Id: Page.pm,v 1.12 1995/12/15 20:03:43 amw Exp $
 #
 package Vend::Page;
 
@@ -24,10 +24,12 @@ require Exporter;
 @ISA = qw(Exporter);
 @EXPORT = qw(page_code test_pages read_phds
              placeholder
+             call_template
              define_placeholder
              canonical_ph_name
              compile_page
              load_ph_definition_files
+             read_templates
              compile_action);
 
 use strict;
@@ -284,6 +286,24 @@ sub read_phds {
 
 ##
 
+sub read_templates {
+    my (@dirs) = @_;
+    my ($dir, $file);
+
+    foreach $dir (@dirs) {
+        opendir(DIR, $dir) or die "Couldn't read directory '$dir': $!\n";
+        while ($file = readdir(DIR)) {
+            next if $file eq '.' or $file eq '..';
+            next unless $file =~ m!\.tpl$!;
+            parse_template_file("$dir/$file");
+        }
+        closedir(DIR);
+    }
+}
+
+
+##
+
 my %Placeholder_list = ();
 
 
@@ -314,14 +334,6 @@ sub compile_page {
 # container  0 | 1
 # name  canonical_name
 # text_variable  'text'
-
-# sub new {
-#    my ($class) = @_;
-#    my $self = {};
-#    bless $self, $class;
-#    $self;
-# }
-
 
 # Called by modules to define Perl code placeholders
 
@@ -467,6 +479,55 @@ sub define_text_placeholder {
                  $ph->{subname});
 }
 
+
+##
+
+my $Templates = {};
+
+sub parse_template_file {
+    my ($fn) = @_;
+    local ($_, $.);
+
+    open(IN, $fn) or croak "Couldn't open '$fn': $!\n";
+    while (<IN>) {
+        chomp;
+        s/#.*//;
+        next if m/^\s*$/;
+        last;
+    }
+    m/^\s*template\s*/ or croak "'$fn' should start with a template statement\n";
+    my ($name, $vars) = m/^\s*template\s+(\w+)(.*)/
+        or croak "Syntax error on line $. of '$fn':\n$_\n";
+    $vars =~ s/^\s+//;
+    my @vars = split(/\s+/, $vars);
+    my $var;
+    foreach $var (@vars) {
+        croak "Syntax error in template variable name:\n$_\n"
+            unless $var =~ m/^\$\w+$/;
+        $var =~ s/^\$//;
+    }
+
+    my $source;
+    do {
+        $source = <IN>;
+    } while ($source =~ m/^\s*$/);
+
+    while (<IN>) {
+        $source .= $_;
+    }
+
+    my $subname = "Template::" . escape_to_varname($name);
+    compile_text(\$source, [@vars], undef, $fn, 0, $subname);
+    no strict 'refs';
+    $Templates->{$name} = \&$subname;
+}
+
+sub call_template {
+    my ($template_name, @args) = @_;
+    my $sub = $Templates->{$template_name};
+    croak "There is no template named '$template_name'" unless defined $sub;
+    return &$sub(@args);
+}
 
 ##
 

@@ -1,6 +1,6 @@
 /* link.c:  runs as a cgi program and passes request to Vend server
 
-   $Id: link.c,v 1.4 1995/11/10 15:28:36 amw Exp $
+   $Id: link.c,v 1.5 1995/12/15 20:10:46 amw Exp $
 
    Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 
@@ -508,12 +508,12 @@ int main(argc, argv)
   if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
     die(errno, "signal");
 
+  get_entity();
+
   /* If the server does close the socket, jump back here to reopen. */
   if (setjmp(reopen_socket)) {
     close_socket();		       /* close our end of old socket */
   }
-
-  get_entity();
 
   bufp = buf;			       /* init output buf */
   buf_left = buf_size;

@@ -1,6 +1,6 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.13 1995/12/15 20:11:53 amw Exp $
+# $Id: Server.pm,v 1.12 1995/11/10 15:23:09 amw Exp amw $
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
