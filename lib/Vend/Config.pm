@@ -3159,6 +3159,7 @@ my %tagBool = ( qw!
                 isOperator  1
                 ItemAction  1
 				noRearrange	1
+		NoReparse   1
                 OrderCheck  1
                 UserTag     1
 				! );

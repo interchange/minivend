@@ -316,6 +316,7 @@ use vars '%myRefs';
      attrAlias       => \%attrAlias,
 	 Documentation   => \%Documentation,
 	 hasEndTag       => \%hasEndTag,
+	 NoReparse       => \%NoReparse,
 	 noRearrange     => \%noRearrange,
 	 Implicit        => \%Implicit,
 	 Interpolate     => \%Interpolate,
@@ -325,6 +326,8 @@ use vars '%myRefs';
 	 PosRoutine      => \%PosRoutine,
 	 Routine         => \%Routine,
 );
+
+my @myRefs = keys %myRefs;
 
 sub do_tag {
 	my $tag = shift;
@@ -398,7 +401,7 @@ sub add_tags {
 	return unless $ref->{Routine} or $ref->{Alias};
 	my $area;
 	no strict 'refs';
-	foreach $area (keys %myRefs) {
+	foreach $area (@myRefs) {
 		next unless $ref->{$area};
 		if($area eq 'Routine') {
 			for (keys %{$ref->{$area}}) {
