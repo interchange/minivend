@@ -37,7 +37,7 @@ use vars qw(
 			@Locale_directives_ary @Locale_directives_scalar
 			@Locale_directives_code
 			@Locale_directives_currency @Locale_keys_currency
-			$GlobalRead  $SystemCodeDone $CodeDest
+			$GlobalRead  $SystemCodeDone $SystemGroupsDone $CodeDest
 			);
 use Safe;
 use Fcntl;
@@ -283,8 +283,8 @@ sub global_directives {
 	['HitCount',		 'yesno',            'No'],
 	['IpHead',			 'yesno',            'No'],
 	['IpQuad',			 'integer',          '1'],
-	['TemplateDir',      'root_dir_array', 	 ''],
 	['TagDir',      	 'root_dir_array', 	 'code'],
+	['TemplateDir',      'root_dir_array', 	 ''],
 	['DomainTail',		 'yesno',            'Yes'],
 	['AcrossLocks',		 'yesno',            'No'],
 	['TolerateGet',		 'yesno',            'No'],
@@ -969,6 +969,47 @@ sub read_here {
 }
 
 use File::Find;
+
+my %extmap = qw/
+	ia	ItemAction
+	fa	FormAction
+	am	ActionMap
+	oc	OrderCheck
+	ut	UserTag
+	fi	Filter
+	fw	Widget
+	lc	LocaleChange
+	tag	UserTag
+	ct	CoreTag
+/;
+
+for( values %extmap ) {
+	$extmap{lc $_} = $_;
+}
+
+sub get_system_groups {
+
+	my @files;
+	my $wanted = sub {
+		return if (m{^\.} || ! -f $_);
+		$File::Find::name =~ m{/([^/]+)/([^/.]+)\.(\w+)$}
+			or return;
+		my $group = $1;
+		my $tname = $2;
+		my $ext = $extmap{lc $3} or return;
+		$ext =~ /Tag$/ or return;
+		push @files, [ $group, $tname ];
+	};
+	File::Find::find($wanted, @$Global::TagDir);
+
+	$Global::TagGroup ||= {};
+	for(@files) {
+		my $g = $Global::TagGroup->{":$_->[0]"} ||= [];
+		push @$g, $_->[1];
+	}
+	return;
+}
+
 sub get_system_code {
 
 	return if $CodeDest;
@@ -976,29 +1017,12 @@ sub get_system_code {
 	
 	# defined means don't go here anymore
 	$SystemCodeDone = '';
-	my %extmap = qw/
-		ia	ItemAction
-		fa	FormAction
-		am	ActionMap
-		oc	OrderCheck
-		ut	UserTag
-		fi	Filter
-		fw	Widget
-		lc	LocaleChange
-		tag	UserTag
-		ct	CoreTag
-	/;
-
-	for( values %extmap ) {
-		$extmap{lc $_} = $_;
-	}
-
 	my @files;
 	my $wanted = sub {
 		return if (m{^\.} || ! -f $_);
 		return unless m{^[^.]+\.(\w+)$};
 		my $ext = $extmap{lc $1} or return;
-		push @files, [ $File::Find::name, $ext ];
+		push @files, [ $File::Find::name, $ext];
 	};
 	File::Find::find($wanted, @$Global::TagDir);
 
@@ -1494,6 +1518,7 @@ sub parse_tag_include {
 
 	my $c;
 	my $g;
+
 	my $mapper = $incmap{$var} || 'TagGroup';
 	if(defined $C) {
 		$c = $C->{$var} || {};
@@ -1515,6 +1540,8 @@ sub parse_tag_include {
 	}
 
 	delete $c->{ALL};
+
+	get_system_groups() unless $SystemGroupsDone;
 
 	my @incs = Text::ParseWords::shellwords($setting);
 
