@@ -1872,8 +1872,7 @@ sub tag_options {
 		my $ref;
 		my $price = {};
 		foreach $ref (@$ary) {
-			# skip unless enabled
-			next unless $ref->[1];
+
 			# skip unless description
 			next unless $ref->[3];
 
