@@ -692,7 +692,7 @@ sub writefile {
 
 				## Need to make this OS-independent, requires File::Spec support
 				$dir =~ s:[\r\n]::g;   # Just in case
-				$dir =~ s:(.*)/.*:: or $dir = '';
+				$dir =~ s:(.*)/.*:$1: or $dir = '';
 				if($dir and ! -d $dir) {
 					File::Path::mkpath($dir);
 				}
