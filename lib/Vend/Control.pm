@@ -59,7 +59,7 @@ sub signal_jobs {
 	
 	$Vend::JobsCat = $cat;
 	if ($delay =~ /^(\d+)$/) {
-		$delay + time;
+		$delay += time;
 	} else {
 		$delay = 0;
 	}
