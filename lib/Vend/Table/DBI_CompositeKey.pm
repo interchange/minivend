@@ -83,6 +83,22 @@ sub create {
 			$config->{_Key_splittor} = qr([\0,]);
 		}
 	}
+	if(
+		(! $config->{INDEX} or @{$config->{INDEX}} == 0)
+		and
+		! $config->{POSTCREATE}
+	  )
+	{
+		my $fields = $config->{COMPOSITE_KEY};
+		$fields =~ s/^\s+//;
+		$fields =~ s/\s+$//;
+		$fields =~ s/\s+/,/g;
+
+		my $tabname = $config->{REAL_NAME} || $config->{name};
+		$config->{POSTCREATE} = 
+			["CREATE UNIQUE INDEX ${tabname}_index ON $tabname($fields)"];
+#::logDebug("did POSTCREATE: $config->{POSTCREATE}");
+	}
 
 #::logDebug("open_table config=" . ::uneval($config));
 	return Vend::Table::DBI::create($class, $config, $columns, $tablename);
