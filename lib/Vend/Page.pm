@@ -139,6 +139,17 @@ sub display_page {
 		return 1;
 	}
 	else {
+		my $handled;
+		my $newpage;
+		if(my $subname = $Vend::Cfg->{SpecialSub}{missing}) {
+			my $sub = $Vend::Cfg->{Sub}{$subname} || $Global::GlobalSub->{$subname};
+			($handled, $newpage) = $sub->($name)
+				if $sub;
+		}
+		if($handled) {
+			return display_page($newpage) if $newpage;
+			return 0;
+		}
 		HTML::Entities::encode($name, $ESCAPE_CHARS::std);
 		display_special_page(find_special_page('missing'), $name);
 		return 0;

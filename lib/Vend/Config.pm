@@ -461,6 +461,7 @@ sub catalog_directives {
 	['ImageDirInternal', undef,     	     ''],
 	['ImageDir',	 	 undef,     	     ''],
 	['DeliverImage',     'yesno',			 'no'],
+	['SpecialSub',       'hash',			 ''],
 	['UseCode',		 	 undef,     	     'yes'],
 	['SetGroup',		 'valid_group',      ''],
 	['UseModifier',		 'array',     	     ''],
