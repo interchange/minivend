@@ -1493,7 +1493,7 @@ sub route_order {
 
 		my $use_mime;
 		undef $::Instance->{MIME};
-		if(! $route->{credit_card} || $route->{encrypt}) {
+		if(not ($route->{credit_card} || $route->{encrypt}) ) {
 			$::Values->{mv_credit_card_info}
 				=~ s/^(\s*\w+\s+)(\d\d)[\d ]+(\d\d\d\d)/$1$2 NEED ENCRYPTION $3/;
 		}
