@@ -1503,7 +1503,7 @@ sub route_order {
 			push @out, $ary;
 		}
 		else {
-			die "Empty order routing $c (and not explicitly empty)";
+			die "Empty order routing $c (and not explicitly empty).\nEither attach or email are required in the route setting.\n";
 		}
 		if ($route->{supplant}) {
 			track_order($::Values->{mv_order_number}, $page);
