@@ -49,8 +49,8 @@ sub TIEHASH {
 	$SessionDir = $dir;
 	%HaveLock = ();
 	if($nfs) {
-		*lockfile = \*Vend::Util::fcntl_lock;
-		*unlockfile = \*Vend::Util::fcntl_unlock;
+		*lockfile = \*Vend::File::fcntl_lock;
+		*unlockfile = \*Vend::File::fcntl_unlock;
 	}
 	bless {}, $self;
 }
