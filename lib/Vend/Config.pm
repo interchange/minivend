@@ -1187,6 +1187,7 @@ my %extmap = qw/
 	oc	OrderCheck
 	ut	UserTag
 	fi	Filter
+	so	SearchOp
 	fw	Widget
 	lc	LocaleChange
 	tag	UserTag
@@ -3612,6 +3613,7 @@ my %tagCanon = ( qw(
 	arraycode		ArrayCode
 	hashcode		HashCode
 	coretag  		CoreTag
+	searchop 		SearchOp
 	filter			Filter
 	formaction		FormAction
 	ordercheck		OrderCheck
@@ -3676,6 +3678,7 @@ my %valid_dest = qw/
 					usertag          UserTag
 					hashcode         HashCode
 					arraycode        ArrayCode
+					searchop 		 SearchOp
 					widget           Widget
 				/;
 

@@ -131,6 +131,7 @@ my %Scan = ( qw(
 	er  mv_spelling_errors
 	ff  mv_field_file
 	fi  mv_search_file
+	ft  mv_field_title
 	fm  mv_first_match
 	fn  mv_field_names
 	hs  mv_head_skip
