@@ -373,7 +373,7 @@ sub authorizenet {
                     x_State         => $actual->{b_state},
                     x_Zip			=> $actual->{b_zip},
                     x_Country		=> $actual->{b_country},
-					x_Type			=> $actual->{cyber_mode},
+					x_Type			=> $transtype,
                     x_Amount    	=> $amount,
                     x_Exp_Date  	=> $exp,
                     x_Method    	=> 'CC',
@@ -443,7 +443,7 @@ sub authorizenet {
 		}
 		 = split (/,/,$page);
     	
-#::logDebug(qq{authorizenet response_reason_text=$response_reason_text response_code: $response_code});    	
+#::logDebug(qq{authorizenet response_reason_text=$result{x_response_reason_text} response_code: $result{x_response_code}});    	
 
     for (keys %result_map) {
         $result{$_} = $result{$result_map{$_}}
