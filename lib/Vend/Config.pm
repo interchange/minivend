@@ -60,6 +60,7 @@ qw/
 		PriceField
 		PriceDefault
 		SalesTax
+		Levies
 		TaxShipping
 
 /	);
@@ -84,32 +85,33 @@ qw/
 
 @Locale_directives_scalar = (
 qw/
-		Autoload
 		AutoEnd
-		CommonAdjust
+        Autoload
 		CategoryField
+        CommonAdjust
 		DescriptionField
+        HTMLsuffix
 		ImageDir
 		ImageDirSecure
 		PageDir
-		SpecialPageDir
-		PriceDivide
 		PriceCommas
-		PriceField
 		PriceDefault
+        PriceDivide
+        PriceField
 		SalesTax
+        SpecialPageDir
 		StaticPath
-		HTMLsuffix
 		TaxShipping
 
 /   );
 
 @Locale_directives_ary = (
 qw/
+	AutoModifier
+	Levies
 	PriceAdjustment
 	ProductFiles
 	UseModifier
-	AutoModifier
 /   );
 
 # These are extra routines that are run if certain directives are
@@ -129,6 +131,7 @@ my %HashDefaultBlank = (qw(
 					Mail			1
 					DatabaseDefault	1
 					Accounting		1
+					Levy			1
 				));
 
 my %DumpSource = (qw(
@@ -488,6 +491,8 @@ sub catalog_directives {
 	['PriceField',		 undef,              'price'],
 	['Shipping',         'locale',           ''],
 	['Accounting',	 	 'locale',     	 	 ''],
+	['Levies',		 	 'array',     	 	 ''],
+	['Levy',		 	 'locale',     	 	 ''],
 	['AutoVariable',	 'autovar',     	 ''],
 
 	];

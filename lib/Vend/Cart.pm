@@ -212,7 +212,6 @@ sub toss_cart {
 		last DELETE;
 	}
 
-	return 1 unless @master;
 	my $mi;
 	my %save;
 	my @items;
@@ -239,7 +238,8 @@ sub toss_cart {
 			@{$s} = @items[sort {$a <=> $b} keys %save];
 		}
 	}
-	1;
+	Vend::Interpolate::levies();
+	return 1;
 }
 
 =head2 Test footer for item toss
