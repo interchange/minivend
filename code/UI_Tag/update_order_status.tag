@@ -34,6 +34,7 @@ sub {
 			settle_transaction
 			ship_all
 			status
+			tracking_number
 			void_transaction
 		/)
 	{
@@ -167,6 +168,10 @@ sub {
 	}
 	else {
 		$tdb->set_field($on, 'status', 'shipped');
+	}
+
+	if($opt->{tracking_number} =~ /\w/) {
+		$tdb->set_field($on, 'tracking_number', $opt->{tracking_number});
 	}
 
 	my @shiplines = grep /\S/, split /\0/, $opt->{lines_shipped};
