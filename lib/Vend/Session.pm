@@ -1,6 +1,6 @@
 # Session.pm - Minivend Sessions
 #
-# $Id: Session.pm,v 1.4 2000/03/02 10:33:25 mike Exp $
+# $Id: Session.pm,v 1.5 2000/03/09 13:33:27 mike Exp mike $
 # 
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -30,7 +30,7 @@ package Vend::Session;
 require Exporter;
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.4 $, 10);
+$VERSION = substr(q$Revision: 1.5 $, 10);
 
 @ISA = qw(Exporter);
 
@@ -128,7 +128,8 @@ File => [ 1, 0, sub {
 sub get_session {
 	$Vend::HaveSession = 0;
 	open_session();
-	my $new = read_session();
+	my $new;
+	$new = read_session() unless $Vend::ExternalProgram;
 	unless($File_sessions) {
 		lock_session();
 		close_session();

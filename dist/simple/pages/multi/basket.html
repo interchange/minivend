@@ -67,14 +67,16 @@ lose your shopping cart.
 	<TH __TABLEBG__ WIDTH="2">&nbsp;</TH>
 	<TD __TABLEFG__ VALIGN=TOP MARGINWIDTH=12 MARGINHEIGHT=12>
 	[page [item-code]][item-description]</A>
+	[if-item-data pricing sku]
 		<BR>[page quantity [item-code]]
 			<FONT SIZE=1 COLOR=__CONTRAST__>QUANTITY PRICING</FONT>
 			</A>
-	[if-field weight]<BR>
+	[/if-item-data]
+	[if-item-field weight]<BR>
 	<SMALL>WEIGHT: [summary amount=`[item-quantity] * [item-field weight]`]</SMALL>
-	[/if-field]
+	[/if-item-field]
 	<BR>
-	[if-field related]
+	[if-item-field related]
 	[if !ordered [item-field related]]
 	<TABLE CELLPADDING=0 CELLSPACING=0 WIDTH="100%">
 	[loop arg="[item-field related]"]
@@ -94,7 +96,7 @@ lose your shopping cart.
 	[/loop]
 	</TABLE>
 	[/if]
-	[/if-field]<FONT SIZE=1>[item-accessories size][item-accessories color]</FONT>	
+	[/if-item-field]<FONT SIZE=1>[item-accessories size][item-accessories color]</FONT>	
 	</TD>
 	<TD __TABLEFG__ VALIGN=TOP ALIGN=CENTER>
 	<INPUT TYPE=text NAME="[quantity-name]" VALUE="[item-quantity]" SIZE=3>

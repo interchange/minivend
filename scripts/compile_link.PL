@@ -25,7 +25,7 @@ DOIT: {
 #
 # MiniVend link program configurator
 #
-# $Id: compile_link,v 1.4 2000/03/02 10:34:12 mike Exp mike $
+# $Id: compile_link,v 1.4 2000/03/02 10:34:12 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #

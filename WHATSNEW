@@ -1,11 +1,11 @@
 
+Minivend-4.02 changes:
 
-                  W H A T ' S   N E W 
-
-Everything. Well, not completely -- many MiniVend 3.x catalogs can
-run with few changes, but there will be changes.
-
-MiniVend 4.x is a major rewrite that restructures many things.
+* Report generator for Minimate, with MV support.
+* Additional Filter entries. 
+* Updated "expire" and "expireall" to work with file-based sessions.
+* Fixed bugs in Internal HTTP server headers.
+* Fixed "Next" problem in [more-list].
 
 Minivend-4.01 introduces the following:
 
@@ -37,13 +37,14 @@ Minivend-4.01 introduces the following:
 * Bug in build procedure found, should prevent binaries and man
   pages ending up in strange places.
 
+Everything. Well, not completely -- many MiniVend 3.x catalogs can
+run with few changes, but there will be changes.
+
+                  W H A T ' S   N E W 
+
 Minivend-4.00 is the initial release version.
 
-Minivend-4.0alpha12: 
-
-        -- added [banner ...]  tag to replace random/rotate,
-           includes complete documentation
-        -- Glimpse works again.
+MiniVend 4.x is a major rewrite that restructures many things.
 
 Major new features are almost too many to mention, read the documentation
 for the most complete description. Some highlights:

@@ -476,6 +476,22 @@ all relevant to most questions.
 
 =item *
 
+The question is not easily comprehended.
+
+Sometimes this is due to language difficulties. While there are many
+Minivend users speaking many different languages, and there are a couple
+of language-specific user lists, the language on the main mail list is
+English. The clearer the question, the more likely you are to get an
+answer. Babelfish translations will probably not get it.
+
+=item *
+
+The question makes unreasonable demands. For instance, if you are trying
+to build a multi-store mall, and you are asking for step-by-step instructions
+on how to do it, you are unlikely to get an answer.
+
+=item *
+
 Question is answered in this FAQ, the README, or by doing a
 simple text search (with keywords you mention) in the documentation.
 Most people won't do manual reading for you -- they expect you to

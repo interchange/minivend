@@ -221,6 +221,18 @@ dist/simple/pages/action/get_password.html
 dist/simple/pages/browse.html
 dist/simple/pages/browse1.html
 dist/simple/pages/canceled.html
+dist/simple/pages/config/report_def/New.html
+dist/simple/pages/config/report_def/Orders%20by%20SKU%20-%20Short.html
+dist/simple/pages/config/report_def/Orders%20by%20SKU.html
+dist/simple/pages/config/report_def/Orders%20by%20amount.html
+dist/simple/pages/config/report_def/Products%20by%20category.html
+dist/simple/pages/config/report_def/Products%20to%20edit.html
+dist/simple/pages/config/reports/.html
+dist/simple/pages/config/reports/Orders%20by%20SKU%20-%20Short.html
+dist/simple/pages/config/reports/Orders%20by%20SKU.html
+dist/simple/pages/config/reports/Orders%20by%20amount.html
+dist/simple/pages/config/reports/Products%20by%20category.html
+dist/simple/pages/config/reports/Products%20to%20edit.html
 dist/simple/pages/deliver.html
 dist/simple/pages/examples/test_banner.html
 dist/simple/pages/feedback.html
@@ -316,6 +328,7 @@ dist/simple/upload/.empty
 dist/src/compile.pl
 dist/src/config.h.in
 dist/src/configure
+dist/src/mod_perl_tlink.pl
 dist/src/mvctl.c
 dist/src/syscfg.in
 dist/src/testcgi

@@ -25,7 +25,7 @@ DOIT: {
 #
 # MiniVend session expiration
 #
-# $Id: expire,v 1.4 2000/03/02 10:34:29 mike Exp mike $
+# $Id: expire,v 1.5 2000/03/09 13:34:16 mike Exp mike $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -69,9 +69,8 @@ $Global::VendRoot = $Global::VendRoot || '/usr/local/minivend';
 		if -f "$Global::VendRoot/_db_storable";
 	
 }
-### END CONFIGURABLE VARIABLES
 
-sub dontwarn { $FindBin::RealBin; }
+### END CONFIGURABLE VARIABLES
 
 $Global::ConfigFile = 'minivend.cfg';
 $Global::HammerLock = 20;
@@ -112,12 +111,17 @@ BEGIN {
 
 use Vend::Session;
 use Vend::Config qw(get_catalog_default parse_time);
-use vars qw/$opt_c $opt_r $opt_e/;
+use vars qw/$opt_c $opt_r $opt_e $opt_u $opt_x/;
+
+$Vend::Quiet = 1;
+
+sub logGlobal { warn(@_) }
+sub is_retired {}
 
 my $USAGE = <<EOF;
-usage: expire [-r] -c catalog [-e 'SessionExpire']
+usage: expire [-r|-u] -c catalog [-e 'SessionExpire']
            or
-       expire [-r] [-e 'SessionExpire'] sessionfile [sessionfile.lock]
+       expire [-r|-u] [-e 'SessionExpire'] sessionfile [sessionfile.lock]
 
  OPTIONS
       -c catalog  specify a catalog from minivend.cfg
@@ -126,6 +130,12 @@ usage: expire [-r] -c catalog [-e 'SessionExpire']
                   time is a string like '4 hours' or '2 days'
 
       -r          reorganize database and recover lost disk space
+
+      -u          unlink files if file-based sessions (otherwise
+	              produces "rm -f \$file" suitable for shell
+				  scripts)
+
+      -x          produce list of expired files, one per line
 EOF
 
 my $catalog;
@@ -136,7 +146,7 @@ $Vend::Cfg = { FileCreationMask => 0600 };
 
 use Getopt::Std;
 
-getopts('c:e:r') or die "$@\n$USAGE\n";
+getopts('c:e:rux') or die "$@\n$USAGE\n";
 
 $catalog    = $opt_c || undef;
 $expiretime = $opt_e || undef;
@@ -170,13 +180,9 @@ EOF
 
 } # END GETOPT
 
-die "too many args, aborting.\n" 
-		if @ARGV;
-my (%wanted) = qw(	sessionexpire	SessionExpire
-					sessiondatabase SessionDatabase
-					sessionlockfile SessionLockFile
-					scratchdir		ScratchDir
-					errorfile       ErrorFile);
+die "too many args, aborting.\n" if @ARGV;
+
+my $g;
 
 if(defined $catalog) {
 	my($name,$dir,$param);
@@ -184,38 +190,20 @@ if(defined $catalog) {
 	open(GLOBAL, $Global::ConfigFile) or
 		die "No global configuration file? Aborting.\n";
 	while(<GLOBAL>) {
-		next unless /^\s*catalog\s+$catalog\s+/i;
-		chomp;
-		s/^\s+//;
-		(undef,$name,$dir,$param) = split /\s+/, $_, 4;
-		last;
+		next unless /^\s*((?:sub)?catalog)\s+($catalog\s+.*)/i;
+		Vend::Config::parse_catalog($1, $2);
 	}
 	close GLOBAL;
 	die "Catalog $catalog not found in $Global::ConfigFile.\n"
-		unless defined $name;
-	chdir $dir or die "chdir to $dir: $!\n";
-	open(CATALOG, 'catalog.cfg') or
-		die "No catalog configuration file? Aborting.\n";
-	my (%seen);
-	while(<CATALOG>) {
-		next unless /\S/;
-		next if /^\s*#/;
-		chomp;
-		s/^\s+//;
-		s/\s+$//;
-		($name,$param) = split /\s+/, $_, 2;
-		next unless defined $wanted{lc $name};
-		$seen{$wanted{lc $name}} = $param;
-	}
-	close CATALOG;
-	for(values %wanted) {
-		next if defined $seen{$_};
-		$seen{$_} = get_catalog_default($_);
-	}
-	for(keys %seen) {
-		$Vend::Cfg->{$_} = $seen{$_};
-	}
-	$expiretime = $Vend::Cfg->{SessionExpire} unless defined $expiretime;
+		unless $Global::Catalog{$catalog};
+	$g = $Global::Catalog{$catalog};
+	chdir $g->{dir} or die "chdir to $g->{dir}: $!\n";
+	$Vend::Cfg = Vend::Config::config(
+					$g->{name},
+					$g->{dir},
+					"$g->{dir}/etc",
+					$g->{base} || undef,
+					);
 }
 else {
 	$Vend::Cfg->{ScratchDir} = '/tmp';
@@ -223,7 +211,36 @@ else {
 	$expiretime = '1 day' unless defined $expiretime;
 }
 
-$Vend::Cfg->{SessionExpire} = parse_time('SessionExpire', $expiretime);
+if($expiretime) {
+	$Vend::Cfg->{SessionExpire} = parse_time('SessionExpire', $expiretime);
+}
+
+print "expire=$expiretime=$Vend::Cfg->{SessionExpire}\n";
+
+if ($Vend::Cfg->{SessionType} eq 'File' ) {
+	require File::Find;
+	my $expire = $Vend::Cfg->{SessionExpire} + 60;
+	$expire /= 86400;
+	my $wanted;
+	my @nuke;
+	$wanted = sub {
+		return unless -f $_ && -M _ > $expire;
+		push @nuke, $_;
+	};
+	require File::Find;
+	File::Find::find($wanted, $Vend::Cfg->{SessionDatabase});
+	exit unless @nuke;
+	if($opt_u) {
+		unlink @nuke;
+	}
+	else {
+		my $joiner = $opt_x ? "\n" : "\nrm -f ";
+		print "rm -f " unless $opt_x;
+		print join $joiner, @nuke;
+		print "\n";
+	}
+	exit;
+}
 
 die $USAGE unless defined $Vend::Cfg->{SessionLockFile};
 
@@ -235,7 +252,7 @@ get_session() unless $reorg;
 expire_sessions($reorg);
 release_session() unless $reorg;
 
-system "compact ." if $db_reorg;
+#system "compact ." if $db_reorg;
 
 =head1 NAME
 

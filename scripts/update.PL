@@ -25,7 +25,7 @@ DOIT: {
 #
 # update - MiniVend database updater
 #
-# $Id: update,v 1.4 2000/03/02 10:35:09 mike Exp mike $
+# $Id: update,v 1.4 2000/03/02 10:35:09 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #

@@ -124,7 +124,7 @@ use vars qw($VERSION);
 require Exporter;
 
 BEGIN {
-	$VERSION = '4.01';
+	$VERSION = '4.02';
 }
 
 

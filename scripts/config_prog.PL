@@ -25,7 +25,7 @@ DOIT: {
 #
 # MiniVend program configurator
 #
-# $Id: config_prog,v 1.4 2000/03/02 10:34:24 mike Exp mike $
+# $Id: config_prog,v 1.4 2000/03/02 10:34:24 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -153,7 +153,7 @@ config_prog -- Configure MiniVend programs with MakeMaker variables
 
 =head1 VERSION
 
-$Id: config_prog,v 1.4 2000/03/02 10:34:24 mike Exp mike $
+$Id: config_prog,v 1.4 2000/03/02 10:34:24 mike Exp $
 
 =head1 DESCRIPTION
 

@@ -12,7 +12,7 @@ elif test -d /usr/local/minivend -a -w /usr/local/minivend
 then 
 	VENDROOT=/usr/local/minivend
 	BASEDIR=/var/lib/minivend
-elif -d /usr/local/minivend -a -w /usr/local/minivend
+elif test -d /usr/local/minivend -a -w /usr/local/minivend
 then
 	VENDROOT=$HOME/mvend
 else
@@ -69,6 +69,7 @@ do
 		   --basedir=$BASEDIR \
 		   --documentroot=$DOCROOT \
 		   --minivenduser=minivend \
+		   --minivendgroup=minivend \
 		   --serverconf=$SERVERCONF \
 		   --vendroot=$VENDROOT \
 		   --catroot=$BASEDIR/$i \
@@ -79,6 +80,7 @@ do
 		   --demotype=$i \
 		   --mailorderto=minivend@$HOST \
 		   --catuser=minivend \
+		   --permtype=user \
 		   --samplehtml=$DOCROOT/$i \
 		   --imagedir=$DOCROOT/$i/images \
 		   --imageurl=/$i/images \

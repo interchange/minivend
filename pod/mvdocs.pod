@@ -483,12 +483,12 @@ For example, if you answered C<www.mydomain.com> at the prompt
 for server name, then you would see this difference in the catalog.cfg file:
 
     # template
-    Variable SERVER_NAME  __MVC_SERVERNAME__
+    Variable SERVER_NAME  &#32;_MVC_SERVERNAME__
 
     # configured catalog
     Variable SERVER_NAME  www.mydomain.com
 
-The macro string __MVC_SERVERNAME__ was substituted with the answer to
+The macro string &#32;_MVC_SERVERNAME__ was substituted with the answer to
 the question about server name.  In the same way, other variables are
 substituted, and include (at least):
 
@@ -510,7 +510,7 @@ the COMPANY variable in catalog.cfg, you could run a pre-qualifying
 script that set the environment variable MVC_COMPANY and then place in
 the catalog.cfg file:
 
-    Variable   COMPANY   __MVC_COMPANY__
+    Variable   COMPANY   &#32;_MVC_COMPANY__
 
 All files within a template directory are substituted for macros,
 not just the catalog.cfg file. There are two special directories
@@ -565,7 +565,7 @@ The prompt would now be:
 If the file I<config/precopy_commands> exists, it will be read as
 a command followed by the prompt/help value.
 
-    mysqladmin create __MVC_CATALOGNAME__
+    mysqladmin create &#32;_MVC_CATALOGNAME__
     We need to create an SQL database for your Minivend
     database tables.
 

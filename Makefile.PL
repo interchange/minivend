@@ -26,7 +26,7 @@ my $Prompt_sub;
 my @mods_to_get;
 my $Lock_troubles;
 
-$VERSION = '4.01';
+$VERSION = '4.02';
 
 # See if we have the CPAN module
 my $Cpan = 0;
@@ -382,7 +382,8 @@ sub initialize {
 		}
 		chdir '..';
 		my (@minimate) = sort grep -d $_, glob '../MiniMate-4*';
-		if(my $minimate = pop @minimate) {
+		my $minimate = pop @minimate;
+		if( $minimate and ! $ENV{RPM_BUILD_ROOT} ) {
 			my $dir = $realdir;
 			$dir = "$X{RPMBUILDDIR}/$dir"
 				if $X{RPMBUILDDIR};

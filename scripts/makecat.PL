@@ -104,7 +104,7 @@ options:
     --minivenduser=username  The user ID which runs MiniVend
     --serverconf=filename    Location of httpd.conf
     --vendroot=filename      Location of MiniVend software
-	--homedir=directory      Use instead of \$HOME to set defaults
+    --homedir=directory      Use instead of \$HOME to set defaults
 
     Required:
     --catroot=directory      Directory where MiniVend catalog files go
@@ -116,18 +116,19 @@ options:
 
     Optional:
     --catuser=username       The user files should be owned by (if root)
-    --samplehtml=directory   The directory where template HTML goes
     --imagedir=directory     The directory where template images go
     --imageurl=url           The URL to prefix images with
+    --linkmode=mode          UNIX or INET (link program vlink or tlink)
+    --linkprogram=file       Use file as link program instead of vlink/tlink
     --nocfg                  Don't add to minivend.cfg
     --nocopy                 Don't actually copy the files, just test
     --norunning              Don't add to running server
-    --reference              Return hash of config as string (sets -F, no write)
-    --linkprogram=file       Use file as link program instead of vlink/tlink
-    --linkmode=mode          UNIX or INET (link program vlink or tlink)
-    --sampleurl=url          URL to access HTML for catalog
-	--relocate=dir           Directory to relocate files to (for RPM and such)
     --noumask                Don't set umask
+    --permtype=[M|G|U]       Set permission type (Multi, Group, User)
+    --reference              Return hash of config as string (sets -F, no write)
+    --relocate=dir           Directory to relocate files to (for RPM and such)
+    --samplehtml=directory   The directory where template HTML goes
+    --sampleurl=url          URL to access HTML for catalog
 
 EOF
 
@@ -164,6 +165,7 @@ my %optctl = (
     'nocopy'            => \$Conf{nocopy},
     'norunning'         => \$Conf{norunning},
     'noumask'           => \$Conf{noumask},
+    'permtype'          => \$Conf{permtype},
     'r'                 => \$Reconfigure,
     'reference'         => \$Conf{reference},
     'relocate'          => \$Conf{relocate},
@@ -211,6 +213,7 @@ my @options = ( qw/
     nocfg
     nocopy
     norunning
+    permtype=s
     r
     reference
     relocate=s
@@ -1918,7 +1921,7 @@ makecat [--options] name
 
 =head1 VERSION
 
-$Id: makecat,v 1.4 2000/03/02 10:34:39 mike Exp mike $
+$Id: makecat,v 1.5 2000/03/09 13:34:59 mike Exp mike $
 
 =head1 INTRODUCTION
 

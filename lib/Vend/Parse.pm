@@ -1,6 +1,6 @@
 # Parse.pm - Parse MiniVend tags
 # 
-# $Id: Parse.pm,v 1.13 2000/03/02 10:33:03 mike Exp $
+# $Id: Parse.pm,v 1.14 2000/03/09 13:32:44 mike Exp mike $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -27,12 +27,12 @@
 
 package Vend::Parse;
 
-# $Id: Parse.pm,v 1.13 2000/03/02 10:33:03 mike Exp $
+# $Id: Parse.pm,v 1.14 2000/03/09 13:32:44 mike Exp mike $
 
 require Vend::Parser;
 
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.13 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.14 $ =~ /(\d+)\.(\d+)/);
 
 use Safe;
 use Vend::Util;
@@ -44,7 +44,7 @@ require Exporter;
 
 @ISA = qw(Exporter Vend::Parser);
 
-$VERSION = substr(q$Revision: 1.13 $, 10);
+$VERSION = substr(q$Revision: 1.14 $, 10);
 @EXPORT = ();
 @EXPORT_OK = qw(find_matching_end);
 
@@ -141,7 +141,7 @@ my %Order =	(
 				'currency'		=> [qw( convert noformat )],
 				checked			=> [qw( name value multiple default)],
 				data			=> [qw( table field key )],
-				default			=> [qw( name default set)],
+				default			=> [qw( name default )],
 				dump			=> [qw( )],
 				description		=> [qw( code base )],
 				discount		=> [qw( code  )],
@@ -217,6 +217,7 @@ my %addAttr = (
 					banner          1
 					catch           1
 					data			1
+					default			1
 					ecml            1
 					error           1
 					export          1

@@ -1,6 +1,6 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.8 2000/03/02 10:33:24 mike Exp $
+# $Id: Server.pm,v 1.9 2000/03/09 13:32:55 mike Exp mike $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -28,7 +28,7 @@
 package Vend::Server;
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.8 $, 10);
+$VERSION = substr(q$Revision: 1.9 $, 10);
 
 use POSIX qw(setsid strftime);
 use Vend::Util;
@@ -255,6 +255,7 @@ sub create_cookie {
 	my ($name, $value, $out, $expire, $cookie);
 	my @jar;
 	@jar = ['MV_SESSION_ID', $Vend::SessionName, $Vend::Expire || undef];
+	push @jar, ['MV_STATIC', 1] if $Vend::Cfg->{Static};
 	push @jar, @{$::Instance->{Cookies}}
 		if defined $::Instance->{Cookies};
 	$out = '';
@@ -293,8 +294,8 @@ sub respond {
 		$Vend::StatusLine = "HTTP/1.0 200 OK\r\n$Vend::StatusLine"
 			if defined $Vend::InternalHTTP
 				and $Vend::StatusLine !~ m{^HTTP/};
-		$Vend::StatusLine .= $Vend::StatusLine =~ /^Content-Type:/im
-							? '' : "Content-Type: text/html\r\n";
+		$Vend::StatusLine .= ($Vend::StatusLine =~ /^Content-Type:/im)
+							? '' : "\r\nContent-Type: text/html\r\n";
 		print Vend::Server::MESSAGE canon_status($Vend::StatusLine);
 		print Vend::Server::MESSAGE "\r\n";
 		print Vend::Server::MESSAGE $$body;
@@ -605,7 +606,7 @@ EOF
 	if (defined $doc) {
 		$path =~ /\.([^.]+)$/;
 		$Vend::StatusLine = '' unless defined $Vend::StatusLine;
-		$Vend::StatusLine .= "Content-type: " . ($MIME_type{$1} || "text/plain");
+		$Vend::StatusLine .= "\r\nContent-type: " . ($MIME_type{$1} || "text/plain");
 		respond(
 					'',
 					\$doc,
@@ -658,13 +659,13 @@ sub read_cgi_data {
 sub connection {
     my (%env, $entity);
     my $http;
-#::logGlobal ("begin connection: " . (join " ", times()) . "\n");
+#::logDebug ("begin connection: " . (join " ", times()) . "\n");
     read_cgi_data(\@Global::argv, \%env, \$entity)
     	or return 0;
 	$http = new Vend::Server \*Vend::Server::MESSAGE, \%env, $entity;
 #::logGlobal ("begin dispatch: " . (join " ", times()) . "\n");
     ::dispatch($http);
-#::logGlobal ("end connection: " . (join " ", times()) . "\n");
+#::logDebug ("end connection: " . (join " ", times()) . "\n");
 	undef $Vend::ResponseMade;
 	undef $Vend::InternalHTTP;
 }

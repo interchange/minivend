@@ -1,6 +1,6 @@
 # Config.pm - Configure Minivend
 #
-# $Id: Config.pm,v 1.12 2000/03/02 10:32:12 mike Exp $
+# $Id: Config.pm,v 1.13 2000/03/09 13:31:26 mike Exp mike $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -101,7 +101,7 @@ BEGIN {
 	};
 }
 
-$VERSION = substr(q$Revision: 1.12 $, 10);
+$VERSION = substr(q$Revision: 1.13 $, 10);
 
 for( qw(search refresh cancel return secure unsecure submit control checkout) ) {
 	$Global::LegalAction{$_} = 1;
@@ -197,8 +197,13 @@ sub config_error {
 			$configfile,
 			$Vend::config_line,
 	);
-    ::logGlobal({level => 'warn'}, $msg);
-    die "$msg\n";
+    if ($Vend::ExternalProgram) {
+		warn "$msg\n";
+	}
+	else {
+		::logGlobal({level => 'warn'}, $msg);
+		die "$msg\n";
+	}
 }
 
 sub config_warn {
@@ -1183,6 +1188,8 @@ EOF
 
 sub parse_require {
 	my($var, $val) = @_;
+
+	return if $Vend::ExternalProgram;
 
 	my $require;
 	my $name;

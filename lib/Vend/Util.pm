@@ -1,6 +1,6 @@
 # Util.pm - Minivend utility functions
 #
-# $Id: Util.pm,v 1.9 2000/03/02 10:33:45 mike Exp $
+# $Id: Util.pm,v 1.10 2000/03/09 13:33:40 mike Exp mike $
 # 
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -73,7 +73,7 @@ use Config;
 use Fcntl;
 use subs qw(logError logGlobal);
 use vars qw($VERSION @EXPORT @EXPORT_OK);
-$VERSION = substr(q$Revision: 1.9 $, 10);
+$VERSION = substr(q$Revision: 1.10 $, 10);
 
 BEGIN {
 	eval {
@@ -296,8 +296,9 @@ sub setlocale {
 
 
 sub currency {
-	my($amount, $noformat, $convert) = @_;
+	my($amount, $noformat, $convert, $opt) = @_;
 #::logDebug("currency called: amount=$amount no=$noformat convert=$convert");
+	$opt = {} unless $opt;
 	$amount = $amount / $Vend::Cfg->{PriceDivide} if $convert;
 	return $amount if $noformat;
 	my $loc;
@@ -306,7 +307,7 @@ sub currency {
 	my $fmt;
 	my $precede = '';
 	my $succede = '';
-	if ($loc = $Vend::Cfg->{Locale}) {
+	if ($loc = $opt->{locale} || $Vend::Cfg->{Locale}) {
 		$sep = $loc->{mon_thousands_sep} || $loc->{thousands_sep} || ',';
 		$dec = $loc->{mon_decimal_point} || $loc->{decimal_point} || '.';
 		return picture_format($amount, $loc->{price_picture}, $sep, $dec)

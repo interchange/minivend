@@ -25,7 +25,7 @@ DOIT: {
 #
 # offline - MiniVend database builder and indexer
 #
-# $Id: offline,v 1.4 2000/03/02 10:35:06 mike Exp mike $
+# $Id: offline,v 1.4 2000/03/02 10:35:06 mike Exp $
 #
 # Copyright 1996-2000 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -263,7 +263,7 @@ offline -- Minivend offline database builder
 
 =head1 VERSION
 
-$Id: offline,v 1.4 2000/03/02 10:35:06 mike Exp mike $
+$Id: offline,v 1.4 2000/03/02 10:35:06 mike Exp $
 
 =head1 DESCRIPTION
 
