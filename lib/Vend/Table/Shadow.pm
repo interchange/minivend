@@ -32,6 +32,13 @@ use strict;
 use vars qw($CONFIG $TABLE $KEY $NAME $TYPE $OBJ);
 ($CONFIG, $TABLE, $KEY, $NAME, $TYPE, $OBJ) = (0 .. 5);
 
+sub config {
+	my ($s, $key, $value) = @_;
+	$s = $s->import_db() if ! defined $s->[$OBJ];
+	return $s->[$CONFIG]{$key} unless defined $value;
+	$s->[$CONFIG]{$key} = $value;
+}
+
 sub import_db {
 	my($s) = @_;
 	my $db = Vend::Data::import_database($s->[0], 1);
