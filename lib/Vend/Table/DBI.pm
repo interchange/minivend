@@ -1261,11 +1261,13 @@ sub set_slice {
 				: $key;
 	};
 
+#::logDebug("set_slice key: $val");
+
 	if($@) {
 		my $caller = caller();
 		::logGlobal(
 			"%s error as called by %s: %s\nquery was:%s\nvalues were:'%s'",
-			'select_slice',
+			'set_slice',
 			$caller,
 			$@,
 			$sql,
