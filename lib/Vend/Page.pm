@@ -76,6 +76,7 @@ sub display_special_page {
 	die ::get_locale_message(412, "Missing special page: %s\n", $name)
 		unless defined $page;
 	$page =~ s#\[subject\]#$subject#ig;
+	$Global::Variable->{MV_SUBJECT} = $subject;
 	$Vend::PageInit = 0;
 	interpolate_html($page, 1);
 	::response();
