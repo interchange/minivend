@@ -1038,7 +1038,7 @@ sub tag_data {
 				},
 	'unix' =>	sub {
 					my $val = shift;
-					$val =~ s/\r?\n/\n/g;
+					$val =~ s/\r\n|\r/\n/g;
 					return $val;
 				},
 	'dos' =>	sub {
