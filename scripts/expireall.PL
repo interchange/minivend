@@ -33,12 +33,13 @@ use lib '/usr/local/interchange';
 
 use Getopt::Std;
 
-$Global::VendRoot = $Global::VendRoot || '/usr/local/interchange';
-#$Global::VendRoot = $Global::VendRoot || '~_~INSTALLARCHLIB~_~';
-
 ## END CONFIGURABLE VARIABLES
 
 BEGIN {
+
+$Global::VendRoot = $Global::VendRoot || '/usr/local/interchange';
+#$Global::VendRoot = $Global::VendRoot || '~_~INSTALLARCHLIB~_~';
+
     ($Global::VendRoot = $ENV{MINIVEND_ROOT})
         if defined $ENV{MINIVEND_ROOT};
 
