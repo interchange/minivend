@@ -3248,7 +3248,7 @@ sub parse_tag {
 		return $c unless $Global::TagInclude->{$tag};
 	}
 
-	if($p eq 'Routine' or $p eq 'posRoutine') {
+	if($p eq 'Routine' or $p eq 'PosRoutine') {
 
 		my $sub;
 		$c->{Source}->{$tag}->{$p} = $val;
