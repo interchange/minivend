@@ -239,10 +239,10 @@ my $Mandf = '(?:%20|\s)+([-\w#/.]+)';
 my $Spacef = '(?:%20|\s)+';
 my $Spaceo = '(?:%20|\s)*';
 
-my $Optx = '(?:\s+)?([-\w:#=/.%]+)?';
+my $Optx = '\s*([-\w:#=/.%]+)?';
 my $Optr = '(?:\s+([^]]+))?';
 my $Mand = '\s+([-\w#/.]+)';
-my $Opt = '(?:\s+)?([-\w#/.]+)?';
+my $Opt = '\s*([-\w#/.]+)?';
 my $T    = '\]';
 my $D    = '[-_]';
 
@@ -254,9 +254,9 @@ my $XMandx = qr{\s+([-\w:#=/.%]+)};
 my $XMandf = qr{(?:%20|\s)+([-\w#/.]+)};
 my $XSpacef = qr{(?:%20|\s)+};
 my $XSpaceo = qr{(?:%20|\s)*};
-my $XOptx = qr{(?:\s+)?([-\w:#=/.%]+)?};
+my $XOptx = qr{\s*([-\w:#=/.%]+)?};
 my $XMand = qr{\s+([-\w#/.]+)};
-my $XOpt = qr{(?:\s+)?([-\w#/.]+)?};
+my $XOpt = qr{\s*([-\w#/.]+)?};
 my $XD    = qr{[-_]};
 my $Gvar  = qr{\@\@([A-Za-z0-9]\w+[A-Za-z0-9])\@\@};
 my $Evar  = qr{\@_([A-Za-z0-9]\w+[A-Za-z0-9])_\@};
@@ -5114,7 +5114,13 @@ sub region {
 	$IE = qr(\[/if[-_]$Prefix)i;
 
 	my $new;
-	$page =~ s!$QR{more_list}! tag_more_list($1,$2,$3,$4,$5,$opt,$6)!ge;
+	$page =~   s!
+					\[ ( $mprefix  more[-_]list )  $Optx$Optx$Optx$Optx$Optx \]
+						($Some)
+					\[/\1\]
+				!
+					tag_more_list($2,$3,$4,$5,$6,$opt,$7)
+				!xige;
 	$page =~   s!
 					\[ ( $mprefix  on[-_]match )\]
 						($Some)
