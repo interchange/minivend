@@ -59,8 +59,8 @@ $VERSION = substr(q$Revision$, 10);
 
 $Force = 0;
 $History = 0;
-my %Pretty = qw(
-
+my %Pretty = (
+	qw/
 	aliases				Aliases
 	basedir				BaseDir
 	catuser				CatUser
@@ -83,6 +83,8 @@ my %Pretty = qw(
 	shareurl			ShareUrl
 	catroot				CatRoot
 	vendroot			VendRoot
+/,
+	linkmode => 'Link mode',
 
 );
 
@@ -162,6 +164,11 @@ EOF
 # The base directory for HTML for this (possibly virtual) domain.
 # This is a directory path name, not a URL -- it is your HTML
 # directory.
+#
+EOF
+		linkmode => <<EOF,
+# Interchange can use either UNIX- or internet-domain sockets.
+# Most ISPs would prefer UNIX mode, and it is more secure.
 #
 EOF
 	mailorderto  =>  <<EOF,
@@ -497,6 +504,7 @@ eval {
 	$term = new Term::ReadLine::Perl 'Interchange Configuration';
 	die "No Term::ReadLine::Perl" unless defined $term;
 
+	readline::rl_set('EditingMode', '');
 	readline::rl_bind('C-B', 'catch_at');
 	$Prompt_sub = sub {
 		my ($prompt, $default) = @_;
