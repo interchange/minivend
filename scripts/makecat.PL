@@ -1437,7 +1437,7 @@ ADDITIONAL: {
 		}
 		close ADDLHELP;
 	}
-	print "found more to ask.\n\n";
+	my $said = 0;
 	while(<ADDL>) {
 		s/\s+$//;
 		s/__MVC_([A-Z0-9]+)(__)?/substitute($1,$2)/eg;
@@ -1454,6 +1454,8 @@ ADDITIONAL: {
 			next unless $true;
 		}
 		$var =~ s/\s+//g;
+		$var =~ s:^(!)::;
+		my $noprompt = $1;
 		$var = lc $var;
 		my $ucvar = uc $var;
 		if($default =~ /\t/) {
@@ -1466,8 +1468,18 @@ ADDITIONAL: {
 			$help{$ucvar} =~ s/__MVC_([A-Z0-9]+)(__)?/substitute($1,$2)/eg;
 			print $help{$ucvar};
 		}
-		$Conf{$var} = prompt( do_msg("$prompt: ", 50),
-							 (delete $ENV{"MVC_$ucvar"} || $Conf{$var} || $default) ) ;
+		unless ($noprompt) {
+			print "found more to ask.\n\n" unless $said++;
+			$Conf{$var} = prompt(
+							do_msg("$prompt: ", 50),
+									 ( delete $ENV{"MVC_$ucvar"}
+										|| $Conf{$var}
+										|| $default)
+									);
+		}
+		else {
+			$Conf{$var} = delete $ENV{"MVC_$ucvar"} || $Conf{$var} || $default;
+		}
 	}
 	close ADDL;
 }
