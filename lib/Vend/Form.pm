@@ -1067,6 +1067,7 @@ if($opt->{debug}) {
 
 	$opt->{value} = $opt->{default} if ! defined $opt->{value};
     $opt->{encoded} = encode($opt->{value}, $ESCAPE_CHARS::std);
+    $opt->{value} =~ s/&#91;/\[/g if $opt->{enable_itl};
 
 	# Action taken for various types
 	my %daction = (
