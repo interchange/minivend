@@ -68,11 +68,19 @@ sub http {
 
 sub response {
 	my $possible = shift;
-	if(defined $possible) {
+	return if $Vend::Sent;
+	if($::Pragma->{download}) {
+		my $out = ref $possible ? $$possible : $possible;
+		# do nothing
+	}
+	elsif(defined $possible) {
 		push @Vend::Output, ( ref $possible ? $possible : \$possible);
 	}
-#::logDebug("output=" . ::uneval(\@Vend::Output) . "\nnames=" . ::uneval(\%Vend::OutPtr) . "\nfilters=" . ::uneval(\%Vend::OutFilter));
-	if($Vend::MultiOutput) {
+
+	if($::Pragma->{download}) {
+		$H->respond(ref $possible ? $possible : \$possible);
+	}
+	elsif($Vend::MultiOutput) {
 		for my $space (keys %Vend::OutPtr) {
 			my $things = $Vend::OutPtr{$space} || [];
 			for my $ptr (@$things) {
