@@ -750,8 +750,10 @@ sub display {
 		my $adder;
 		$adder = $item->{mv_ip} if	defined $item->{mv_ip}
 								and $opt->{item} || ! $opt->{name};
+		$opt->{value} = $item->{$opt->{attribute} || $opt->{name}};
 		$opt->{name} = $opt->{attribute} unless $opt->{name};
 		$opt->{name} .= $adder if defined $adder;
+		$opt->{price} = get_option_hash($opt->{price_data}) if $opt->{price};
 #::logDebug("tag_accessories: name=$name");
 	}
 	else {
