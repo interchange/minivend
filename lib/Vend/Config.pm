@@ -500,7 +500,7 @@ sub catalog_directives {
 	['DescriptionField', undef,              'description'],
 	['PriceDefault',	 undef,              'price'],
 	['PriceField',		 undef,              'price'],
-	['Cron',		 	 'hash',     	 	 ''],
+	['Jobs',		 	 'hash',     	 	 ''],
 	['Shipping',         'locale',           ''],
 	['Accounting',	 	 'locale',     	 	 ''],
 	['Levies',		 	 'array',     	 	 ''],
