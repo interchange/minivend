@@ -2633,7 +2633,7 @@ my %cond_op = (
 
 sub pull_cond {
 	my($string, $reverse, $cond, $lhs) = @_;
-::logDebug("pull_cond string='$string' rev='$reverse' cond='$cond' lhs='$lhs'");
+#::logDebug("pull_cond string='$string' rev='$reverse' cond='$cond' lhs='$lhs'");
 	my ($op, $rhs) = split /\s+/, $cond;
 	$rhs =~ s/^(["'])(.*)\1$/$2/;
 	if(! defined $cond_op{$op} ) {
