@@ -1073,7 +1073,7 @@ sub new_account {
 		my $pw = $self->{PASSWORD};
 		if($self->{CRYPT}) {
 			eval {
-				$self->{PASSWORD} = crypt(
+				$pw = crypt(
 										$pw,
 										Vend::Util::random_string(2)
 									);
@@ -1097,7 +1097,7 @@ sub new_account {
 		my $pass = $self->{DB}->set_field(
 						$self->{USERNAME},
 						$self->{LOCATION}{PASSWORD},
-						$self->{PASSWORD}
+						$pw,
 						);
 		die "Database access error.\n" unless defined $pass;
 
