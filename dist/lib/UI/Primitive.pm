@@ -647,6 +647,7 @@ my (@days);
 
 for(1 .. 12) {
 	$t[4] = $_ - 1;
+	$t[5] = 1;
 	push @months, [sprintf("%02d", $_), POSIX::strftime("%B", @t)];
 }
 
