@@ -916,8 +916,8 @@ sub tag_data {
 					return HTML::Entities::encode(shift);
 				},
 	'option_format' => sub {
-					my $val = shift;
-					s/[,\s]*[\r\n]+/,\r/g;
+					$_[0] =~ s/[,\s]*[\r\n]+/,\r/g;
+					return $_[0];
 				},
 	);
 
@@ -1569,7 +1569,6 @@ sub tag_accessories {
 		my $ejs = ",1" if $opt->{rows} > 1;
 		$opt->{js} = qq{onChange="addItem(this.form.X$name,this.form.$name$ejs)"}
 			unless $opt->{js};
-warn("building move combo");
 		my $out = build_accessory_select("X$name", $type, '', $opt, @opts);
 		if($opt->{rows} > 1) {
 			$out .= qq|<TEXTAREA ROWS="$opt->{rows}" WRAP=virtual COLS="$opt->{cols}" NAME="$name">$default</TEXTAREA>|;
