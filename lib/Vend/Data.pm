@@ -2143,6 +2143,7 @@ sub update_data {
 							 );
 			}
 			$select_key = $value if $_ eq $prikey;
+			not defined $value and $value = '';
 			push(@v, $value);
 		}
 
