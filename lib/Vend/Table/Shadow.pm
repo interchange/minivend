@@ -201,7 +201,9 @@ sub ref {
 }
 
 sub test_record {
-	1;
+	my ($s, $key) = @_;
+	$s = $s->import_db() unless defined $s->[$OBJ];
+	$s->[$OBJ]->test_record($key);
 }
 
 sub record_exists {
