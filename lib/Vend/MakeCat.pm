@@ -323,8 +323,8 @@ sub can_do_suid {
 
 sub get_id {
 	return 'everybody' if $^O =~ /win32/i;
-    my $file = -f "$::VendRoot/error.log"
-                ? "$::VendRoot/error.log" : '';
+    my $file = -f "$Global::VendRoot/error.log"
+                ? "$Global::VendRoot/error.log" : '';
     return '' unless $file;
     my ($name);
 
