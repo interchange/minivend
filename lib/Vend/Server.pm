@@ -1769,6 +1769,7 @@ my $pretty_vector = unpack('b*', $s_vector);
 				unless $Vend::StatusLine =~ /^Content-Type:/im;
 
 			print MESSAGE canon_status($Vend::StatusLine);
+			print MESSAGE "\r\n";
 			print MESSAGE $result;
 			undef $Vend::StatusLine;
 			$Vend::ResponseMade = 1;
