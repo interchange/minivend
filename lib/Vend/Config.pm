@@ -2805,6 +2805,8 @@ sub parse_database {
 		}
 		elsif ($p eq 'MAP') {
 			my @f = split(/\s+/, $val);
+			my %parms;
+			
 			if (@f < 2) {
 				config_error("At least two parameters needed for MAP.");
 			} elsif (@f > 3) {
@@ -2815,7 +2817,12 @@ sub parse_database {
 			$d->{OrigClass} = $d->{Class};
 			$d->{Class} = 'SHADOW';
 			$d->{type} = 10;
-			$d->{MAP}->{$f[0]}->{$f[1]} = $f[2];
+			if ($f[2] =~ /::/) {
+				($parms{table}, $parms{column}) = split (/::/, $f[2]);
+			} else {
+				$parms{column} = $f[2];
+			}
+			$d->{MAP}->{$f[0]}->{$f[1]} = \%parms;
 		}
 
 		else {

@@ -182,7 +182,6 @@ sub row_hash {
 		for (my $i = 0; $i < @cols; $i++) {
 			$column = $cols[$i];
 			if (exists $s->[$CONFIG]->{MAP}->{$column}->{$locale}) {
-				$column = $s->[$CONFIG]->{MAP}->{$column}->{$locale};
 				$ref->{$cols[$i]} = $s->field($key, $column);
 			}
 		}
@@ -192,12 +191,19 @@ sub row_hash {
 
 sub field {
 	my ($s, $key, $column) = @_;
-	my ($map, $locale);
+	my ($map, $locale, $db);
 	
 	$s = $s->import_db() unless defined $s->[$OBJ];
 	$locale = $::Scratch->{mv_locale} || 'default';
 	if (exists $s->[$CONFIG]->{MAP}->{$column}->{$locale}) {
-		$column = $s->[$CONFIG]->{MAP}->{$column}->{$locale};
+		$map = $s->[$CONFIG]->{MAP}->{$column}->{$locale};
+		if (exists $map->{table}) {
+			$db = Vend::Data::database_exists_ref($map->{table})
+				or die "unknown table $map->{table} in mapping for column $column of $s->[$TABLE] for locale $locale";
+			return $db->field($key, $map->{column});
+		} else {
+			$column = $map->{column};
+		}
 	}
 	$s->[$OBJ]->field($key, $column);
 }
