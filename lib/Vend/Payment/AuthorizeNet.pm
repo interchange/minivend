@@ -351,7 +351,7 @@ sub authorizenet {
 		CREDIT					=>	'CREDIT',
 		PRIOR_AUTH_CAPTURE		=>	'PRIOR_AUTH_CAPTURE',
 		VOID					=>	'VOID',
-		auth		 			=>	'ONLY',
+		auth		 			=>	'AUTH_ONLY',
 		authorize		 		=>	'AUTH_ONLY',
 		mauthcapture 			=>	'AUTH_CAPTURE',
 		mauthonly				=>	'AUTH_ONLY',
