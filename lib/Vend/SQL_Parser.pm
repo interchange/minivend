@@ -816,7 +816,7 @@ sub new {
 		}
 	}
 	elsif($raw =~ /\s/) {
-		$self->{distinct} = 1 if s/^distinct\s+//i;
+		$self->{distinct} = 1 if $raw =~ s/^distinct\s+//i;
 		my $title;
 		$title = $1 if $raw =~ s/\s+as\s+(.*)//;
 		if($title) {
