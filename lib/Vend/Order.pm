@@ -351,7 +351,7 @@ sub chain_checks {
 	$mess = "$checks $err";
 	while($mess =~ s/(\S+=\w+)[\s,]*//) {
 		my $check = $1;
-		($val, $var, $message) = do_check($check, $ref);
+		($val, $var, $message) = do_check($check);
 		return undef if ! defined $var;
 		if($val and $or) {
 			1 while $mess =~ s/(\S+=\w+)[\s,]*//;
