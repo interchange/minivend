@@ -249,7 +249,7 @@ sub write_session {
     undef $Vend::Session->{'user'};
     #undef $Vend::Session->{'arg'};
 	for(@Vend::TmpScratch) {
-::logDebug ("delete TmpScratch=$_");
+#::logDebug ("delete TmpScratch=$_");
 		delete $::Scratch->{$_};
 	}
 	$Vend::Session->{username} = $Vend::username;
