@@ -1146,7 +1146,7 @@ sub url_history {
 my %action = (
     process	=> \&do_process,
     ui=> sub { 
-					&UI::Primitive::mm_acl_global();
+					&UI::Primitive::ui_acl_global();
 					\&do_process(@_);
 				   },
     minimate=> sub { 
