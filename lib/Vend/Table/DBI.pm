@@ -1879,6 +1879,10 @@ sub query {
 	if($@) {
 		if(! $sth or ! defined $rc) {
 			# query failed, probably because no table
+
+			# Allow failed query by design, maybe to use multiple key inserts
+			return undef if $opt->{no_requery};
+
 			# Do nothing but log to debug and fall through to MVSEARCH
 			eval {
 				($spec, $stmt) = Vend::Scan::sql_statement($query, $ref);
