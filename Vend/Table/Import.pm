@@ -1,10 +1,13 @@
 # Table/Import.pm: import a table
 #
-# $Id: Import.pm,v 1.6 1996/05/18 20:02:39 mike Exp mike $
+# $Id: Import.pm,v 1.1 1996/08/09 22:21:11 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
 # $Log: Import.pm,v $
+# Revision 1.1  1996/08/09 22:21:11  mike
+# Initial revision
+#
 # Revision 1.6  1996/05/18 20:02:39  mike
 # Minivend 1.03 Beta 1
 #
@@ -27,7 +30,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::Import;
-$VERSION = substr(q$Revision: 1.6 $, 10);
+$VERSION = substr(q$Revision: 1.1 $, 10);
 
 require Exporter;
 @ISA = qw(Exporter);

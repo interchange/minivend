@@ -1,6 +1,6 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.6 1996/05/25 07:06:03 mike Exp mike $
+# $Id: Server.pm,v 1.3 1996/08/22 17:35:08 mike Exp mike $
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -41,7 +41,7 @@ sub read_entity_body {
 sub respond {
     my ($s, $content_type, $body) = @_;
     my $fh = $s->{fh};
-	if ($Config::Cookies) {
+	if ($Vend::Cfg->{'Cookies'}) {
 		print $fh "Set-Cookie: MV_SESSION_ID=" . $Vend::SessionID . "; path=/\r\n";
     }
     print $fh "Content-type: $content_type\r\n\r\n";
@@ -60,7 +60,7 @@ use Socket;
 use strict;
 use Vend::Util;
 
-my $LINK_FILE = '/tmp/test/etc/socket';
+my $LINK_FILE = "$Global::ConfDir/socket";
 
 sub _read {
     my ($in) = @_;
@@ -141,8 +141,8 @@ sub connection {
     read_cgi_data(\@argv, \%env, \$entity);
 
     my $http = new Vend::Http::Server \*Vend::Server::MESSAGE, \%env, $entity;
-    my $abort = ::dispatch($http,$socket,$debug);
-    $abort;
+    my $forked = ::dispatch($http,$socket,$debug);
+    $forked;
 }
 
 
@@ -175,7 +175,7 @@ sub restore_signals {
 
 sub server {
     my ($socket_filename, $debug) = @_;
-    my ($n, $rin, $rout, $abort);
+    my ($n, $rin, $rout, $forked);
 
     my $AF_UNIX = 1;
     my $SOCK_STREAM = 1;
@@ -183,11 +183,11 @@ sub server {
 
 
     setup_signals();
-    $abort = 0;
+    $forked = 0;
     for (;;) {
-        last if $abort || $Signal_Terminate || $Signal_Debug;
+        last if $Signal_Terminate || $Signal_Debug;
 
-		if($Config::MultiServer) {
+		if($Global::MultiServer) {
 			open(Vend::Server::SOCKET_LOCK,"+>>$socket_filename.lock")
 				or die "Couldn't open $socket_filename.lock: $!";
 			fcntl(Vend::Server::SOCKET_LOCK, F_SETFD, 0)
@@ -199,16 +199,17 @@ sub server {
 		socket(Vend::Server::SOCKET, AF_UNIX, SOCK_STREAM, 0) || die "socket: $!";
 		bind(Vend::Server::SOCKET, pack("S", AF_UNIX) . $socket_filename . chr(0))
 			or die "Could not bind (open as a socket) '$socket_filename':\n$!\n";
-		chmod $Config::FileCreationMask, $socket_filename;
+		#chmod $Global::FileCreationMask, $socket_filename;
+		chmod 0600, $socket_filename;
 		listen(Vend::Server::SOCKET, 5) or die "listen: $!";
 
 		if ($Signal_Locking) {
 			my $sleep = 1;
 			if ($Signal_Locking =~ /short/i) {
-            	::logError("\nUnlock for $sleep seconds on pid $$\n\n");
+            	::logGlobal("\nUnlock for $sleep seconds on pid $$\n\n");
 			}
 			elsif ($Signal_Locking =~ /long/i) {
-            	::logError("\nUnlock for 120 seconds on pid $$\n\n");
+            	::logGlobal("\nUnlock for 120 seconds on pid $$\n\n");
 				$sleep = 120;
 			}
 			$SIG{'USR1'} = $SIG{'USR2'} = 'IGNORE';
@@ -245,7 +246,7 @@ sub server {
 			my $new_socket = get_socketname $socket_filename;
 			rename $socket_filename, $new_socket;
 
-			if($Config::MultiServer) {
+			if($Global::MultiServer) {
 				# unlock the socketlock so a new server can get it
 				unlockfile(\*Vend::Server::SOCKET_LOCK)
 					or die "Couldn't unlock socket lock: $!";;
@@ -254,21 +255,21 @@ sub server {
 			}
 
 			# Pass the socket name so that a child can unlink it
-            $abort = connection($new_socket, $debug);
+            $forked = connection($new_socket, $debug);
             close Vend::Server::SOCKET;
             close Vend::Server::MESSAGE;
 
-			# Here we are using $abort to tell us
+			# Here we are using $forked to tell us
 			# if we have forked. It will have a PID in it
 			# if we did (that won't be 1!). If we really want
 			# to add abort later, then we can make an abort be 1.
 			# If we forked, we don't want to unlink the socket,
 			# the child will do that in minivend.pl
-			if ($abort == 0) {
+			if ($forked == 0) {
 				unlink $new_socket;
 			}
-			elsif ($abort > 1) {
-				$abort = 0;
+			else {
+				$forked = 0;
 			}
         }
 
@@ -281,7 +282,7 @@ sub server {
     restore_signals();
 
    	if ($Signal_Terminate) {
-       	::logError("\nServer terminating on signal TERM\n\n");
+       	::logGlobal("\nServer terminating on signal TERM\n\n");
        	return 'terminate';
    	}
 
@@ -330,11 +331,11 @@ sub open_pid {
 	my $it = 0;
 	if(defined $multi and $multi) {
 		do {
-			$pidfile = $Config::ConfDir . "/minivend.pid" . $it++;
+			$pidfile = $Global::ConfDir . "/minivend.pid" . $it++;
 		} until ! -e $pidfile;
 	}
 	else {
-		$pidfile = $Config::ConfDir . "/minivend.pid";
+		$pidfile = $Global::ConfDir . "/minivend.pid";
 	}
     open(Vend::Server::Pid, "+>>$pidfile")
         or die "Couldn't open '$pidfile': $!\n";
@@ -422,7 +423,7 @@ sub run_server {
                 open(STDERR, ">&Vend::DEBUG");
                 select(STDERR); $| = 1; select(STDOUT);
 
-                ::logError("\nServer running on pid $$\n\n");
+                ::logGlobal("\nServer running on pid $$\n\n");
                 setsid();
 
                 fcntl(Vend::Server::Pid, F_SETFD, 1)

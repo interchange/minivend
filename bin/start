@@ -1,8 +1,8 @@
 #!/usr/bin/perl -w
-# testpages - starts Vend in server mode
-$VendRoot = '/c/t';
-$VEND = '/c/t/minivend.pl';
+# start - starts Vend in server mode
+$VendRoot = '/home/minivend';
 $PERL = '/usr/bin/perl';
+$VEND = "$VendRoot/minivend.pl";
 $PerlFlags = '-w';
 ## END CONFIGURABLE VARIABLES
 
@@ -15,6 +15,59 @@ Starts n minivend servers, where n is a number from 1 to 9.
 EOF
 
 }
+
+sub prompt {
+    my($pr) = shift || '? ';
+    my($def) = shift;
+    my $ans = '';
+
+    print $pr;
+    print "[$def] " if $def;
+	chop($ans = <STDIN>);
+    $ans ? $ans : $def;
+}
+
+sub get_id {
+	my $file = -f "$VendRoot/error.log"
+				? "$VendRoot/error.log" : '';
+	return '' unless $file;
+	my ($name, $group);
+
+	my($uid) = (stat($file))[4];
+	$name = (getpwuid($uid))[0];
+	return $name;
+}
+
+
+if ($< == 0) {
+	$name = get_id() || 'YOUR_MINIVEND_USER_NAME';
+	my $num = $n > 1 ? $n : '';
+    print <<EOM;
+
+The MiniVend server should not be run as root. It should run
+as a the user name you configured in when you set up the catalogs.
+	
+If you are starting the server from /etc/rc.local or another
+startup file, you can use this:
+
+su $name <<EOF
+$VendRoot/bin/start $num
+EOF
+
+EOM
+	if(-t) {
+		exit 2 if $name eq 'YOUR_MINIVEND_USER_NAME';
+		my $ask = prompt("Do you want me to start it as '$name' now? ", 'y');
+		exit 2 unless $ask =~ /^\s*y/i;
+		$Trysu = 1;
+	}
+	else {
+		exit 2 if $name eq 'YOUR_MINIVEND_USER_NAME';
+		$Trysu = 1;
+	}
+
+}
+
 
 CHECK: {
 	last CHECK if $n == 1;
@@ -40,14 +93,18 @@ EOF
 
 $n = int($n);
 
+if (defined $Trysu) {
+	exec <<EndOfExec;
+su $name <<EOF
+$0 $n
+EOF
+EndOfExec
+
+}
+
 for($i = 1; $i <= $n; $i++) {
 
 	system $PERL, $PerlFlags, $VEND, '-serve';
-	if(($? >> 8) == 22) {
-		$| = 1;
-		print "Re-start after import, please wait...";
-		system $PERL, $PerlFlags, $VEND, '-serve';
-	}
 
 }
 

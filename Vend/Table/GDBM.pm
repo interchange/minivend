@@ -1,11 +1,17 @@
 # Table/GDBM.pm: access a table stored in a GDBM file
 #
-# $Id: GDBM.pm,v 1.11 1996/05/18 20:02:39 mike Exp mike $
+# $Id: GDBM.pm,v 1.2 1996/08/22 17:35:08 mike Exp mike $
 #
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
 # $Log: GDBM.pm,v $
+# Revision 1.2  1996/08/22 17:35:08  mike
+# Save solid snapshot of multiple catalog Vend
+#
+# Revision 1.1  1996/08/09 22:21:11  mike
+# Initial revision
+#
 # Revision 1.11  1996/05/18 20:02:39  mike
 # Minivend 1.03 Beta 1
 #
@@ -25,7 +31,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::GDBM;
-$VERSION = substr(q$Revision: 1.11 $, 10);
+$VERSION = substr(q$Revision: 1.2 $, 10);
 use Carp;
 use strict;
 use GDBM_File;
@@ -144,6 +150,17 @@ sub close_table {
 sub columns {
     my ($s) = @_;
     return @{$s->[$COLUMN_NAMES]};
+}
+
+
+sub test_column {
+    my ($s, $column) = @_;
+    my $i = $s->[$COLUMN_INDEX]{$column};
+    unless(defined $i) {
+		carp "There is no column named '$column'\n";
+		return undef;
+	}
+	return $i;
 }
 
 sub column_index {

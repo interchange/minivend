@@ -1,0 +1,4 @@
+mv_contingent = mandatory
+&fatal	=	yes
+mv_shipmode = mandatory
+&set		=	mv_successpage	[value mv_contingent]

@@ -1,0 +1,7 @@
+valid_cc	= yes
+cc_no		= required
+cc_exp_m	= required
+cc_exp_y	= required
+&fatal		= yes
+cc_type		= required
+&set        = mv_successpage ord/final

@@ -1,0 +1,29 @@
+<html> <head>
+<title>Order Processed</title>
+[framebase _top]
+</head>
+<BODY>
+<IMG   WIDTH=69 HEIGHT=45 SRC="/online/graphics/button_y.gif" ALT="Check Mark" ALIGN=CENTER>
+<h1>Thank You!</h1>
+
+Your order has been sent, and
+you will receive an order confirmation via email.<p>
+<P>
+<STRONG>Thank you for ordering from us!</STRONG>
+<P>
+
+[pagetarget help/helpframe _top]Help[/pagetarget]
+<IMG  WIDTH=50 HEIGHT=2 SRC="/online/graphics/bg.gif" ALT=". . . .">
+[if session frames]
+[pagetarget srch/schframe _top]Search[/pagetarget]
+[else]
+[pagetarget srch/fr_comb _top]Search[/pagetarget]
+[/else]
+[/if]
+<IMG  WIDTH=50 HEIGHT=2 SRC="/online/graphics/bg.gif" ALT=". . . .">
+[pagetarget catalog _top]Home[/pagetarget]
+<IMG  WIDTH=50 HEIGHT=2 SRC="/online/graphics/bg.gif" ALT=". . . .">
+[pagetarget special/control _top]Control[/pagetarget]
+<P>
+[[buttonbar 0]]
+</body></html>

@@ -1,6 +1,6 @@
 # Vend/Scan.pm:  Prepare searches for MiniVend
 #
-# $Id: Scan.pm,v 1.1 1996/05/26 17:08:57 mikeh Exp mikeh $
+# $Id: Scan.pm,v 1.3 1996/08/22 17:35:08 mike Exp mike $
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@ require Exporter;
 @ISA = qw(Exporter);
 @EXPORT = qw(perform_search find_search_params);
 
-$VERSION = substr(q$Revision: 1.1 $, 10);
+$VERSION = substr(q$Revision: 1.3 $, 10);
 
 use strict;
 use Vend::Util;
@@ -31,6 +31,7 @@ use Vend::Data qw(product_code_exists column_exists);
 my @Order = ( qw(
 					mv_dict_look
 					mv_searchspec
+					mv_range_look
 					mv_profile
 					mv_base_directory
 					mv_case
@@ -39,6 +40,8 @@ my @Order = ( qw(
 					mv_dict_fold
 					mv_dict_limit
 					mv_dict_order
+					mv_all_chars
+					mv_return_all
 					mv_exact_match
 					mv_head_skip
 					mv_index_delim
@@ -46,6 +49,9 @@ my @Order = ( qw(
 					mv_min_string
 					mv_max_matches
 					mv_orsearch
+					mv_range_min
+					mv_range_max
+					mv_range_alpha
 					mv_record_delim
 					mv_return_delim
 					mv_return_fields
@@ -70,6 +76,8 @@ my %Map = ( qw(
 					mv_dict_limit		dict_limit
 					mv_dict_order		dict_order
 					mv_exact_match		exact_match
+					mv_all_chars		all_chars
+					mv_return_all		return_all
 					mv_head_skip		head_skip
 					mv_index_delim		index_delim
 					mv_matchlimit		match_limit
@@ -77,6 +85,10 @@ my %Map = ( qw(
 					mv_max_matches		max_matches
 					mv_orsearch			or_search
 					mv_profile			mv_profile
+					mv_range_look		range_look
+					mv_range_min		range_min
+					mv_range_max		range_max
+					mv_range_alpha		range_alpha
 					mv_return_spec		mv_return_spec
 					mv_record_delim		record_delim
 					mv_return_delim		return_delim
@@ -92,19 +104,40 @@ my %Map = ( qw(
 ) );
 
 my %Scan = ( qw(
-					dl	mv_dict_look
-					de	mv_dict_end
-					se  mv_searchspec
-					rf  mv_return_fields
-					ml  mv_matchlimit
-					mp  mv_profile
-					sf  mv_search_field
-					sp  mv_search_page
-					cs  mv_case
-					su  mv_substring_match
-					fi  mv_search_file
-					st  mv_searchtype
-					bd	mv_base_directory
+                    ac  mv_all_chars
+                    bd  mv_base_directory
+                    co  mv_coordinate
+                    cs  mv_case
+                    de  mv_dict_end
+                    df  mv_dict_fold
+                    di  mv_dict_limit
+                    dl  mv_dict_look
+                    do  mv_dict_order
+                    dr  mv_record_delim
+                    em  mv_exact_match
+                    er  mv_spelling_errors
+                    fi  mv_search_file
+                    hs  mv_head_skip
+                    id  mv_index_delim
+                    ml  mv_matchlimit
+                    mm  mv_max_matches
+                    mp  mv_profile
+                    ms  mv_min_string
+                    os  mv_orsearch
+                    ra  mv_return_all
+                    rd  mv_return_delim
+                    rf  mv_return_fields
+                    rg  mv_range_alpha
+                    rl  mv_range_look
+                    rm  mv_range_min
+                    rn  mv_return_file_name
+                    rs  mv_return_spec
+                    rx  mv_range_max
+                    se  mv_searchspec
+                    sf  mv_search_field
+                    sp  mv_search_page
+                    st  mv_searchtype
+                    su  mv_substring_match
 
 				) );
 
@@ -121,9 +154,15 @@ my %Parse = (
 	mv_profile          =>	\&parse_profile,
 	or_search           =>  \&_yes,
 	return_fields       =>	\&_array,
+	range_look	        =>	\&_column,
+	range_min	        =>	\&_array,
+	range_max	        =>	\&_array,
+	range_alpha	        =>	\&_array,
 	search_spec       	=>	\&_scalar_or_array,
 	return_fields       =>	\&_array,
 	return_file_name    =>	\&_yes,
+	all_chars		    =>	\&_yes,
+	return_all		    =>	\&_yes,
 	save_context        =>	\&_array,
 	search_field		=>	\&_column,
 	search_file         => 	\&_scalar_or_array,
@@ -139,8 +178,11 @@ sub find_search_params {
 	for(@args) {
 		($var,$val) = split /=/, $_, 2;
 		$val =~ s!::!/!g;
-		$c->{$Scan{$var}} = $val
-			if defined $Scan{$var};
+		if (defined $Scan{$var}) {
+			unless
+			(defined $c->{$Scan{$var}})	{ $c->{$Scan{$var}} =  $val		}
+			else   						{ $c->{$Scan{$var}} .= "\0$val"	}
+		}
 	}
 	1;
 }
@@ -149,8 +191,9 @@ sub parse_profile {
 	my($ref,$profile) = @_;
 	return undef unless defined $profile;
     my($codere) = '[\w-_#/.]+';
-	my($params) = $Config::SearchProfile[$profile];
+	my($params) = $Vend::Cfg->{'SearchProfile'}->[$profile];
 	return undef unless $params;
+    $params =~ s:\[value\s+($codere)\]:tag_value($1):igeo;
 	$params =~ s#\[if\s+([^\]]+)\]([\s\S]*?)\[/if\]#
                   	tag_if($1,$2)#ige;
 	my($var,$val);
@@ -186,7 +229,7 @@ sub perform_search {
 
 	unless (defined $v->{'mv_search_over_msg'}) {
 		$v->{'mv_search_over_msg'} =
-			$Config::SearchOverMsg;
+			$Vend::Cfg->{'SearchOverMsg'};
 	}
 
 	my %options = (
@@ -198,7 +241,7 @@ sub perform_search {
 		$options{'save_hash'} = \%Vend::Cache;
 	}
 	else {
-		$options{'save_dir'} = $Config::ScratchDir;
+		$options{'save_dir'} = $Vend::Cfg->{'ScratchDir'};
 	}
 
 	foreach $param (@Order) {
@@ -214,14 +257,14 @@ sub perform_search {
 
 
  	$options{'search_type'} = 'text'
-		unless ($Config::Glimpse);
+		unless ($Vend::Cfg->{'Glimpse'});
 
 	unless(defined $options{'search_file'}) {
-		if ($Config::Delimiter eq 'CSV') {
+		if ($Vend::Cfg->{'Delimiter'} eq 'CSV') {
 			$options{'index_delim'} = ',';
 		}
-		elsif ($Config::Delimiter ne "\t") {
-			$options{'index_delim'} = $Config::Delimiter;
+		elsif ($Vend::Cfg->{'Delimiter'} ne "\t") {
+			$options{'index_delim'} = $Vend::Cfg->{'Delimiter'};
 		}
 	}
 
@@ -278,10 +321,16 @@ sub perform_search {
 							  || $c->{'mv_dict_look'};
 		$v->{'mv_dict_look'} = $c->{'mv_dict_look'}
 							  || $q->global('dict_look');
+		logData($Vend::Cfg->{'LogFile'},
+			"matched", time, $Vend::SessionID, @specs)
+			if defined $Vend::Cfg->{'CollectData'}->{'matched'};
 	}
-	elsif ($matches == 0) {
+	elsif (defined $matches and $matches == 0) {
 		my $msg = join " ", $q->specs();
-		::display_special_page($Config::Special{'nomatch'}, $msg);
+		logData($Vend::Cfg->{'LogFile'},
+			"nomatch", time, $Vend::SessionID, @specs)
+			if defined $Vend::Cfg->{'CollectData'}->{'nomatch'};
+		::display_special_page($Vend::Cfg->{'Special'}->{'nomatch'}, $msg);
 		return;
 	}
 	else {
@@ -289,7 +338,7 @@ sub perform_search {
 		return;
 	}
 
-	if($Config::Delimiter ne "\t") {
+	if($Vend::Cfg->{'Delimiter'} ne "\t") {
 		for(@out) { s/^"//; s/[",|].*$//; }
 	}
 
@@ -305,8 +354,14 @@ sub _column {
 	my @fields = split /\s*[,\0]\s*/, $_[1];
 	my $col;
 	for(@fields) {
-		($_ = column_exists($_) + 1)
-			unless /^\d+$/;
+		next if /^\d+$/;
+		if (defined ($col = column_exists($_)) ) {
+			$_ = $col + 1;
+		}
+		else {
+			logError("Bad search column $_ in catalog $Vend::Cfg->{Catalog}\n");
+			return undef;
+		}
 	}
 	\@fields;
 }

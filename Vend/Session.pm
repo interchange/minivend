@@ -1,4 +1,4 @@
-# $Id: Session.pm,v 1.2 1996/05/18 20:02:39 mike Exp $
+# $Id: Session.pm,v 1.3 1996/08/22 17:35:08 mike Exp mike $
 
 package Vend::Session;
 require Exporter;
@@ -26,15 +26,15 @@ use Vend::Util;
 
 
 BEGIN {
-	if(defined $GDBM_File::VERSION or $Config::GDBM) {
+	if(defined $GDBM_File::VERSION or $Global::GDBM) {
 		require GDBM_File;
 		import GDBM_File;
 	}
-	elsif(defined $DB_File::VERSION or $Config::DB_File) {
+	elsif(defined $DB_File::VERSION or $Global::DB_File) {
 		require DB_File;
 		import DB_File;
 	}
-	elsif(defined $NDBM_File::VERSION or $Config::NDBM) {
+	elsif(defined $NDBM_File::VERSION or $Global::NDBM) {
 		require NDBM_File;
 		import NDBM_File;
 	}
@@ -72,26 +72,26 @@ sub put_session {
 
 sub open_session {
 
-    open(Vend::SessionLock, "+>>$Config::ConfDir/session.lock")
-		or die "Could not open 'session.lock': $!\n";
+    open(Vend::SessionLock, "+>>$Vend::Cfg->{'SessionLockFile'}")
+		or die "Could not open '$Vend::Cfg->{'SessionLockFile'}': $!\n";
     lockfile(\*Vend::SessionLock, 1, 1)
-		or die "Could not lock 'session.lock': $!\n";
+		or die "Could not lock '$Vend::Cfg->{'SessionLockFile'}': $!\n";
     
     # Selects based on initial config
-	if($Config::GDBM) {
-    	tie(%Vend::SessionDBM, 'GDBM_File', $Config::SessionDatabase . ".gdbm",
-		&GDBM_WRCREAT, $Config::FileCreationMask)
-		or die "Could not tie to $Config::SessionDatabase: $!\n";
+	if($Global::GDBM) {
+    	tie(%Vend::SessionDBM, 'GDBM_File', $Vend::Cfg->{'SessionDatabase'} . ".gdbm",
+		&GDBM_WRCREAT, $Vend::Cfg->{'FileCreationMask'})
+		or die "Could not tie to $Vend::Cfg->{'SessionDatabase'}: $!\n";
 	}
-	elsif($Config::DB_File) {
-    	tie(%Vend::SessionDBM, 'DB_File', $Config::SessionDatabase . ".db",
-		&O_RDWR|&O_CREAT, $Config::FileCreationMask)
-		or die "Could not tie to $Config::SessionDatabase: $!\n";
+	elsif($Global::DB_File) {
+    	tie(%Vend::SessionDBM, 'DB_File', $Vend::Cfg->{'SessionDatabase'} . ".db",
+		&O_RDWR|&O_CREAT, $Vend::Cfg->{'FileCreationMask'})
+		or die "Could not tie to $Vend::Cfg->{'SessionDatabase'}: $!\n";
 	}
-	elsif($Config::NDBM) {
-    	tie(%Vend::SessionDBM, 'NDBM_File', $Config::SessionDatabase,
-		&O_RDWR|&O_CREAT, $Config::FileCreationMask)
-		or die "Could not tie to $Config::SessionDatabase: $!\n";
+	elsif($Global::NDBM) {
+    	tie(%Vend::SessionDBM, 'NDBM_File', $Vend::Cfg->{'SessionDatabase'},
+		&O_RDWR|&O_CREAT, $Vend::Cfg->{'FileCreationMask'})
+		or die "Could not tie to $Vend::Cfg->{'SessionDatabase'}: $!\n";
 	}
 	else {
 		die "No DBM implementation configured!\n";
@@ -117,9 +117,9 @@ sub new_session {
 
 sub close_tracking {
 
-	if ($Config::Tracking && defined %Vend::Tracking) {
+	if ($Vend::Cfg->{'Tracking'} && defined %Vend::Tracking) {
 	   	untie %Vend::Tracking
-			or die "Could not untie $Config::ProductDir/tracking: $!\n";
+			or die "Could not untie $Vend::Cfg->{'ProductDir'}/tracking: $!\n";
 	   	unlockfile(\*Vend::TrackingLock)
 			or die "Could not unlock 'tracking.lock': $!\n";
 	   	close(Vend::TrackingLock)
@@ -131,12 +131,12 @@ sub close_session {
     #pick one
 
     untie %Vend::SessionDBM
-	or die "Could not close $Config::SessionDatabase: $!\n";
+	or die "Could not close $Vend::Cfg->{'SessionDatabase'}: $!\n";
 	
 	unlockfile(\*Vend::SessionLock)
-		or die "Could not unlock 'session.lock': $!\n";
+		or die "Could not unlock '$Vend::Cfg->{'SessionLockFile'}': $!\n";
     close(Vend::SessionLock)
-		or die "Could not close 'session.lock': $!\n";
+		or die "Could not close '$Vend::Cfg->{'SessionLockFile'}': $!\n";
 }
 
 sub write_session {
@@ -149,7 +149,8 @@ sub write_session {
 }
 
 sub unlock_session {
-	$Vend::SessionDBM{'LOCK_' . $Vend::SessionName} = 0;
+	#$Vend::SessionDBM{'LOCK_' . $Vend::SessionName} = 0;
+	delete $Vend::SessionDBM{'LOCK_' . $Vend::SessionName};
 }
 
 sub lock_session {
@@ -162,7 +163,7 @@ sub lock_session {
 		$now = time;
 		if(defined $locktime and $locktime) {
 			$left = $now - $locktime;
-			if ( $left > $Config::HammerLock ) {
+			if ( $left > $Global::HammerLock ) {
 				$Vend::SessionDBM{$lockname} = "$now:$$";
 				logError("Hammered session lock $lockname left by PID $pid.");
 				return 1;
@@ -218,11 +219,15 @@ sub expire_sessions {
     $time = time;
     open_session();
     while(($session_name, $s) = each %Vend::SessionDBM) {
-		next if $session_name =~ /^lock_/i;
+		if ($session_name =~ /^LOCK_/) {;
+			delete $Vend::SessionDBM{$session_name}
+				unless $s;
+			next;
+		}
 		$session = eval($s);
 		die "Could not eval '$s' from session dbm: $@\n" if $@;
 		if ( (! defined $session) ||
-			 $time - $session->{'time'} > $Config::SessionExpire) {
+			 $time - $session->{'time'} > $Vend::Cfg->{'SessionExpire'}) {
 			push @delete, $session_name;
 		}
     }
@@ -232,11 +237,11 @@ sub expire_sessions {
 				if $Vend::SessionDBM{"LOCK_$session_name"};
 		my $file = $session_name;
 		$file =~ s/:.*//;
-		opendir(Vend::DELDIR, $Config::ScratchDir) ||
-			die "Could not open configuration directory $Config::ScratchDir: $!\n";
+		opendir(Vend::DELDIR, $Vend::Cfg->{'ScratchDir'}) ||
+			die "Could not open configuration directory $Vend::Cfg->{'ScratchDir'}: $!\n";
 		my @files = grep /^$file/, readdir(Vend::DELDIR);
 		for(@files) {
-			unlink "$Config::ScratchDir/$_";
+			unlink "$Vend::Cfg->{'ScratchDir'}/$_";
 		}
 		closedir(Vend::DELDIR);
     }
@@ -278,8 +283,8 @@ sub init_session {
     };
     $Vend::Items	= $Vend::Session->{'items'};
     $Vend::Scratch	= $Vend::Session->{'scratch'};
-	$Vend::Session->{'secure'} = $Config::AlwaysSecure ? 1 : 0;
-	$Vend::Session->{'values'}->{'mv_shipmode'} = $Config::DefaultShipping;
+	$Vend::Session->{'secure'} = $Vend::Cfg->{'AlwaysSecure'} ? 1 : 0;
+	$Vend::Session->{'values'}->{'mv_shipmode'} = $Vend::Cfg->{'DefaultShipping'};
 }
 
 
@@ -287,17 +292,18 @@ sub read_password {
 	my($password,$string,$check);
 	my $i = 0;
 
-	if ($Config::Tracking) {
+	if ($Vend::Cfg->{'Tracking'}) {
 		open_tracking();
 		$check = defined $Vend::Tracking{'encrypted_pass'}
 				? $Vend::Tracking{'encrypted_pass'}
 				: 0;
+		close_tracking();
 	}
 	else {
 		$check = 0;
 	}
 
-	if($Config::CreditCards) {
+	if($Vend::Cfg->{'CreditCards'}) {
 		while($i < 3) {
 			if (-t) {
 				system 'stty', '-echo';
@@ -317,9 +323,9 @@ sub read_password {
 			$i++;
 			if($check) {
 				if( crypt($password,$check) eq $check) {
-					$Config::Password = $password;
+					$Vend::Cfg->{'Password'} = $password;
 					$check =~ s/^(........).*/$1/;
-					$Config::Pw_Ivec = $check;
+					$Vend::Cfg->{'Pw_Ivec'} = $check;
 					return;
 				}
 				else {
@@ -328,23 +334,23 @@ sub read_password {
 				}
 			}
 			elsif($string eq $password) {
-				$Config::Password = $password;
-				if($Config::Tracking) {
+				$Vend::Cfg->{'Password'} = $password;
+				if($Vend::Cfg->{'Tracking'}) {
 					open_tracking();
 					$check = crypt($password,random_string());
 					$Vend::Tracking{'encrypted_pass'} = $check;
 					$check =~ s/^(........).*/$1/;
-					$Config::Pw_Ivec = $check;
+					$Vend::Cfg->{'Pw_Ivec'} = $check;
 					close_tracking();
 				}
 				else {
-					$Config::Pw_Ivec = 'mINIvEND';
+					$Vend::Cfg->{'Pw_Ivec'} = 'mINIvEND';
 				}
 				return;
 			}
 			else {
 				undef $password;
-				undef $Config::Password;
+				undef $Vend::Cfg->{'Password'};
 				print "\n\nThey don't match!\n\n" if -t;
 				next;
 			}
@@ -352,38 +358,38 @@ sub read_password {
 	}
 
 	# If we made it here, we failed to get a password
-	$Config::Password = '';
-	$Config::EncryptProgram = '';
-	$Config::CreditCards = 0;
+	$Vend::Cfg->{'Password'} = '';
+	$Vend::Cfg->{'EncryptProgram'} = '';
+	$Vend::Cfg->{'CreditCards'} = 0;
 }
 
 sub open_tracking {
 	
 	my($page, $desc, $price);
 
-    open(Vend::TrackingLock, "+>>$Config::ConfDir/tracking.lock")
-    	or die "Could not open '$Config::ConfDir/tracking.lock': $!\n";
+    open(Vend::TrackingLock, "+>>$Vend::Cfg->{'ConfDir'}/tracking.lock")
+    	or die "Could not open '$Vend::Cfg->{'ConfDir'}/tracking.lock': $!\n";
     lockfile(\*Vend::TrackingLock, 0, 1)
-    	or die "Could not lock '$Config::ConfDir/tracking.lock': $!\n";
+    	or die "Could not lock '$Vend::Cfg->{'ConfDir'}/tracking.lock': $!\n";
 
-    if($Config::GDBM) {
+    if($Global::GDBM) {
  		tie(%Vend::Tracking, 'GDBM_File',
-				"$Config::ProductDir/tracking.gdbm",
-				&GDBM_WRCREAT, $Config::FileCreationMask)
-    		or die "Could not tie to $Config::ProductDir/tracking.gdbm: $!\n";
+				"$Vend::Cfg->{'ProductDir'}/tracking.gdbm",
+				&GDBM_WRCREAT, $Vend::Cfg->{'FileCreationMask'})
+    		or die "Could not tie to $Vend::Cfg->{'ProductDir'}/tracking.gdbm: $!\n";
 
 	}
-	elsif ($Config::DB_File) {
+	elsif ($Global::DB_File) {
 		tie(%Vend::Tracking, 'DB_File',
-				"$Config::ProductDir/tracking.db",
-				&O_RDWR|&O_CREAT, $Config::FileCreationMask)
-			or die "Could not tie to $Config::ProductDir/tracking: $!\n";
+				"$Vend::Cfg->{'ProductDir'}/tracking.db",
+				&O_RDWR|&O_CREAT, $Vend::Cfg->{'FileCreationMask'})
+			or die "Could not tie to $Vend::Cfg->{'ProductDir'}/tracking: $!\n";
 	}
-	elsif ($Config::NDBM) {
+	elsif ($Global::NDBM) {
 		tie(%Vend::Tracking, 'NDBM_File',
-				"$Config::ProductDir/tracking",
-				&O_RDWR|&O_CREAT, $Config::FileCreationMask)
-			or die "Could not tie to $Config::ProductDir/tracking: $!\n";
+				"$Vend::Cfg->{'ProductDir'}/tracking",
+				&O_RDWR|&O_CREAT, $Vend::Cfg->{'FileCreationMask'})
+			or die "Could not tie to $Vend::Cfg->{'ProductDir'}/tracking: $!\n";
 	}
 	else {
 		die "No DBM configuration defined!\n";

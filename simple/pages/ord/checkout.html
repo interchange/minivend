@@ -1,0 +1,135 @@
+<HTML>
+<HEAD>
+<TITLE>Enter your name and address</TITLE>
+</HEAD>
+
+[body 1]
+<CENTER>
+
+<FORM ACTION="[process-target _self]" METHOD="POST">
+<input type="hidden" name="mv_doit" value="refresh">
+<input type="hidden" name="mv_orderpage" value="ord/checkout">
+<input type="hidden" name="mv_successpage" value="ord/shipping">
+<input type="hidden" name="mv_nextpage" value="catalog">
+<input type="hidden" name="mv_order_profile" value="1">
+[item_list]
+<input type="hidden" name="[quantity-name]" value="[item-quantity]">
+[/item_list]
+<H2>Please enter your name and address</H2>
+
+<P>
+<H5>[pagetarget help/security _top]
+	<I>How do I know it is secure?</I></H5>
+		[/pagetarget]
+
+<TABLE>
+<TR>
+	<TD>
+		<IMG   WIDTH=14 HEIGHT=14 SRC="redball.gif">
+		Name
+	</TD>
+	<TD COLSPAN=3 ALIGN=LEFT>
+		<input type="text" name="name" value="[value name]" size=40>
+	</TD>
+</TR>
+<TR>
+	<TD>
+		<IMG   WIDTH=14 HEIGHT=14 SRC="bg.gif">
+		Company Name
+	</TD>
+	<TD COLSPAN=3 ALIGN=LEFT>
+	<input type="text" name="company" value="[value company]" size=40>
+	</TD>
+</TR>
+<TR>
+	<TD>
+		<IMG   WIDTH=14 HEIGHT=14 SRC="redball.gif">
+		Billing address
+	</TD>
+	<TD COLSPAN=3 ALIGN=LEFT>
+		<input type="text" name="address" value="[value address]" size=40>
+	</TD>
+</TR>
+<TR>
+	<TD>
+		<IMG   WIDTH=14 HEIGHT=14 SRC="redball.gif">
+		City
+	</TD>
+	<TD>
+		<input type="text" name="city"
+			value="[value city]"
+			size=10>
+	</TD>
+	<TD>
+		<IMG   WIDTH=14 HEIGHT=14 SRC="redball.gif">
+		State/Province
+	</TD>
+	<TD>
+		<input type="text" name="state"
+			value="[value state]"
+			size=10>
+	</TD>
+</TR>
+<TR>
+	<TD>
+		<IMG   WIDTH=14 HEIGHT=14 SRC="redball.gif">
+		Zip/Postal Code
+	</TD>
+	<TD COLSPAN=3 ALIGN=LEFT>
+		<input type="text" name="zip" value="[value zip]" size=10>
+	</TD>
+</TR>
+<TR>
+	<TD>
+		<IMG   WIDTH=14 HEIGHT=14 SRC="bg.gif">
+		Country
+	</TD>
+	<TD>
+	
+			[if values country]
+				<input type="text" name="country" value="[value country]" size=20>
+			[else][help country_select][/else]
+			[/if]
+	</TD>
+	<TD>
+		<IMG   WIDTH=14 HEIGHT=14 SRC="redball.gif">
+		Daytime Phone
+	</TD>
+	<TD>
+		<input type="text" name="phone_day" value="[value phone_day]" size=16>
+	</TD>
+</TR>
+<TR>
+	<TD>
+		<IMG   WIDTH=14 HEIGHT=14 SRC="redball.gif">
+		Email Address
+	</TD>
+	<TD>
+		<input type="text" name="email" value="[value email]" size=20>
+	</TD>
+	<TD>
+		<IMG   WIDTH=14 HEIGHT=14 SRC="bg.gif">
+		Evening Phone
+	</TD>
+	<TD>
+		<input type="text" name="phone_night" value="[value phone_night]" size=16>
+	</TD>
+</TR>
+</TABLE>
+
+<IMG   WIDTH=14 HEIGHT=14 SRC="redball.gif">
+	<I> We need this to process your order</I>
+<P>
+
+
+<CENTER>
+<input type="image" name="mv_todo.submit"
+	BORDER=0 SRC="next.gif">
+<P>
+[[buttonbar 0]]
+
+</FORM>
+
+<P ALIGN=CENTER>
+
+</body> </html>

@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/local/bin/perl
 #
 # configure.pl - Configure the MiniVend program
 #
@@ -26,27 +26,6 @@
 # Set STDOUT to autoflush
 $| = 1;
 
-if ($< == 0) {
-	die <<EOF ;
-
-Sorry.
-
-MiniVend should not be installed as root.  It should not be
-run as root.  Nothing really _need_ be done as root, except
-possibly copy the executables and HTML pages to appropriate
-directories.
-
-If you need root access later in the configuration, you will
-be given an opportunity to 'su' and do so.
-
-Please make all the files owned by another user, and re-run
-the configuration as that user.  You might define one called
-"minivend" if you like.
-
-EOF
-
-}
-
 $Rerun = 0;
 
 my $param;
@@ -66,6 +45,9 @@ PARAM: {
 		warn "****  Setting DEBUG to on   ****\n";
 		$DEBUG = 1;
 	}
+	elsif  ($param eq '--' or $param eq '') {
+		# Do nothing
+	}
 	else {
 		warn "Unrecognized parameter $param, ignoring.\a\n"
 			if $param;
@@ -77,13 +59,9 @@ PARAM: {
 	
 ############### Configurable Variables ######################
 #
-# Where the initial configuration is stored
-$CONFIGFILE   =   'etc/mvconf.cfg';
 
-%Initial = (
-				HelpFile  =>	'etc/mvconf.cmt'
-			);
 chop($Initial{'VendRoot'} = `pwd`);
+$Initial{'HelpFile'} = 'etc/mvconf.cmt';
 
 #
 ############## END CONFIGURABLE VARIABLES ###################
@@ -95,6 +73,17 @@ sub is_yes {
 sub is_no {
 	return( !defined($_[0]) || ($_[0] =~ /^[nf0]/i));
 }
+
+sub do_msg {
+	my ($msg, $size) = @_;
+	$size = 60 unless defined $size;
+	my $len = length $msg;
+	
+	return "$msg.." if ($len + 2) >= $size;
+	$msg .= '.' x ($size - $len);
+	return $msg;
+}
+	
 
 sub cp {
     my ($srcFile, $dstFile) = @_;
@@ -228,13 +217,89 @@ sub adjustvars {
 
 }
 
+my %ModuleMessage = (
+	
+	File::Basename => sub {
+							die <<EOF;
+
+You don't have the File::Basename module, why not?  It is included
+with every Perl 5 distribution. You should contact your system
+administrator and ask them to install Perl properly. It is
+included with MiniVend, so it may not be fatal.  But don't e 
+surprised if you can't start the server.
+
+This is a strong warning.
+
+EOF
+					},
+	Text::ParseWords => sub {
+							die <<EOF;
+
+You don't have the Text::ParseWords module, why not?  It is included
+with every Perl 5 distribution. You should contact your system
+administrator and ask them to install Perl properly.
+
+This is fatal.
+
+EOF
+					},
+	Search::Dict => sub {
+							print <<EOF;
+
+You don't have the Search::Dict module, why not?  It is included
+with every Perl 5 distribution. You should contact your system
+administrator and ask them to install Perl properly.
+
+It won't cause a problem except you cannot use the dictionary-ordered
+fast binary search. MiniVend will crash if you do.  An outside person
+could even crash it if they knew the right URL to submit.
+
+EOF
+					},
+	File::CounterFile => sub {
+							print <<EOF;
+
+You don't have the File::CounterFile module for some reason. It may
+be because you are installing with Perl 5.001, naughty you! You 
+might want to upgrade.
+
+It won't cause a problem except you cannot use the OrderNumber
+directive.  Please comment it out of any catalog.cfg file.
+
+EOF
+					},
+	File::Lock => sub {
+						if ($Config{'osname'} eq 'solaris') {
+							die <<EOF;
+You are running Solaris 2, and you don't have the File::Lock module
+installed.  This is a show-stopper -- Solaris doesn't support flock(),
+and you need this module. The good news is that it is available at
+any CPAN site, and you can download it from http://www.perl.com at
+any time.
+
+See you when you get it.
+
+EOF
+						}
+					},
+	Des			=> sub {
+							print "You have no Des.pm module, no biggie.\n"
+					},
+	generic     => sub {
+							print <<EOF;
+You don't have the $_[0] module, this is normally not fatal.
+EOF
+					},
+			
+          );
+
 sub adjustmodules {
 	my ($file,@modules) = @_;
 	my($mod);
 	my $bak = 'mytemp.fil';
 	return undef unless $file and @modules;
 
-	my $check;
+	my $check = '';
 	my $changed = 0;
 
 	rename $file, $bak;
@@ -257,11 +322,13 @@ sub adjustmodules {
 				print "Found reference to module $mod in $file\n" if $DEBUG;
 				if (!$found or $@) {
 					$changed++ if $line =~ s/^(\s*)use/$1#use/;
-					warn "\nCouldn't use $mod module, darn! " .
-						($found ? 'It was found but: ' : 'It was not found: ') . 
-						"\n$@\n";
-					warn join "\n", '@INC was:', @INC, "";
-					warn "\nThis is not normally fatal. Don't worry.\n";
+					warn &{$ModuleMessage{$mod}}()
+							if defined $ModuleMessage{$mod};
+					warn &{$ModuleMessage{'generic'}}($mod)
+							if ! defined $ModuleMessage{$mod};
+					warn $found ? 'It was found but: ' : 'It was not found: ' . 
+						"\n$@\n" if $DEBUG;
+					warn join "\n", '@INC was:', @INC, "" if $DEBUG; 
 				}
 				else {
 					$changed++ if $line =~ s/^(\s*)#(\s*)(use\s+)/$1$2$3/;
@@ -507,26 +574,42 @@ sub copyfiles {
 			$target = "$targdir/$file";
 		}
 		if ($Type{$file} =~ /dir$/) {
-			next if -d $target;
-			mkdir $target, $Perms{$file}
-				|| die "Couldn't make directory $target: $!\n";
+			unless (-d $target) {
+				mkdir $target, $Perms{$file}
+					or die "Couldn't make directory $target: $!\n";
+			}
+			if($Type{$file} =~ /odir/) {
+				system "(cd $file; tar -cf - *) | (cd $target; tar -xf -)";
+			}
 		}
 		else {
-			if(-f $target && !-w _) {
-				next unless
-					is_yes(prompt "Overwrite read-only file $target? ", 'no');
-				chmod 0644, $target;
+			if(-f $target ) {
+				if (defined $Funcs{$file} and $Funcs{$file} =~ /\bbackup\b/) {
+					my $n = 0;
+					my $backup;
+					$backup = "$target~";
+					while (-f $backup) {
+						$backup .= '~';
+						$n++;
+						die "Too many backups of $target."
+							if $n > 9;
+					}
+					warn "Saving old $target to $backup.\n";
+					cp($target, $backup) or
+						die "Couldn't copy $target to $backup: $!\n";
+				}
+				elsif ( !-w _ ) {
+					next unless
+						is_yes(prompt "Overwrite read-only file $target? ", 'no');
+					chmod 0644, $target;
+				}
 			}
-			unless(defined $Funcs{$file} and $Funcs{$file} =~ /text:(.*)/) {
-				cp($source,$target) ||
-					die "Couldn't copy $source to $target: $!\n";
-			}
-			else {
-				my $text = $1;
-				my @text = split /:/, $text;
-				adjusttext($source,$target,@text) ||
-					die "Couldn't copy $source to $target (adjusted): $!\n";
-			}
+			cp($source,$target) or
+				die "Couldn't copy $source to $target: $!\n";
+		}
+		if (defined $Funcs{$file} and $Funcs{$file} =~ /\bchown\b/) {
+			chown ($UserID, $GroupID, $target)
+				if defined $UserID;
 		}
 		chmod $Perms{$file}, $target ||
 			die "Couldn't change mode of $target to $Perms{$file}: $!\n";
@@ -580,13 +663,11 @@ sub get_detailed_param {
 		print "\n\n", $Help{$param};
 	}
 
-	print "Default: $Default{$param}\n";
 	unless (defined $Initial{$param}) {
 		$Initial{$param} = ($Default{$param} =~ /BLANK_DEFAULT|UNDEFINED/)
 							? ''
 							: $Default{$param};
 	}
-	print "Current: $Initial{$param}\n\n";
 
 	$result = prompt("$param? ", $Initial{$param});
 }
@@ -608,8 +689,15 @@ else {
 	die "Ooops! No helpfile. Can't continue.\n";
 }
 
-# Initialize for an upgrade or rerun;
-initconfig($CONFIGFILE);
+require 5.002 || die <<EOF;
+
+Sorry, MiniVend requires at least Perl 5.002 to be assured of running
+properly. (If you know enough about UNIX and Perl to defeat this check,
+then you _might_ know enough to get it running with 5.001m).
+
+Please upgrade your Perl before installing MiniVend 2.0.
+
+EOF
 
 if (open(MANIFEST, 'manifest')) {
 	while(<MANIFEST>) {
@@ -678,8 +766,10 @@ COPYFILES: {
 	my($ans);
 	last COPYFILES if $Nomove || $Rerun;
 	if ($Fullpackage && $Samedir) {
-		print "\nIt looks like you are installing in the current directory\n";
-		print "and have a full package.  Good.\n";
+		print <<EOF;
+It looks like you are installing in the current directory
+and have a full package.  Good.
+EOF
 		last COPYFILES;
 	}
 	elsif ($Samedir) {
@@ -706,7 +796,7 @@ COPYFILES: {
 		$ans = prompt "Want to copy the sample files? ", 'yes';
 		if(is_yes($ans)) {
 			$SamplesPresent = 1;
-			push(@types, qw(odir simphtml simppage samphtml samppage image));
+			push(@types, qw(odir demo html image));
 		}
 		else {
 			undef $SamplesPresent;
@@ -735,9 +825,10 @@ COPYFILES: {
 		}
 	}
 	@Errors = ();
-
 	print "Copying files to $Initial{$param}...";
+	$::InitialCopy = 1;
 	copyfiles('.', $Initial{$param}, @types);
+	$::InitialCopy = 0;
 
 	for (@Errors) { print "$_\n" }
 	@Errors = ();
@@ -751,8 +842,67 @@ print "\nEntering $Initial{'VendRoot'}.\n"
 chdir $Initial{'VendRoot'}
 	|| die "Couldn't change directory to $Initial{'VendRoot'}: $!\n";
 
-use Config;
+	@Keyfiles = (
+					"$Initial{VendRoot}",
+					"$Initial{VendRoot}/error.log",
+					"$Initial{VendRoot}/etc",
+				);
+	# Change ownership of key files if we are root.
+if($< == 0) {
+	print <<EOF;
 
+The root user cannot run the MiniVend server for security reasons.
+
+Since you are the superuser, you must change the ownership of the
+MiniVend directory to that of the user ID that will run MiniVend.
+You may also if you wish set the group -- it will default to the
+default group of the user.
+
+EOF
+	for(;;) {
+			$UserName = prompt("User who will run MiniVend? ", '');
+			($UserID,$GroupID) = (getpwnam($UserName))[2,3];
+			last if defined $UserID;
+			print "Error -- that is not a valid user name on this machine.\n\n";
+		}
+		$GroupName = (getgrgid($GroupID))[0];
+		for(;;) {
+			$GroupName = prompt("Group to own MiniVend? ", $GroupName);
+			$GroupID = (getgrnam($GroupName))[2];
+			last if defined $GroupID;
+			print "Error -- that is not a valid group name on this machine.\n\n";
+		}
+		for(@Keyfiles) {
+			chown ($UserID, $GroupID, $_)
+				or die "Couldn't change ownership of $Initial{VendRoot}: $!\n";
+		}
+		print "\n";
+	}
+else {
+	print <<EOF;
+
+-------------------------------------------------------------------
+FYI, if you are installing this software as another user name than
+the one which will ultimately run MiniVend, you will need to change
+ownership of two directories to that user name before it will
+work properly.  That includes the main MiniVend directory 
+$Initial{VendRoot}, and the configuration directory
+$Initial{VendRoot}/etc.  The command to accomplish that
+(as root) is:
+
+EOF
+    for(@Keyfiles) { print "chown <username> $_\n"; }
+
+	print <<EOF;
+	
+Substitute the proper user name for <username>.
+-------------------------------------------------------------------
+
+EOF
+}
+
+
+use Config;
 
 if ($PERL) {
 	$Initial{'PERL'} = $PERL;
@@ -775,28 +925,25 @@ HOSTNAME: {
 	}
 }
 
-LOCKING: {
-	$Initial{'BadLocking'} = 0;
-	last LOCKING unless
-		$Config{'osname'} =~ /(irix|solaris)/;
+LOCK_GCC: {
+	last LOCK_GCC unless
+		$Config{'osname'} =~ /solaris/i;
 	$GCCFLAG = ' -lsocket -DSVR4';
-	last LOCKING if $Config{'osname'} =~ /sunos\b.*4\S/;
-	$Initial{'BadLocking'} = 1;
 	print <<EOF;
 
 Your operating system ($Config{'osname'}) doesn't fully support
-flock(), no MultiServer mode or forked searches are possible.
-This might work on Solaris 2 if you have the File::Lock module,
-and on IRIX if you install patch 596.  If you have either of these,
-set the BadLocking variable to 0 in the minivend.pl program.
+flock(), so you will need the File::Lock module in order for
+MiniVend to operate.  It can be obtained from http://www.perl.com
+in the CPAN area.  Expect a ***fatal*** error if you don't have it.
 
 EOF
 
-} # last LOCKING
+} # last LOCK_GCC
 
-my @params = qw(PERL HostName RunType);
+my @params = qw(PERL);
 
 for(@params) {
+	$ = 0;
 	$save = $Initial{$_};
 	$Done{$_} = 1;
 	next if $Rerun;
@@ -805,6 +952,7 @@ for(@params) {
 			eq $save) {
 		$Changed{$_} = 1;
 	}
+	$ = 1;
 }
 
 CHECKPERL: {
@@ -818,7 +966,6 @@ CHECKPERL: {
 	it will just take a moment...
 
 EOP
-		writeconfig($CONFIGFILE, qw(PERL BadLocking HostName RunType VendRoot));
 		exec $PERL, $0, $PERL, '-rerun', $DEBUG ? '-D' : '';
 	}
 }
@@ -828,26 +975,12 @@ NEWPERL: {
 		unless defined $Initial{'ConfDir'};
 	$Initial{'VEND'} = $Initial{'VendRoot'} . '/' . 'minivend.pl'
 		unless defined $Initial{'VEND'};
-	$Initial{'MAT'} = $Initial{'VendRoot'} . '/' . 'bin/mat'
-		unless defined $Initial{'MAT'};
-	$Initial{'CGIUSER'} = finduid('http','nobody','httpd','www')
-		unless defined $Initial{'CGIUSER'};
-	if ($Initial{'RunType'} =~ /^st/i) {
-		$vendprog = 'svend';
-	}
-	else {
-		$Initial{'RunType'} = 'server';
-		$vendprog = 'vlink';
-	}
 }
 
 # Ugly dependency for 5.001
 FILE_COUNTER: {
 	eval {require 5.002};
 	if($@) {
-		print "\nSorry, can't configure in the order counter,\n" .
-				"you don't have Perl 5.002. Ignore the permission message\n" .
-				"for File/CounterFile.pm.\n\n";
 		system 'mv', 'File/CounterFile.pm',
 			'File/CounterFile.no.you.dont.have.5.002.pm';
 	}
@@ -855,15 +988,8 @@ FILE_COUNTER: {
 
 $Initial{'LINK_FILE'} = $Initial{'VendRoot'} . '/' . 'etc/socket'
 	unless defined $Initial{'LINK_FILE'};
-$Initial{'VendURL'} = "http://$Initial{'HostName'}/cgi-bin/$vendprog"
-	unless defined $Initial{'VendURL'};
-$Initial{'SecureURL'} = "https://$Initial{'HostName'}/cgi-bin/$vendprog"
-	unless defined $Initial{'SecureURL'};
-$Initial{'MailOrderTo'} = $ENV{'LOGNAME'} . '@' . $Initial{'HostName'}
-	unless defined $Initial{'MailOrderTo'};
 
-@params = qw( CGIUSER HtmlDir CgiBin
-				ProtBin VendURL SecureURL MailOrderTo NET_START);
+@params = ();
 
 unless (-x '/usr/lib/sendmail') {
 	$Initial{SendMailLocation} = findexe('sendmail');
@@ -871,86 +997,27 @@ unless (-x '/usr/lib/sendmail') {
 }
 
 for(@params) {
+	$ = 0;
 	$save = $Initial{$_};
 	unless (
 		($Initial{$_} = get_detailed_param($_))
 			eq $save) {
 		$Changed{$_} = 1;
 	}
+	$ = 1;
 	$Done{$_} = 1;
 }
 
-$prompt = <<EOF ;
-
-There are a lot more parameters you might not be interested
-in.  They mostly are for setting running systems, and
-can be changed by MAT.
-
-EOF
-$ans = prompt $prompt . "Set them? ", 'no';
-if (is_yes($ans)) {
-	for (sort keys %Default) {
-		next if $Done{$_};
-		$save = $Initial{$_};
-		unless (
-			($Initial{$_} = get_detailed_param($_))
-				eq $save) {
-			$Changed{$_} = 1;
-		}
-		$Done{$_} = 1;
-	}
-}
-else {
-	for (sort keys %Default) {
-		next if $Done{$_};
-		$Done{$_} = 1;
-		unless ($Initial{$_}) {
-			$Initial{$_} = $Default{$_};
-		}
-		else {
-			$Changed{$_} = 1;
-		}
-	}
-}
-
-WRITECONFIG: {
-
-	if(defined (keys %Changed)) {
-		print "\nWriting the configuration file for this program...";
-		writeconfig($CONFIGFILE, keys %Default);
-		print "done.\n";
-		$param = 'ConfigFile';
-
-		if (-f $Initial{$param}) {
-			$prompt = <<EOP ;
-
-You already had a $Initial{$param} file.  Writing will overwrite
-that configuration.
-
-But wait -- maybe this is an upgrade.
-
-EOP
-			$Upgrade = 0;
-			$ans = prompt $prompt . "Is it? ", 'yes';
-			($Upgrade = 1,last WRITECONFIG) if is_yes($ans);
-			print "OK, I thought it might be.\n\n";
-			$prompt = <<EOP ;
-
-You already had a $Initial{$param} file.  Writing will overwrite
-that configuration.
-
-EOP
-			$ans = prompt $prompt . "Write this configuration? ", 'yes';
-			last WRITECONFIG if is_no($ans);
-		}
-		my %settings = getvendsettings('etc/minivend.def');
-		writeconfig($Initial{$param}, keys %settings);
+for (sort keys %Default) {
+	next if $Done{$_};
+	$Done{$_} = 1;
+	unless ($Initial{$_}) {
+		$Initial{$_} = $Default{$_};
 	}
 	else {
-		print "You didn't change anything, no need to write configuration.";
+		$Changed{$_} = 1;
 	}
-} # end WRITECONFIG
-
+}
 
 ADJUST: {
 
@@ -1009,9 +1076,9 @@ print "done.\n";
 } # end ADJUST
 
 $default = $Upgrade ? 'no' : 'yes';
-print "\nYou only need to re-make vlink and mat if you have changed directories.\n\n"
+print "\nYou only need to re-make vlink if you have changed directories.\n\n"
 	if $Upgrade;
-$ans = prompt "\nMake the dispatch programs vlink, svend, and mat? ", $default;
+$ans = prompt "\nMake the dispatch program vlink? ", $default;
 if (is_yes($ans)) {
 	my $CC = findexe('cc') || findexe('gcc');
 	warn "No C compiler found, this phase will not be successful, I bet...\n"
@@ -1034,396 +1101,33 @@ if (is_yes($ans)) {
 	else {
 		warn "\nConfiguration of vlink.c FAILED.\n";
 	}
-	$? = 1;
-      print "Compiling with $CC -o svend svend.c'\n"
-                      if $DEBUG;
-	system "$CC -o svend svend.c";
-	if($?) {
-		warn "\nCompiliation of svend.c FAILED.\n";
-	}
-	$? = 1;
-      print "Compiling with $CC -o mat mat.c'\n"
-                      if $DEBUG;
-	system "$CC -o mat mat.c";
-	if($?) {
-		warn "\nCompiliation of mat.c FAILED.\n";
-	}
 	print "done.\n";
 	chdir '..' || die "Couldn't change back to $Initial{'VendRoot'}: $!\n";
 }
 
-sub newer {
-	my $compfile = shift;
-	my $basefile = shift;
-	return undef unless -f $basefile && -f $compfile;
-	my($btime,$ctime);
-	
-	$btime = (stat($basefile))[9];
-	$ctime = (stat($compfile))[9];
+print <<EOF;
 
-	($ctime > $btime) ? 1 : 0;
-}
-	
+That takes care of the program configuration.
 
-
-
-INSTALLPROGS: {
-
-	$MatMade = (-x 'src/mat' && newer('src/mat', 'src/mat.c'));
-	$VlinkMade = (-x 'src/vlink' && newer('src/vlink', 'src/vlink.c'));
-	$SvendMade = (-x 'src/svend' && newer('src/svend', 'src/svend.c'));
-
-CHECKPERMS: {
-	last CHECKPERMS if $Upgrade;
-	last CHECKPERMS if $< == 0;
-	print <<EOP ;
-
-You must have write permission on some directories
-for all of the following steps to work.  I will check.
-
-EOP
-	my(@params) = qw(CgiBin ProtBin HtmlDir);
-	foreach $param (@params) {
-		print "$Initial{$param}: ";
-		if (-d $Initial{$param}) {
-			print "exists";
-		}
-		else {
-			print "does not exist, skipping.\n";
-			next;
-		}
-		if(-w $Initial{$param}) {
-			print " and you have write permission.\n";
-			$Copydirs{$param} = 1;
-		}
-		else {
-			print " but is not writeable, skipping.\n";
-			next;
-		}
-	}
-
-	if (scalar(@params) == scalar(keys %Copydirs)) {
-		$CanWrite = 1;
-	}
-
-} # END CHECKPERMS
-
-MAKESU: {
-
-	last MAKESU if $Upgrade;
-	last MAKESU if $< == 0;
-	if ($CanWrite && can_do_suid) {
-		print "\nGoody, you can do everything! No need to be superuser.";
-		last MAKESU;
-	}
-	elsif (can_do_suid) {
-
-	$prompt = <<EOP ;
-
-You are missing some write permissions. If you don't become superuser,
-you won't be able to copy files to the directories you don't have write
-permission to.
-
-EOP
-	}
-	elsif ($CanWrite) {
-	$prompt = <<EOP;
-
-You won't be able to make the dispatch programs SUID unless you become
-superuser.
-
-EOP
-	}
-	else {
-	$prompt = <<EOP ;
-
-The next steps will be possible only if you are the
-superuser.  If you don't become superuser, you won't be able to:
-
-    1. Copy files to the directories you don't have write permission to.
-    2. Make the dispatch programs SUID.
-
-EOP
-	}
-
-	$default = $Upgrade ? 'no' : 'yes';
-	$ans = prompt $prompt . "Become superuser? ", $default;
-
-	if(is_yes($ans)) {
-		! defined $SamplesPresent and $SamplesPresent = '';
-		system "su -c '$Initial{'PERL'} $0 -install $SamplesPresent'";
-		unless ($?) {
-			exit;
-		}
-		else {
-			print "\nAlas, something went awry. We will try and muddle along.\n";
-		}
-	}
-	else {
-		print <<EOP unless $Upgrade;
-OK, you can pick this up later by doing this as superuser:
-
-	perl $Initial{'VendRoot'}/configure.pl -install
-
-EOP
-	}
-
-} # MAKESU
-
-SAMPLE: {
-	$param = 'HtmlDir';
-	last SAMPLE unless $SamplesPresent;
-	last SAMPLE if $Upgrade;
-	unless($< == 0 or defined $Copydirs{$param} && $Copydirs{$param}) {
-		print "\nCan't copy samples, directory not writeable.\n";
-		last SAMPLE;
-	}
-	$prompt = <<EOP ;
-
-
-We can install a demonstration MiniVend system in your HTML
-directory if you wish. It will be copied to the  following
-directory:
-
-    $Initial{$param}/sample
-
-Any custom parameters you entered will be saved in
-the file "mv_cfg.bak".
-
-EOP
-	$prompt .= "You defined static mode, it will be much slower.\n"
-		if ($Initial{'RunType'} !~ /^server$/);
-	$prompt .= <<EOF;
-	
-There are two demos. One is a simple no-frills demo (simple)
-that uses only the basic MiniVend features.  One is a no-holds barred
-demo (sample) that tries to demonstrate the advanced features of MiniVend,
-including SSL and frames.
+To configure the demo catalogs, run the following commands:
 
 EOF
 
-sub sample_exists {
-	my $file = shift;
-	my $answer;
-  	print "Couldn't make directory $file\n";
-    print "It might exist...";
-    if (-d $file) {
-		print "it does.\n";
-		$answer = prompt "Want to overwrite files? ", 'no';
-	}
-	elsif (-e $file) {
-		print "it does, but it is something besides a directory.\n\n";
-		$answer = prompt "Want to remove it? ", 'no';
-		unlink $file
-			if is_yes($answer);
-		print "OK, it's history. Making new directory $file.\n\n";
-		mkdir $file, 0755;
+	# If they have copied files -- they will not
+	# stay in the new directory
 
-	}
-	else {
-		print "nope.  Something is wrong.\n\n";
-		$answer = 'no';
-	}
+	print "	cd $Initial{VendRoot}\n" unless $Samedir;
 
-	$answer;
-}
+print <<EOF;
+	bin/makecat sample
+	bin/makecat simple
 
-	$ans = prompt $prompt . "Install a demo? ", 'yes';
-	if(is_no($ans)) { last SAMPLE; }
-	$ans = prompt "Install which demo, sample or simple? ",
-				$Initial{RunType} eq 'static' ? 'simple' : 'sample';
-	if ($ans =~ /^\s*si/i) {
-		print "copying files...";
-		if(mkdir "$Initial{HtmlDir}/sample", 0755) {
-			mkdir "$Initial{HtmlDir}/sample/images", 0755
-				or die "mkdir: $!, died";
-		}
-		else {
-			last SAMPLE
-				unless( is_yes sample_exists("$Initial{HtmlDir}/sample") );
-			mkdir "$Initial{HtmlDir}/sample/images", 0755
-				unless -e "$Initial{HtmlDir}/sample/images";
-		}
-		copyfiles($Initial{VendRoot}, "$Initial{HtmlDir}/sample/", 'simphtml');
-		copyfiles($Initial{VendRoot}, "$Initial{HtmlDir}/sample/images/", 'image');
-		cp 'demo/products.simple', "demo/products.asc";
-		print "writing config....";
-		rename $Initial{ConfigFile}, 'mv_cfg.bak';
-		open(WRITEIT,">$Initial{ConfigFile}")
-			or die "Couldn't write $Initial{ConfigFile}: $!\n";
-		foreach $what (qw ( MailOrderTo VendURL SecureURL) ) {
-			printf WRITEIT "%-23s %s\n", $what, $Initial{$what};
-		}
-		$what = `cat sample.cfg`;
-		print WRITEIT $what;
-		close WRITEIT;
-		print "done.\n";
-	}
-	elsif ($ans =~ /^\s*sa/i) {
-		print "copying files...";
-		if(mkdir "$Initial{HtmlDir}/sample", 0755) {
-			mkdir "$Initial{HtmlDir}/sample/images", 0755
-				or die "mkdir: $!, died";
-		}
-		else {
-			last SAMPLE
-				unless( is_yes sample_exists("$Initial{HtmlDir}/sample") );
-			mkdir "$Initial{HtmlDir}/sample/images", 0755
-				unless -e "$Initial{HtmlDir}/sample/images";
-		}
-		copyfiles($Initial{VendRoot}, "$Initial{HtmlDir}/sample/", 'samphtml');
-		copyfiles($Initial{VendRoot}, "$Initial{HtmlDir}/sample/images/", 'image');
-		cp 'demo/products.sample', "demo/products.asc";
-		print "writing config...";
-		rename $Initial{ConfigFile}, 'mv_cfg.bak';
-		open(WRITEIT,">$Initial{ConfigFile}")
-			or die "Couldn't write $Initial{ConfigFile}: $!\n";
-		foreach $what (qw ( MailOrderTo VendURL SecureURL) ) {
-			printf WRITEIT "%-23s %s\n", $what, $Initial{$what};
-		}
-		$what = `cat sample.cfg`;
-		print WRITEIT $what;
-		close WRITEIT;
-		print "done.\n";
-	}
+You will be prompted for some information -- refer to the 
+README file if you have questions.
 
+After you have done that, you will start the MiniVend server
+and the demo catalogs should be operating.
 
-} # end SAMPLE
+Welcome to MiniVend!
 
-
-CGI: {
-	$param = 'CgiBin';
-	last CGI unless ($SvendMade || $VlinkMade);
-	my $where = $Initial{'VendURL'};
-	$where =~ s:.*/::;
-	$Svend_loc =  "$Initial{$param}/$where";
-	$Vlink_loc =  "$Initial{$param}/$where";
-	unless($< == 0 or defined $Copydirs{$param} && $Copydirs{$param}) {
-		print "Can't copy svend, directory not writeable.\n";
-		last CGI;
-	}
-	$ans = prompt "\nInstall the vlink dispatch program as $Vlink_loc? ",
-			$Initial{'RunType'} =~ /^server$/i ? 'yes' : 'no';
-	if (is_yes($ans)) {
-		cp 'src/vlink', $Vlink_loc;
-	}
-	$ans = prompt "Install the svend dispatch program as $Svend_loc? ",
-			$Initial{RunType} =~ /^server$/i ? 'no' : 'yes';
-	if (is_yes($ans)) {
-		cp 'src/svend', $Svend_loc;
-	}
-
-} # end CGI
-
-
-PROT: {
-	$param = 'ProtBin';
-	last PROT unless $MatMade;
-	unless($< == 0 or defined $Copydirs{$param} && $Copydirs{$param}) {
-		print "Can't copy mat, directory not writeable.\n";
-		last PROT;
-	}
-	$ans = prompt "Install the mat dispatch program? ", 'yes';
-	if (is_yes($ans)) {
-		cp 'src/mat', "$Initial{$param}/mat";
-	}
-
-} # end PROT
-
-SETUID: {
-	last SETUID if $Upgrade;
-	unless ($< == 0 || can_do_suid) {
-		print <<EOP;
-
-You aren't the superuser, so you can't make the vlink, mat
-and svend programs setuid. You will have to have the
-superuser do that later with the commands:
-
-	chmod 4755 $Vlink_loc
-	chmod 4755 $Svend_loc
-	chmod 4755 $Initial{'ProtBin'}/mat
-
-EOP
-		last SETUID;
-}
-
-	my($uid,$gid,$who);
-	$ans = prompt "Make the svend, vlink, and mat programs SUID (not to root)? ", 'yes';
-	if (is_yes($ans)) {
-		$who = ($< != 0)
-				? $ENV{'LOGNAME'}
-				: prompt "Make it owned by who? ", $ENV{'LOGNAME'};
-		unless ($uid = finduid($who)) {
-			print "UhUhnh.  No way that guy is going to own it. Skipping.\n";
-			last SETUID;
-		}
-		else {
-			$gid = (getpwnam($who))[3];
-		}
-		chown $uid, $gid, "$Initial{'CgiBin'}/svend", "$Initial{'ProtBin'}/mat"
-			unless $< != 0;
-		(! -f $Vlink_loc or
-			chmod 04755, $Vlink_loc)
-			or print "Didn't SUID  $Vlink_loc, something was wrong.\n";
-		(! -f $Svend_loc or
-			chmod 04755, $Svend_loc)
-			or print "Didn't SUID  $Svend_loc, something was wrong.\n";
-		(! -f "$Initial{'ProtBin'}/mat" or
-			chmod 04755, "$Initial{'ProtBin'}/mat")
-			or print "Didn't SUID  $Initial{'ProtBin'}/mat, something was wrong.\n";
-	}
-} # end SETUID
-
-} # end INSTALLPROGS
-
-STARTSERVER: {
-	last STARTSERVER if $Upgrade;
-	last STARTSERVER unless $Initial{'RunType'} =~ /^server$/i;
-	$ans = prompt "\nStart the MiniVend server now? ", 'yes';
-	if (is_yes($ans)) {
-		system $Initial{'PERL'}, $Initial{'VEND'}, '-serve';
-		sleep 2;
-	}
-}
-
-INITDB: {
-	last INITDB if $Upgrade;
-	last INITDB unless $Initial{'RunType'} =~ /^static$/i;
-	system $Initial{'PERL'}, $Initial{'VEND'}, '-init';
-}
-
-print <<EOU if $Upgrade;
-
-Completed upgrade to MiniVend 1.03.
-
-Try out your catalog, but be sure to type:
-
-        cd $Initial{'VendRoot'}
-        ./makedocs
-
-to make the documentation, many new features have been added.
-
-EOU
-
-print <<EOP unless $Upgrade;
-
-If you installed the demo, you can open the following URL to
-test it:
-
-        http://$Initial{'HostName'}/sample
-
-EOP
-print "\nDone with the MiniVend installation.\n" unless $Upgrade;
-
-print " You can remove this directory\nand its files."
-	unless ($Samedir || $Upgrade);
-print <<EOP unless $Upgrade;
-
-Type:
-
-        cd $Initial{'VendRoot'}
-        ./makedocs
-
-to make the documentation.
-
-EOP
+EOF

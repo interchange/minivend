@@ -1,8 +1,11 @@
-# $Id: Update.pm,v 1.1 1996/04/22 05:30:34 mike Exp $
+# $Id: Update.pm,v 1.1 1996/08/09 22:21:11 mike Exp $
 #
 # From and presumably copyright 1996 Andrew M. Wilcox
 #
 # $Log: Update.pm,v $
+# Revision 1.1  1996/08/09 22:21:11  mike
+# Initial revision
+#
 # Revision 1.1  1996/04/22 05:30:34  mike
 # Initial revision
 #

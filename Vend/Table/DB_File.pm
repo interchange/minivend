@@ -1,6 +1,6 @@
 # Table/DB_File.pm: access a table stored in a DB file hash
 #
-# $Id: DB_File.pm,v 1.1 1996/04/22 05:06:31 mike Exp $
+# $Id: DB_File.pm,v 1.2 1996/08/22 17:35:08 mike Exp mike $
 #
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -8,6 +8,12 @@
 # Modified 1996 by Mike Heins <mikeh@iac.net>
 #
 # $Log: DB_File.pm,v $
+# Revision 1.2  1996/08/22 17:35:08  mike
+# Save solid snapshot of multiple catalog Vend
+#
+# Revision 1.1  1996/08/09 22:21:11  mike
+# Initial revision
+#
 # Revision 1.1  1996/04/22 05:06:31  mike
 # Initial revision
 #
@@ -27,7 +33,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::DB_File;
-$VERSION = substr(q$Revision: 1.1 $, 10);
+$VERSION = substr(q$Revision: 1.2 $, 10);
 use Carp;
 use strict;
 use Fcntl;
@@ -144,6 +150,16 @@ sub close_table {
 sub columns {
     my ($s) = @_;
     return @{$s->[$COLUMN_NAMES]};
+}
+
+sub test_column {
+    my ($s, $column) = @_;
+    my $i = $s->[$COLUMN_INDEX]{$column};
+    unless(defined $i) {
+		carp "There is no column named '$column'\n";
+		return undef;
+	}
+	return $i;
 }
 
 sub column_index {

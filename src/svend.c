@@ -1,7 +1,7 @@
 /* mat.c:  runs as a cgi program and starts up MAT,
 			 MiniVend Administration tool
 
-   $Id: svend.c,v 1.1 1996/03/06 08:35:22 mike Exp $
+   $Id: svend.c,v 1.1 1996/07/13 20:08:34 mike Exp mike $
 
    Copyright 1996 by Mike Heins <mikeh@iac.net>
 
@@ -20,15 +20,18 @@
    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
    $Log: svend.c,v $
+   Revision 1.1  1996/07/13 20:08:34  mike
+   Initial revision
+
    Revision 1.1  1996/03/06 08:35:22  mike
    Initial revision
 
 
 */
 
-#define CGIUSER  65534
+#define CGIUSER  505
 #define PERL     "/usr/bin/perl"
-#define VEND     "/usr/local/lib/minivend/minivend.pl"
+#define VEND     "/c/t/minivend.pl"
 
 #include <errno.h>
 #include <stdio.h>

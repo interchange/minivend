@@ -1,0 +1,36 @@
+<HTML>
+<HEAD>
+<TITLE>Search Results</TITLE>
+</HEAD>
+[body 1]
+<H2>
+<IMG SRC="search.gif" ALT="SEARCH">
+Search Results
+</H2>
+
+<P>
+<H2>
+[more-list]
+	Matches [matches] of
+[/more-list]
+[value mv_search_match_count]
+	titles found</H2>
+<P>
+[search-list]
+<B>[item_increment].</B>
+<I>[item-field title]</I><BR>
+<B>[item-field artist]</B><BR>
+[item-link][order [item-code]]<IMG BORDER=0 SRC="ordernow.gif">[/order]
+<B>Our Price $[item-price]</B><p>
+<HR>
+[/search-list]
+
+[more-list]
+<B>Links to more matches:</B><BR>
+[more]
+<HR>
+[/more-list]
+<P ALIGN=CENTER>
+[[buttonbar 0]][finish-order]
+
+</body> </html>

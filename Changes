@@ -1,3 +1,23 @@
+
+MiniVend 2.0 - The ISP release
+* Multiple independent and shared catalogs
+* Embedded Perl code using Safe.pm (still has memory leak?)
+* Range searching in the TextSearch module (add Glimpse)
+* Discount policy 
+* UPS lookup shipping calculation
+* Multiple configurable attributes (size/color, etc)
+* Order profiling allows multi-level screens
+* New tags [loop item,item...]value[/loop], [modifier-name attribute]
+  and [item-modifier attribute]
+* Added [else][/else] to [if_field]
+* Demo much improved
+* Removed MAT
+* No option for svend in installation, must install manually
+* No option for netstart
+* Made Solaris default to full support, still needs File::Lock
+* Fixed library ordering problem
+* Many reliability improvements
+
 MiniVend 1.03 - Multiple servers and disconnected searching
 * Multiple servers can be run for the same catalog
 * Searches are forked so single-server installations will

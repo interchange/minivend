@@ -1,6 +1,6 @@
 # Http.pm:  interface to cgi protocol
 #
-# $Id: Http.pm,v 1.2 1996/05/18 20:02:39 mike Exp $
+# $Id: Http.pm,v 1.2 1996/08/10 22:25:59 mike Exp $
 #
 package Vend::Http;
 
@@ -34,7 +34,7 @@ sub Client_Ident              { $_[0]->{'Client_Ident'} }
 sub Path_Info                 { $_[0]->{'Path_Info'} }
 sub Path_Translated           { $_[0]->{'Path_Translated'} }
 sub Query                     { $_[0]->{'Query'} }
-sub Script_URL                { $_[0]->{'Script_URL'} }
+sub Script                	  { $_[0]->{'Script'} }
 sub Authorization_Type        { $_[0]->{'Authorization_Type'} }
 sub Authenticated_User        { $_[0]->{'Authenticated_User'} }
 sub Date                      { $_[0]->{'Date'} }
@@ -122,6 +122,7 @@ my @Map =
      'Path_Info' => 'PATH_INFO',
      'Path_Translated' => 'PATH_TRANSLATED',
      'Query' => 'QUERY_STRING',
+     'Script' => 'SCRIPT_NAME',
      'Https_on' => 'HTTPS',
      'Authorization_Type' => 'AUTH_TYPE',
      'Authenticated_User' => 'REMOTE_USER',
@@ -189,7 +190,7 @@ sub read_entity_body {
 sub respond {
     my ($s, $content_type, $body) = @_;
 
-	if ($Config::Cookies) {
+	if ($Vend::Cfg->{'Cookies'}) {
 		print STDOUT
 		"Set-Cookie: MV_SESSION_ID=" . $Vend::SessionID . "; path=/\r\n"
 	}

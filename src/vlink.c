@@ -1,7 +1,7 @@
 /* vlink.c:  runs as a cgi program and passes request to Vend server
 			 starts MiniVend or Vend server if not running
 
-   $Id: vlink.c,v 1.1 1996/05/03 18:43:28 mike Exp mike $
+   $Id: vlink.c,v 1.2 1996/07/13 20:08:34 mike Exp mike $
 
    Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 
@@ -57,21 +57,19 @@ extern char** environ;
  * VEND
  * Location of minivend on your system
  * 
- * NET_START
+ * ERROR_ACTION
  * Set to "-notify" (the default) to send mail to the
  * admin address that the server is not running
- * Set to "-netstart" to automatically start the
- * server if it is not running
  * A value of "-test" will send an innocuous message 
  * that we are "doing development"
  *
  */
 
-#define LINK_FILE "/usr/local/lib/minivend/etc/socket"
-#define LINK_TIMEOUT 20
+#define LINK_FILE "/home/minivend/etc/socket"
+#define LINK_TIMEOUT 10
 #define PERL     "/usr/bin/perl"
-#define VEND     "/usr/local/lib/minivend/minivend.pl"
-#define NET_START   "-netstart"
+#define VEND     "/c/multi/minivend.pl"
+#define ERROR_ACTION   "-test"
 
 
 /* CGI output to the server is on stdout, fd 1.
@@ -113,8 +111,8 @@ void server_not_running()
   printf("Content-type: text/html\r\n\r\n");
   printf("<H3>We're sorry, the MiniVend server was not running...\r\n");
 
-  if (!strncmp("-not", NET_START, 4)) opt = 1;
-  if (!strncmp("-net", NET_START, 4)) opt = 2;
+  if (!strncmp("-not", ERROR_ACTION, 4)) opt = 1;
+  if (!strncmp("-net", ERROR_ACTION, 4)) opt = 2;
 
   switch (opt) {
       case 1: 
@@ -233,7 +231,7 @@ static void open_socket()
   }
   if (s < 0) {
 
-	/* If NET_START not "-notify" or "-netstart", this will exit */
+	/* If ERROR_ACTION not "-notify", this will exit */
     server_not_running();
 
 
@@ -261,7 +259,7 @@ static void open_socket()
     exit(1);
   }
 	fclose(stdout);
-	execl(PERL, PERL, VEND, NET_START, 0); 
+	execl(PERL, PERL, VEND, ERROR_ACTION, 0); 
 	fprintf(stderr, "Could not exec %s: %s", PERL, ERRMSG(errno));
     exit(1);
   }

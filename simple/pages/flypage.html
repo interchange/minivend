@@ -1,0 +1,24 @@
+<HTML>
+<HEAD><TITLE>[item-description]</TITLE></HEAD>
+[body 1]
+<CENTER>
+Category: [item-field category]
+<P>
+[set current][item-code][/set]
+[if_field image]
+<IMG SRC="[item_field image]">
+<P>
+[/if_field]
+
+<H2>[item-description]</H2>
+<P>
+Catalog No.: [item-code]
+<P>
+Price: $[item-price 1] [page quantity]See quantity pricing[/page]
+<P>
+[order [item-code]]<IMG BORDER=0 SRC="ordernow.gif" ALT="(ORDER NOW)">[/order]
+<P>
+[[buttonbar 0]][finish-order]
+</CENTER>
+</BODY>
+</HTML>

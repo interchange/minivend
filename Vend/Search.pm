@@ -22,7 +22,7 @@
 
 package Vend::Search;
 
-$VERSION = substr(q$Revision: 1.4 $, 10);
+$VERSION = substr(q$Revision: 1.2 $, 10);
 $DEBUG = 0;
 
 =head1 NAME
@@ -541,10 +541,11 @@ sub new {
 	my $s = {};
 
 	$s->{global} = {
-		base_directory		=> $Config::ProductDir,
+		all_chars			=> 1,
+		base_directory		=> $Vend::Cfg->{'ProductDir'},
 		case_sensitive		=> 0,
 		coordinate			=> 0,
-		error_page			=> $Config::Special{'badsearch'},
+		error_page			=> $Vend::Cfg->{'Special'}->{'badsearch'},
 		error_routine		=> \&main::display_special_page,
 		exact_match			=> 0,
 		first_match			=> 0,
@@ -558,6 +559,11 @@ sub new {
 		min_string			=> 1,
 		next_pointer		=> 0,
 		or_search			=> 0,
+		return_all			=> 0,
+		range_look			=> '',
+		range_min			=> '',
+		range_max			=> '',
+		range_alpha			=> '',
 		return_delim		=> undef,
 		return_fields		=> undef,
 		return_file_name	=> '',
@@ -806,6 +812,117 @@ EOF
 	@out;
 }
 
+# Returns a field weeding function based on the search specification.
+# Input is the raw line and the delimiter, output is the fields
+# specified in the return_field specification
+sub get_return {
+	my($s) = @_;
+	my $g = $s->{'global'};
+	my ($return_sub);
+
+	if(!defined $g->{return_fields}) {
+#		$s->debug("Got to return_fields default");
+		$return_sub = sub { substr($_[0], 0, index($_[0], $g->{index_delim})) };
+	}
+	elsif ( ref($g->{return_fields}) =~ /^HASH/ ) {
+#		$s->debug("Got to return_fields HASH");
+		$return_sub = sub {
+			my($line) = @_;
+			my($key,$val);
+			my(@return);
+			my(%strings) = %{$g->{return_fields}};
+			while ( ($key,$val) = each %strings) {
+				$val = '\s' unless $val ||= 0;
+				1 while $line =~ s/($key)\s*(\S.*?)($val)/push(@return, $2)/ge;
+			}
+			return undef unless @return;
+			join $g->{index_delim}, @return;
+		};
+	}
+	elsif ( ref($g->{return_fields}) =~ /^ARRAY/ ) {
+#		$s->debug("Got to return_fields ARRAY");
+#		$s->debug("ret: '$g->{return_delim}' ind: '$g->{index_delim}'");
+		$return_sub = sub {
+			return join $g->{return_delim},
+						(split /$g->{index_delim}/, $_[0])[@{$g->{return_fields}}];
+		};
+	}
+	elsif( $g->{return_fields} ) {
+#		$s->debug("Got to return_fields SCALAR");
+		$return_sub = sub { substr($_[0], 0, index($_[0], $g->{return_fields})) };
+	}
+	else {
+#		$s->debug("Got to return_fields ALL");
+		$return_sub = sub { @_ };
+	}
+
+}
+
+
+# Returns a screening function based on the search specification.
+# The $f is a reference to previously created search function which does
+# a pattern match on the line.
+sub get_limit {
+	my($s, $f) = @_;
+	my $g = $s->{'global'};
+	my ($limit_sub);
+	my $code = <<'EOF';
+sub {
+	my ($line) = @_;
+EOF
+	if ( ref $g->{range_look} )  {
+		$code .= <<'EOF';
+return undef unless $s->range_check($g->{index_delim},$line);
+EOF
+	}
+	if ( scalar @{$s->{'fields'}} == scalar @{$s->{'specs'}} and 
+		 $g->{coordinate}				)  {
+		 $code .= <<'EOF';
+	my @fields = (split /$g->{index_delim}/, $line)[@{$s->{fields}}];
+	my @specs = @{$s->{'specs'}};
+	my $i;
+	for($i = 0; $i < scalar @fields; $i++) {
+EOF
+		if($g->{case_sensitive}) {
+			 $code .= <<'EOF';
+		return undef unless $fields[$i] =~ /$specs[$i]/;
+EOF
+		}
+		else { 
+			 $code .= <<'EOF';
+		return undef unless $fields[$i] =~ /$specs[$i]/i;
+EOF
+		}
+			 $code .= <<'EOF';
+	}
+EOF
+	}
+	elsif ( @{$s->{'fields'}} )  {
+		 $code .= <<'EOF';
+	my @fields = (split /$g->{index_delim}/, $line)[@{$s->{'fields'}}];
+	my $field = join $g->{index_delim}, @fields;
+	$_ = $field;
+	return($_ = $line) if &$f();
+	return undef;
+EOF
+	} 
+	# In case range_look only
+	elsif ($g->{range_look})  {
+		# Do nothing
+	}
+	# If there is to be no limit_sub
+	else {
+		return undef;
+	}
+	 $code .= <<'EOF';
+	1;
+}
+EOF
+	$limit_sub = eval $code;
+	die "Bad code: $@" if $@;
+	return $limit_sub;
+}
+
 sub saved_params {
 	qw(
 		next_pointer
@@ -815,6 +932,36 @@ sub saved_params {
 		session_id
 		search_mod
 	);
+}
+
+# Check to see if the fields specified in the range_look array
+# meet the criteria
+sub range_check {
+	my($s,$index_delim,$line) = @_;
+	my $g = $s->{'global'};
+	my @fields = (split /$index_delim/, $line)[@{$g->{range_look}}];
+	#$s->debug("range_look: '" . join("','", @fields) . "'\n");
+	#$s->debug("range_min:  '" . join("','", @{$g->{range_min}}) . "'\n");
+	#$s->debug("range_max:  '" . join("','", @{$g->{range_max}}) . "'\n");
+	my $i = 0;
+	for(@fields) {
+		no strict 'refs';
+		unless(defined $g->{range_alpha}->[$i] and $g->{range_alpha}->[$i]) {
+			return 0 unless $_ >= $g->{range_min}->[$i];
+			return 0 unless
+				(! $g->{range_max}->[$i] or $_ <= $g->{range_max}->[$i]);
+		}
+		elsif (! $g->{case_sensitive}) {
+			return 0 unless "\L$_" ge (lc $g->{range_min}->[$i]);
+			return 0 unless "\L$_" le (lc $g->{range_max}->[$i]);
+		}
+		else {
+			return 0 unless $_ ge $g->{range_min}->[$i];
+			return 0 unless $_ le $g->{range_max}->[$i];
+		}
+		$i++;
+	}
+	1;
 }
 
 # Returns a string representation of an anonymous array, hash, or scaler

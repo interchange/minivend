@@ -1,8 +1,11 @@
-#!/usr/bin/perl -w
+#!/usr/local/bin/perl -w
+#
 # stop - stops all MiniVend sessions when in multiple server mode
-$VendRoot = '/c/t';
-$ConfDir = '/c/t/etc';
+
+$VendRoot = '/home/minivend';
+$ConfDir = "$VendRoot/etc";
 $PidFile = "$ConfDir/minivend.pid";
+
 ## END CONFIGURABLE VARIABLES
 
 $force = 0;

@@ -1,10 +1,10 @@
-#!/usr/bin/perl
+#!/usr/local/bin/perl
 # restart - restarts Vend in server mode
 # 
 # Modded to just stop and start
 # Support may come for multi-server
 #
-$VendRoot = '/usr/local/lib/minivend';
+$VendRoot = '/home/minivend';
 ## END CONFIGURABLE VARIABLES
 
 $n = shift || 1;
@@ -14,5 +14,3 @@ system("$VendRoot/bin/stop");
 sleep 1;
 
 system("$VendRoot/bin/start $n");
-
-sleep 2;

@@ -1,4 +1,4 @@
-# $Id: Util.pm,v 1.4 1996/05/25 07:06:03 mike Exp mike $
+# $Id: Util.pm,v 1.3 1996/08/22 17:35:08 mike Exp mike $
 
 package Vend::Util;
 require Exporter;
@@ -10,12 +10,12 @@ combine
 commify
 currency
 file_modification_time
-fill_table
 get_files
 is_no
 is_yes
 logData
 logError
+logGlobal
 lockfile
 unlockfile
 readfile
@@ -118,7 +118,7 @@ sub commify {
 sub currency {
     my($amount) = @_;
 
-    if(is_yes($Config::PriceCommas)) {
+    if(is_yes($Vend::Cfg->{'PriceCommas'})) {
         commify sprintf("%.2f", $amount);
     }
     else {
@@ -207,26 +207,62 @@ sub uneval {
 
 # Log the error MSG to the error file.
 
+sub logGlobal {
+    my($msg) = @_;
+    my $prefix = '';
+
+	my	$errorfile = $Global::ErrorFile;
+
+    eval {
+		open(Vend::ERROR, ">>$errorfile") or die "open\n";
+		lockfile(\*Vend::ERROR, 1, 1) or die "lock\n";
+		$prefix = "$$: " if $Global::MultiServer;
+		seek(Vend::ERROR, 0, 2) or die "seek\n";
+		print(Vend::ERROR $prefix, `date`) or die "write to\n";
+		print(Vend::ERROR $prefix, "$msg\n") or die "write to\n";
+		unlockfile(\*Vend::ERROR) or die "unlock\n";
+		close(Vend::ERROR) or die "close\n";
+    };
+    if ($@) {
+		chomp $@;
+		print "\nCould not $@ error file '";
+		print $errorfile, "':\n$!\n";
+		print "to report this error:\n", $msg;
+		exit 1;
+    }
+}
+
+
+# Log the error MSG to the error file.
+
 sub logError {
     my($msg) = @_;
     my $prefix = '';
 
+	my $errorfile;
+	if(defined $Vend::Cfg) {
+		$errorfile = $Vend::Cfg->{'ErrorFile'};
+	}
+	else {
+		$errorfile = $Global::ErrorFile;
+	}
+
     eval {
-    open(Vend::ERROR, ">>$Config::ErrorFile") or die "open\n";
-    lockfile(\*Vend::ERROR, 1, 1) or die "lock\n";
-    $prefix = "$$: " if $Config::MultiServer;
-    seek(Vend::ERROR, 0, 2) or die "seek\n";
-    print(Vend::ERROR $prefix, `date`) or die "write to\n";
-    print(Vend::ERROR $prefix, "$msg\n") or die "write to\n";
-    unlockfile(\*Vend::ERROR) or die "unlock\n";
-    close(Vend::ERROR) or die "close\n";
+		open(Vend::ERROR, ">>$errorfile") or die "open\n";
+		lockfile(\*Vend::ERROR, 1, 1) or die "lock\n";
+		$prefix = "$$: " if $Global::MultiServer;
+		seek(Vend::ERROR, 0, 2) or die "seek\n";
+		print(Vend::ERROR $prefix, `date`) or die "write to\n";
+		print(Vend::ERROR $prefix, "$msg\n") or die "write to\n";
+		unlockfile(\*Vend::ERROR) or die "unlock\n";
+		close(Vend::ERROR) or die "close\n";
     };
     if ($@) {
-    chomp $@;
-    print "\nCould not $@ error file '";
-    print $Config::ErrorFile, "':\n$!\n";
-    print "to report this error:\n", $msg;
-    exit 1;
+		chomp $@;
+		print "\nCould not $@ error file '";
+		print $errorfile, "':\n$!\n";
+		print "to report this error:\n", $msg;
+		exit 1;
     }
 }
 
@@ -298,78 +334,6 @@ sub wrap {
     return @a;
 }
 
-
-sub fill_table {
-    my ($widths, $aligns, $strs, $prefix, $separator, $postfix, $push_down) = @_;
-    my ($x, @text, $y, $align, $cell, $l, $width);
-
-    my $last_x = $#$widths;
-    my $last_y = -1;
-    my $texts = [];
-
-    for $x (0 .. $#$widths) {
-        die "Width value not specified: $widths->[$x]\n"
-            unless $widths->[$x] > 0;
-        @text = wrap($strs->[$x], $widths->[$x]);
-        $last_y = $#text if $#text > $last_y;
-        $texts->[$x] = [@text];
-    }
-
-
-    my ($column, $this_height, $fill, $i);
-    if ($push_down) {
-        for $x (0 .. $last_x) {
-            $column = $texts->[$x];
-            $this_height = $#$column;
-            $fill = ' ' x $widths->[$x];
-            for $i (1 .. $last_y - $this_height) {
-                unshift @$column, $fill;
-            }
-        }
-    }
-
-    for $y (0 .. $last_y) {
-        for $x (0 .. $last_x) {
-            $width = $widths->[$x];
-            if ($y > $#{$texts->[$x]}) {
-                $cell = ' ' x $width;
-            }
-            else {
-                $align = $aligns->[$x];
-                $cell = $texts->[$x][$y];
-                $cell =~ s/^ +//;
-                $cell =~ s/ +$//;
-                $l = length($cell);
-                if ($l < $width) {
-                    if ($align eq '<') {
-                        $cell .= ' ' x ($width - $l);
-                    }
-                    elsif ($align eq '|') {
-                        $l = length($cell);
-                        $cell = ' ' x (($width - $l) / 2) . $cell;
-                        $cell .= ' ' x ($width - length($cell));
-                    }
-                    elsif ($align eq '>') {
-                        $cell = ' ' x ($width - $l) . $cell;
-                    }
-                    else { die "Unknown alignment specified: $align" }
-                }
-            }
-            $texts->[$x][$y] = $cell;
-        }
-    }
-
-    my $r = '';
-    for $y (0 .. $last_y) {
-        $r .= $prefix;
-        for $x (0 .. $last_x - 1) {
-            $r .= $texts->[$x][$y] . $separator;
-        }
-        $r .= $texts->[$last_x][$y] . $postfix;
-    }
-    return $r;
-}
-
 sub file_modification_time {
     my ($fn) = @_;
     my @s = stat($fn) or die "Can't stat '$fn': $!\n";
@@ -435,11 +399,12 @@ sub append_field_data {
 # file could not be read.
 
 sub readin {
-    my($file) = @_;
+    my($file,$dir) = @_;
     my($fn, $contents);
     local($/);
-
-    $fn = "$Config::PageDir/" . escape_chars($file) . ".html";
+	
+	$dir = $Vend::Cfg->{'PageDir'} unless defined $dir;
+    $fn = "$dir/" . escape_chars($file) . ".html";
     if (open(Vend::IN, $fn)) {
 		undef $/;
 		$contents = <Vend::IN>;
@@ -475,13 +440,13 @@ sub readfile {
 # if not found or empty. For getting buttonbars, helps,
 # and randoms.
 sub get_files {
-	my(@files) = @_;
+	my($dir, @files) = @_;
 	my(@out);
 	my($file, $contents);
 
 	foreach $file (@files) {
 		push(@out,"\n") unless
-			push(@out,readin($file));
+			push(@out,readin($file, $dir));
 	}
 	
 	@out;
@@ -502,10 +467,11 @@ sub is_no {
 sub vendUrl
 {
     my($path, $arguments) = @_;
-    my $r = $Config::VendURL;
+    my $r = $Vend::Cfg->{'VendURL'};
+	$arguments = '' unless defined $arguments;
 
-	if(defined $Config::AlwaysSecure{$path}) {
-		$r = $Config::SecureURL;
+	if(defined $Vend::Cfg->{'AlwaysSecure'}->{$path}) {
+		$r = $Vend::Cfg->{'SecureURL'};
 	}
 
     $r .= '/' . $path . '?' . $Vend::SessionID .
@@ -518,9 +484,9 @@ sub secure_vendUrl
     my($path, $arguments) = @_;
     my($r);
 
-	return undef unless $Config::SecureURL;
+	return undef unless $Vend::Cfg->{'SecureURL'};
 
-    $r = $Config::SecureURL . '/' . $path . '?' . $Vend::SessionID .
+    $r = $Vend::Cfg->{'SecureURL'} . '/' . $path . '?' . $Vend::SessionID .
 	';' . $arguments . ';' . ++$Vend::Session->{'pageCount'};
     $r;
 }    
@@ -532,21 +498,26 @@ sub secure_vendUrl
 
 sub send_mail {
     my($to, $subject, $body) = @_;
+	my($reply) = '';
     my($ok);
+
+	$reply = "Reply-To: $Vend::Session->{'values'}->{'mv_email'}\n"
+		if defined $Vend::Session->{'values'}->{'mv_email'};
 
     $ok = 0;
     SEND: {
-		open(Vend::MAIL,"|$Config::SendMailProgram $to") or last SEND;
-		print Vend::MAIL "To: $to\n", "Subject: $subject\n\n", $body
+		open(Vend::MAIL,"|$Vend::Cfg->{'SendMailProgram'} $to") or last SEND;
+		print Vend::MAIL "To: $to\n", $reply, "Subject: $subject\n\n", $body
 	    	or last SEND;
 		close Vend::MAIL or last SEND;
 		$ok = ($? == 0);
     }
     
     if (!$ok) {
-		logError("Unable to send mail using $Config::SendMailProgram\n" .
+		logError("Unable to send mail using $Vend::Cfg->{'SendMailProgram'}\n" .
 		 	"To '$to'\n" .
 		 	"With subject '$subject'\n" .
+		 	"With reply-to '$reply'\n" .
 		 	"And body:\n$body");
     }
 

@@ -1,6 +1,6 @@
 # Vend/Glimpse.pm:  Search indexes with Glimpse
 #
-# $Id: Glimpse.pm,v 1.5 1996/05/18 20:02:39 mike Exp mike $
+# $Id: Glimpse.pm,v 1.2 1996/08/10 22:25:59 mike Exp $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::Glimpse
 #
@@ -19,12 +19,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+###  vi regex to delete debugs     %s/^\(.*$s->debug\)/#\1/
+###  vi regex to restore debugs     %s/^\([^#]*\)#\(.*$s->debug\)/\1\2/
+#
 
 package Vend::Glimpse;
 require Vend::Search;
 @ISA = qw(Vend::Search);
 
-$VERSION = substr(q$Revision: 1.5 $, 10);
+$VERSION = substr(q$Revision: 1.2 $, 10);
 use Text::ParseWords;
 use strict;
 
@@ -42,10 +46,10 @@ sub new {
 sub init {
 	my $s = shift;
 
-	# This line is a DOS/NT/MAC portability problem
-	$s->{global}->{base_directory} = $Config::ProductDir;
-	$s->{global}->{glimpse_cmd} = $Config::Glimpse || 'glimpse';
+	$s->{global}->{base_directory} = $Vend::Cfg->{'ProductDir'};
+	$s->{global}->{glimpse_cmd} = $Vend::Cfg->{'Glimpse'} || 'glimpse';
 	$s->{global}->{min_string} = 4;
+	$s->{global}->{search_file} = 'products\.asc';
 	$s->{global}->{search_server} = undef;
 	$s->{global}->{search_port} = undef;
 
@@ -63,7 +67,7 @@ sub search {
 	my($max_matches,$mod,$index_delim,$return_delim);
 	my($cmd,$code,$count,$joiner,$matches_to_send,@out);
 	my($limit_sub,$return_sub);
-	my($f,$key,$spec,$val);
+	my($f,$key,$spec,$val,$range_op);
 	my($searchfile,@searchfiles);
 	my(@pats);
 	my(@specs);
@@ -86,14 +90,40 @@ sub search {
 		@specs = @{$s->{specs}};
 	}
 
+	if(ref $g->{range_look}) {
+		no strict 'refs';
+        unless( scalar(@{$g->{range_look}}) == scalar(@{$g->{range_min}})    and
+                scalar(@{$g->{range_look}}) == scalar(@{$g->{range_max}})    
+                ) {
+			&{$g->{error_routine}} ($g->{error_page},
+					"Must have min and max values for range.");
+			$g->{matches} = -1;
+			return undef;
+		}
+		$range_op = 1;
+	}
+
+	@specs = '' if @specs == 0;
+
+  CHECKFATAL: {
+	my (@fatal_error) = ();
     if (!$g->{glimpse_cmd}) {
-        &{$g->{log_routine}}
-            ("Attempt to search with glimpse, no glimpse configured.\n");
-		$g->{matches} = -1;
-        &{$g->{error_routine}}($g->{error_page},
-            "Attempt to search with glimpse, no glimpse present.\n");
-        return undef; # if it makes it to here
+        push @fatal_error,
+            "Attempt to search with glimpse, no glimpse configured.";
     }
+    if ($g->{return_all}) {
+        push @fatal_error,
+            "Cannot use return_all specification with Glimpse.";
+	}
+	last CHECKFATAL unless @fatal_error;
+
+	unshift @fatal_error, "ERRORS in glimpse search:";
+    &{$g->{log_routine}}(@fatal_error);
+    &{$g->{error_routine}}($g->{error_page}, join "\n", @fatal_error);
+	$g->{matches} = -1;
+	return undef;
+
+  } #end CHECKFATAL
 
     # Build glimpse line
     push @cmd, $g->{glimpse_cmd};
@@ -149,36 +179,77 @@ sub search {
 
 	$spec = join ' ', @specs;
 
+		unless ($g->{or_search}) {
+		}
+		else	{
+		}
+
+	if ($g->{all_chars} ||= 0) {
+        $spec =~ s/"/__QUOTE__/g;
+        $spec = quotemeta $spec;
+        $spec =~ s/__QUOTE__/"/g;
+    }
+    else {
+		$spec =~ s/[^"$\d\w\s*]//g;
+    }
+
+	$spec =~ /(.*)/;
+	$spec = $1;
+
+	@pats = shellwords($spec);
+#	$s->debug("pats: '", join("', '", @pats), "'");
+
+  CREATE_LIMIT: {
+  	last CREATE_LIMIT unless scalar @{$s->{'fields'}};
+  	last CREATE_LIMIT if $g->{'coordinate'};
 	if ($g->{or_search}) {
 		$joiner = ',';
+		eval {$f = $s->create_search_or(	$g->{case_sensitive},
+											$g->{substring_match},
+											@pats);
+						};
 	}
 	else  {	
 		$joiner = ';';
+		eval {$f = $s->create_search_and(	$g->{case_sensitive},
+											$g->{substring_match},
+											@pats);
+						};
+	}
+	if($@) {
+		&{$g->{error_routine}}($g->{error_page}, $@);
+		$g->{matches} = -1;
+		return undef;
 	}
 
-	$spec =~ s/[^"$\d\w\s*]//g;
-	$spec =~ /(.*)/;
-	$spec = $1;
-	@pats = shellwords($spec);
-	$s->debug("pats: '", join("', '", @pats), "'");
+	eval {$limit_sub = $s->get_limit($f)};
+	if($@) {
+		&{$g->{error_routine}}($g->{error_page}, $@);
+		$g->{matches} = -1;
+		return undef;
+	}
+  } # last CREATE_LIMIT:
+
 	$spec = join $joiner, @pats;
     push @cmd, "'$spec'";
-	$s->debug("spec: '", $spec, "'");
+#	$s->debug("spec: '", $spec, "'");
 
 	$joiner = $spec;
 	$joiner =~ s/['";,]//g;
-	$s->debug("joiner: '", $spec, "'");
+#	$s->debug("joiner: '", $spec, "'");
 	if(length($joiner) < $g->{min_string}) {
-		$g->{matches} = -1;
 		my $msg = <<EOF;
 Search strings must be at least $g->{min_string} characters.
 You had '$joiner' as the operative characters  of your search strings.
 EOF
 		&{$g->{error_routine}}($g->{error_page}, $msg);
+		$g->{matches} = -1;
 		return undef;
 	}
 
     $cmd = join ' ', @cmd;
+
+#	$s->debug("Glimpse command line: $cmd");
 
     # searches for debug
 
@@ -193,96 +264,21 @@ EOF
 
 	$g->{overflow} = 0;
 
+
 	if($g->{return_file_name}) {
-		$s->debug("Got to return_fields FILENAME");
+#		$s->debug("Got to return_fields FILENAME");
 		$return_sub = sub {@_};
 	}
-	elsif(!defined $g->{return_fields}) {
-		$s->debug("Got to return_fields DEFAULT");
-		$return_sub = sub { substr($_[0], 0, index($_[0], $index_delim)) };
-	}
-	elsif ( ref($g->{return_fields}) =~ /^ARRAY/ ) {
-		$s->debug("Got to return_fields ARRAY");
-		my @fields = @{$g->{return_fields}};
-		$return_sub = sub {
-			my $line = join $return_delim,
-						(split /$index_delim/, $_[0])[@fields];
-			$line;
-		};
-	}
-	elsif ( ref($g->{return_fields}) =~ /^HASH/ ) {
-		$s->debug("Got to return_fields HASH");
-		$return_sub = sub {
-			my($line) = @_;
-			my(@return);
-			my(%strings) = %{$g->{return_fields}};
-			while ( ($key,$val) = each %strings) {
-				print "key: '$key' val: '$val'";
-				$val = '\s' unless $val ||= 0;
-				1 while $line =~ s/($key)\s*(\S.*?)($val)/push(@return, $2)/ge;
-			}
-			return undef unless @return;
-			join $index_delim, @return;
-		};
-	}
-	elsif( $return_delim = $g->{return_fields} ) {
-		$s->debug("Got to return_fields TRIM");
-		$return_sub = sub { substr($_[0], 0, index($_[0], $return_delim)) };
-	}
 	else {
-		$s->debug("Got to return_fields ALL");
-		$return_sub = sub { @_ };
-	}
-
-	$s->debug('fields/specs: ', scalar @{$s->{fields}}, " ", scalar @{$s->{specs}});
-
-	if ( scalar @{$s->{fields}} == scalar @{$s->{specs}} and 
-		 $g->{coordinate} 			)  {
-		$limit_sub = sub {
-			my ($line) = @_;
-			my @fields = (split /$index_delim/, $line)[@{$s->{fields}}];
-			my @specs = @{$s->{specs}};
-			my $i;
-			if($g->{case_sensitive}) {
-				for($i = 0; $i < scalar @fields; $i++) {
-					return undef unless $fields[$i] =~ /$specs[$i]/;
-				}
-			}
-			else { 
-				for($i = 0; $i < scalar @fields; $i++) {
-					return undef unless $fields[$i] =~ /$specs[$i]/i;
-				}
-			}
-			1;
-		};
-	}
-	elsif ( @{$s->{fields}} )  {
-		unless ($g->{or_search}) {
-			eval {$f = $s->create_search_and(	$g->{case_sensitive},
-											$g->{substring_match},
-											@pats);
-						};
-		}
-		else	{
-			eval {$f = $s->create_search_or(	$g->{case_sensitive},
-											$g->{substring_match},
-											@pats);
-						};
-		}
+		eval {$return_sub = $s->get_return()};
 		if($@) {
-			$g->{matches} = -1;
 			&{$g->{error_routine}}($g->{error_page}, $@);
+			$g->{matches} = -1;
 			return undef;
 		}
-		$limit_sub = sub {
-			my ($line) = @_;
-			my @fields = (split /$index_delim/, $line)[@{$s->{fields}}];
-			my $field = join $index_delim, @fields;
-			$_ = $field;
-			return ($_ = $line) if &$f();
-			return undef;
-		};
 	}
+
+#	$s->debug('fields/specs: ', scalar @{$s->{fields}}, " ", scalar @{$s->{specs}});
 
 	local($/) = $g->{record_delim};
 
@@ -308,6 +304,7 @@ EOF
 	if($?) {
 		&{$g->{error_routine}}
 			($g->{error_page},"glimpse returned error $?: $!");
+		$g->{matches} = -1;
 		return undef;
 	}
 
@@ -348,8 +345,8 @@ EOF
 		$g->{next_pointer} = 0;
 	}
 
-	$s->debug($g->{matches}, " matches");
-	$s->debug("0 .. ", ($matches_to_send - 1));
+#	$s->debug($g->{matches}, " matches");
+#	$s->debug("0 .. ", ($matches_to_send - 1));
 	$s->save_history() if $g->{history};
 
 	@out[0..($matches_to_send - 1)];

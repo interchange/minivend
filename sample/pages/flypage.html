@@ -1,0 +1,107 @@
+<HTML>
+<HEAD><TITLE>[item_description]</TITLE></HEAD>
+[body 1]
+[if_field category]Category: [item_field category][/if_field]
+<CENTER>
+<P>
+[if_field image]
+<IMG SRC="[item_field image]">
+<P>
+[/if_field]
+<H2>[item_field title]</H2>
+<H4>[item_field artist]</H4>
+<P>
+[item_field comment]
+<P>
+Catalog No.: [item_code]
+<P>
+[[if scratch rotate == 1]
+[file pages/effects/rotate[scratch rotate].html]
+[set rotate_tmp]2[/set]
+[/if]
+
+[if scratch rotate == 2]
+[file pages/effects/rotate[scratch rotate].html]
+[set rotate_tmp]3[/set]
+[/if]
+
+[if scratch rotate == 3]
+[file pages/effects/rotate[scratch rotate].html]
+[set rotate_tmp]4[/set]
+[/if]
+
+[if scratch rotate == 4]
+[file pages/effects/rotate[scratch rotate].html]
+[set rotate_tmp]5[/set]
+[/if]
+
+[if scratch rotate == 5]
+[file pages/effects/rotate[scratch rotate].html]
+[set rotate_tmp]1[/set][/if]]
+
+[set rotate][scratch rotate_tmp][/set]
+
+<P>
+[if config PriceBreaks]
+<TABLE BORDER=2>
+<TR>
+<TD COLSPAN=6 ALIGN=CENTER><FONT SIZE="+3">Quantity Pricing</FONT></TD>
+</TR>
+<TR>
+	<TH WIDTH=70 VALIGN=BOTTOM ALIGN=LEFT>
+	<BR>
+	Part No.
+	</TH>
+	<TH WIDTH=70 VALIGN=BOTTOM ALIGN=RIGHT>
+	1
+	</TH>
+	<TH WIDTH=70 VALIGN=BOTTOM ALIGN=RIGHT>
+	2
+	</TH>
+	<TH WIDTH=70 VALIGN=BOTTOM ALIGN=RIGHT>
+	5
+	</TH>
+	<TH WIDTH=70 VALIGN=BOTTOM ALIGN=RIGHT>
+	10
+	</TH>
+	<TH WIDTH=70 VALIGN=BOTTOM ALIGN=RIGHT>
+	25
+	</TH>
+</TR>
+<TR>
+<P>
+	<TD VALIGN=TOP>[item_code]</TD>
+	<TD VALIGN=TOP ALIGN=RIGHT>
+	[item_price 1]
+	</TD>
+	<TD VALIGN=TOP ALIGN=RIGHT>
+	[item_price 2]
+	</TD>
+	<TD VALIGN=TOP ALIGN=RIGHT>
+	[item_price 5]
+	</TD>
+	<TD VALIGN=TOP ALIGN=RIGHT>
+	[item_price 10]
+	</TD>
+	<TD VALIGN=TOP ALIGN=RIGHT>
+	[item_price 25]<p></TD>
+</TR>
+</TABLE>
+[else]
+Price: [item_price]
+[/else]
+[/if]
+</CENTER>
+<P>
+Extra data: [data Arbitrary field1 [item_code]]<BR>
+Extra data: [item_data Arbitrary field2]
+
+<P ALIGN=CENTER>
+[order [item_code]]<STRONG>Order Now!</STRONG>[/order]
+
+[help header][help flypage][help footer]
+
+[[buttonbar 2]]
+
+</BODY>
+</HTML>

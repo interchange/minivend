@@ -1,0 +1,65 @@
+<HTML>
+<HEAD>
+<TITLE>Art Store Shopping Cart</TITLE>
+</HEAD>
+
+[body 1]
+<CENTER>
+<IMG   WIDTH=153 HEIGHT=76 SRC="artsmall.gif">
+<FORM ACTION="[process-target _self]" METHOD=POST>
+<input type="hidden" name="mv_doit" value="refresh">
+<input type="hidden" name="mv_orderpage" value="ord/basket">
+<input type="hidden" name="mv_checkout" value="ord/checkout">
+<input type="hidden" name="mv_nextpage" value="catalog">
+
+<TABLE BORDER=2>
+<CAPTION><H1>Shopping Cart Contents</H1></CAPTION>
+<TR>
+<P>
+	<TH WIDTH=70 VALIGN=BOTTOM ALIGN=LEFT>
+	Part No.
+	</TH>
+	<TH VALIGN=BOTTOM ALIGN=LEFT>
+	Description
+	</TH>
+	<TH WIDTH=70 VALIGN=BOTTOM ALIGN=RIGHT>
+	Quantity
+	</TH>
+	<TH WIDTH=90 VALIGN=BOTTOM ALIGN=RIGHT>
+	Price
+	</TH>
+</TR>
+[item-list]
+<TR>
+<P>
+	<TD VALIGN=TOP>[item-code]</TD>
+	<TD VALIGN=TOP MARGINWIDTH=12 MARGINHEIGHT=12>
+	[item-description]
+	</TD>
+	<TD VALIGN=TOP>
+	<input type="text" name=[quantity-name] value="[item-quantity]" size=3>
+	</TD>
+	<TD VALIGN=TOP ALIGN=RIGHT>$[item-price]<p></TD>
+</TR>
+[/item-list]
+<TR>
+<TD COLSPAN=3 ALIGN=RIGHT VALIGN=TOP>
+<input type="image" name="mv_submit" BORDER=0 SRC="recalc.gif">
+<IMG BORDER=0   WIDTH=50 HEIGHT=2 SRC="bg.gif" ALT=" . . ">
+<IMG BORDER=0   WIDTH=50 HEIGHT=2 SRC="bg.gif" ALT=" . . ">
+	Subtotal
+<TD ALIGN=RIGHT VALIGN=CENTER>$[subtotal]</TD>
+</TR>
+</TABLE>
+
+
+<P>
+<center>
+<input type="image" name="mv_todo.checkout" BORDER=0 SRC="checkout.gif">
+<input type="image" name="mv_todo.return"   BORDER=0 SRC="home.gif">
+[page canceled]<IMG BORDER=0 SRC="stopshop.gif">[/page]
+
+<BR>
+
+</CENTER>
+</body> </html>

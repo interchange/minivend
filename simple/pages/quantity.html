@@ -1,0 +1,69 @@
+<HTML>
+[loop [[scratch current]]]
+<HEAD><TITLE>[loop_description]</TITLE></HEAD>
+<CENTER>
+[body 1]
+[if_field category]Category: [loop_field category][/if_field]
+<P>
+[if_field image]
+<IMG SRC="[loop_field image]">
+<P>
+[order [loop_code]]<IMG SRC="ordernow.gif" BORDER=0>[/order]
+<P>
+[/if_field]
+<H2>[loop_field title]</H2>
+<H4>[loop_field artist]</H4>
+<P>
+<TABLE BORDER=2>
+<TR VALIGN=BOTTOM>
+<P>
+<TD COLSPAN=6 VALIGN=BOTTOM ALIGN=TOP><H1>Quantity Pricing</H1>
+<TR>
+<P>
+	<TH WIDTH=70 VALIGN=BOTTOM ALIGN=LEFT>
+	Part No.
+	</TH>
+	<TH WIDTH=70 VALIGN=BOTTOM ALIGN=RIGHT>
+	1
+	</TH>
+	<TH WIDTH=70 VALIGN=BOTTOM ALIGN=RIGHT>
+	2
+	</TH>
+	<TH WIDTH=70 VALIGN=BOTTOM ALIGN=RIGHT>
+	5
+	</TH>
+	<TH WIDTH=70 VALIGN=BOTTOM ALIGN=RIGHT>
+	10
+	</TH>
+	<TH WIDTH=70 VALIGN=BOTTOM ALIGN=RIGHT>
+	25
+	</TH>
+</TR>
+<TR>
+<P>
+	<TD VALIGN=TOP>[loop_code]</TD>
+	<TD VALIGN=TOP ALIGN=RIGHT>
+	[loop_price 1]
+	</TD>
+	<TD VALIGN=TOP ALIGN=RIGHT>
+	[loop_price 2]
+	</TD>
+	<TD VALIGN=TOP ALIGN=RIGHT>
+	[loop_price 5]
+	</TD>
+	<TD VALIGN=TOP ALIGN=RIGHT>
+	[loop_price 10]
+	</TD>
+	<TD VALIGN=TOP ALIGN=RIGHT>
+	[loop_price 25]<p></TD>
+</TR>
+</TABLE>
+
+[/loop]
+
+[buttonbar 0]
+
+</CENTER>
+
+</BODY>
+</HTML>

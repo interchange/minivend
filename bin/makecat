@@ -1,0 +1,108 @@
+#!/usr/local/bin/perl
+#
+# makecat = catalog configurator  
+#
+#
+
+## NO CONFIGURABLE VARIABLES
+
+$bindir = $0;
+$bindir =~ s![^/]+$!!;
+
+if($ARGV[0] eq '-h') {
+    print $USAGE;
+    exit 0;
+}
+
+$Reconfigure = '';
+if($ARGV[0] eq '-r') {
+    shift @ARGV;
+    $Reconfigure = '-r';
+}
+
+$USAGE = <<EOF;
+
+            MiniVend Catalog Configuration
+
+         *** Copyright 1996 Michael J. Heins ***
+
+    If you wish, you can pre-edit an existing catalog or
+    master configuration file and the program will present
+    those values as the defaults.
+
+    Usage:    makecat [-r] <catalog>
+
+    where <catalog> is a short name for your catalog,
+    with no spaces and letters only. All lower case
+    is recommended.
+
+    Options:
+
+              -r     Force reconfiguration
+
+EOF
+
+$configfile = shift || die $USAGE;
+
+if(@ARGV) {
+    warn "Too many arguments.\n";
+    die $USAGE;
+}
+
+
+sub prompt {
+    my($pr) = shift || '? ';
+    my($def) = shift;
+    my $ans = '';
+
+    print $pr;
+    print "[$def] " if $def;
+    chop($ans = <STDIN>);
+    $ans ? $ans : $def;
+}
+
+
+$Default = $< == 0 ? 1 : 2;
+
+print <<EOF;
+
+MiniVend Catalog Configuration
+
+     Copyright 1996 Michael J. Heins
+
+Select one of the following:
+
+1)     If you are an ISP planning on using MiniVend
+       for multiple users, or a company/individual with
+       a dedicated web server connected to the net.
+
+2)     If you are running a virtual domain without root
+       permissions, and have a base home page URL of
+       http://www.something.com or the like.
+
+3)     If you are a regular user without your own domain,
+       but have an account that gives you a URL like
+       http://www.isp.net/~user or http://www.isp.net/company. 
+
+Q)     Quit
+
+EOF
+
+    my $msg     = 'Setup? ';
+    my $prog;
+    for(;;) {
+        $ask = prompt($msg, $Default);
+        $ask =~ /^\s*1/ and ($prog = 'make_isp',     last);
+        $ask =~ /^\s*2/ and ($prog = 'make_virtual', last);
+        $ask =~ /^\s*3/ and ($prog = 'make_user',    last);
+        $ask =~ /^\s*[qx0]/i and exit;
+        $msg     = 'Say again? ';
+        $Default = 'Q';
+    }
+    
+    exec "$bindir$prog $Reconfigure $configfile";
+
+    
+    
+    
+

@@ -1,0 +1,36 @@
+#!/usr/bin/perl -w
+
+# buildtree - builds a static page tree from files and database
+
+$VendRoot = '/home/minivend';
+$PERL = '/usr/bin/perl';
+$PerlFlags = '-w';
+$VEND = "$VendRoot/minivend.pl";
+## END CONFIGURABLE VARIABLES
+
+my $usage = "usage: $0 <catalog> [outputdir]\n";
+my $catalog = shift || die $usage;
+my $outdir = shift;
+
+print "Building MiniVend pages for catalog $catalog.\n";
+push @args, $PERL, $PerlFlags, $VEND, '-build', $catalog;
+
+if(defined $outdir) {
+	print "Files will be placed in $outdir.\n";
+	push @args, '-outdir', $outdir;
+}
+else {
+	print "Files will be placed in 'static' subdirectory of catalog.\n";
+}
+
+$| = 1;
+
+system @args;
+
+unless(($? >> 8) != 0) {
+    print "Build succeeded.\n";
+}
+else {
+    print "Error on build.\n";
+}
+
