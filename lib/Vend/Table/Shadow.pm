@@ -281,6 +281,11 @@ sub query {
 		$opt = {};
 	}
 	$opt->{query} = $opt->{sql} || $text if ! $opt->{query};
+
+	if($opt->{type}) {
+		$opt->{$opt->{type}} = 1 unless defined $opt->{$opt->{type}};
+	}
+
 	$s = $s->import_db() unless defined $s->[$OBJ];
 	
 	if ($opt->{query}) {
