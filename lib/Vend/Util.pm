@@ -31,7 +31,6 @@ require Exporter;
 @ISA = qw(Exporter);
 
 @EXPORT = qw(
-
 	catfile
 	check_security
 	copyref
@@ -58,7 +57,6 @@ require Exporter;
 	readfile
 	readin
 	secure_vendUrl
-	send_mail
 	setup_escape_chars
 	tag_nitems
 	uneval
@@ -66,8 +64,13 @@ require Exporter;
 	uneval_fast
 	unlockfile
 	vendUrl
-
 );
+
+# LEGACY4
+push @EXPORT qw(
+	send_mail
+);
+# END LEGACY4
 
 use strict;
 use Config;
@@ -1610,7 +1613,9 @@ sub canonpath {
 	return &{$canonpath_routine}(@_);
 }
 
+# LEGACY4
 *send_mail = \&Vend::Order::send_mail;
+# END LEGACY4
 
 #print "catfile a b c --> " . catfile('a', 'b', 'c') . "\n";
 #print "catdir a b c --> " . catdir('a', 'b', 'c') . "\n";
