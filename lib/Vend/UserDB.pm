@@ -587,7 +587,7 @@ sub get_values {
 	if($self->{OPTIONS}->{scratch}) {
 		my (@s) = split /[\s,]+/, $self->{OPTIONS}{scratch} ;
 		@scratch{@s} = @s;
-::logError("scratch ones: " . join " ", @s);
+#::logError("scratch ones: " . join " ", @s);
 	}
 	for(@fields) {
 		if($ignore{$_}) {
