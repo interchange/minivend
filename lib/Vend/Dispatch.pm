@@ -679,7 +679,7 @@ sub run_in_catalog {
 	if($job) {
 		my $ct = $jobscfg->{base_directory} || 'etc/jobs';
 		my $gt = '';
-		$gt = "$Global::ConfDir/$ct" if $jobscfg->{use_global};
+		$gt = "$Global::ConfDir/jobs" if $jobscfg->{use_global};
 
 		for my $d ($ct, $gt) {
 #::logGlobal("check directory=$d for $job");
