@@ -1513,13 +1513,13 @@ sub log_error {
 	my $msg = errmsg($tpl, @args);
 	my $ekey = 'table ' . $s->[$CONFIG]{name};
 	my $cfg = $s->[$CONFIG];
-	unless(defined $cfg->{LOG_CATALOG} and ! $cfg->{LOG_CATALOG}) {
+	unless(defined $cfg->{LOG_ERROR_CATALOG} and ! $cfg->{LOG_CATALOG}) {
 		logError($msg);
 	}
-	if($cfg->{LOG_GLOBAL}) {
+	if($cfg->{LOG_ERROR_GLOBAL}) {
 		logGlobal($msg);
 	}
-	if($Vend::admin or ! defined($cfg->{LOG_SESSION}) or $cfg->{LOG_SESSION}) {
+	if($Vend::admin or ! defined($cfg->{LOG_ERROR_SESSION}) or $cfg->{LOG_ERROR_SESSION}) {
 		$Vend::Session->{errors} = {} unless ref($Vend::Session->{errors}) eq 'HASH';
 		$Vend::Session->{errors}{$ekey} = $msg;
 	}
