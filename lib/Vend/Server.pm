@@ -171,7 +171,7 @@ sub map_cgi {
 			my $content_type = $msg =~ /<html/i ? 'text/html' : 'text/plain';
 			my $len = length($msg);
 			$Vend::StatusLine = <<EOF;
-Status: 404
+Status: 404 Not found
 Content-Type: $content_type
 Content-Length: $len
 EOF
