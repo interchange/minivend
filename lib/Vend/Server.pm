@@ -535,13 +535,13 @@ sub respond {
 
 		my @domains;
 		@domains = ('');
+		my @paths;
+		@paths = ('/');
+
 		if ($Vend::Cfg->{CookieDomain}) {
 			@domains = split /\s+/, $Vend::Cfg->{CookieDomain};
 		}
-
-		my @paths;
-		@paths = ('/');
-		if($Global::Mall) {
+		elsif($Global::Mall) {
 			my $ref = $Global::Catalog{$Vend::Cat};
 			@paths = ($ref->{script});
 			push (@paths, @{$ref->{alias}}) if defined $ref->{alias};
