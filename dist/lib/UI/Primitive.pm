@@ -664,6 +664,18 @@ sub date_widget {
 	$out .= qq{</SELECT>};
 	$out .= qq{<INPUT TYPE=hidden NAME="$name" VALUE="/">};
 	$out .= qq{<SELECT NAME="$name">};
+	if($::Variable->{UI_DATE_BEGIN}) {
+		my $cy = $t[5] + 1900;
+		my $by = $::Variable->{UI_DATE_BEGIN};
+		my $ey = $::Variable->{UI_DATE_END} || ($cy + 10);
+		if($by < 100) {
+			$by = $cy - abs($by);
+		}
+		if($ey < 100) {
+			$ey += $cy;
+		}
+		@years = ($by .. $ey);
+	}
 	for(@years) {
 		$o = qq{<OPTION>$_};
 		($out .= $o, next) unless ! $sel and $val;
