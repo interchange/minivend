@@ -2046,15 +2046,8 @@ sub parse_locale {
 		$store = ${"Global::$item" . "_repository"};
 	}
 
-	# Try POSIX first if Locale.
-	$name = POSIX::setlocale(POSIX::LC_ALL, $settings)
-		if $item eq 'Locale' and $settings !~ /\s/;
-
 	my ($eval, $safe);
-	if ($name and $item eq 'Locale') {
-		$store->{$name} = POSIX::localeconv();
-	}
-	elsif ($settings =~ s/^\s*([-\w.@]+)\s+//) {
+	if ($settings =~ s/^\s*([-\w.@]+)(?:\s+)?//) {
 		$name = $1;
 
 		undef $eval;
@@ -2063,9 +2056,11 @@ sub parse_locale {
 				and $eval = 1;
 		$eval and ! $safe and $safe = new Safe;
 		if(! defined $store->{$name} and $item eq 'Locale') {
+		    my $past = POSIX::setlocale(POSIX::LC_ALL);
 			if(POSIX::setlocale(POSIX::LC_ALL, $name) ) {
 				$store->{$name} = POSIX::localeconv();
 			}
+			POSIX::setlocale($past);
 		}
 
 		my($sethash);

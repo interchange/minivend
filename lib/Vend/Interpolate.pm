@@ -6448,7 +6448,7 @@ sub tag_shipping {
 		$out = Vend::Util::round_to_frac_digits($out);
 		## Conversion would have been done above, force to 0, as
 		## found by Frederic Steinfels
-		$out = currency($out, $opt->{noformat}, 0);
+		$out = currency($out, $opt->{noformat}, 0, $opt);
 	}
 	return $out unless $opt->{hide};
 	return;
