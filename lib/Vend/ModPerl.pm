@@ -62,7 +62,7 @@ sub handler {
 	tie *OUT, 'Apache';
 	my $http = new Vend::Server \*OUT, \%env, \$entity;
 	return NOT_FOUND unless $http;
-	::dispatch($http) if $http;
+	::dispatch($http);
 	undef $::Instance;
 	undef $Vend::Cfg;
 	return OK;
