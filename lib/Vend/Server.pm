@@ -1919,7 +1919,7 @@ sub server_both {
 			if($Global::SocketPerms & 033) {
 				::logGlobal( {
 					level => 'warn' },
-					"ALERT: %s socket permissions are insecure; are you sure you want permssions %o?",
+					"ALERT: %s socket permissions are insecure; are you sure you want permissions %o?",
 					$_,
 					$Global::SocketPerms,
 				);
