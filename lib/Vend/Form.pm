@@ -943,10 +943,7 @@ if($opt->{debug}) {
 
 	my $look;
 
-	if($opt->{passed}) {
-		$data = options_to_array($opt->{passed}, $opt);
-	}
-	elsif($look = $opt->{lookup_query}) {
+	if($look = $opt->{lookup_query}) {
 		my $tab = $opt->{table} || $Vend::Cfg->{ProductFiles}[0];
 		my $db = Vend::Data::database_exists_ref($tab);
 		$data = $db->query($look)
@@ -981,6 +978,9 @@ if($opt->{debug}) {
 				}
 			};
 		}
+	}
+	elsif($opt->{passed}) {
+		$data = options_to_array($opt->{passed}, $opt);
 	}
 	elsif($opt->{column} and $opt->{table}) {
 		GETDATA: {
