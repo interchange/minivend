@@ -844,8 +844,8 @@ sub query {
 		if($@) {
 			if(! $sth) {
 				# query failed, probably because no table
-				# Do nothing and fall through to MVSEARCH
-::logDebug(qq{query "$query" failed: $@});
+				# Do nothing but log to debug and fall through to MVSEARCH
+				::logDebug(qq{query "$query" failed: $@});
 			}
 			else {
 				::logError("SQL query failed: %s\nquery was: %s", $@, $query);
