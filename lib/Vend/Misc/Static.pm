@@ -354,8 +354,7 @@ EOF
 		or die "Couldn't change to $Vend::Cfg->{VendRoot}: $!\n";
 
 	$Vend::Session->{pageCount} = -1;
-	my $save = $^W;
-	$^W = 0;
+	local($^W) = 0;
 
 	my $static;
 
@@ -449,8 +448,6 @@ EOF
 		}
 		last STATICDEPTH if $num >= scalar keys %Vend::Found_scan;
 	}
-
-	$^W = $save;
 }
 
 1;

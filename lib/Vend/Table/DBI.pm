@@ -493,7 +493,7 @@ sub field {
 		$column = $s->[$NAME][$idx];
 	}
 	my $query = "select $column from $s->[$TABLE] where $s->[$KEY] = $key";
-::logDebug("DBI field: key=$key column=$column query=$query");
+#::logDebug("DBI field: key=$key column=$column query=$query");
     my $sth;
 	eval {
 		$sth = $s->[$DBI]->prepare($query);

@@ -90,7 +90,7 @@ sub create_columns {
 	}
     my $i;
 	my $alias = $config->{FIELD_ALIAS} || {};
-::logDebug("field_alias: " . ::uneval($alias)) if $config->{FIELD_ALIAS};
+#::logDebug("field_alias: " . ::uneval($alias)) if $config->{FIELD_ALIAS};
     for ($i = 0;  $i < @$columns;  ++$i) {
         $column_index->{$columns->[$i]} = $i;
 		defined $alias->{$columns->[$i]}

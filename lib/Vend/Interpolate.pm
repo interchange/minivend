@@ -2012,6 +2012,7 @@ sub tag_value_extended {
 				$CGI::file{$var} =~ s/\n/$replace/g;
 			}
 		}
+#::logDebug(">$file \$CGI::file{$var}" . ::uneval($opt)); 
 		Vend::Util::writefile(">$file", \$CGI::file{$var}, $opt)
 			and return $opt->{yes} || '';
 		return $opt->{'no'} || '';

@@ -2261,7 +2261,7 @@ sub parse_routeconfig {
 	shift @n;
 	my $i;
 	while( ($k, undef, @f ) = $db->each_record) {
-::logDebug("Got route key=$k f=@f");
+#::logDebug("Got route key=$k f=@f");
 		for ($i = 0; $i < @f; $i++) {
 			next unless length($f[$i]);
 			$C->{Route_repository}{$k}{$n[$i]} = $f[$i];

@@ -939,7 +939,7 @@ sub login {
 	if($@) {
 		if(defined $self) {
 			$self->{ERROR} = $@;
-::logDebug( "Vend::UserDB error: %s\n", $@ );
+#::logDebug( "Vend::UserDB error: %s\n", $@ );
 		}
 		else {
 			::logError( "Vend::UserDB error: %s\n", $@ );
