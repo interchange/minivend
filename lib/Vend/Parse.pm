@@ -1,6 +1,6 @@
 # Parse.pm - Parse MiniVend tags
 # 
-# $Id: Parse.pm,v 1.55 1999/08/13 18:25:55 mike Exp $
+# $Id: Parse.pm,v 1.56 1999/08/14 07:46:21 mike Exp $
 #
 # Copyright 1997-1999 by Michael J. Heins <mikeh@iac.net>
 #
@@ -20,12 +20,12 @@
 
 package Vend::Parse;
 
-# $Id: Parse.pm,v 1.55 1999/08/13 18:25:55 mike Exp $
+# $Id: Parse.pm,v 1.56 1999/08/14 07:46:21 mike Exp $
 
 require Vend::Parser;
 
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.55 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.56 $ =~ /(\d+)\.(\d+)/);
 
 use Safe;
 use Vend::Util;
@@ -40,7 +40,7 @@ require Exporter;
 
 @ISA = qw(Exporter Vend::Parser);
 
-$VERSION = substr(q$Revision: 1.55 $, 10);
+$VERSION = substr(q$Revision: 1.56 $, 10);
 @EXPORT = ();
 @EXPORT_OK = qw(find_matching_end);
 
@@ -673,11 +673,15 @@ sub new
 	$Initialized = $self;
 }
 
-my %myRefs = (
+my %Documentation;
+use vars '%myRefs';
+
+%myRefs = (
      Alias           => \%Alias,
      addAttr         => \%addAttr,
      attrAlias       => \%attrAlias,
 	 canNest         => \%canNest,
+	 Documentation   => \%Documentation,
 	 endHTML         => \%endHTML,
 	 hasEndTag       => \%hasEndTag,
 	 Implicit        => \%Implicit,

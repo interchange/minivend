@@ -1,6 +1,6 @@
 # Config.pm - Configure Minivend
 #
-# $Id: Config.pm,v 1.66 1999/08/13 18:24:22 mike Exp $
+# $Id: Config.pm,v 1.67 1999/08/14 07:44:07 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
@@ -40,7 +40,7 @@ use Fcntl;
 use Vend::Parse;
 use Vend::Util;
 
-$VERSION = substr(q$Revision: 1.66 $, 10);
+$VERSION = substr(q$Revision: 1.67 $, 10);
 
 for( qw(search refresh cancel return secure unsecure submit control checkout) ) {
 	$Global::LegalAction{$_} = 1;
@@ -143,7 +143,7 @@ sub global_directives {
 	['ConfigDatabase',	 'config_db',	     ''],
     ['DumpStructure',	 'yesno',     	     'No'],
     ['FormRemap',		 'structure',     	 ''],
-    ['PageCheck',		 'yesno',     	     'No'],
+    ['Legacy',		 	 'yesno',     	     'No'],
     ['DisplayErrors',    'yesno',            $Global::DEBUG & 8192 ? 'Yes' : 'No'],
     ['DisplayComments',  'yesno',            'No'],
     ['TcpPort',          'integer',          '7786'],
@@ -215,6 +215,8 @@ sub catalog_directives {
 	['ConfigDir',        'relative_dir',	 'config'],
 	['TemplateDir',      'dir_array', 		 ''],
 	['ConfigDatabase',	 'config_db',	     ''],
+	['Variable',	  	 'variable',     	 ''],
+    ['ProductFiles',	 'array_complete',  'products'],
 	['Delimiter',        'delimiter',        'TAB'],
     ['DisplayErrors',    'yesno',            $Global::DEBUG & 8192 ? 'Yes' : 'No'],
 	['RecordDelimiter',  'variable',         ''],
@@ -225,18 +227,19 @@ sub catalog_directives {
     ['ActionMap',		 'action',	     	 ''],
 	['VendURL',          'url',              undef],
 	['SecureURL',        'url',              undef],
-	['OrderReport',      'valid_page',       'etc/report'],
+	['OrderReport',      undef,       'etc/report'],
 	['ScratchDir',       'relative_dir',     'etc'],
 	['SessionDB',  		 undef,     		 ''],
 	['SessionDatabase',  'relative_dir',     'session'],
 	['SessionLockFile',  undef,     		 'etc/session.lock'],
 	['Database',  		 'database',     	 ''],
-	['Database',  		 'database',     	 'products products.asc 1'],
+	['Database',  		 'database',     	$Global::Legacy
+											? 'products products.asc 1'
+											: ''],
 	['Autoload',		 undef,		     	 ''],
 	['Sub',			  	 'variable',     	 ''],
 	['SubArgs',			 'variable',     	 ''],
 	['Replace',			 'replace',     	 ''],
-	['Variable',	  	 'variable',     	 ''],
 	['Member',		  	 'variable',     	 ''],
 	['WritePermission',  'permission',       'user'],
 	['ReadPermission',   'permission',       'user'],
@@ -257,7 +260,7 @@ sub catalog_directives {
     ['RequiredFields',   undef,              ''],
     ['MsqlProducts',   	 'warn',            ''],
     ['MsqlDB',   		 'warn',             ''],
-    ['ReceiptPage',      'valid_page',       ''],
+    ['ReceiptPage',      undef,				 ''],
     ['ReportIgnore',     undef, 			 'credit_card_no,credit_card_exp'],
     ['OrderCounter',	 undef,     	     ''],
     ['ImageAlias',	 	 'hash',     	     ''],
@@ -273,8 +276,6 @@ sub catalog_directives {
     ['CollectData', 	 'boolean',     	 ''],
     ['DynamicData', 	 'boolean',     	 ''],
     ['NoImport',	 	 'boolean',     	 ''],
-    ['ProductFiles',	 'array',  	     	 ''],
-    ['ProductFiles',	 'array',  	     	 'products'],
     ['CommonAdjust',	 undef,  	     	 ''],
     ['PriceAdjustment',	 'array',  	     	 ''],
     ['PriceBreaks',	 	 'array',  	     	 ''],
@@ -347,10 +348,10 @@ sub catalog_directives {
     ['SearchFrame',	 	 undef,     	     '_self'],
     ['OrderFrame',	     undef,              ''],
     ['CheckoutFrame',	 undef,              ''],
-    ['CheckoutPage',	 'valid_page',       'basket'],
-    ['FrameOrderPage',	 'valid_page',       ''],
-    ['FrameSearchPage',	 'valid_page',       ''],
-    ['FrameFlyPage',	 'valid_page',       ''],
+    ['CheckoutPage',	 undef,		       'basket'],
+    ['FrameOrderPage',	 undef,		         ''],
+    ['FrameSearchPage',	 undef,		         ''],
+    ['FrameFlyPage',	 undef,		       	 ''],
     ['DescriptionTrim',  'warn',             ''],
     ['DescriptionField', undef,              'description'],
     ['PriceField',		 undef,              'price'],
@@ -1312,7 +1313,7 @@ sub parse_hash {
 
 my %IllegalValue = (
 
-		UseModifier => { qw/    mv_mi 1
+		UseModifier => { qw/   mv_mi 1
 								mv_si 1
 								mv_ib 1
 								group 1
@@ -1321,6 +1322,33 @@ my %IllegalValue = (
 								item  1     /
 						}
 );
+
+
+use vars '%Default';
+my %Default = (
+
+		ProductFiles => sub {
+							shift;
+							my $setting = shift;
+							return 1
+								if defined $C->{Variable}{MV_DEFAULT_SEARCH_FILE}
+								and  ! ref $C->{Variable}{MV_DEFAULT_SEARCH_FILE};
+							my @out;
+							for(@$setting) {
+								next unless defined $C->{Database}{$_}{'file'};
+								push @out, $C->{Database}{$_}{'file'};
+							}
+							$C->{Variable}{MV_DEFAULT_SEARCH_FILE} = \@out;
+						},
+);
+
+sub set_defaults {
+	my ($directive, $value) = @_;
+	return 1 unless defined $Default{$directive};
+	my ($status, $error) = &{$Default{$directive}};
+	return 1 if $status;
+	config_error ("\n$directive efault setting returned error: $error");
+}
 
 sub check_legal {
 	my ($directive, $value) = @_;
@@ -1347,6 +1375,22 @@ sub parse_array {
 		check_legal($item, $_);
 		push @{$c}, $_;
 	}
+	$c;
+}
+
+sub parse_array_complete {
+	my($item,$settings) = @_;
+	return '' unless $settings;
+	my(@setting) = grep /\S/, split /[\s,]+/, $settings;
+
+	my $c = [];
+
+	for (@setting) {
+		check_legal($item, $_);
+		push @{$c}, $_;
+	}
+	set_defaults($item, $c);
+
 	$c;
 }
 
@@ -1491,22 +1535,6 @@ sub parse_valid_group {
 		unless $members =~ /\b$name\b/;
     $gid;
 }
-
-sub parse_valid_page {
-    my($var, $value) = @_;
-    my($page,$x);
-
-	return $value if !$C->{'PageCheck'};
-
-	if( ! defined $value or $value eq '') {
-		return $value;
-	}
-
-    config_error("Can't find valid page ('$value') for the $var directive\n")
-		unless -s "$C->{'PageDir'}/$value.html";
-    $value;
-}
-
 
 sub parse_executable {
     my($var, $value) = @_;
@@ -1718,15 +1746,16 @@ sub parse_database {
 	$c = $C ? $C->{Database} : $Global::Database;
 
 	my($database,$remain) = split /[\s,]+/, $value, 2;
-	
+
+	LEGACY: 
 	if(! $C) {
 		# Do nada
 	}
-	elsif($database ne 'products') {
+	elsif(! $Global::Legacy) {
 		$new = 1 if ! defined $c->{$database};
 	}
 	elsif(defined $c->{$database}->{",default"} ) {
-		$new = 1 if ($C->{BaseCatalog} || ! defined $c->{$database}->{",initialized"});
+		$new = 1 if ! defined $c->{$database}->{",initialized"};
 		$c->{$database}->{",initialized"} = 1;
 	}
 	else {
@@ -1800,14 +1829,14 @@ sub parse_database {
 		}
 		elsif ($p eq 'ALIAS') {
 			if (defined $c->{$val}) {
-				config_warn "Database '$val' already exists, can't alias.";
+				config_warn("Database '$val' already exists, can't alias.");
 			}
 			else {
 				$c->{$val} = $d;
 			}
 		}
 		else {
-			config_warn "Database '$database' scalar parameter '$p' redefined."
+			config_warn ("Database '$database' scalar parameter '$p' redefined.")
 				if defined $d->{$p};
 			$d->{$p} = $val;
 		}

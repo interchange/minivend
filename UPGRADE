@@ -1,6 +1,8 @@
 
           U P G R A D I N G   F R O M  3 . 0 x
 
+>>>>> MINIVEND 3.15 notes for compatibilty
+
 #############################################
 IMPORTANT NOTE
 
@@ -29,6 +31,19 @@ to your catalog directory and running:
 
 END IMPORTANT NOTE
 #############################################
+
+New to 3.15 that could cause problems for longtime users:
+
+    * If you have an old system that has been relying on the
+	  "products" database being pre-defined, you must either
+	  define it in catalog.cfg:
+
+	  		Database products products.asc DEFAULT
+
+	  or change the global directive "Legacy" to yes in directive
+	  in minivend.cfg.
+
+>>>>> General compatibility notes for earlier versions of MiniVend
 
 You should normally be able to simply install over the current software and
 then restart the server.  The only incompatible changes are bug fixes (which

@@ -2,7 +2,7 @@
 #
 # MakeCat.pm - routines for catalog configurator
 #
-# $Id: MakeCat.pm,v 1.18 1999/08/13 18:35:48 mike Exp mike $
+# $Id: MakeCat.pm,v 1.18 1999/08/13 18:35:48 mike Exp $
 #
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
 #

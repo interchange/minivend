@@ -151,16 +151,59 @@ MiniVend 3.15 incorporates some new features -- I couldn't resist. 8-)
       and allows you to include the whole directory. It should make
       maintaining multiple servers a bit easier.
 
+    * Items can now be ordered "on-the-fly" in the standard
+      distribution by adding mv_order_fly.
+
+    * Added form-remap based on catalog script-name (too early for
+      other methods). In minivend.cfg:
+
+            FormRemap  /cgi-bin/simple  code mv_order_item
+            FormRemap  /cgi-bin/simple  item mv_order_fly 
+    
     * Made some minor changes in the demo:
 
         - updated flypage to show attribute-based price tag
+        - fixed query/check_orders using st=db
+        - removed some syntax errors
         - added [email to=addr from=addr subject=subj] message [/email]
           UserTag which is better then the form_mail GlobalSub. It will
           allow $Tag->email() to be used, among other things.
-		- Static build should work out of the box if you
-		  have DBM and define:
-		   
-		      StaticDBM static
+        - Static build should work out of the box if you
+          have DBM and define:
+           
+              StaticDBM static
+
+    * Makecat now strips quotes from Apache parameters read from
+      httpd.conf file.
+
+    * Added Tagref.pm module which can document the implementation
+      of even UserTags. Add this to minivend.cfg to print one
+      to a MiniVend page:
+
+        UserTag tag-reference Routine <<EOR
+        sub {
+            require Vend::Tagref;
+            open (TAGREF, ">mv_tagref.pod");
+            my $reference = Vend::Tagref::tag_reference();
+            print TAGREF $reference;
+            close TAGREF;
+            my $out =  `pod2html mv_tagref.pod`;
+            if(! $out) {
+                 $Vend::StatusLine = "Content-Type: text/plain\r\n";
+                $out = $reference;
+            }
+            return $out;
+        }
+        EOR
+
+    * Removed all dependencies on ProductsFiles containing 
+      'products'.
+
+    * Added Legacy directive to minivend.cfg to support older
+      catalogs that don't define "products" database.
+
+    * Many bug fixes, of course. Notably [and ...] and [or ..]
+      were broken in some cases.
 
 MiniVend 3.14 is a bug fix release with a couple of new features:
 

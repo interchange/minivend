@@ -1,6 +1,6 @@
 # Vend/Scan.pm:  Prepare searches for MiniVend
 #
-# $Id: Scan.pm,v 1.54 1999/08/13 18:26:37 mike Exp $
+# $Id: Scan.pm,v 1.55 1999/08/14 07:46:33 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
@@ -29,7 +29,7 @@ require Exporter;
 			perform_search
 			);
 
-$VERSION = substr(q$Revision: 1.54 $, 10);
+$VERSION = substr(q$Revision: 1.55 $, 10);
 
 use strict;
 use Vend::Util;
@@ -482,7 +482,7 @@ sub sql_search {
 	$numeric = _yes_array('', $options->{'numeric'});
 	$numeric = [($numeric) x scalar @specs] if ! ref $numeric;
 
-	my(@tables) = split /[\s,\000]+/, ($options->{search_file} || 'products');
+	my(@tables) = split /[\s,\000]+/, ($options->{search_file} || $Vend::Cfg->{ProductFiles}[0]);
 
 	my $db = Vend::Data::database_exists_ref($tables[0])
 				or do {
@@ -496,7 +496,7 @@ FORMULATE: {
 	# See if we have the simple query. If sql_query is set,
 	# then we will just do it by skipping the rest
 	# of the parse. If fi=table is not set, we
-	# will use 'products' and hope for the best.
+	# will use the first ProductFiles table and hope for the best.
 	# 
 	# We substitute search specs for ? if appropriate.
 	#

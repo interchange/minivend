@@ -1,6 +1,6 @@
-# Parse.pm - Parse MiniVend tags
+# Tagref.pm - Document MiniVend tags
 # 
-# $Id: Parse.pm,v 1.48 1999/02/15 08:51:10 mike Exp mike $
+# $Id: Tagref.pm,v 1.2 1999/08/14 10:28:01 mike Exp mike $
 #
 # Copyright 1997-1999 by Michael J. Heins <mikeh@iac.net>
 #
@@ -18,796 +18,61 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-package Vend::Parse;
+package Vend::Tagref;
+use lib "$Global::VendRoot/lib";
+use lib '../lib';
+
+# $Id: Tagref.pm,v 1.2 1999/08/14 10:28:01 mike Exp mike $
+
+use Vend::Parse;
+
+$VERSION = sprintf("%d.%02d", q$Revision: 1.2 $ =~ /(\d+)\.(\d+)/);
+
+use vars '%myRefs';
+
+BEGIN {
+	my @Vars = qw/
+     %Alias          
+     %addAttr        
+     %attrAlias      
+	 %canNest        
+	 %endHTML        
+	 %Documentation  
+	 %hasEndTag      
+	 %Implicit       
+	 %insertHTML	    
+	 %insideHTML	    
+	 %Interpolate    
+	 %InvalidateCache
+	 %isEndAnchor    
+	 %lookaheadHTML  
+	 %Order          
+	 %PosNumber      
+	 %PosRoutine     
+	 %replaceAttr    
+	 %replaceHTML    
+	 %Routine    
+	 /;
 
-# $Id: Parse.pm,v 1.48 1999/02/15 08:51:10 mike Exp mike $
-
-require Vend::Parser;
-
-
-$VERSION = sprintf("%d.%02d", q$Revision: 1.48 $ =~ /(\d+)\.(\d+)/);
-
-use Safe;
-use Vend::Util;
-use Vend::Interpolate;
-use Text::ParseWords;
-# STATICPAGE
-use Vend::PageBuild;
-# END STATICPAGE
-use Vend::Data qw/product_field/;
-
-#require Exporter;
-
-@ISA = qw(Exporter Vend::Parser);
-
-$VERSION = substr(q$Revision: 1.48 $, 10);
-@EXPORT = ();
-@EXPORT_OK = qw(find_matching_end);
-
-use strict;
-
-use vars qw($VERSION);
-
-my($CurrentSearch, $CurrentCode, $CurrentDB, $CurrentWith, $CurrentItem);
-my(@SavedSearch, @SavedCode, @SavedDB, @SavedWith, @SavedItem);
-
-my %PosNumber =	( qw!
-                    
-                accessories      2
-                area             2
-                areatarget       3
-                body             2
-                bounce           2
-                buttonbar        1
-                cart             1
-                cgi              1
-                checked          3
-                currency         1
-                data             6
-                default          2
-                discount         1
-                description      2
-				ecml			 2
-                field            2
-                file             2
-                finish_order     1
-                fly_list         2
-                framebase        1
-                goto             2
-                help             1
-                if               1
-                import           2
-                include          1
-                input_filter     1
-                index            1
-                label            1
-                last_page        2
-                lookup           1
-                loop             1
-                mvasp            1
-                nitems           1
-                order            4
-                page             2
-                pagetarget       3
-                perl             1
-                price            4
-                process_order    2
-                process_search   1
-                process_target   2
-                rotate           2
-                row              1
-                salestax         2
-                scratch          1
-                search           1
-                search_region    1
-                selected         3
-                set              1
-                setlocale        3
-                shipping         3
-                shipping_desc    1
-                sql              2
-                subtotal         2
-                tag              1
-                total_cost       2
-                userdb           1
-                value            4
-                value_extended   1
-
-			! );
-
-my %Optional =	(
-
-		
-    	import          => [qw(continue separator)],
-		area			=> [qw(form)],
-
-		);
-
-my %Order =	(
-
-				accessories		=> [qw( code arg )],
-				area			=> [qw( href arg secure)],
-				areatarget		=> [qw( href target arg secure)],
-				body			=> [qw( type extra )],
-				bounce			=> [qw( href if )],
-				buttonbar		=> [qw( type  )],
-				calc			=> [],
-				cart			=> [qw( name  )],
-				cgi				=> [qw( name  )],
-				compat			=> [],
-				'currency'		=> [qw( convert )],
-				checked			=> [qw( name value multiple default)],
-				data			=> [qw( table field key value increment append )],
-				default			=> [qw( name default set)],
-				description		=> [qw( code base )],
-				discount		=> [qw( code  )],
-				ecml			=> [qw( name function )],
-				field			=> [qw( name code )],
-				file			=> [qw( name type )],
-				finish_order	=> [qw( href )],
-				fly_list		=> [qw( code base )],
-				framebase		=> [qw( target  )],
-				frames_off		=> [],
-				frames_on		=> [],
-				'goto'			=> [qw( name if)],
-				help			=> [qw( name  )],
-				'if'			=> [qw( type term op compare )],
-				'or'			=> [qw( type term op compare )],
-				'and'			=> [qw( type term op compare )],
-				index  			=> [qw( table )],
-				import 			=> [qw( table type )],
-				input_filter 	=> [qw( name )],
-				include			=> [qw( file )],
-				item_list		=> [qw( name )],
-				label			=> [qw( name )],
-				last_page		=> [qw( target arg )],
-				lookup			=> [qw( table field key value )],
-				loop			=> [qw( with arg search option)],
-				loop_change		=> [qw( with arg )],
-				nitems			=> [qw( name  )],
-				order			=> [qw( code href base quantity )],
-				page			=> [qw( href arg secure)],
-				pagetarget		=> [qw( href target arg secure)],
-				perl			=> [qw( arg )],
-				mvasp			=> [qw( tables )],
-				post			=> [],
-				price			=> [qw( code quantity base noformat)],
-				process_order	=> [qw( target secure )],
-				process_search	=> [qw( target )],
-				process_target	=> [qw( target secure )],
-				random			=> [],
-				read_cookie		=> [qw( name )],
-				rotate			=> [qw( ceiling floor )],
-				row				=> [qw( width )],
-				'salestax'		=> [qw( name noformat)],
-				scratch			=> [qw( name  )],
-				search			=> [qw( arg   )],
-				search_region	=> [qw( arg   )],
-				selected		=> [qw( name value multiple )],
-				set_cookie		=> [qw( name value expire )],
-				setlocale		=> [qw( locale currency persist )],
-				set				=> [qw( name  )],
-				'shipping'		=> [qw( name cart noformat )],
-				shipping_desc	=> [qw( name  )],
-				sql				=> [qw( type query list false base)],
-				strip			=> [],
-				'subtotal'		=> [qw( name noformat )],
-				tag				=> [qw( op base file type )],
-				total_cost		=> [qw( name noformat )],
-				userdb          => [qw( function ) ],
-				value			=> [qw( name escaped set hide)],
-				value_extended  => [qw( name )],
-
-			);
-
-my %InvalidateCache = (
-
-			qw(
-				cgi			1
-				cart		1
-				checked		1
-				default		1
-				discount	1
-				frames_off	1
-				frames_on	1
-				item_list	1
-				import		1
-				index		1
-				input_filter		1
-				if          1
-				last_page	1
-				lookup		1
-				mvasp		1
-				nitems		1
-				perl		1
-				'salestax'	1
-				scratch		1
-				selected	1
-				read_cookie 1
-				set_cookie  1
-				set			1
-				'shipping'	1
-				sql			1
-				subtotal	1
-				total_cost	1
-				userdb		1
-				value		1
-				value_extended 1
-
-			   )
-			);
-
-my %Implicit = (
-
-			'data' =>		{ qw( increment increment ) },
-			'value' =>		{ qw( escaped	escaped hide hide ) },
-			'checked' =>	{ qw( multiple	multiple default	default ) },
-			'area'    =>	{ qw( secure	secure ) },
-			'page'    =>	{ qw( secure	secure ) },
-			'areatarget'    =>	{ qw( secure	secure ) },
-			'process_order' =>	{ qw( secure	secure ) },
-			'process_target' =>	{ qw( secure	secure ) },
-			'pagetarget'    =>	{ qw( secure	secure ) },
-
-			'if' =>		{ qw(
-								!=		op
-								!~		op
-								<=		op
-								==		op
-								=~		op
-								>=		op
-								eq		op
-								gt		op
-								lt		op
-								ne		op
-					   )},
-
-			'and' =>		{ qw(
-								!=		op
-								!~		op
-								<=		op
-								==		op
-								=~		op
-								>=		op
-								eq		op
-								gt		op
-								lt		op
-								ne		op
-					   )},
-
-			'or' =>		{ qw(
-								!=		op
-								!~		op
-								<=		op
-								==		op
-								=~		op
-								>=		op
-								eq		op
-								gt		op
-								lt		op
-								ne		op
-					   )},
-
-			);
-
-my %PosRoutineName = (
-				'or'			=> q{sub { return &Vend::Interpolate::tag_if(@_, 1) }},
-				'and'			=> q{sub { return &Vend::Interpolate::tag_if(@_, 1) }},
-				'if'			=> q{\&Vend::Interpolate::tag_if},
-				'tag'			=> q{\&Vend::Interpolate::do_tag},
-				'sql'			=> q{\&Vend::Data::sql_query},
-			);
-
-my %RoutineName = (
-
-				accessories		=> q{sub {
-									&Vend::Interpolate::tag_accessories
-										($_[0], '', $_[1])
-									}},
-				area			=> q{\&Vend::Interpolate::tag_area},
-				areatarget		=> q{\&Vend::Interpolate::tag_areatarget},
-				body			=> q{\&Vend::Interpolate::tag_body},
-				bounce          => q{sub { return '' }},
-				buttonbar		=> q{\&Vend::Interpolate::tag_buttonbar},
-				calc			=> q{\&Vend::Interpolate::tag_calc},
-				cart			=> q{\&Vend::Interpolate::tag_cart},
-				cgi				=> q{\&Vend::Interpolate::tag_cgi},
-				checked			=> q{\&Vend::Interpolate::tag_checked},
-				'currency'		=> q{sub {
-										my($convert,$amount) = @_;
-										return &Vend::Util::currency(
-														$amount,
-														undef,
-														$convert);
-									}},
-				compat			=> q{sub {
-										&Vend::Interpolate::interpolate_html('[old]' . $_[0]);
-									}},
-				data			=> q{\&Vend::Interpolate::tag_data},
-				default			=> q{\&Vend::Interpolate::tag_default},
-				description		=> q{\&Vend::Data::product_description},
-				discount		=> q{\&Vend::Interpolate::tag_discount},
-				ecml			=> q{\&Vend::ECML::ecml},
-				field			=> q{\&Vend::Data::product_field},
-				file			=> q{\&Vend::Interpolate::tag_file},
-				finish_order	=> q{\&Vend::Interpolate::tag_finish_order},
-				fly_list		=> q{sub {
-									$_[0] = $Vend::Session->{'arg'} unless $_[0];
-									return &Vend::Interpolate::fly_page(@_);
-									}},
-				framebase		=> q{\&Vend::Interpolate::tag_frame_base},
-				frames_off		=> q{\&Vend::Interpolate::tag_frames_off},
-				frames_on		=> q{\&Vend::Interpolate::tag_frames_on},
-				help			=> q{\&Vend::Interpolate::tag_help},
-				index 			=> q{\&Vend::Data::index_database},
-				import 			=> q{\&Vend::Data::import_text},
-				include			=> q{sub {
-									&Vend::Interpolate::interpolate_html(
-										&Vend::Util::readfile
-											($_[0], $Global::NoAbsolute)
-										  );
-									}},
-				input_filter	=> q{\&Vend::Interpolate::input_filter},
-				item_list		=> q{\&Vend::Interpolate::tag_item_list},
-				'if'			=> q{\&Vend::Interpolate::tag_self_contained_if},
-				'or'			=> q{sub { return &Vend::Interpolate::tag_self_contained_if(@_, 1) }},
-				'and'			=> q{sub { return &Vend::Interpolate::tag_self_contained_if(@_, 1) }},
-				'goto'			=> q{sub { return '' }},
-				label			=> q{sub { return '' }},
-				last_page		=> q{\&Vend::Interpolate::tag_last_page},
-				lookup			=> q{\&Vend::Interpolate::tag_lookup},
-				loop			=> q{sub {
-									# Munge the args, UGHH. Fix this.
-									my $option = splice(@_,3,1);
-									return &Vend::Interpolate::tag_loop_list
-										(@_, $option);
-									}},
-				nitems			=> q{\&Vend::Util::tag_nitems},
-				order			=> q{\&Vend::Interpolate::tag_order},
-				page			=> q{\&Vend::Interpolate::tag_page},
-				pagetarget		=> q{\&Vend::Interpolate::tag_pagetarget},
-				perl			=> q{\&Vend::Interpolate::tag_perl},
-				mvasp			=> q{\&Vend::Interpolate::mvasp},
-				post			=> q{sub { return $_[0] }},
-				price        	=> q{\&Vend::Interpolate::tag_price},
-				process_order	=> q{\&Vend::Interpolate::tag_process_order},
-				process_search	=> q{\&Vend::Interpolate::tag_process_search},
-				process_target	=> q{\&Vend::Interpolate::tag_process_target},
-				random			=> q{\&Vend::Interpolate::tag_random},
-				read_cookie     => q{\&Vend::Util::read_cookie},
-				rotate			=> q{\&Vend::Interpolate::tag_rotate},
-				row				=> q{\&Vend::Interpolate::tag_row},
-				'salestax'		=> q{\&Vend::Interpolate::tag_salestax},
-				scratch			=> q{\&Vend::Interpolate::tag_scratch},
-				search			=> q{\&Vend::Interpolate::tag_search},
-				search_region	=> q{\&Vend::Interpolate::tag_search_region},
-				selected		=> q{\&Vend::Interpolate::tag_selected},
-				setlocale		=> q{\&Vend::Util::setlocale},
-				set_cookie		=> q{\&Vend::Util::set_cookie},
-				rotate			=> q{\&Vend::Interpolate::tag_rotate},
-				set				=> q{\&Vend::Interpolate::set_scratch},
-				'shipping'		=> q{\&Vend::Interpolate::tag_shipping},
-				shipping_desc	=> q{\&Vend::Interpolate::tag_shipping_desc},
-				sql				=> q{\&Vend::Data::sql_query},
-				'subtotal'		=> q{\&Vend::Interpolate::tag_subtotal},
-				strip			=> q{sub {
-										local($_) = shift;
-										s/^\s+//;
-										s/\s+$//;
-										return $_;
-									}},
-				tag				=> q{\&Vend::Interpolate::do_parse_tag},
-				total_cost		=> q{\&Vend::Interpolate::tag_total_cost},
-				userdb			=> q{\&Vend::UserDB::userdb},
-				value			=> q{\&Vend::Interpolate::tag_value},
-				value_extended	=> q{\&Vend::Interpolate::tag_value_extended},
-
-			);
-
-
-
-my %PosRoutine = (
-				'or'			=> sub { return &Vend::Interpolate::tag_if(@_, 1) },
-				'and'			=> sub { return &Vend::Interpolate::tag_if(@_, 1) },
-				'if'			=> \&Vend::Interpolate::tag_if,
-				'tag'			=> \&Vend::Interpolate::do_tag,
-				'sql'			=> \&Vend::Data::sql_query,
-			);
-
-my %Routine = (
-
-				accessories		=> sub {
-									&Vend::Interpolate::tag_accessories
-										($_[0], '', $_[1])
-									},
-				area			=> \&Vend::Interpolate::tag_area,
-				areatarget		=> \&Vend::Interpolate::tag_areatarget,
-				body			=> \&Vend::Interpolate::tag_body,
-				bounce          => sub { return '' },
-				buttonbar		=> \&Vend::Interpolate::tag_buttonbar,
-				calc			=> \&Vend::Interpolate::tag_calc,
-				cart			=> \&Vend::Interpolate::tag_cart,
-				cgi				=> \&Vend::Interpolate::tag_cgi,
-				checked			=> \&Vend::Interpolate::tag_checked,
-				'currency'		=> sub {
-										my($convert,$amount) = @_;
-										return &Vend::Util::currency(
-														$amount,
-														undef,
-														$convert);
-									},
-				compat			=> sub {
-										&Vend::Interpolate::interpolate_html('[old]' . $_[0]);
-									},
-				data			=> \&Vend::Interpolate::tag_data,
-				default			=> \&Vend::Interpolate::tag_default,
-				description		=> \&Vend::Data::product_description,
-				discount		=> \&Vend::Interpolate::tag_discount,
-				ecml			=> \&Vend::ECML::ecml,
-				field			=> \&Vend::Data::product_field,
-				file			=> \&Vend::Interpolate::tag_file,
-				finish_order	=> \&Vend::Interpolate::tag_finish_order,
-				fly_list		=> sub {
-									$_[0] = $Vend::Session->{'arg'} unless $_[0];
-									return &Vend::Interpolate::fly_page(@_);
-									},
-				framebase		=> \&Vend::Interpolate::tag_frame_base,
-				frames_off		=> \&Vend::Interpolate::tag_frames_off,
-				frames_on		=> \&Vend::Interpolate::tag_frames_on,
-				help			=> \&Vend::Interpolate::tag_help,
-				index 			=> \&Vend::Data::index_database,
-				import 			=> \&Vend::Data::import_text,
-				include			=> sub {
-									&Vend::Interpolate::interpolate_html(
-										&Vend::Util::readfile
-											($_[0], $Global::NoAbsolute)
-										  );
-									},
-				input_filter	=> \&Vend::Interpolate::input_filter,
-				item_list		=> \&Vend::Interpolate::tag_item_list,
-				'if'			=> \&Vend::Interpolate::tag_self_contained_if,
-				'or'			=> sub { return &Vend::Interpolate::tag_self_contained_if(@_, 1) },
-				'and'			=> sub { return &Vend::Interpolate::tag_self_contained_if(@_, 1) },
-				'goto'			=> sub { return '' },
-				label			=> sub { return '' },
-				last_page		=> \&Vend::Interpolate::tag_last_page,
-				lookup			=> \&Vend::Interpolate::tag_lookup,
-				loop			=> sub {
-									# Munge the args, UGHH. Fix this.
-									my $option = splice(@_,3,1);
-									return &Vend::Interpolate::tag_loop_list
-										(@_, $option);
-									},
-				nitems			=> \&Vend::Util::tag_nitems,
-				order			=> \&Vend::Interpolate::tag_order,
-				page			=> \&Vend::Interpolate::tag_page,
-				pagetarget		=> \&Vend::Interpolate::tag_pagetarget,
-				perl			=> \&Vend::Interpolate::tag_perl,
-				mvasp			=> \&Vend::Interpolate::mvasp,
-				post			=> sub { return $_[0] },
-				price        	=> \&Vend::Interpolate::tag_price,
-				process_order	=> \&Vend::Interpolate::tag_process_order,
-				process_search	=> \&Vend::Interpolate::tag_process_search,
-				process_target	=> \&Vend::Interpolate::tag_process_target,
-				random			=> \&Vend::Interpolate::tag_random,
-				read_cookie     => \&Vend::Util::read_cookie,
-				rotate			=> \&Vend::Interpolate::tag_rotate,
-				row				=> \&Vend::Interpolate::tag_row,
-				'salestax'		=> \&Vend::Interpolate::tag_salestax,
-				scratch			=> \&Vend::Interpolate::tag_scratch,
-				search			=> \&Vend::Interpolate::tag_search,
-				search_region	=> \&Vend::Interpolate::tag_search_region,
-				selected		=> \&Vend::Interpolate::tag_selected,
-				setlocale		=> \&Vend::Util::setlocale,
-				set_cookie		=> \&Vend::Util::set_cookie,
-				rotate			=> \&Vend::Interpolate::tag_rotate,
-				set				=> \&Vend::Interpolate::set_scratch,
-				'shipping'		=> \&Vend::Interpolate::tag_shipping,
-				shipping_desc	=> \&Vend::Interpolate::tag_shipping_desc,
-				sql				=> \&Vend::Data::sql_query,
-				'subtotal'		=> \&Vend::Interpolate::tag_subtotal,
-				strip			=> sub {
-										local($_) = shift;
-										s/^\s+//;
-										s/\s+$//;
-										return $_;
-									},
-				tag				=> \&Vend::Interpolate::do_parse_tag,
-				total_cost		=> \&Vend::Interpolate::tag_total_cost,
-				userdb			=> \&Vend::UserDB::userdb,
-				value			=> \&Vend::Interpolate::tag_value,
-				value_extended	=> \&Vend::Interpolate::tag_value_extended,
-
-			);
-
-
-my %attrAlias = (
-	 page          	=> { 'base' => 'arg' },
-	 field          	=> { 
-	 						'field' => 'name',
-	 						'column' => 'name',
-	 						'col' => 'name',
-	 						'key' => 'code',
-	 						'row' => 'code',
-						},
-	 index          	=> { 
-	 						'database' => 'table',
-	 						'base' => 'table',
-						},
-	 import          	=> { 
-	 						'database' => 'table',
-	 						'base' => 'table',
-						},
-	 input_filter          	=> { 
-	 						'ops' => 'op',
-	 						'var' => 'name',
-	 						'variable' => 'name',
-						},
-	 data          	=> { 
-	 						'database' => 'table',
-	 						'base' => 'table',
-	 						'name' => 'field',
-	 						'column' => 'field',
-	 						'col' => 'field',
-	 						'code' => 'key',
-	 						'row' => 'key',
-						},
-	 'or'			=> { 
-	 						'comp' => 'compare',
-	 						'operator' => 'op',
-	 						'base' => 'type',
-						},
-	 'and'			=> { 
-	 						'comp' => 'compare',
-	 						'operator' => 'op',
-	 						'base' => 'type',
-						},
-	 'userdb'		=> {
-	 						'table' => 'db',
-	 						'name' => 'nickname',
-						},
-	 'shipping'			=> { 'cart' => 'name', },
-	 'salestax'			=> { 'cart' => 'name', },
-	 'subtotal'			=> { 'cart' => 'name', },
-	 'total_cost'		=> { 'cart' => 'name', },
-	 'if'			=> { 
-	 						'comp' => 'compare',
-	 						'condition' => 'compare',
-	 						'operator' => 'op',
-	 						'base' => 'type',
-						},
-	 search_region	   	=> { params => 'arg',
-	 						 args => 'arg', },
-	 loop	          	=> { args => 'arg',
-	 						 list => 'arg', },
-	 item_list	       	=> { cart => 'name', },
-	 lookup          	=> { 
-	 						'database' => 'table',
-	 						'base' => 'table',
-	 						'name' => 'field',
-	 						'code' => 'key',
-						},
-);
-
-my %Alias = (
-
-				qw(
-						url			urldecode
-						urld		urldecode
-						href		area
-						shipping_description shipping_desc
-						a			pagetarget
-				)
-			);
-
-my %canNest = (
-
-				qw(
-						if			1
-						loop		1
-				)
-			);
-
-
-my %addAttr = (
-				qw(
-					ecml      1
-					userdb    1
-					import    1
-					input_filter  1
-					index     1
-					page	  1
-					price	  1
-					area	  1
-					value_extended    1
-				)
-			);
-
-
-my %replaceHTML = (
-				qw(
-					del .*
-					pre .*
-					xmp .*
-					script .*
-				)
-			);
-
-my %replaceAttr = (
-					area			=> { qw/ a 	href			/},
-					areatarget		=> { qw/ a 	href			/},
-					process_target	=> { qw/ form action		/},
-					process_order 	=> { qw/ form action		/},
-					process_search	=> { qw/ form action		/},
-					checked			=> { qw/ input checked		/},
-					selected		=> { qw/ option selected	/},
-			);
-
-my %insertHTML = (
-				qw(
-
-				form	process_target|process_order|process_search|area
-				a 		area|areatarget
-				input	checked
-				option  selected
-				)
-			);
-
-my %lookaheadHTML = (
-				qw(
-
-				if 		then|elsif|else
-				)
-			);
-
-my %rowfixHTML = (	qw/
-						td	item_list|loop|sql_list
-					/	 );
-# Only for containers
-my %insideHTML = (
-				qw(
-					select	loop|item_list|tag
-				)
-
-				);
-
-# Only for containers
-my %endHTML = (
-				qw(
-
-				tr 		.*
-				td 		.*
-				th 		.*
-				del 	.*
-				script 	.*
-				table 	if
-				object 	perl
-				param 	perl
-				font 	if
-				a 		if
-				)
-			);
-
-my %hasEndTag = (
-
-				qw(
-						calc		1
-						compat		1
-						currency	1
-						discount	1
-						fly_list	1
-						if			1
-						import		1
-						item_list	1
-						input_filter  1
-						loop		1
-						sql			1
-						perl		1
-						mvasp		1
-						post		1
-						row			1
-						set			1
-						search_region			1
-						strip		1
-						tag			1
-
-				)
-			);
-
-my %Interpolate = (
-
-				qw(
-						buttonbar	1
-						calc		1
-						currency	1
-						import		1
-						random		1
-						rotate		1
-						row			1
-				)
-			);
-
-my %Gobble = ( qw/ mvasp 1/ );
-
-my %isEndAnchor = (
-
-				qw(
-						areatarget	1
-						area		1
-						pagetarget	1
-						page		1
-						order		1
-						last_page	1
-				)
-			);
-
-my $Tags_added = 0;
-
-my $Initialized = 0;
-
-
-sub global_init {
-		add_tags($Global::UserTag);
 }
 
-sub new
-{
-    my $class = shift;
-    my $self = new Vend::Parser;
-	$self->{INVALID} = 0;
-	$self->{INTERPOLATE} = shift || 0;
+use vars @Vars;
 
-	add_tags($Vend::Cfg->{UserTag})
-		unless $Tags_added;
+no strict;
 
-	$self->{TOPLEVEL} = 1 if ! $Initialized;
-
-	$self->{OUT} = '';
-    bless $self, $class;
-	$Initialized = $self;
+for ( keys %Vend::Parse::myRefs ) {
+	%{"$_"} = %{$Vend::Parse::myRefs{$_}};
 }
-
-my %myRefs = (
-     Alias           => \%Alias,
-     addAttr         => \%addAttr,
-     attrAlias       => \%attrAlias,
-	 canNest         => \%canNest,
-	 endHTML         => \%endHTML,
-	 hasEndTag       => \%hasEndTag,
-	 Implicit        => \%Implicit,
-	 insertHTML	     => \%insertHTML,
-	 insideHTML	     => \%insideHTML,
-	 Interpolate     => \%Interpolate,
-	 InvalidateCache => \%InvalidateCache,
-	 isEndAnchor     => \%isEndAnchor,
-	 lookaheadHTML   => \%lookaheadHTML,
-	 Order           => \%Order,
-	 PosNumber       => \%PosNumber,
-	 PosRoutine      => \%PosRoutine,
-	 replaceAttr     => \%replaceAttr,
-	 replaceHTML     => \%replaceHTML,
-	 Routine         => \%Routine,
-);
-
-my %Documentation;
 
 sub tag_reference {
-	LOCAL: {
-		local($/);
-		my $text = <DATA>;
-		my (@items) = grep /\S/, split /\n%%%\n/, $text;
-		for(@items) {
-			my ($k, $v) = split /\n%%\n/, $_, 2;
-			$Documentation{$k} = $v;
-		}
-	}
 
-	print $Documentation{BEGIN};
+	my $out = '';
+	$out .= $Documentation{BEGIN};
 
 	for(sort keys %Routine) {
 		my $tag = $_;
-		print "\n\n=head2 $tag\n\n=over 4\n\n";
-		print "=item CALL INFORMATION\n\n";
+		$out .= "\n\n=head2 $tag\n\n=over 4\n\n";
+		$out .= "=item CALL INFORMATION\n\n";
 		my $val;
 		my @alias = %Alias;
 		my @val = ();
@@ -817,43 +82,43 @@ sub tag_reference {
 
 
 		if(@val) {
-			print "Aliases for tag\n\n";
-			print join "\n", @val;
-			print "\n\n";
+			$out .= "Aliases for tag\n\n";
+			$out .= join "\n", @val;
+			$out .= "\n\n";
 		}
 		@val = ();
 
 		my @parms = ();
 		if(defined $Order{$tag} and @{$Order{$tag}}) {
 			@parms = @{$Order{$tag}};
-			print "Parameters: B<";
-			print join " ", @parms;
-			print ">\n\n";
+			$out .= "Parameters: B<";
+			$out .= join " ", @parms;
+			$out .= ">\n\n";
 			if($PosNumber{$tag} >= @parms) {
-				print "Positional parameters in same order.\n";
+				$out .= "Positional parameters in same order.\n";
 			}
 			elsif ($tag eq 'loop' || $PosRoutine{$tag}) {
-				print "THIS TAG HAS SPECIAL POSITIONAL PARAMETER HANDLING.\n\n";
+				$out .= "THIS TAG HAS SPECIAL POSITIONAL PARAMETER HANDLING.\n\n";
 			}
 			else {
-				print "ONLY THE B<";
-				print join " ", @parms[0 .. $PosNumber{$tag} - 1];
-				print "> PARAMETERS ARE POSITIONAL.\n";
+				$out .= "ONLY THE B<";
+				$out .= join " ", @parms[0 .. $PosNumber{$tag} - 1];
+				$out .= "> PARAMETERS ARE POSITIONAL.\n";
 			}
-			print "\n\n";
+			$out .= "\n\n";
 		}
 		else {
-			printf "No parameters.\n\n";
+			$out .= "No parameters.\n\n";
 		}
 
 		if(defined $addAttr{$tag}) {
-			print <<EOF if defined $hasEndTag{$tag};
+			$out .= <<EOF if defined $hasEndTag{$tag};
 B<The attribute hash reference is passed> after the parameters but before
 the container text argument.
 B<This may mean that there are parameters not shown here.>
 
 EOF
-			print <<EOF if ! defined $hasEndTag{$tag};
+			$out .= <<EOF if ! defined $hasEndTag{$tag};
 B<The attribute hash reference is passed> to the subroutine after
 the parameters as the last argument.
 B<This may mean that there are parameters not shown here.>
@@ -861,790 +126,83 @@ B<This may mean that there are parameters not shown here.>
 EOF
 		}
 		else {
-			print "Pass attribute hash as last to subroutine: B<no>\n\n";
+			$out .= "Pass attribute hash as last to subroutine: B<no>\n\n";
 		}
 
 		if(! defined $Interpolate{$tag}) {
-			print "Must pass named parameter interpolate=1 to cause interpolation.";
+			$out .= "Must pass named parameter interpolate=1 to cause interpolation.";
 		}
 		elsif($hasEndTag{$tag}) {
-			print "Interpolates B<container text> by default>.";
+			$out .= "Interpolates B<container text> by default>.";
 		}
 		elsif(!$Gobble{$tag}) {
-			print "Interpolates B<its own output> by default.";
+			$out .= "Interpolates B<its own output> by default.";
 		}
 
-		print "\n\n";
+		$out .= "\n\n";
 
 		if (defined $hasEndTag{$tag}) {
 			my $nest = defined $canNest{$tag} ? 'YES' : 'NO';
-			print "This is a container tag, i.e. [$tag] FOO [/$tag].\nNesting: $nest\n\n";
+			$out .= "This is a container tag, i.e. [$tag] FOO [/$tag].\nNesting: $nest\n\n";
 		}
 
-		print "Invalidates cache: B<"							.
+		$out .= "Invalidates cache: B<"							.
 				(defined $InvalidateCache{$tag} ? 'YES' : 'no')	.
 				">\n\n";
-		print "This tag B<gobbles> all remaining page text if no end tag is passed.\n\n"
+		$out .= "This tag B<gobbles> all remaining page text if no end tag is passed.\n\n"
 			if $Gobble{$tag};
 		       
 
-		print "Called Routine: $RoutineName{$tag}\n\n";
-		print "Called Routine for positonal: $PosRoutineName{$tag}\n\n" if $PosRoutine{$tag};
+		$out .= "Called Routine: $RoutineName{$tag}\n\n";
+		$out .= "Called Routine for positonal: $PosRoutineName{$tag}\n\n" if $PosRoutine{$tag};
 
-		print "ASP/perl tag calls:\n\n";
-		print '    $Tag->' . $tag . '(' ."\n        {\n";
+		$out .= "ASP/perl tag calls:\n\n";
+		$out .= '    $Tag->' . $tag . '(' ."\n        {\n";
 		for (@parms) {
-			print "         $_ => VALUE,\n";
+			$out .= "         $_ => VALUE,\n";
 		}
-		print "        }";
-		print ",\n        BODY" if defined $hasEndTag{$tag};
-		print "\n    )\n  \n OR\n \n";
+		$out .= "        }";
+		$out .= ",\n        BODY" if defined $hasEndTag{$tag};
+		$out .= "\n    )\n  \n OR\n \n";
 		push @parms, 'ATTRHASH'		if defined $addAttr{$tag};
 		push @parms, 'BODY'			if defined $hasEndTag{$tag};
-		print '    $Tag->' . $tag . '($' . join(', $', @parms) . ');' . "\n\n";
+		$out .= '    $Tag->' . $tag . '($' . join(', $', @parms) . ');' . "\n\n";
 
 		if (defined $attrAlias{$tag}) {
-			printf "Attribute aliases\n\n";
+			$out .= "Attribute aliases\n\n";
 			for( sort keys %{$attrAlias{$tag}}) {
-				print "            $_ ==> $attrAlias{$tag}{$_}\n";
+				$out .= "            $_ ==> $attrAlias{$tag}{$_}\n";
 			}
-			print "\n\n";
+			$out .= "\n\n";
 		}
-		print " \n\n";
-		print "=item DESCRIPTION\n\n";
-		print $Documentation{$tag} if defined $Documentation{$tag};
-		print "B<NO DESCRIPTION>" if ! defined $Documentation{$tag};
-		print "\n\n";
-		print "=back\n\n";
+		$out .= " \n\n";
+		$out .= "=item DESCRIPTION\n\n";
+		$out .= $Documentation{$tag} if defined $Documentation{$tag};
+		$out .= "B<NO DESCRIPTION>" if ! defined $Documentation{$tag};
+		$out .= "\n\n";
+		$out .= "=back\n\n";
 
 	}
 
-	print $Documentation{END};
+	$out .= $Documentation{END};
 }
 
-sub do_tag {
-	my $tag = shift;
-	if (! defined $Routine{tag} and (not $tag = $Alias{$tag}) ) {
-		::logError("Tag '$tag' not defined.");
-		return undef;
-	};
-	if(ref $_[-1] && scalar @{$Order{$tag}}) {
-		my $text;
-		my $ref = pop(@_);
-		$text = shift if $hasEndTag{$tag};
-		my @args = @$ref{ @{$Order{$tag}} };
-		push @args, $ref if $addAttr{$tag};
-		return &{$Routine{$tag}}(@args, $text || undef);
-	}
-	else {
-		return &{$Routine{$tag}}(@_);
+LOCAL: {
+	local($/);
+	my $text = <DATA>;
+	my (@items) = grep /\S/, split /\n%%%\n/, $text;
+	for(@items) {
+		my ($k, $v) = split /\n%%\n/, $_, 2;
+		$Documentation{$k} = $v;
 	}
 }
 
-sub resolve_args {
-	my $tag = shift;
-	return @_ unless defined $Routine{$tag};
-	my $ref = shift;
-	my @list;
-	if(defined $attrAlias{$tag}) {
-		my ($k, $v);
-		while (($k, $v) = each %{$attrAlias{$tag}} ) {
-			next unless defined $ref->{$k};
-			$ref->{$v} = $ref->{$k};
-		}
-	}
-	@list = @{$ref}{@{$Order{$tag}}};
-	push @list, $ref if defined $addAttr{$tag};
-	push @list, (shift || $ref->{body} || '') if $hasEndTag{$tag};
-	return @list;
-}
-
-sub add_tags {
-	return unless @_;
-	my $ref = shift;
-	my $area;
-	no strict 'refs';
-	foreach $area (keys %myRefs) {
-		next unless $ref->{$area};
-# DEBUG
-# Vend::Util::logDebug
-# ("Adding $area = " . Vend::Util::uneval($ref->{$area}) . "\n")
-#	if ::debug(0x2);
-# END DEBUG
-		if($area eq 'Routine') {
-			for (keys %{$ref->{$area}}) {
-				$myRefs{$area}->{$_} = $ref->{$area}->{$_};
-			}
-			next;
-		}
-		elsif ($area =~ /HTML$/) {
-			for (keys %{$ref->{$area}}) {
-				$myRefs{$area}->{$_} =
-					defined $myRefs{$area}->{$_}
-					? $ref->{$area}->{$_} .'|'. $myRefs{$area}->{$_}
-					: $ref->{$area}->{$_};
-			}
-		}
-		else {
-			Vend::Util::copyref $ref->{$area}, $myRefs{$area};
-		}
-	}
-}
-
-sub eof
-{
-    shift->parse(undef);
-}
-
-sub text
-{
-    my($self, $text) = @_;
-	$Vend::PageCacheCopy .= $text
-		if defined $Vend::PageCacheCopy and $self->{TOPLEVEL};
-	$self->{OUT} .= $text;
-}
-
-sub comment
-{
-    # my($self, $comment) = @_;
-}
-
-my %Monitor = ( qw( ) );
-
-sub build_html_tag {
-	my ($orig, $attr, $attrseq) = @_;
-	$orig =~ s/\s+.*//s;
-	for (@$attrseq) {
-		$orig .= qq{ \U$_="} ;
-		$attr->{$_} =~ s/"/\\"/g;
-		$orig .= $attr->{$_};
-		$orig .= '"';
-	}
-	$orig .= ">";
-}
-
-my %implicitHTML = (qw/checked CHECKED selected SELECTED/);
-
-sub format_html_attribute {
-	my($attr, $val) = @_;
-	if(defined $implicitHTML{$attr}) {
-		return $implicitHTML{$attr};
-	}
-	$val =~ s/"/&quot;/g;
-	return qq{$attr="$val"};
-}
-
-sub goto_buf {
-	my ($name, $buf) = @_;
-	if(! $name) {
-		$$buf = '';
-		return;
-	}
-	while($$buf =~ s!  .+?
-							(
-								(?:
-								\[ label \s+ (?:name \s* = \s* ["']?)?	|
-								<[^>]+? \s+ mv.label \s*=\s*["']?		|
-								<[^>]+? \s+
-									mv \s*=\s*["']? label
-									[^>]*? \s+ mv.name\s*=\s*["']?		|
-								<[^>]+? \s+ mv \s*=\s*["']? label  \s+  |
-								)
-								(\w+)
-							|
-								</body\s*>
-							)
-					!$1!ixs )
-	{
-			last if $name eq $2;
-	}
-	return;
-}
-
-sub html_start {
-    my($self, $tag, $attr, $attrseq, $origtext, $end_tag) = @_;
-	$tag =~ tr/-/_/;   # canonical
-	$end_tag = lc $end_tag;
-	my $buf = \$self->{_buf};
-#::logGlobal("tag=$tag end_tag=$end_tag buf length " . length($$buf)) if $Monitor{$tag};
-#::logGlobal("attributes: ", %{$attr}) if $Monitor{$tag};
-	my($tmpbuf);
-    # $attr is reference to a HASH, $attrseq is reference to an ARRAY
-	my($return_html);
-
-	unless (defined $Routine{$tag}) {
-		if(defined $Alias{$tag}) {
-			my ($rest, $text);
-			($tag, $rest) = split /\s+/, $Alias{$tag}, 2;
-			_find_tag (\$rest, $attr, $attrseq);
-		}
-		elsif ($tag eq 'urldecode') {
-			$attr->{urldecode} = 1;
-			$return_html = $origtext;
-			$return_html =~ s/\s+.*//s;
-		}
-		else {
-			$self->{OUT} .= $origtext;
-			return 1;
-		}
-	}
-
-	if(defined $InvalidateCache{$tag} and !$attr->{cache}) {
-		$self->{INVALID} = 1;
-	}
-
-	$attr->{interpolate} = $self->{INTERPOLATE}
-		unless defined $attr->{interpolate};
-
-	my $trib;
-	foreach $trib (@$attrseq) {
-		# Attribute aliases
-		if(defined $attrAlias{$tag} and $attrAlias{$tag}{$trib}) {
-			my $new = $attrAlias{$tag}{$trib} ;
-			$attr->{$new} = delete $attr->{$trib};
-			$trib = $new;
-		}
-		elsif (0 and defined $Alias{$trib}) {
-			my $new = $Alias{$trib} ;
-			$attr->{$new} = delete $attr->{$trib};
-			$trib = $new;
-		}
-		# Parse tags within tags, only works if the [ is the
-		# first character.
-		$attr->{$trib} =~ s/%([A-Fa-f0-9]{2})/chr(hex($1))/eg if $attr->{urldecode};
-		next unless $attr->{$trib} =~ /\[\w+[-\w]*\s*[\000-\377]*\]/;
-
-		my $p = new Vend::Parse;
-		$p->parse($attr->{$trib});
-		$attr->{$trib} = $p->{OUT};
-		$self->{INVALID} += $p->{INVALID};
-	}
-
-	if($tag eq 'urldecode') {
-		$self->{OUT} .= build_html_tag($return_html, $attr, $attrseq);
-		return 1;
-	}
-
-	$attr->{'decode'} = 1 unless defined $attr->{'decode'};
-	$attr->{'reparse'} = 1 unless defined $attr->{'reparse'};
-	$attr->{'true'} = 1;
-	$attr->{'false'} = 0;
-	$attr->{'undef'} = undef;
-
-	my ($routine,@args);
-
-	if ($attr->{OLD}) {
-	# HTML old-style tag
-		$attr->{interpolate} = 0 if $hasEndTag{$tag} and $canNest{$tag};
-		$attr->{interpolate} = 1 if defined $Interpolate{$tag};
-		@args = $attr->{OLD};
-		if(defined $PosNumber{$tag} and $PosNumber{$tag} > 1) {
-			@args = split /\s+/, $attr->{OLD}, $PosNumber{$tag};
-			push(@args, undef) while @args < $PosNumber{$tag};
-		}
-		$routine =  $PosRoutine{$tag} || $Routine{$tag};
-	}
-	else {
-	# New style tag, HTML or otherwise
-		$routine = $Routine{$tag};
-		$attr->{interpolate} = 1
-			if defined $Interpolate{$tag} and ! defined $attr->{interpolate};
-		@args = @{$attr}{ @{ $Order{$tag} } };
-		push(@args, $attr) if $addAttr{$tag};
-	}
-
-	if($tag =~ /^[gb]o/) {
-		if($tag eq 'goto') {
-			return 1 if defined $attr->{'if'} and
-						(! $attr->{'if'} or $attr->{'if'} =~ /^\s*[\s0]\s*$/); 
-			if(! $args[0]) {
-				$$buf = '';
-				$$Initialized->{_buf} = '';
-				$Initialized->{_buf} = '';
-				$self->{ABORT} = 1
-					if $attr->{abort};
-				return ($self->{SEND} = 1);
-			}
-			goto_buf($args[0], \$Initialized->{_buf});
-			$self->{ABORT} = 1;
-			return 1;
-		}
-		elsif($tag eq 'bounce') {
-			return 1 if defined $attr->{'if'} and
-						(! $attr->{'if'} or $attr->{'if'} =~ /^\s*[\s0]\s*$/); 
-			$Vend::StatusLine = '' if ! $Vend::StatusLine;
-			$Vend::StatusLine .= <<EOF;
-Status: 302 moved
-Location: $attr->{href}
-EOF
-			$$buf = '';
-			$Initialized->{_buf} = '';
-			return ($self->{SEND} = 1);
-		}
-	}
-
-#::logGlobal("tag=$tag end_tag=$end_tag attributes:\n" . Vend::Util::uneval($attr)) if$Monitor{$tag};
-
-	my $prefix = '';
-	my $midfix = '';
-	my $postfix = '';
-	my @out;
-
-	if($insertHTML{$end_tag}
-		and ! $attr->{noinsert}
-		and $tag =~ /^($insertHTML{$end_tag})$/) {
-		$origtext =~ s/>\s*$//;
-		@out = Text::ParseWords::shellwords($origtext);
-		shift @out;
-		@out = grep $_ !~ /^[Mm][Vv][=.]/, @out
-			unless $attr->{showmv};
-		if (defined $replaceAttr{$tag}
-			and $replaceAttr{$tag}->{$end_tag}
-			and	! $attr->{noreplace})
-		{
-			my $t = $replaceAttr{$tag}->{$end_tag};
-			@out = grep $_ !~ /^($t)\b/i, @out;
-			unless(defined $implicitHTML{$t}) {
-				$out[0] .= qq{ \U$t="};
-				$out[1] = defined $out[1] ? qq{" } . $out[1] : '"';
-			}
-			else { $midfix = ' ' }
-		}
-		else {
-			$out[0] = " " . $out[0] . " "
-				if $out[0];
-		}
-		if (@out) {
-			$out[$#out] .= '>';
-		}
-		else {
-			@out = '>';
-		}
-#::logGlobal("inserted " . join "|", @out);
-	}
-
-	if($hasEndTag{$tag}) {
-		my $rowfix;
-		# Handle embedded tags, but only if interpolate is 
-		# defined (always if using old tags)
-		if (defined $replaceHTML{$end_tag}
-			and $tag =~ /^($replaceHTML{$end_tag})$/
-			and ! $attr->{noreplace} )
-		{
-			$origtext = '';
-			$tmpbuf = find_html_end($end_tag, $buf);
-			$tmpbuf =~ s:</$end_tag\s*>::;
-			HTML::Entities::decode($tmpbuf) if $attr->{decode};
-			$tmpbuf =~ tr/\240/ /;
-		}
-		else {
-			@out = Text::ParseWords::shellwords($origtext);
-			($attr->{showmv} and
-					@out = map {s/^[Mm][Vv]\./mv-/} @out)
-				or @out = grep ! /^[Mm][Vv][=.]/, @out;
-			$out[$#out] =~ s/([^>\s])\s*$/$1>/;
-			$origtext = join " ", @out;
-
-			if (defined $lookaheadHTML{$tag} and ! $attr->{nolook}) {
-				$tmpbuf = $origtext . find_html_end($end_tag, $buf);
-				while($$buf =~ s~^\s*(<([A-Za-z][-A-Z.a-z0-9]*)[^>]*)\s+
-								[Mm][Vv]\s*=\s*
-								(['"]) \[?
-									($lookaheadHTML{$tag})\b(.*?)
-								\]?\3~~ix ) 
-				{
-					my $orig = $1;
-					my $enclose = $4;
-					my $adder = $5;
-					my $end = lc $2;
-					$tmpbuf .= "[$enclose$adder]"	.  $orig	.
-								find_html_end($end, $buf)	.
-								"[/$enclose]";
-				}
-			}
-			# GACK!!! No table row attributes in some editors????
-			elsif (defined $rowfixHTML{$end_tag}
-				and $tag =~ /^($rowfixHTML{$end_tag})$/
-				and $attr->{rowfix} )
-			{
-				$rowfix = 1;
-				$tmpbuf = '<tr>' . $origtext . find_html_end('tr', $buf);
-#::logGlobal("Tmpbuf: $tmpbuf");
-			}
-			elsif (defined $insideHTML{$end_tag}
-					and ! $attr->{noinside}
-					and $tag =~ /^($insideHTML{$end_tag})$/i) {
-				$prefix = $origtext;
-				$tmpbuf = find_html_end($end_tag, $buf);
-				$tmpbuf =~ s:</$end_tag\s*>::;
-				$postfix = "</$end_tag>";
-				HTML::Entities::decode($tmpbuf) if $attr->{'decode'};
-				$tmpbuf =~ tr/\240/ / if $attr->{'decode'};
-			}
-			else {
-				$tmpbuf = $origtext . find_html_end($end_tag, $buf);
-			}
-		}
-
-		$tmpbuf =~ s/%([A-Fa-f0-9]{2})/chr(hex($1))/eg if $attr->{urldecode};
-
-		if ($attr->{interpolate}) {
-			my $p = new Vend::Parse;
-			$p->parse($tmpbuf);
-			$tmpbuf =  $p->{OUT};
-		}
-
-		$tmpbuf =  $attr->{prepend} . $tmpbuf if defined $attr->{prepend};
-		$tmpbuf .= $attr->{append}            if defined $attr->{append};
-
-		if (! $attr->{reparse}) {
-			$self->{OUT} .= $prefix . &{$routine}(@args,$tmpbuf) . $postfix;
-		}
-		elsif (! defined $rowfix) {
-			$$buf = $prefix . &{$routine}(@args,$tmpbuf) . $postfix . $$buf
-		}
-		else {
-			$tmpbuf = &{$routine}(@args,$tmpbuf);
-			$tmpbuf =~ s|<tr>||i;
-			$$buf = $prefix . $tmpbuf . $postfix . $$buf;
-		}
-
-
-	}
-	else {
-		if(! @out and $attr->{prepend} or $attr->{append}) {
-			my @tmp;
-			@tmp = Text::ParseWords::shellwords($origtext);
-			shift @tmp;
-			@tmp = grep $_ !~ /^[Mm][Vv][=.]/, @tmp
-				unless $attr->{showmv};
-			$postfix = $attr->{prepend} ? "<\U$end_tag " . join(" ", @tmp) : '';
-			$prefix = $attr->{append} ? "<\U$end_tag " . join(" ", @tmp) : '';
-		}
-		if(! $attr->{interpolate}) {
-			if(@out) {
-				$self->{OUT} .= "<\U$end_tag ";
-				if 		($out[0] =~ / > \s*$ /x ) { }   # End of tag, do nothing
-				elsif	($out[0] =~ / ^[^"]*"$/x ) {     # End of tag
-					$self->{OUT} .= shift(@out);
-				}
-				else {
-					unshift(@out, '');
-				}
-			}
-			$self->{OUT} .= $prefix . &$routine( @args ) . $midfix;
-			$self->{OUT} .= join(" ", @out) . $postfix;
-		}
-		else {
-			if(@out) {
-				$$buf = "<\U$end_tag " . &$routine( @args ) . $midfix . join(" ", @out) . $$buf;
-			}
-			else {
-				$$buf = $prefix . &$routine( @args ) . $postfix . $$buf;
-			}
-		}
-	}
-
-	$self->{SEND} = $attr->{'send'} || undef;
-#::logGlobal("Returning from $tag");
-	return 1;
-
-}
-
-sub start {
-	return html_start(@_) if $_[0]->{HTML};
-    my($self, $tag, $attr, $attrseq, $origtext) = @_;
-	$tag =~ tr/-/_/;   # canonical
-	my $buf = \$self->{_buf};
-#::logGlobal("tag=$tag buf length " . length($$buf));
-#::logGlobal("tag=$tag Interp='$Interpolate{$tag}' attributes:\n" . Vend::Util::uneval($attr)) if$Monitor{$tag};
-	my($tmpbuf);
-    # $attr is reference to a HASH, $attrseq is reference to an ARRAY
-	unless (defined $Routine{$tag}) {
-		if(defined $Alias{$tag}) {
-			my ($rest, $text);
-			($tag, $rest) = split /\s+/, $Alias{$tag}, 2;
-			$text = _find_tag (\$rest, $attr, $attrseq);
-			$text = " $text" if $text;
-			$origtext =~ s:^(\[\S+):[$tag$text:;
-		}
-		else {
-			$self->{OUT} .= $origtext;
-			return 1;
-		}
-	}
-
-	if(defined $InvalidateCache{$tag} and !$attr->{cache}) {
-		$self->{INVALID} = 1;
-	}
-
-	$attr->{interpolate} = $self->{INTERPOLATE}
-		unless $Interpolate{$tag} or defined $attr->{interpolate};
-
-	my $trib;
-	foreach $trib (@$attrseq) {
-		# Attribute aliases
-		if(defined $attrAlias{$tag} and $attrAlias{$tag}{$trib}) {
-			my $new = $attrAlias{$tag}{$trib} ;
-			$attr->{$new} = delete $attr->{$trib};
-			$trib = $new;
-		}
-		# Parse tags within tags, only works if the [ is the
-		# first character.
-		next unless $attr->{$trib} =~ /\[\w+[-\w]*\s*[\000-\377]*\]/;
-
-		my $p = new Vend::Parse;
-		$p->parse($attr->{$trib});
-		$attr->{$trib} = $p->{OUT};
-		$self->{INVALID} += $p->{INVALID};
-	}
-
-	$attr->{'reparse'} = 1 unless defined $Gobble{$tag} || defined $attr->{'reparse'};
-	$attr->{'true'} = 1;
-	$attr->{'false'} = 0;
-	$attr->{'undef'} = undef;
-
-	my ($routine,@args);
-
-	# Check for old-style positional tag
-	if(!@$attrseq and $origtext =~ s/\[[-\w]+\s+//i) {
-			$origtext =~ s/\]$//;
-			$attr->{interpolate} = 0 if $hasEndTag{$tag} and $canNest{$tag};
-			$attr->{interpolate} = 1 if defined $Interpolate{$tag};
-			@args = ($origtext);
-			if(defined $PosNumber{$tag} and $PosNumber{$tag} > 1) {
-				@args = split /\s+/, $origtext, $PosNumber{$tag};
-				push(@args, undef) while @args < $PosNumber{$tag};
-			}
-			$routine =  $PosRoutine{$tag} || $Routine{$tag};
-	}
-	else {
-		$routine = $Routine{$tag};
-		$attr->{interpolate} = 1
-			if  defined $Interpolate{$tag} and ! defined $attr->{interpolate};
-		@args = @{$attr}{ @{ $Order{$tag} } };
-		push(@args, $attr) if $addAttr{$tag};
-	}
-
-#::logGlobal("Interpolate value now='$attr->{interpolate}'") if$Monitor{$tag};
-
-
-#::logGlobal(<<EOF) if $Monitor{$tag};
-#tag=$tag
-#routine=$routine
-#has_end=$hasEndTag{$tag}
-#attributes=@args
-#interpolate=$attr->{interpolate}
-#EOF
-
-	if($tag =~ /^[gb]o/) {
-		if($tag eq 'goto') {
-			return 1 if defined $attr->{'if'} and
-						(! $attr->{'if'} or $attr->{'if'} =~ /^\s*[\s0]\s*$/); 
-			if(! $args[0]) {
-				$$buf = '';
-				$Initialized->{_buf} = '';
-				$self->{ABORT} = 1
-					if $attr->{abort};
-				return ($self->{SEND} = 1);
-			}
-			goto_buf($args[0], \$Initialized->{_buf});
-			$self->{ABORT} = 1;
-			$self->{SEND} = 1 if ! $Initialized->{_buf};
-			return 1;
-		}
-		elsif($tag eq 'bounce') {
-			return 1 if defined $attr->{'if'} and
-						(! $attr->{'if'} or $attr->{'if'} =~ /^\s*[\s0]\s*$/); 
-			$Vend::StatusLine = '' if ! $Vend::StatusLine;
-			$Vend::StatusLine .= <<EOF;
-Status: 302 moved
-Location: $attr->{href}
-EOF
-			$$buf = '';
-			$Initialized->{_buf} = '';
-			$self->{SEND} = 1;
-			return 1;
-		}
-	}
-
-	if($hasEndTag{$tag}) {
-		# Handle embedded tags, but only if interpolate is 
-		# defined (always if using old tags)
-#::logGlobal("look end for $tag, buf=" . length($$buf) );
-		$tmpbuf = find_matching_end($tag, $buf);
-#::logGlobal("FOUND end for $tag\nBuf " . length($$buf) . ":\n" . $$buf . "\nTmpbuf:\n$tmpbuf\n");
-		if ($attr->{interpolate}) {
-			my $p = new Vend::Parse;
-			$p->parse($tmpbuf);
-			$tmpbuf = $p->{ABORT} ? '' : $p->{OUT};
-		}
-		if($attr->{reparse} ) {
-			my $intermediate = &$routine(@args,$tmpbuf);
-			$$buf = $intermediate . $$buf;
-		}
-		else {
-			$self->{OUT} .= &{$routine}(@args,$tmpbuf);
-		}
-	}
-	elsif(! $attr->{interpolate}) {
-		$self->{OUT} .= &$routine( @args );
-	}
-	else {
-		$$buf = &$routine( @args ) . $$buf;
-	}
-
-	$self->{SEND} = $attr->{'send'} || undef;
-#::logGlobal("Returning from $tag");
-	return 1;
-}
-
-sub end
-{
-    my($self, $tag) = @_;
-	my $save = $tag;
-	$tag =~ tr/-/_/;   # canonical
-	
-# DEBUG
-#Vend::Util::logDebug
-#("called Vend::Parse::end with $tag\n")
-#	if ::debug(0x2);
-# END DEBUG
-
-	$self->{OUT} .= $isEndAnchor{$tag} ? '</a>' : "[/$save]";
-
-}
-
-sub find_html_end {
-    my($tag, $buf) = @_;
-    my $out;
-	my $canon;
-
-    my $open  = "<$tag ";
-    my $close = "</$tag>";
-	($canon = $tag) =~ s/_/[-_]/g;
-
-    $$buf =~ s!<$canon\s!<$tag !ig;
-    $$buf =~ s!</$canon\s*>!</$tag>!ig;
-    my $first = index($$buf, $close);
-    return undef if $first < 0;
-    my $int = index($$buf, $open);
-    my $pos = 0;
-#::logGlobal("find_html_end: tag=$tag open=$open close=$close $first=$first pos=$pos int=$int");
-    while( $int > -1 and $int < $first) {
-        $pos   = $int + 1;
-        $first = index($$buf, $close, $first + 1);
-        $int   = index($$buf, $open, $pos);
-#::logGlobal("find_html_end: tag=$tag open=$open close=$close $first=$first pos=$pos int=$int");
-    }
-#::logGlobal("find_html_end: tag=$tag open=$open close=$close $first=$first pos=$pos int=$int");
-	return undef if $first < 0;
-    $first += length($close);
-#::logGlobal("find_html_end (add close): tag=$tag open=$open close=$close $first=$first pos=$pos int=$int");
-    $out = substr($$buf, 0, $first);
-    substr($$buf, 0, $first) = '';
-    return $out;
-}
-
-sub find_matching_end {
-    my($tag, $buf) = @_;
-    my $out;
-	my $canon;
-
-    my $open  = "[$tag ";
-    my $close = "[/$tag]";
-	($canon = $tag) =~ s/_/[-_]/g;
-
-    $$buf =~ s!\[$canon\s![$tag !ig;
-    $$buf =~ s!\[/$canon\]![/$tag]!ig;
-    my $first = index($$buf, $close);
-    if ($first < 0) {
-		if($Gobble{$tag}) {
-			$out = $$buf;
-			$$buf = '';
-			return $out;
-		}
-		return undef;
-	}
-    my $int = index($$buf, $open);
-    my $pos = 0;
-    while( $int > -1 and $int < $first) {
-        $pos   = $int + 1;
-        $first = index($$buf, $close, $first + 1);
-        $int   = index($$buf, $open, $pos);
-    }
-    $out = substr($$buf, 0, $first);
-    $first = $first < 0 ? $first : $first + length($close);
-    substr($$buf, 0, $first) = '';
-    return $out;
-}
-
-# Passed some string that might be HTML-style attributes
-# or might be positional parameters, does the right thing
-sub _find_tag {
-	my ($buf, $attrhash, $attrseq) = (@_);
-	my $old = 0;
-	my $eaten = '';
-	my %attr;
-	my @attrseq;
-	while ($$buf =~ s|^(([a-zA-Z][-a-zA-Z0-9._]*)\s*)||) {
-		$eaten .= $1;
-		my $attr = lc $2;
-		my $val;
-		$old = 0;
-		# The attribute might take an optional value (first we
-		# check for an unquoted value)
-		if ($$buf =~ s|(^=\s*([^\"\'\]\s][^\]\s]*)\s*)||) {
-			$eaten .= $1;
-			$val = $2;
-			HTML::Entities::decode($val);
-		# or quoted by " or '
-		} elsif ($$buf =~ s|(^=\s*([\"\'])(.*?)\2\s*)||s) {
-			$eaten .= $1;
-			$val = $3;
-			HTML::Entities::decode($val);
-		# truncated just after the '=' or inside the attribute
-		} elsif ($$buf =~ m|^(=\s*)$| or
-				 $$buf =~ m|^(=\s*[\"\'].*)|s) {
-			$eaten = "$eaten$1";
-			last;
-		} else {
-			# assume attribute with implicit value, which 
-			# means in MiniVend no value is set and the
-			# eaten value is grown. Note that you should
-			# never use an implicit tag when setting up an Alias.
-			$old = 1;
-		}
-		next if $old;
-		$attrhash->{$attr} = $val;
-		push(@attrseq, $attr);
-	}
-	unshift(@$attrseq, @attrseq);
-	return ($eaten);
-}
-
-# checks for implicit tags
-# INT is special in that it doesn't get pushed on @attrseq
-sub implicit {
-	my($self, $tag, $attr) = @_;
-# DEBUG
-Vend::Util::logDebug
-("check tag='$tag' attr='$attr'...")
-	if ::debug(0x2);
-# END DEBUG
-	return ('interpolate', 1, 1) if $attr eq 'int';
-	return ($attr, undef) unless defined $Implicit{$tag} and $Implicit{$tag}{$attr};
-	my $imp = $Implicit{$tag}{$attr};
-	return ($attr, $imp) if $imp =~ s/^$attr=//i;
-	return ( $Implicit{$tag}{$attr}, $attr );
-}
-
-if (! $Global::VendRoot) {
-	tag_reference();
+if ($ARGV[0] eq 'print' || ! $Global::VendRoot) {
+	print tag_reference();
 }
 
 1;
-__END__
+__DATA__
 accessories
 %%
 

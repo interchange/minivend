@@ -1,6 +1,6 @@
 # Vend/DbSearch.pm:  Search indexes with Perl
 #
-# $Id: DbSearch.pm,v 1.2 1999/08/13 18:24:47 mike Exp $
+# $Id: DbSearch.pm,v 1.3 1999/08/14 07:46:06 mike Exp $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::TextSearch
 #
@@ -25,7 +25,7 @@ require Vend::Search;
 
 @ISA = qw(Vend::Search);
 
-$VERSION = substr(q$Revision: 1.2 $, 10);
+$VERSION = substr(q$Revision: 1.3 $, 10);
 
 use Search::Dict;
 use strict;
@@ -44,7 +44,7 @@ sub new {
 sub init {
 	my $s = shift;
 	my $g = $s->{global};
-	$s->{global}->{base_directory} = 'products';
+	$s->{global}->{base_directory} = $Vend::Cfg->{ProductFiles}[0];
 	$s->{global}->{search_file} = '';
 }
 

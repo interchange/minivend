@@ -1,6 +1,6 @@
 # Data.pm - Minivend databases
 #
-# $Id: Data.pm,v 1.59 1999/08/13 18:24:39 mike Exp $
+# $Id: Data.pm,v 1.60 1999/08/14 07:45:55 mike Exp $
 # 
 # Copyright 1996-1999 by Michael J. Heins <mikeh@iac.net>
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -374,7 +374,7 @@ sub sql_query {
 	my($type, $internal_query, $query, $msql, $table, $list) = @_;
 	my ($db);
 
-	$table = 'products' unless defined $table;
+	$table = $Vend::Cfg->{ProductFiles}[0] unless defined $table;
 	$db = $Vend::Database{$table}
 		or die "dbi_query: unknown base table $table.\n";
 	$db = $db->ref();

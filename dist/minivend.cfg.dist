@@ -14,6 +14,16 @@
 
 
 
+## Legacy                  Default: No
+#
+# MiniVend relied on certain defaults for the databases and other directives.
+#
+# This directive turns on certain older legacy defaults and should be tried
+# at "yes" if your system doesn't run at update.
+#
+Legacy    No
+
+
 ## AdminUser                    Default: blank
 #
 # The user and password which will allow access to the special mv_admin

@@ -32,8 +32,6 @@ dist/admin/pages/seefile.html
 dist/admin/pages/special/noproduct.html
 dist/admin/pages/special/notfound.html
 dist/admin/pages/special/violation.html
-dist/admin/products/database.asc
-dist/admin/products/directive.asc
 dist/admin/products/locale.asc
 dist/admin/products/products.asc
 dist/admin/products/wizard.asc
@@ -242,6 +240,7 @@ dist/simple/pages/special/sec_faq.html
 dist/simple/pages/special/security.html
 dist/simple/pages/special/violation.html
 dist/simple/pages/srchform.html
+dist/simple/pages/view_page.html
 dist/simple/products/2ndDayAir.csv
 dist/simple/products/2ndDayAirAM.csv
 dist/simple/products/3DaySelect.csv
@@ -286,7 +285,6 @@ dist/usertag/email
 dist/usertag/loc
 dist/usertag/summary
 dist/usertag/var
-doc/Tagref.pm
 doc/bullet.gif
 doc/frtoc.html
 doc/intro.html
@@ -332,6 +330,7 @@ lib/Vend/Table/Import.pm
 lib/Vend/Table/InMemory.pm
 lib/Vend/Table/Quoted.pm
 lib/Vend/Table/Update.pm
+lib/Vend/Tagref.pm
 lib/Vend/TextSearch.pm
 lib/Vend/UserDB.pm
 lib/Vend/Util.pm

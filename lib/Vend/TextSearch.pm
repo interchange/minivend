@@ -1,6 +1,6 @@
 # Vend/TextSearch.pm:  Search indexes with Perl
 #
-# $Id: TextSearch.pm,v 1.26 1999/08/13 18:26:59 mike Exp $
+# $Id: TextSearch.pm,v 1.27 1999/08/14 07:47:11 mike Exp $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::TextSearch
 #
@@ -25,7 +25,7 @@ require Vend::Search;
 
 @ISA = qw(Vend::Search);
 
-$VERSION = substr(q$Revision: 1.26 $, 10);
+$VERSION = substr(q$Revision: 1.27 $, 10);
 
 use Search::Dict;
 use strict;
@@ -92,12 +92,6 @@ sub search {
 	}
 	elsif ($g->{search_file}) {
 		@searchfiles = $g->{search_file};
-	}
-	else {
-		&{$g->{error_routine}}($g->{error_page},
-			"{search_file} must be array reference or scalar.\n");
-		$g->{matches} = -1;
-		return undef; # If it makes it this far
 	}
 
 	if($g->{base_directory}) {
