@@ -354,6 +354,9 @@ sub AUTOLOAD {
 		die "must be in endless loop, autoloaded $Tmp::Autoloaded times";
 	}
 
+	chdir $Vend::Cfg->{VendRoot} 
+		or die "Couldn't change to $Vend::Cfg->{VendRoot}: $!\n";
+
 	::open_database();
 	open_soap_session();
 #::logDebug("SOAP init_session done, session_id=$Vend::SessionID");
