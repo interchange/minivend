@@ -170,6 +170,8 @@ for (@ARGV) {
 	die $usage unless $action eq 'on' or $action eq 'off';
 
 	# find out position in initialization list from each config file itself
+	s/\.cfg$//;
+	s/^S\d+//;
 	my $cfg = $_;
 	my $cfgfile = "$init_dir/$cfg.cfg";
 	my $header = Vend::Util::get_cfg_header($cfgfile);
