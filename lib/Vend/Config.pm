@@ -3433,7 +3433,7 @@ my %tagBool = ( qw!
                 isOperator  1
                 ItemAction  1
 				noRearrange	1
-		NoReparse   1
+				NoReparse   1
                 OrderCheck  1
                 UserTag     1
 				! );
@@ -3464,12 +3464,8 @@ sub finalize_mapped_code {
 		}
 	}
 
-	if(! $C and $ref = $c->{OrderCheck} and $ref->{Routine}) {
-		$Vend::Order::OrderCheck = $ref->{Routine};
-	}
-
 	no strict 'refs';
-	for my $type (qw/ ActionMap FormAction ItemAction /) {
+	for my $type (qw/ ActionMap FormAction ItemAction OrderCheck /) {
 		my $ref;
 		my $r;
 		next unless $r = $c->{$type};
