@@ -258,7 +258,7 @@ sub round_to_frac_digits {
 		$digits = 2;
 	}
 	my @frac;
-	$num =~ /^(\d*)(?:\.(\d+))*$/
+	$num =~ /^(\d*)(?:\.(\d+))?$/
 		or return $num;
 	my $int = $1;
 	@frac = split(//, ($2 || 0));
