@@ -56,13 +56,14 @@ sub display_special_page {
 
 	undef $Vend::write_redirect;
 
-	$name =~ m/[\[<]/
+	$name =~ m/[\[<]|[\@_]_[A-Z]\w+_[\@_]|\@\@[A-Z]\w+\@\@/
 		and do {
 			::logGlobal(
 					"Security violation -- scripting character in page name '%s'.",
 					$name,
 				);
-			$name = 'violation';
+			$name = find_special_page('violation');
+			1 while $subject =~ s/[\@_]_/_/g;
 		};
 
 	$subject ||= 'unspecified error';
@@ -90,13 +91,13 @@ sub display_page {
 
 	$name ||= $CGI::values{mv_nextpage};
 
-	$name =~ m/[\[<]/
+	$name =~ m/[\[<]|[\@_]_[A-Z]\w+_[\@_]|\@\@[A-Z]\w+\@\@/
 		and do {
 			::logGlobal(
 					"Security violation -- scripting character in page name '%s'.",
 					$name,
 				);
-			$name = 'violation';
+			$name = find_special_page('violation');
 			return display_special_page($name);
 		};
 
