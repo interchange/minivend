@@ -299,7 +299,6 @@ sub _parse_config_line {
 	my %map_options = (fallback => 1);
 	my ($map_table, $map_column);
 
-	::logError("Calling config: $p $val");
 	if (@f < 2) {
 		Vend::Config::config_error("At least two parameters needed for $p.");
 	}
