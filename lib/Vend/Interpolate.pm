@@ -2995,7 +2995,7 @@ sub escape_form {
 	$val =~ s/\s+$//mg;
 	my @args;
 	if($val =~ /^\S+=\S+=\S*$/) {
-		$val = unhexify($val);
+		$val = Vend::Util::unhexify($val);
 		@args = split $Global::UrlSplittor, $val;
 	}
 	else {
