@@ -1470,11 +1470,11 @@ sub tag_if {
 		$out = $body;
 	}
 	elsif ($elsif) {
-		$else = '[else]' . $else . '[/else]' if $else;
+		$else = '[else]' . $else . '[/else]' if length $else;
 		$elsif =~ s#(.*?)$QR{'/elsif'}(.*)#$1${2}[/elsif]#s;
 		$out = '[if ' . $elsif . $else . '[/if]';
 	}
-	elsif ($else) {
+	elsif (length $else) {
 		$out = $else;
 	}
 	return $out;
@@ -3103,11 +3103,11 @@ sub tag_self_contained_if {
 		$out = $body;
 	}
 	elsif ($elsif) {
-		$else = '[else]' . $else . '[/else]' if $else;
+		$else = '[else]' . $else . '[/else]' if length $else;
 		$elsif =~ s#(.*?)$QR{'/elsif'}(.*)#$1${2}[/elsif]#s;
 		$out = '[if ' . $elsif . $else . '[/if]';
 	}
-	elsif ($else) {
+	elsif (length $else) {
 		$out = $else;
 	}
 	else {

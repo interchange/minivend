@@ -674,7 +674,7 @@ EOF
 			$tmpbuf = $p->{ABORT} ? '' : $p->{OUT};
 		}
 		if($attr->{reparse} ) {
-			$$buf = ($routine->(@args,$tmpbuf) || '') . $$buf;
+			$$buf = ($routine->(@args,$tmpbuf)) . $$buf;
 		}
 		else {
 			$self->{OUT} .= &{$routine}(@args,$tmpbuf);
