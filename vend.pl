@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Vend version 0.1 (alpha)
+# Vend version 0.2 (alpha)
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -244,8 +244,17 @@ sub config {
     foreach $d (@$directives) {
 	($directive = $d->[0]) =~ tr/A-Z/a-z/;
 	$name{$directive} = $d->[0];
-	$parse{$directive} = 'parse_' . $d->[1] if defined $d->[1];
-	${'Config::' . $name{$directive}} = $d->[2];
+	if (defined $d->[1]) {
+	    $parse = 'parse_' . $d->[1];
+	} else {
+	    $parse = undef;
+	}
+	$parse{$directive} = $parse;
+	$value = $d->[2];
+	if (defined $parse and defined $value) {
+	    $value = &$parse($d->[0], $value);
+	}
+	${'Config::' . $name{$directive}} = $value;
     }
 
     open(Vend::CONFIG, $Config::ConfigFile)
@@ -1391,7 +1400,7 @@ sub parse_options {
 }
 
 sub version {
-    print "Vend version 0.1 Copyright 1995 Andrew M. Wilcox\n";
+    print "Vend version 0.2 Copyright 1995 Andrew M. Wilcox\n";
 }
 
 sub usage {

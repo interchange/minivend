@@ -1,0 +1,6 @@
+Version 0.2
+  svend.c cleaned up
+  configuration directives now get correct default values
+
+Version 0.1
+  initial release
