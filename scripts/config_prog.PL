@@ -1,6 +1,6 @@
 #$self = {
-#	INSTALLPRIVLIB => '/usr/local/minivend/lib',
-#	INSTALLARCHLIB => '/usr/local/minivend',
+#	INSTALLPRIVLIB => '/usr/local/interchange/lib',
+#	INSTALLARCHLIB => '/usr/local/interchange',
 #};
 
 use Config;
@@ -46,9 +46,9 @@ DOIT: {
 # Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
 # MA  02111-1307  USA.
 
-use lib '/usr/local/minivend/lib';
+use lib '/usr/local/interchange/lib';
 #use lib '~_~INSTALLPRIVLIB~_~';
-use lib '/usr/local/minivend';
+use lib '/usr/local/interchange';
 #use lib '~_~INSTALLARCHLIB~_~';
 
 use Getopt::Long;
@@ -73,15 +73,15 @@ options:
 EOF
 
 my $Self = {
-	INSTALLPRIVLIB => '/usr/local/minivend/lib',
+	INSTALLPRIVLIB => '/usr/local/interchange/lib',
 #	INSTALLPRIVLIB => '~_~INSTALLPRIVLIB~_~',
-	INSTALLARCHLIB => '/usr/local/minivend',
+	INSTALLARCHLIB => '/usr/local/interchange',
 #	INSTALLARCHLIB => '~_~INSTALLARCHLIB~_~',
-	INSTALLMAN1DIR => '/usr/local/minivend/doc',
+	INSTALLMAN1DIR => '/usr/local/interchange/doc',
 #	INSTALLMAN1DIR => '~_~INSTALLMAN1DIR~_~',
-	INSTALLSCRIPT => '/usr/local/minivend/bin',
+	INSTALLSCRIPT => '/usr/local/interchange/bin',
 #	INSTALLSCRIPT => '~_~INSTALLARCHLIB~_~/bin',
-	INSTALLBIN => '/usr/local/minivend/bin',
+	INSTALLBIN => '/usr/local/interchange/bin',
 #	INSTALLBIN => '~_~INSTALLBIN~_~',
 };
 

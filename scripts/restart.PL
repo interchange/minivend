@@ -1,6 +1,6 @@
 #$self = {
-#	INSTALLPRIVLIB => '/usr/local/minivend/lib',
-#	INSTALLARCHLIB => '/usr/local/minivend',
+#	INSTALLPRIVLIB => '/usr/local/interchange/lib',
+#	INSTALLARCHLIB => '/usr/local/interchange',
 #};
 
 use Config;
@@ -46,9 +46,9 @@ DOIT: {
 # Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
 # MA  02111-1307  USA.
 
-$Global::VendRoot = $Global::VendRoot || '/usr/local/minivend';
+$Global::VendRoot = $Global::VendRoot || '/usr/local/interchange';
 #$Global::VendRoot = $Global::VendRoot || '~_~INSTALLARCHLIB~_~';
-$Global::VendBin = $Global::VendBin || '/usr/local/minivend/bin';
+$Global::VendBin = $Global::VendBin || '/usr/local/interchange/bin';
 #$Global::VendBin = $Global::VendBin || '~_~INSTALLBIN~_~';
 
 my $force;
