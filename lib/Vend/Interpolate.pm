@@ -5112,6 +5112,7 @@ sub region {
 
 	if($opt->{ml} and ! defined $obj->{mv_matchlimit} ) {
 		$obj->{mv_matchlimit} = $opt->{ml};
+		$obj->{mv_more_decade} = $opt->{md};
 		$obj->{matches} = scalar @{$obj->{mv_results}};
 		$obj->{mv_cache_key} = generate_key(substr($page,0,100));
 		$obj->{mv_first_match} = $opt->{fm} if $opt->{fm};
