@@ -842,8 +842,11 @@ sub query {
 			
 			if ($opt->{hashref}) {
 				my @ary;
-				while ( defined ($_ = $sth->fetchrow_hashref) ) {
-					push @ary, $_;
+				while ( defined (my $rowhashref = $sth->fetchrow_hashref) ) {
+					if ($s->config('UPPERCASE')) {
+						$rowhashref->{lc $_} = $rowhashref->{$_} for (keys %$rowhashref);
+					}
+					push @ary, $rowhashref;
 				}
 				die $DBI::errstr if $sth->err();
 				$ref = $Vend::Interpolate::Tmp->{$opt->{hashref}} = \@ary;
