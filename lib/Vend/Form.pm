@@ -94,6 +94,8 @@ my $Tag = new Vend::Tags;
 		.
 		qq({COLS?} cols="{COLS}"{/COLS?})
 		.
+		qq({MAXLENGTH?} maxlength="{MAXLENGTH}"{/MAXLENGTH?})
+		.
 		qq({WRAP?} wrap="{WRAP}"{/WRAP?})
 		.
 		qq({EXTRA?} {EXTRA}{/EXTRA?})
@@ -106,6 +108,8 @@ my $Tag = new Vend::Tags;
 		qq({PREPEND}<input type="password" name="{NAME}" value="{ENCODED}")
 		.
 		qq({COLS?} size="{COLS}"{/COLS?})
+		.
+		qq({MAXLENGTH?} maxlength="{MAXLENGTH}"{/MAXLENGTH?})
 		.
 		qq({EXTRA?} {EXTRA}{/EXTRA?})
 		.
@@ -133,6 +137,8 @@ my $Tag = new Vend::Tags;
 		qq({PREPEND}<input type="text" name="{NAME}" value="{ENCODED}")
 		.
 		qq({COLS?} size="{COLS}"{/COLS?})
+		.
+		qq({MAXLENGTH?} maxlength="{MAXLENGTH}"{/MAXLENGTH?})
 		.
 		qq({EXTRA?} {EXTRA}{/EXTRA?})
 		.
