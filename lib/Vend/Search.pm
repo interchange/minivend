@@ -149,10 +149,10 @@ sub hash_fields {
 
 sub escape {
     my($s, @text) = @_;
-#::logDebug( "text=@text");
+#::logDebug( "escaped text=" . ::uneval(\@text));
 	return @text if ! $s->{mv_all_chars}[0];
 	@text = map {quotemeta $_} @text;
-#::logDebug( "text=@text");
+#::logDebug( "escaped text=" . ::uneval(\@text));
     return @text;
 }
 
