@@ -117,16 +117,15 @@ $ESCAPE_CHARS::ok_in_url =
 ## This is a character class for HTML::Entities
 $ESCAPE_CHARS::std = "^\n\t !\#\$%\'-;=?-Z\\\]-~";
 
-## HTML::Entities caches this, let's get it cached right away so
-## each child doesn't have to re-eval
-{
-	my $junk = HTML::Entities::encode(">>>123<<<", $ESCAPE_CHARS::std);
-}
-
 my $need_escape;
 
 sub setup_escape_chars {
     my($ok, $i, $a, $t);
+
+	## HTML::Entities caches this, let's get it cached right away so
+	## each child doesn't have to re-eval
+	my $junk = ">>>123<<<";
+	HTML::Entities::encode($junk, $ESCAPE_CHARS::std);
 
     foreach $i (0..255) {
         $a = chr($i);
