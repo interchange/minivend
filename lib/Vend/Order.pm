@@ -1360,9 +1360,6 @@ sub route_order {
 		#####
 
 		# Compatibility 
-		if(! defined $route->{payment_mode} ) {
-			$route->{payment_mode} = $route->{cybermode};
-		}
 		if($route->{cascade}) {
 			my @extra = grep /\S/, split /[\s,\0]+/, $route->{cascade};
 			for(@extra) {
@@ -1381,6 +1378,7 @@ sub route_order {
 
 	eval {
 
+	  PROCESS: {
 		if(! $check_only and $route->{inline_profile}) {
 			my $status;
 			my $err;
@@ -1416,6 +1414,8 @@ sub route_order {
 			}
 		}
 
+	  	last PROCESS if $check_only;
+
 		if($route->{payment_mode}) {
 			my $ok;
 			$ok = Vend::Payment::charge($route->{payment_mode});
@@ -1438,8 +1438,6 @@ sub route_order {
 							);
 		}
 
-	  PROCESS: {
-	  	last PROCESS if $check_only;
 		if($Vend::Session->{mv_order_number}) {
 			$::Values->{mv_order_number} = $Vend::Session->{mv_order_number};
 		}
