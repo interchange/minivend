@@ -243,7 +243,7 @@ sub itransact {
 	$actual{mv_credit_card_number} =~ s/\D//g;
 
 	my @month = (qw/January
-				   Febuary
+				   February
 				   March
 				   April
 				   May
