@@ -839,7 +839,12 @@ sub tag_data {
 	}
 
 	#The most common , don't enter a block, no accoutrements
-	return ed(database_field($selector,$key,$field,$opt->{foreign}));
+	my $value = ed(database_field($selector,$key,$field,$opt->{foreign}));
+
+	if ($opt->{filter}) {
+		$value = filter_value($opt->{filter}, $value, $field);
+	}
+	return $value;
 
 }
 
