@@ -122,8 +122,6 @@ EOF
 # The URL-style location of the normal CGI directory.
 # Only used to set the default for the CgiUrl setting.
 # 
-# DO NOT PUT A TRAILING /.
-#
 # http://www.virtual.com/cgi-bin/prog
 #                       ^^^^^^^^
 #
@@ -196,7 +194,7 @@ EOF
 # only important if Interchange catalogs will be owned by multiple users
 # and the group to be used is not the default for the catalog user.
 #
-# Normally this is left blank.
+# Normally this is left blank unless G mode was selected above.
 # 
 EOF
 	sharedir => <<EOF,
