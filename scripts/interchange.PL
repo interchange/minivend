@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 ##!~_~perlpath~_~
 #
-# Interchange version 4.9.4
+# Interchange version 4.9.5
 #
 # $Id$
 #
@@ -126,7 +126,7 @@ use vars qw($VERSION);
 require Exporter;
 
 BEGIN {
-	$VERSION = '4.9.4';
+	$VERSION = '4.9.5';
 }
 
 use Fcntl;
@@ -351,7 +351,7 @@ interchange [--options] [file]
 
 =head1 VERSION
 
-4.9.4
+4.9.5
 
 =head1 DESCRIPTION
 
