@@ -569,7 +569,7 @@ sub sql_statement {
 	}
 
 	die "SQL is not enabled for Interchange. Get the SQL::Statement module.\n"
-		unless $INC{'SQL/Statement.pm'};
+		unless defined &SQL::Statement::new;
 
 	my $parser = SQL::Parser->new('Ansi');
 
