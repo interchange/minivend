@@ -170,6 +170,7 @@ sub escape_chars {
 
 sub escape_chars_url {
     my($in) = @_;
+	return $in unless $in =~ $need_escape;
     my($c, $r);
 
     $r = '';

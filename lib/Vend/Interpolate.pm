@@ -3031,6 +3031,7 @@ sub form_link {
 
 	$href = 'process' unless length($href);
 	$href =~ s:^/+::;
+	$href = Vend::Util::escape_chars_url($href);
 	$opt->{secure} = 1 if exists $Vend::Cfg->{AlwaysSecure}{$href};
 	my $base = ! $opt->{secure} ? ($Vend::Cfg->{VendURL}) : $Vend::Cfg->{SecureURL};
 	$href = "$base/$href"     unless $href =~ /^\w+:/;
