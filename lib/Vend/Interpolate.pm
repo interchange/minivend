@@ -6288,42 +6288,61 @@ sub tax_vat {
 			next;
 		}
 		elsif ($t =~ /handling:(.*)/) {
-		my @modes = grep /\S/, split /[\s,]+/, $1;
-		
-		my $cost = 0;
-		$cost += tag_handling($_) for @modes;
+			my @modes = grep /\S/, split /[\s,]+/, $1;
+			
+			my $cost = 0;
+			$cost += tag_handling($_) for @modes;
 			$total += $cost;
 			next;
-	}
-	my $tax;
+		}
+		my $tax;
 #::logDebug("tax type=$t");
 		if($t =~ /^(\d+(?:\.\d+)?)\s*(\%)$/) {
-		my $rate = $1;
-		$rate /= 100 if $2;
-		my $amount = Vend::Interpolate::taxable_amount();
+			my $rate = $1;
+			$rate /= 100 if $2;
+			my $amount = Vend::Interpolate::taxable_amount();
 			$total += ($rate * $amount);
-	}
-	else {
+		}
+		else {
 			$tax = Vend::Util::get_option_hash($t);
-	}
+		}
 #::logDebug("tax hash=" . uneval($tax));
-	my $pfield   = $opt->{tax_category_field}
-				|| $::Variable->{MV_TAX_CATEGORY_FIELD}
-				|| 'tax_category';
-	my @pfield = split /:+/, $pfield;
+		my $pfield   = $opt->{tax_category_field}
+					|| $::Variable->{MV_TAX_CATEGORY_FIELD}
+					|| 'tax_category';
+		my @pfield = split /:+/, $pfield;
 
-	for my $item (@$Vend::Items) {
+		for my $item (@$Vend::Items) {
 			my $rhash = tag_data($item->{mv_ib}, undef, $item->{code}, { hash => 1});
-		my $cat = join ":", @{$rhash}{@pfield};
-		my $rate = defined $tax->{$cat} ? $tax->{$cat} : $tax->{default};
+			my $cat = join ":", @{$rhash}{@pfield};
+			my $rate = defined $tax->{$cat} ? $tax->{$cat} : $tax->{default};
 #::logDebug("item $item->{code} cat=$cat rate=$rate");
-		$rate =~ s/\s*%\s*$// and $rate /= 100;
-		next if $rate <= 0;
-		my $sub = Vend::Data::item_subtotal($item);
+			$rate =~ s/\s*%\s*$// and $rate /= 100;
+			next if $rate <= 0;
+			my $sub = Vend::Data::item_subtotal($item);
 #::logDebug("item $item->{code} subtotal=$sub");
-		$total += $sub * $rate;
+			$total += $sub * $rate;
 #::logDebug("tax total=$total");
-	}
+		}
+			
+		## Add some tax on shipping if rate for mv_shipping category is set
+		if ($tax->{mv_shipping} > 0) {
+			my $rate = $tax->{mv_shipping};
+			$rate =~ s/\s*%\s*$// and $rate /= 100;
+			my $sub = tag_shipping() * $rate;
+#::logDebug("applying shipping tax rate of $rate, tax of $sub");
+			$total += $sub;
+		}
+
+		## Add some tax on handling if rate for mv_handling category is set
+		if ($tax->{mv_handling} > 0) {
+			my $rate = $tax->{mv_handling};
+			$rate =~ s/\s*%\s*$// and $rate /= 100;
+			my $sub = tag_handling() * $rate;
+#::logDebug("applying handling tax rate of $rate, tax of $sub");
+			$total += $sub;
+		}
+
 	}
 	return $total;
 }
