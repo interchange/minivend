@@ -1990,7 +1990,7 @@ eval {
 	# force to numeric, to handle DBI "0E0"-type results
 	$::Values->{mv_search_match_count} = $rc + 0;
 	if ($opt->{row_count}) {
-		return $rc unless $opt->{list};
+		return $rc + 0 unless $opt->{list};
 		$ref = [ [ $rc ] ];
 		@na = [ 'row_count' ];
 		%nh = ( 'rc' => 0, 'count' => 0, 'row_count' => 0 );
