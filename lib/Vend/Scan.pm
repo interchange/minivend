@@ -1,6 +1,6 @@
 # Vend/Scan.pm:  Prepare searches for MiniVend
 #
-# $Id: Scan.pm,v 1.10 1997/05/25 06:10:54 mike Exp mike $
+# $Id: Scan.pm,v 1.12 1997/06/27 11:32:10 mike Exp mike $
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ require Exporter;
 			perform_search
 			);
 
-$VERSION = substr(q$Revision: 1.10 $, 10);
+$VERSION = substr(q$Revision: 1.12 $, 10);
 
 use strict;
 use Vend::Util;
@@ -260,11 +260,12 @@ sub find_search_params {
 	for(@args) {
 		($var,$val) = split /=/, $_, 2;
 		$val =~ s!::!/!g;
+		$val =~ s/%([A-Fa-f0-9][A-Fa-f0-9])/chr(hex($1))/ge;
 		if ($var eq 'dl' || $var eq 'se') {
+			$val =~ s/\.(..)/chr(hex($1))/ge;
 			unless
 			(defined $c->{$Scan{uc $var}})	{ $c->{$Scan{uc $var}} =  $val		}
 			else   							{ $c->{$Scan{uc $var}} .= ".00$val" }
-			$val =~ s/\.(..)/chr(hex($1))/ge;
 		}
 		if (defined $Scan{$var}) {
 			unless
@@ -381,8 +382,7 @@ sub sql_search {
 					logError("non-existent database '$tables[0]'");
 					return undef;
 				};
-	my($result, $test) = $db->record_exists('NeVAIrBe');
-	$db = $test if defined $test;
+	$db = $db->ref();
 
 	if($options->{return_fields} eq '*') {
 		$options->{field_names} = $db->columns();
@@ -494,10 +494,10 @@ sub finish_up {
 		}
 	}
 	elsif (defined $matches and $matches == 0) {
-		if (defined $Vend::Cfg->{'CollectData'}->{'nomatch'}) {
-			$msg = join " ",
+		$msg = join " ",
 						$q->specs(),
 						$q->{global}->{dict_look};
+		if (defined $Vend::Cfg->{'CollectData'}->{'nomatch'}) {
 			logData($Vend::Cfg->{'LogFile'}, format_log_msg('no match: ' . $msg));
 		}
 		::display_special_page($Vend::Cfg->{'Special'}->{'nomatch'}, $msg)
@@ -724,3 +724,4 @@ sub _dict_limit {
 }
 
 1;
+__END__

@@ -1,6 +1,6 @@
 # Interpolate.pm - Interpret MiniVend tags
 # 
-# $Id: Interpolate.pm,v 1.13 1997/05/25 06:10:54 mike Exp mike $
+# $Id: Interpolate.pm,v 1.14 1997/06/17 04:22:52 mike Exp $
 #
 # Copyright 1996 by Michael J. Heins <mikeh@iac.net>
 #
@@ -32,7 +32,7 @@ require Exporter;
 @ISA = qw(Exporter);
 # END NOAUTO
 
-$VERSION = substr(q$Revision: 1.13 $, 10);
+$VERSION = substr(q$Revision: 1.14 $, 10);
 
 @EXPORT = qw (
 
@@ -45,6 +45,7 @@ search_page
 shipping
 subtotal
 tag_if
+tag_perl
 tag_total_cost
 tag_sql_list
 tag_value
@@ -70,10 +71,12 @@ use POSIX qw(ceil strftime);
 # AUTOLOAD
 #use vars qw(
 #$CacheInvalid
+#%Comment_out
 #$Force_old
 #%T
 #$Codere
 #$Coderex
+#$ready_safe
 #@Opts
 #@Flds
 #%Sort
@@ -84,12 +87,15 @@ use POSIX qw(ceil strftime);
 # AUTOLOAD
 #$CacheInvalid = 1;
 #$Force_old = 0;
+#$ready_safe = new Safe;
 # END AUTOLOAD
 
 # NOAUTO
 my $CacheInvalid = 1;
 my $Force_old = 0;
+my $ready_safe = new Safe;
 # END NOAUTO
+
 
 sub c_it {
 	my($str) = @_;
@@ -116,6 +122,8 @@ TAGBUILD: {
 		/calc
 		cart
 		checked
+		comment
+		/comment
 		col
 		/col
 		condition
@@ -126,6 +134,7 @@ TAGBUILD: {
 		default
 		description
 		discount
+		discount-price
 		/discount
 		else
 		/else
@@ -156,6 +165,7 @@ TAGBUILD: {
 		item-code
 		item-data
 		item-description
+		item-discount
 		item-field
 		item-increment
 		item-link
@@ -253,20 +263,46 @@ TAGBUILD: {
 # AUTOLOAD
 #$Codere = '[\w-_#/.]+';
 #$Coderex = '[\w-_:#=/.%]+';
+#%Comment_out = ( '<' => '&lt;', '[' => '&#91;', '_' => '&#95;', );
 # END AUTOLOAD
 
 # NOAUTO
 my $Codere = '[\w-_#/.]+';
 my $Coderex = '[\w-_:#=/.%]+';
+my %Comment_out = ( '<' => '&lt;', '[' => '&#91;', '_' => '&#95;', );
 # END NOAUTO
 
-# Evaluates the [...] tags.
+sub comment_out {
+	my ($bit) = @_;
+	$bit =~ s/([[<_])/$Comment_out{$1}/ge;
+	return '<!--' . $bit . '-->';
+}
+
+#
+# This is one entry point for page display.
+# Evaluates all of the MiniVend tags.
+#
 
 sub cache_html {
 	my ($html) = @_;
 	my ($name, @post);
 	my ($bit, %post);
 	my $it = 'POST1000';
+
+	# Comment facility
+
+	unless ($Global::DisplayComments) {
+		1 while $html =~ s% $T{'comment'}\]				# tag
+							(?![\000-\377]*$T{'comment'}\])   # ensure innermost
+							[\000-\377]*?
+							$T{'/comment'}\]%%xgo;
+	}
+	else {
+		1 while $html =~ s% $T{'comment'}\]				# tag
+							(?![\000-\377]*$T{'comment'}\])   # ensure innermost
+							[\000-\377]*?
+							$T{'/comment'}\]%comment_out($1)%xego;
+	}
 
 	$CacheInvalid = 0;
 
@@ -282,7 +318,6 @@ sub cache_html {
 	# Substitute defines from configuration file
 	$html =~ s#\@\@([A-Za-z0-9]\w+[A-Za-z0-9])\@\@#$Global::Variable->{$1}#ge;
 	$html =~ s#__([A-Za-z0-9]\w+[A-Za-z0-9])__#$Vend::Cfg->{Variable}->{$1}#ge;
-
 
 	# Uncomment to use parallel MV and HTML tags
 	#$html =~ s#<!--\s*$T{'alt'}\]\s*-->[\000-\377]*?<!--\s*$T{'/alt'}\]\s*-->##o;
@@ -321,11 +356,22 @@ sub cache_html {
 }
 
 
+#
+# This is one entry point for page display.
+# Evaluates all of the MiniVend tags.
+#
+
 sub interpolate_html {
 	my ($html) = @_;
 	my ($name, @post);
 	my ($bit, %post);
 	my $it = 'POST1000';
+
+	# Comment facility
+	1 while $html =~ s% $T{'comment'}\]				# tag
+						(?![\000-\377]*$T{'comment'}\])   # ensure innermost
+						[\000-\377]*?
+						$T{'/comment'}\]%%xgo;
 
 	my $old = $html =~ s/$T{'old'}\]//o;
 	my $new = $html =~ s/$T{'new'}\]//o;
@@ -455,7 +501,8 @@ sub cache_scan_html {
     $html =~ s:$T{'random'}\]:tag_random():geo;
     $html =~ s!$T{'rotate'}(?:\s+)?($codere)?\]!tag_rotate($1)!geo;
 
-	$html =~ s!$T{'checked'}\s+($codere)(?:\s+)?($codere)?\]!tag_checked($1,$2)!geo
+	$html =~ s!$T{'checked'}\s+($codere)(?:\s+)?($codere)?(?:\s+)?($codere)?\]!
+					tag_checked($1,$2 || 'on', $3)!geo
 			and $CacheInvalid = 1;
 	$html =~ s!$T{'selected'}\s+($codere)\s+($codere)(?:\s+)?($codere)?\]!
 				tag_selected($1,$2,$3)!geo
@@ -513,7 +560,7 @@ sub cache_scan_html {
 
     $html =~ s#$T{'process-order'}(?:\s+)?($codere)?\]#tag_process_order($1)#geo;
     $html =~ s#$T{'process-search'}(?:\s+)?($codere)?\]#tag_process_search($1)#geo;
-    $html =~ s#$T{'process-target'}(?:\s+)?($codere)(?:\s+)?($codere)?\]#
+    $html =~ s#$T{'process-target'}(?:\s+)?($codere)?(?:\s+)?($codere)?\]#
 				tag_process_target($1,$2)#goe;
 
     $html =~ s#(<i\w+\s+[^>]*?src=")(?!http:)([^/][^"]+)#
@@ -594,7 +641,8 @@ sub scan_html {
     $html =~ s:$T{'random'}\]:tag_random():geo;
     $html =~ s!$T{'rotate'}(?:\s+)?($codere)?\]!tag_rotate($1)!geo;
 
-	$html =~ s!$T{'checked'}\s+($codere)(?:\s+)?($codere)?\]!tag_checked($1,$2)!geo;
+	$html =~ s!$T{'checked'}\s+($codere)(?:\s+)?($codere)?(?:\s+)?($codere)?\]!
+					tag_checked($1,$2 || 'on', $3)!geo;
 	$html =~ s!$T{'selected'}\s+($codere)\s+($codere)(?:\s+)?($codere)?\]!
 				tag_selected($1,$2,$3)!geo;
 
@@ -661,9 +709,9 @@ sub scan_html {
 # variable
 sub tag_data {
 	my($selector,$field,$key,$value,$inc) = @_;
-#print("Data args: @_\n") if $Global::DEBUG;
+print("Data args: @_\n") if $Global::DEBUG;
 	if(defined $Vend::Database{$selector}) {
-#print("Called database with: key=$key field=$field db=$selector\n") if $Global::DEBUG;
+print("Called database with: key=$key field=$field db=$selector\n") if $Global::DEBUG;
 		my $db = $Vend::Database{$selector};
 		unless(defined $value) {
 			$CacheInvalid = 1
@@ -827,7 +875,9 @@ sub tag_if {
 		my($d,$f,$k) = split /::/, $term;
 		$CacheInvalid = 1
 			if defined $Vend::Cfg->{DynamicData}->{$d};
-		$op = '"' . database_field($d,$f,$k) . '"';
+		my $data = database_field($d,$f,$k) || '';
+		$data =~ s/"/\\"/g;
+		$op = '"' . $data . '"';
 		$op .=	qq%	$operator $comp%
 				if $comp;
 	}
@@ -861,7 +911,7 @@ sub tag_if {
 	}
 	elsif($base =~ /^accessor/) {
 		if ($comp) {
-			$op = qq%"$Vend::Accessories{$term}"%;
+			$op = qq%"$Vend::Cfg->{Accessories}->{$term}"%;
 			$op .=	qq%	$operator $comp%;
 		}
 		else {
@@ -909,11 +959,11 @@ sub tag_accessories {
 	my($code,$item,$extra) = @_;
 
 	if(! defined $extra) {
-		if(defined $Vend::Accessories{$code}) {
-			return $Vend::Accessories{$code};
+		if(defined $Vend::Cfg->{Accessories}->{$code}) {
+			return $Vend::Cfg->{Accessories}->{$code};
 		}
 		else {
-			return $Vend::Accessories{'default'} || '';
+			return $Vend::Cfg->{Accessories}->{'default'} || '';
 		}
 	}
 	# Had extra if got here
@@ -932,19 +982,25 @@ sub tag_accessories {
 	}
 
 	return $data if "\L$type" eq 'show';
-	return qq|<INPUT TYPE="hidden" NAME="mv_order_$attribute" VALUE="$data">|
+
+	my $attrib_value = $item ? $item->{$attribute} : '';
+
+	$name = $item ? "[modifier-name $attribute]" : "mv_order_$attribute";
+
+	return qq|<INPUT TYPE="hidden" NAME="$name" VALUE="$attrib_value">|
 		if "\L$type" eq 'hidden';
+	return qq|<TEXTAREA NAME="$name" ROWS=$1 COLS=$2>$attrib_value</TEXTAREA>|
+		if "\L$type" =~ /^textarea_(\d+)_(\d+)$/;
+	return qq|<INPUT TYPE=text NAME="$name" SIZE=$1 VALUE="$attrib_value"|
+		if "\L$type" =~ /^text_(\d+)$/;
 
 	# Building select box if got here
 	my ($default, $label, $select, $value, $run);
 	if($item) {
-		$run = qq|<SELECT NAME="[modifier-name $attribute]"|;
 		$default = $item->{$attribute};
 	}
-	else {
-		$name = $name || "mv_order_$attribute";
-		$run = qq|<SELECT NAME="$name"|;
-	}
+
+	$run = qq|<SELECT NAME="$name"|;
 
 	$run .= ' MULTIPLE' if $type =~ /^multi/i;
 	$run .= '>';
@@ -1099,6 +1155,14 @@ sub do_tag {
 		if($arg =~ s/^\s*flag\s+(.+)//si ) {
 			do_flag($1, $text);
 		}
+		elsif($arg =~ s/^\s*header\s*$//si ) {
+			$Vend::StatusLine = $text;
+		}
+		elsif($arg =~ s/^\s*show_tags\s*$//si ) {
+			$text =~ s/\[/&#91;/g;
+			$text =~ s/\</&lt;/g;
+			return $text;
+		}
 		elsif($arg =~ m!^\s*scan/(.*)!i ) {
 			my $string = "[page scan/$1";
 			my $se = $text;
@@ -1112,7 +1176,7 @@ sub do_tag {
 					logError("tag import: unknown database '$arg'");
 					return '';
 				};
-			$db->test_column("NeVairBE");
+			$db->ref();
 			return '';
 		}
 		elsif($arg =~ /^\s*each\s+($Codere)/i ) {
@@ -1122,8 +1186,7 @@ sub do_tag {
 					logError("tag each: unknown database '$base'");
 					return '';
 				};
-			$db->test_column("NeVairBE");
-			$db = database_exists_ref($base);
+			$db = $db->ref();
 			my $key;
 			my $out = '';
 			my $i = 0;
@@ -1131,6 +1194,16 @@ sub do_tag {
 				$out .= loop_substitute($key, $text, $i++);
 			}
 			return $out;
+		}
+		elsif($arg =~ /^\s*touch\s+($Codere)/i ) {
+			my $base = $1;
+			my $db = database_exists_ref($base) 
+				or do {
+					logError("tag each: unknown database '$base'");
+					return '';
+				};
+			$db = $db->ref();
+			$db->touch();
 		}
 		elsif($arg =~ /^\s*time\b/i ) {
 			unless ($text =~ /\S/) {
@@ -1154,14 +1227,17 @@ sub do_tag {
 			$Vend::TIMESTAMP = POSIX::strftime("%y%m%d%H%M%S", localtime())
 				unless defined $Vend::TIMESTAMP;
 
-			$Vend::MIMEBOUNDARY =	$Vend::TIMESTAMP . '-' .
+			$Vend::MIME_BOUNDARY =	$Vend::TIMESTAMP . '-' .
 									$Vend::SessionID . '-' .
 									$Vend::Session->{'pageCount'} . 
 									':=' . $$
-				unless defined $Vend::MIMEBOUNDARY;
+				unless defined $Vend::MIME_BOUNDARY;
 
 			if("\L$opt" eq 'boundary') {
-				return "--$Vend::MIMEBOUNDARY";
+				return "--$Vend::MIME_BOUNDARY";
+			}
+			elsif($opt =~ /^\s*type\s+(.*)/i) {
+				$Vend::MIME_TYPE = $1;
 			}
 			elsif("\L$opt" eq 'id') {
 				$Vend::MIME = 1;
@@ -1171,7 +1247,7 @@ sub do_tag {
 				$id = mime_id();
 				return <<EndOFmiMe;
 MIME-Version: 1.0
-Content-Type: MULTIPART/MIXED; BOUNDARY="$Vend::MIMEBOUNDARY"
+Content-Type: MULTIPART/MIXED; BOUNDARY="$Vend::MIME_BOUNDARY"
 Content-ID: $id
 EndOFmiMe
 			}
@@ -1180,9 +1256,11 @@ EndOFmiMe
 				return '' unless $text =~ /\S/;
 				$id = mime_id();
 				$Vend::MIME = 1;
+				$Vend::MIME_TYPE = 'TEXT/PLAIN; CHARSET=US-ASCII'
+					unless $Vend::MIME_TYPE;
 				return <<EndOFmiMe;
---$Vend::MIMEBOUNDARY
-Content-Type: TEXT/PLAIN; CHARSET=US-ASCII
+--$Vend::MIME_BOUNDARY
+Content-Type: $Vend::MIME_TYPE
 Content-ID: $id
 Content-Description: $opt
 
@@ -1233,6 +1311,12 @@ sub do_flag {
 			$Vend::Cfg->{DynamicData}->{$_} = 1;
 #print("Flagged database '$_' for write\n") if $Global::DEBUG;
 		}
+	}
+	elsif($flag =~ /^build$/i) {
+		$Vend::ForceBuild = 1;
+	}
+	elsif($flag =~ /^cache$/i) {
+		$Vend::ForceCache = 1;
 	}
 	else {
 		logError("Unknown flag operation '$flag', ignored.");
@@ -1537,9 +1621,17 @@ sub tag_total_cost {
 		tag_cart($cart);
 	}
 
-	my $shipping = shipping();
+	$total = 0;
 
-    $total = subtotal();
+	my $shipping = shipping();
+	if(defined $Vend::Session->{'values'}->{mv_handling}) {
+		my @modes = split /[\s\0,]+/, $Vend::Session->{'values'}->{mv_handling};
+		for(@modes) {
+			$total += custom_shipping($_);
+		}
+	}
+
+    $total += subtotal();
 
     $total += $shipping;
     $total += salestax();
@@ -1599,9 +1691,8 @@ sub tag_process_order {
 sub tag_calc {
 	my($body) = @_;
 	my $result = 0;
-	my $safe = new Safe;
 
-	$result = $safe->reval($body);
+	$result = $ready_safe->reval($body);
 	if ($@) {
 		logGlobal("Safe: $@\n$body\n");
 		return 0;
@@ -1724,7 +1815,7 @@ sub tag_self_contained_if {
 	}
 	elsif($base =~ /^accessor/) {
         if ($comp) {
-            $op = qq%"$Vend::Accessories{$term}"%;
+            $op = qq%"$Vend::Cfg->{Accessories}->{$term}"%;
             $op .=  qq% $operator $comp%;
         }
         else {
@@ -1751,8 +1842,7 @@ sub tag_self_contained_if {
 	}
 
 	RUNSAFE: {
-		my $safe = new Safe;
-		$status = $safe->reval($op)
+		$status = $ready_safe->reval($op)
 			unless ($@ or $status);
 		if ($@) {
 			logError qq%Bad if '@_': $@%;
@@ -1897,7 +1987,7 @@ sub tag_search_list {
 			my ($opt, $fld);
 			for(@Flds) {
 				$opt = 'none';
-				s/:(.*)// and $opt = $1;
+				s/:(.*)// and $opt = $1 || 'none';
 				s/(.*\D.*)/$field_hash{$1}/;
 				push @Opts, $opt;
 				(
@@ -2037,7 +2127,7 @@ sub tag_more_list {
 			$list .= vendUrl('search', $arg);
 			$list .= '">';
 			$list .= $pa;
-			$list .= '</A>';
+			$list .= '</A> ';
 		}
 	}
 
@@ -2277,7 +2367,14 @@ sub tag_item_list {
 				  . $linkvalue . '[/page]'#geo;
 		$run =~ s!$T{'item-price'}(?:\s+)?(\d+)?\]!
 					currency(item_price($item,$1))!geo;
-
+		$run =~ s!$T{'discount-price'}(?:\s+)?(\d+)?\]!
+					currency(discount_price($item->{code},
+											item_price($item,$1),
+											$item->{quantity}))!geo;
+		$run =~ s!$T{'item-discount'}\]!
+					currency(item_discount($item->{code},
+											item_price($item),
+											$item->{quantity}))!geo;
 		$r .= $run;
 	}
 	$r;
@@ -2364,7 +2461,7 @@ sub tag_loop_list {
 	my($r, $i, $link, $code, $db, $linkvalue, $run);
 	my(@list);
 	my(@post);
-
+#print "Called with list='$list' text='$text'\n" if $Global::DEBUG;
 	# Allow nesting.  Starts saved area at first loop substitution
 	# AFTER the first right-bracket. 
 	$i = 0;
@@ -2427,7 +2524,8 @@ sub search_page {
 	# Doesn't return response, just returns page if not dynamic
 	if (defined $Vend::BuildingPages) {
 		$page = cache_html($page);
-		return $page if defined $Vend::CachePage;
+		return $page
+			if defined $Vend::CachePage or defined $Vend::ForceBuild;
 		return undef;
 	}
 
@@ -2470,6 +2568,10 @@ sub fly_page
 			logError("PageSelectField column '$selector' doesn't exist") ;
 		}
 	}
+	else {
+		$selector = $Vend::Cfg->{'FrameFlyPage'}
+			if $Vend::Session->{frames};
+	}
 
 	$selector = $Vend::Cfg->{'Special'}->{'flypage'}
 		unless $selector;
@@ -2503,14 +2605,13 @@ sub order_page
     my($which) = @_;
     my($page);
 
-	$which = $Vend::Cfg->{'Special'}->{'order'} unless defined $which;
 
-	if($which eq $Vend::Cfg->{'Special'}->{'order'} and
-	   $Vend::Cfg->{'FrameOrderPage'} and
+	if( ! $which and $Vend::Cfg->{'FrameOrderPage'} and
 	   $Vend::Session->{'frames'}) {
     	$page = readin($Vend::Cfg->{'FrameOrderPage'});
 	}
     else {
+		$which = $Vend::Cfg->{'Special'}->{'order'} unless defined $which;
     	$page = readin($which);
 	}
 
@@ -2530,13 +2631,39 @@ sub shipping {
 	if($Vend::Cfg->{'CustomShipping'}) {
 		return custom_shipping(@_);
 	}
-	else { $Vend::Cfg->{'Shipping'}; }
+	else {
+		return $Vend::Cfg->{'Shipping'};
+	}
+}
+
+sub item_discount {
+	my($code,$price,$q) = @_;
+	return $price - discount_price($code,$price,$q);
+}
+
+sub discount_price {
+	my ($code, $price, $quantity) = @_;
+	$Vend::Interpolate::q = $quantity || 1;
+	my ($discount, $return);
+	return $price unless defined $Vend::Session->{discount};
+	for($code, 'ALL_ITEMS') {
+		next unless $discount = $Vend::Session->{discount}->{$_};
+		$Vend::Interpolate::s = $return = $price;
+		$ready_safe->share('$s', '$q');
+        $return = $ready_safe->reval($discount);
+		if($@) {
+			$return = $price;
+			next;
+		}
+        $price = $return;
+    }
+	return $price;
 }
 
 sub apply_discount {
 	my($item) = @_;
 
-	my($formula, $cost, $safe);
+	my($formula, $cost);
 	my(@formulae);
 
 	# Check for individual item discount
@@ -2551,11 +2678,9 @@ sub apply_discount {
 	# Calculate any formalas found
 	foreach $formula (@formulae) {
 		next unless $formula;
-		$safe = new Safe
-			unless $safe;
 		$formula =~ s/\$q/$item->{quantity}/g; 
 		$formula =~ s/\$s/$subtotal/g; 
-		$cost = $safe->reval($formula);
+		$cost = $ready_safe->reval($formula);
 		if($@) {
 			logError
 				"Discount for $item->{code} has bad formula. Not applied.\n$@";
@@ -2571,41 +2696,54 @@ sub custom_shipping {
 	$mode = 	$mode ||
 				$Vend::Session->{'values'}->{'mv_shipmode'} ||
 				'default';
-    my($save);
+    my($save, $qual);
 
 	if ($cart) {
 		$save = $Vend::Items;
 		tag_cart($cart);
 	}
 	
-	$Vend::Session->{ship_message} = '';
+	$Vend::Session->{ship_message} = ''
+		unless defined $Vend::Shipping_in_progress;
+	$Vend::Shipping_in_progress = 1;
 	my($field) = $Vend::Cfg->{'CustomShipping'};
 	my($code, $i, $total, $cost, $multiplier, $formula);
-	my $safe = new Safe;
 
 	if(defined $Vend::Cfg->{'Shipping_criterion'}->{$mode}) {
 		$field = $Vend::Cfg->{'Shipping_criterion'}->{$mode};
 	}
 
-	eval {'what' =~ /$mode/};
+	$@ = 1;
+
+	# Security hole if we don't limit characters
+	$mode !~ /[\s,;{}]/ and 
+		eval {'what' =~ /$mode/};
+
 	if ($@) {
 		logError("Bad shipping mode '$mode', returning 0");
 		$Vend::Items = $save if defined $save;
 		return 0;
 	}
-			
-	if(! defined $Vend::Cfg->{'Shipping_cost'}->{'default'}) {
-		if ( ! read_shipping() ) {
-			logError("Custom shipping called, no shipping file, returning 0");
-			$Vend::Items = $save if defined $save;
-			return 0;
+
+	# See if the field needs to be returned by a MiniVend function.
+	# If a space is encountered, a qualification code
+	# will be set up, with any characters after the first space
+	# used to determine geography or other qualifier for the mode.
+	if($field =~ /[[\s]|__/) {
+		($field, $qual) = split /\s+/, interpolate_html($field), 2;
+		if($qual =~ /{}/) {
+			logError("Bad qualification code '$qual', returning 0");
 		}
 	}
 
 	# Uses the quantity on the order form if the field is 'quantity',
 	# otherwise goes to the database.
     $total = 0;
-	if($field eq 'quantity') {
+
+	if($field =~ /^[\d.]+$/) {
+		$total = $field;
+	}
+	elsif($field eq 'quantity') {
     	foreach $i (0 .. $#$Vend::Items) {
 			$total = $total + $Vend::Items->[$i]->{$field};
     	}
@@ -2620,7 +2758,6 @@ sub custom_shipping {
     	foreach $i (0 .. $#$Vend::Items) {
 			my $item = $Vend::Items->[$i];
 			my $base = product_code_exists_ref($item->{code}, $item->{mv_ib});
-#print("custom_shipping\n") if $Global::DEBUG;
 			$total += database_field($base, $item->{code}, $field) *
 						$item->{'quantity'};
 		}
@@ -2630,6 +2767,10 @@ sub custom_shipping {
 	# We will return from this loop if a match is found
 	foreach $code (sort keys %{$Vend::Cfg->{'Shipping_cost'}}) {
 		next unless $code =~ /^$mode\d*$/i;
+		if($qual) {
+			next unless $Vend::Cfg->{Shipping_criterion}->{$mode} 
+							=~ m{\b$qual\b};
+		}
 		if(	$total <= $Vend::Cfg->{'Shipping_max'}->{$code} and
 			$total >= $Vend::Cfg->{'Shipping_min'}->{$code} ) {
 			# unless field begins with 'x' or 'f', straight cost is returned
@@ -2644,15 +2785,15 @@ sub custom_shipping {
 				$formula = $1;
 				if($Vend::Cfg->{OldShipping}) {
 					$formula = interpolate_html($formula)
-								if $formula =~ /\[[a-zA-Z]/;
+								if $formula =~ /\[\w/;
 					$formula =~ s/\bx\b/$total/g;
 				}
 				else {
 					$formula =~ s/\@\@TOTAL\@\@/$total/g;
 					$formula = interpolate_html($formula)
-								if $formula =~ /\[[a-zA-Z]/;
+								if $formula =~ /\[\w/;
 				}
-				$cost = $safe->reval($formula);
+				$cost = $ready_safe->reval($formula);
 				if($@) {
 					my $msg = "Shipping mode '$mode': bad formula. Returning 0.";
 					logError($msg);
@@ -2788,7 +2929,9 @@ sub custom_shipping {
 
 	# If we got here, the mode and quantity fit was not found
 	$Vend::Session->{ship_message} .=
-		"No match found for mode '$mode', quantity '$total', returning 0. ";
+		"No match found for mode '$mode', quantity '$total', "	.
+		($qual ? "qualifier '$qual', " : '')					.
+		"returning 0. ";
 	return 0;
 }
 
@@ -2893,7 +3036,6 @@ sub subtotal {
 		tag_cart($cart);
 	}
 	my $discount = defined $Vend::Session->{'discount'};
-	my $safe = new Safe;
 
     $subtotal = 0;
 	$tmp = 0;
@@ -2914,7 +3056,7 @@ sub subtotal {
 		$formula = $Vend::Session->{'discount'}->{ENTIRE_ORDER};
 		$formula =~ s/\$q\b/tag_nitems()/eg; 
 		$formula =~ s/\$s\b/$subtotal/g; 
-		$cost = $safe->reval($formula);
+		$cost = $ready_safe->reval($formula);
 		if($@) {
 			logError
 				"Discount ENTIRE_ORDER has bad formula. Returning normal subtotal.\n$@";
@@ -2993,34 +3135,12 @@ sub tag_ups {
 
 }
 
-# Returns 'CHECKED' when a value is present on the form
-# Must match exactly, but NOT case-sensitive
-# Defaults to 'on' for checkboxes
-# Silently returns null string if illegal regex
-
-sub tag_checked {
-	my $field = shift;
-	my $value = shift || 'on';
-	$field = lc $field;
-	my $ref = $Vend::Session->{'values'}->{$field};
-	$ref = lc $ref;
-	
-	my $r;
-
-	if( $ref eq "\L$value" ) {
-		$r = 'CHECKED';
-	}
-	else {$r = ''}
-	$r;
-}
-
 # Returns 'SELECTED' when a value is present on the form
 # Must match exactly, but NOT case-sensitive
 
 sub tag_selected {
 	my ($field,$value,$multiple) = @_;
 	$value = $value || '';
-	$field = lc $field;
 	my $ref = $Vend::Session->{'values'}->{$field};
 	$ref = lc $ref;
 	my $r;
@@ -3029,11 +3149,26 @@ sub tag_selected {
 		$r = 'SELECTED';
 	}
 	elsif ($multiple) {
-		$r = 'SELECTED' if $ref =~ /\b$value\b/;
+		$r = 'SELECTED' if $ref =~ /\b$value\b/i;
 	}
-	else {
-		$r = ''
+	else {$r = ''}
+	$r;
+}
+
+sub tag_checked {
+	my ($field,$value,$multiple) = @_;
+	$value = $value || '';
+	my $ref = $Vend::Session->{'values'}->{$field};
+	$ref = lc $ref;
+	my $r;
+
+	if( $ref eq "\L$value" ) {
+		$r = 'CHECKED';
 	}
+	elsif ($multiple) {
+		$r = 'CHECKED' if $ref =~ /\b$value\b/i;
+	}
+	else {$r = ''}
 	$r;
 }
 
@@ -3167,3 +3302,4 @@ sub tag_lookup {
 }
 
 1;
+__END__

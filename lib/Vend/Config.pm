@@ -1,4 +1,4 @@
-# $Id: Config.pm,v 1.10 1997/05/25 06:10:54 mike Exp mike $
+# $Id: Config.pm,v 1.12 1997/06/27 11:32:10 mike Exp mike $
 
 package Vend::Config;
 require Exporter;
@@ -35,16 +35,21 @@ sub global_directives {
 
 	['ConfigDir',		  undef,	         'etc/lib'],
     ['PageCheck',		 'yesno',     	     'no'],
-    ['DisplayErrors',    'yesno',            'Yes'],
+    ['DisplayErrors',    'yesno',            'No'],
+    ['DisplayComments',  'yesno',            'No'],
     ['TcpPort',           undef,             '7786'],
+	['Environment',      'array',            ''],
     ['TcpHost',           undef,             'localhost'],
-	['SendMailProgram',  'executable',       $Global::SendMailLocation],
+	['SendMailProgram',  'executable',       $Global::SendMailLocation
+												|| '/usr/lib/sendmail'],
     ['ForkSearches',	  undef,     	     ''],  # Prevent errors on 2.02 upgrade
 	['HouseKeeping',      undef,             60],
 	['Mall',	          'yesno',           'No'],
 	['MaxServers',        undef,             2],
 	['GlobalSub',		 'subroutine',       ''],
 	['FullUrl',			 'yesno',            'No'],
+	['IpHead',			 'yesno',            'No'],
+	['DomainTail',		 'yesno',            'Yes'],
 	['SafeSignals',	 	 'yesno',            'Yes'],
 	['AcrossLocks',		 'yesno',            'No'],
     ['LogFile', 		  undef,     	     'etc/log'],
@@ -55,7 +60,7 @@ sub global_directives {
                                                   }
                                                   $r } ],
 	['MailErrorTo',		  undef,			 'webmaster'],
-	['NoAbsolute',		 'yesno',			 'yes'],
+	['NoAbsolute',		 'yesno',			 'No'],
 	['AdminUser',		  undef,			 ''],
 	['AdminHost',		  undef,			 ''],
     ['HammerLock',		  undef,     	     30],
@@ -64,6 +69,7 @@ sub global_directives {
     ['MultiServer',		 'yesno',     	     0],  # Prevent errors on 2.02 upgrade
     ['UserBuild',		 'yesno',     	     'no'],   # UNDOCUMENTED
     ['Catalog',			 'catalog',     	 ''],
+    ['SubCatalog',		 'catalog',     	 ''],
 
     ];
 	return $directives;
@@ -86,6 +92,7 @@ sub catalog_directives {
 	['Delimiter',        'delimiter',        'TAB'],
 	['RecordDelimiter',  'variable',         ''],
 	['FieldDelimiter',   'variable',         ''],
+    ['ParseVariables',	 'yesno',     	     'No'],
     ['SpecialPage',		 'special',     	 ''],
     ['ActionMap',		 'action',	     	 ''],
 	['VendURL',          'url',              undef],
@@ -97,19 +104,20 @@ sub catalog_directives {
 	['Database',  		 'database',     	 ''],
 	['Database',  		 'database',     	 'products products.asc 1'],
 	['Sub',			  	 'variable',     	 ''],
+	['SubArgs',			 'variable',     	 ''],
 	['Variable',	  	 'variable',     	 ''],
 	['WritePermission',  'permission',       'user'],
 	['ReadPermission',   'permission',       'user'],
 	['SessionExpire',    'time',             '1 day'],
 	['SaveExpire',       'time',             '30 days'],
 	['MailOrderTo',      undef,              undef],
-	['SendMailProgram',  'executable',       $Global::SendMailLocation],
+	['SendMailProgram',  'executable',       $Global::SendMailProgram],
 	['PGP',              undef,       		 ''],
     ['Glimpse',          'executable',       ''],
     ['Locale',           'locale',           ''],
     ['RequiredFields',   undef,              ''],
     ['SqlHost',   	 	 undef,              'localhost'],
-    ['MsqlProducts',   	 'yesno',            'No'],
+    ['MsqlProducts',   	 'warn',            ''],
     ['MsqlDB',   		 undef,              'minivend'],
     ['SqlDB',   		 undef,              'sqlvend'],
     ['ReceiptPage',      'valid_page',       ''],
@@ -118,7 +126,7 @@ sub catalog_directives {
     ['ImageDir',	 	 undef,     	     ''],
     ['UseCode',		 	 undef,     	     'yes'],
     ['SetGroup',		 'valid_group',      ''],
-    ['UseModifier',		 'array',     	     ''],
+    ['UseModifier',		 'array',     	     'mv_ib'],
     ['TransparentItem',	 undef,     	     ''], 
     ['LogFile', 		  undef,     	     'etc/log'],
     ['CollectData', 	 'boolean',     	 ''],
@@ -134,7 +142,8 @@ sub catalog_directives {
     ['AlwaysSecure',	 'boolean',  	     ''],
 	['Password',         undef,              ''],
     ['ExtraSecure',		 'yesno',     	     'No'],
-    ['Cookies',			 'yesno',     	     'No'],
+    ['Cookies',			 'yesno',     	     'Yes'],
+	['CookieDomain',     undef,              ''],
     ['AdminURL',		 undef,     	     ''],
     ['MasterHost',		 undef,     	     ''],
     ['RemoteUser',		 undef,     	     ''],
@@ -144,8 +153,9 @@ sub catalog_directives {
 	['SeparateItems',    'yesno',			 'No'],
     ['PageSelectField',  undef,     	     ''],
     ['NonTaxableField',  undef,     	     ''],
+    ['CyberCash',	 	 'yesno',     	     'No'],
     ['CreditCardAuto',	 'yesno',     	     'No'],
-    ['CreditCards',		 'yesno',     	     'No'],
+    ['CreditCards',		 'warn',     	     ''],
     ['SearchCache',	     'yesno',     	     'No'],
     ['NewTags',	     	 'yesno',    	     'No'],
     ['NoCache',	     	 'boolean',    	     ''],
@@ -155,21 +165,22 @@ sub catalog_directives {
     ['EncryptProgram',	 undef,     	     ''],
     ['AsciiTrack',	 	 undef,     	     ''],
     ['AsciiBackend',	 undef,     	     ''],
-    ['Tracking',		 undef,     	     ''],
+    ['Tracking',		 'warn',     	     ''],
     ['BackendOrder',	 undef,     	     ''],
     ['SalesTax',		 undef,     	     ''],
     ['NewReport',     	 'yesno', 			 'No'],
     ['StaticAll',		 'yesno',     	     'No'],
+    ['StaticDepth',		 undef,     	     '1'],
     ['StaticFly',		 'yesno',     	     'No'],
     ['StaticDir',		 undef,     	     ''], 
     ['UserDatabase',	 undef,		     	 ''],  #undocumented, unused
     ['AdminDatabase',	 'boolean',     	 ''], 
     ['AdminPage',		 'boolean',     	 ''],
-    ['PasswordFile',	 undef,		     	 ''],  #undocumented
-    ['GroupFile',		 undef,		     	 ''],  #undocumented
+    ['PasswordFile',	 undef,		     	 ''],  #undocumented, unused
+    ['GroupFile',		 undef,		     	 ''],  #undocumented, unused
     ['StaticPage',		 'boolean',     	 ''],
     ['StaticPath',		 undef,     	     '/'],
-    ['StaticPattern',	 'regex',     	     ''],  #undocumented
+    ['StaticPattern',	 'regex',     	     ''],
     ['StaticSuffix',	 undef,     	     '.html'],
     ['CustomShipping',	 undef,     	     ''],
     ['DefaultShipping',	 undef,     	     'default'],
@@ -178,15 +189,17 @@ sub catalog_directives {
     ['SearchProfile',	 'profile',     	 ''],
     ['PriceCommas',		 undef,     	     'yes'],
     ['ItemLinkDir',	 	 undef,     	     ''],
+    ['FrameLinkDir', 	 undef,     	     'framefly'],
     ['SearchOverMsg',	 undef,           	 ''],
-	['SecureOrderMsg',   undef,              'Use Order Security'],
+	['SecureOrderMsg',   'warn',             ''],
     ['SearchFrame',	 	 undef,     	     '_self'],
-    ['OrderFrame',	     undef,              '_top'],
-    ['CheckoutFrame',	 undef,              '_top'],
-    ['CheckoutPage',	 'valid_page',       'order'],
+    ['OrderFrame',	     undef,              ''],
+    ['CheckoutFrame',	 undef,              ''],
+    ['CheckoutPage',	 'valid_page',       'basket'],
     ['FrameOrderPage',	 'valid_page',       ''],
     ['FrameSearchPage',	 'valid_page',       ''],
-    ['DescriptionTrim',  undef,              ''],
+    ['FrameFlyPage',	 'valid_page',       ''],
+    ['DescriptionTrim',  'warn',             ''],
     ['DescriptionField', undef,              'description'],
     ['PriceField',		 undef,              'price'],
     ['ItemLinkValue',    undef,              'More Details'],
@@ -231,16 +244,33 @@ sub get_global_default {
 	return $value;
 }
 
+sub substitute_variable {
+	my($val) = @_;
+print "before=$val\n" if $Global::DEBUG;
+	# Return after globals so can others can be contained
+	$val =~ s/\@\@([A-Z][A-Z_0-9]+[A-Z0-9])\@\@/$Global::Variable->{$1}/g
+		and return $val;
+	return $val unless $val =~ /([_%])\1/;
+	1 while $val =~ s/__([A-Z][A-Z_0-9]+[A-Z0-9])__/$C->{Variable}->{$1}/g;
+print " after=$val\n" if $Global::DEBUG;
+	# YALOS (yet another level)
+	return $val unless $val =~ /%%[A-Z]/;
+	$val =~ s/%%([A-Z][A-Z_0-9]+[A-Z0-9])%%/$Global::Variable->{$1}/g;
+	$val =~ s/__([A-Z][A-Z_0-9]+[A-Z0-9])__/$C->{Variable}->{$1}/g;
+print "  post=$val\n" if $Global::DEBUG;
+	return $val;
+}
+
 ## CONFIG
 
 # Parse the configuration file for directives.  Each directive sets
-# the corresponding variable in the Config:: package.  E.g.
-# "DisplayErrors No" in the config file sets Config::DisplayErrors to 0.
+# the corresponding variable in the Vend::Cfg:: package.  E.g.
+# "DisplayErrors No" in the config file sets Vend::Cfg::DisplayErrors to 0.
 # Directives which have no default value ("undef") must be specified
 # in the config file.
 
 sub config {
-	my($catalog, $dir, $confdir) = @_;
+	my($catalog, $dir, $confdir, $subconfig) = @_;
     my($directives, $d, %name, %parse, $var, $value, $lvar, $parse);
     my($directive);
 
@@ -248,14 +278,22 @@ sub config {
 	$C->{'CatalogName'} = $catalog;
 	$C->{'VendRoot'} = $dir;
 	$C->{'ConfDir'} = $confdir;
-	$C->{'ErrorFile'} = $Global::ErrorFile;
-	$C->{'ConfigFile'} = defined $Global::Standalone
-						 ? 'minivend.cfg' : 'catalog.cfg';
+
+	unless (defined $subconfig) {
+		$C->{'ErrorFile'} = $Global::ErrorFile;
+		$C->{'ConfigFile'} = defined $Global::Standalone
+							 ? 'minivend.cfg' : 'catalog.cfg';
+	}
+	else {
+        $C->{'ConfigFile'} = "$catalog.cfg";
+		$C->{'BaseCatalog'} = $subconfig;
+	}
+
     no strict 'refs';
 
     $directives = catalog_directives();
 
-    foreach $d (@$directives) {
+	foreach $d (@$directives) {
 		($directive = $d->[0]) =~ tr/A-Z/a-z/;
 		$name{$directive} = $d->[0];
 		if (defined $d->[1]) {
@@ -264,12 +302,16 @@ sub config {
 			$parse = undef;
 		}
 		$parse{$directive} = $parse;
+
+		# We don't set up defaults if it is a subconfiguration
+		next if defined $subconfig;
+
 		$value = $d->[2];
-		if (defined $parse and defined $value) {
+		if (defined $parse and defined $value and ! defined $subconfig) {
 			$value = &$parse($d->[0], $value);
 		}
 		$C->{$name{$directive}} = $value;
-    }
+	}
 
 	my(@include) = ();
 
@@ -351,6 +393,10 @@ CONFIGLOOP: {
 
 		$parse = $parse{$lvar};
 					# call the parsing function for this directive
+		if($C->{ParseVariables} and $value =~ /([_%@])\1/) {
+			save_variable($name{$lvar}, $value);
+			$value = substitute_variable($value);
+		}
 		$value = &$parse($name{$lvar}, $value) if defined $parse;
 					# and set the $C->directive variable
 		$C->{$name{$lvar}} = $value;
@@ -362,13 +408,17 @@ CONFIGLOOP: {
 	}
 } # end CONFIGLOOP
     # check for unspecified directives that don't have default values
-    foreach $var (keys %name) {
-        if (!defined $C->{$name{$var}}) {
-            die "Please specify the $name{$var} directive in the\n" .
-            "configuration file '$C->{'ConfigFile'}'\n";
-        }
-    }
-	$C->{'Special'} = $C->{'SpecialPage'};
+
+	REQUIRED: {
+		last REQUIRED if defined $subconfig;
+		foreach $var (keys %name) {
+			if (!defined $C->{$name{$var}}) {
+				die "Please specify the $name{$var} directive in the\n" .
+				"configuration file '$C->{'ConfigFile'}'\n";
+			}
+		}
+	}
+	$C->{'Special'} = $C->{'SpecialPage'} if defined $C->{SpecialPage};
 	return $C;
 }
 
@@ -554,6 +604,18 @@ sub config_warn {
 
     logGlobal("$msg\nIn line $. of the configuration file '" .
 	     $name . "':\n" . $Vend::config_line . "\n");
+}
+
+# Warn about directives no longer supported in the configuration file.
+
+sub parse_warn {
+    my($name, $val) = @_;
+
+	return '' unless $val;
+
+    my $msg = "The $name directive is no longer supported.";
+    logGlobal("$msg\nIn line $. of the configuration file '" .
+         $name . "':\n" . $Vend::config_line . "\n");
 }
 
 # Each of the parse functions accepts the value of a directive from the
@@ -887,11 +949,19 @@ sub parse_catalog {
 	my $num = ! defined $Global::Catalog ? 0 : $Global::Catalog;
 	return $num unless (defined $value && $value); 
 
-	my($name,$dir,$script) = split /[\s,]+/, $value, 3;
-	my(@scripts) = split /[\s,]+/, $script;
+	my($name,$base,$dir,$script);
+	if($var =~ /subcatalog/i) {
+		($name,$base,$dir,$script) = split /[\s,]+/, $value, 4;
+		${Global::Catalog{$name}}->{'base'} = $base;
+	}
+	else {
+		($name,$dir,$script) = split /[\s,]+/, $value, 3;
+	}
 
 	${Global::Catalog{$name}}->{'name'} = $name;
 	${Global::Catalog{$name}}->{'dir'} = $dir;
+
+	my(@scripts) = split /[\s,]+/, $script;
 
 	# Strip leading http:// if present
 	for(@scripts) { s!^http://!! }
@@ -955,11 +1025,34 @@ sub parse_profile {
 }
 
 # Designed to parse catalog subroutines and all vars
+sub save_variable {
+	my ($var, $value) = @_;
+	my ($c, $name, $param);
+
+	return 0 unless $var eq 'Variable';
+
+    if(defined $C) {
+        $c = $C->{$var};
+    }
+    else { 
+        no strict 'refs';
+        $c = ${"Global::$var"};
+    }
+
+	$value =~ s/^\s*(\w+)\s*//;
+	$name = $1;
+	return 1 if defined $c->{'save'}->{$name};
+	$value =~ s/\s+$//;
+	$c->{'save'}->{$name} = $value;
+	return 1;
+}
+	
+# Designed to parse catalog subroutines and all vars
 sub parse_variable {
 	my ($var, $value) = @_;
 	my ($c, $name, $param);
 	unless (defined $value and $value) { 
-		$c = {};
+		$c = { 'save' => {} };
 		return $c;
 	}
 
@@ -1094,14 +1187,16 @@ sub parse_color {
 
 sub parse_yesno {
     my($var, $value) = @_;
-
+#print "$var=$value\n" if $Global::DEBUG;
     $_ = $value;
     if (m/^y/i || m/^t/i || m/^1/) {
-	return 1;
-    } elsif (m/^n/i || m/^f/i || m/^0/) {
-	return 0;
-    } else {
-	config_error("Use 'yes' or 'no' for the $var directive\n");
+		return 1;
+    }
+	elsif (m/^n/i || m/^f/i || m/^0/) {
+		return 0;
+    }
+	else {
+		config_error("Use 'yes' or 'no' for the $var directive\n");
     }
 }
 
@@ -1117,4 +1212,7 @@ the $var directive\n");
     }
     $_;
 }
+
+1;
+__END__
 

@@ -1,3 +1,142 @@
+MiniVend 3.00:
+* A powerful static page building capability is in place.
+  This allows completely automated generation of static HTML
+  pages based on MiniVend databases.  Use it to build static
+  category lists and product pages that will load quickly without
+  the necessity of MiniVend parsing them.
+
+* Dynamic page parsing speed is increased by about 30% when
+  using the standard syntax.
+
+* Multiple product databases allow the breakout of product lines,
+  new-used product separation, multi-vendor order routing, and
+  more.  The database an item is ordered from is kept with the
+  item in the shopping cart, so items ordered with the same part
+  number from different databases will not overwrite each other.
+
+* Database tables are now writeable.  Atomic incrementation is
+  supported, which means that reliable inventory counts can be
+  kept.  Form-based database updates are expanded to encompass
+  all databases, not just mSQL.
+
+* Transactions can be logged to an arbitrary file in an arbitrary
+  format with [tag log file]data[/tag].
+
+* Databases can be exported to an ASCII file with the [tag export ...]
+  [/tag] construct.
+
+* Shipping is much improved, with built-in subroutine calls, 
+  error messages for out of bounds condtions, drop-in UPS zone
+  files, configurable handling charges, UPS cost rounding, and
+  more regular syntax.
+
+* Item attribute selection greatly improved, with automated building
+  of the item attribute selection.  Item attributes can easily be 
+  specified at the time of order.
+
+* Item attributes can cause price adjustments on either an
+  item basis or attribute basis.
+
+* Uses Data::Dumper's C-based uneval code when available,
+  improving session storage speed.
+
+* Database tables are only actually opened when referenced,
+  improving speed greatly on systems that have a large number
+  of tables in the database.
+
+* Experimental DBI/DBD example interface provided, which
+  will allow attachment of supported SQL databases like Solid,
+  Oracle, or Sybase. THIS IS EARLY ALPHA SOFTWARE. Use only on
+  an experimental basis, never with live data.
+
+* Search engine has improved coordinated matching, with full
+  field-independent case-sensitivity, substring matching, and
+  negation.
+
+* Search speed greatly improved when doing complex
+  field-coordinated searches.
+
+* The FullUrl directive allows different virtual hosts to have
+  link programs with the same name, i.e. all named /cgi-bin/shop.
+
+* A new (and still experimental) page syntax allows more regular
+  parsing of tags, removing some of the interpolation-order anomalies
+  inherent in the old-style tags. It can be invoked on individual
+  pages with the [new] tag.
+
+* Mall directive allows separate MV_SESSION_ID cookies for each
+  CGI program, enables multiple and separate sessions for stores
+  on same server
+
+* Search cacheing is much improved, and searches can be pre-built
+  when using the static page build capability.
+
+* Pages can be cached, which especially improves performance of
+  large parsed pages. Static build is preferred to cache, but
+  with large databases it is not practical to build every item
+  in advance.
+
+* Supports Perl 5.004 transparently, making runtime changes to
+  affected modules. Removes support for Perl 5.002
+
+* Better security with the NoAbsolute, AdminPage, .access, and
+  AdminDatabase tags.
+
+* Improved handling of cookies, with savable sessions and dynamic
+  expire times.
+
+* Mailed orders may have MIME attachements. Though the author
+  loathes routinely-used MIME, it has value as a way to attach
+  an encrypted credit card number for easy processing by an
+  order entry workstation.
+
+* Search sorting bugs fixed.
+
+* New $Safe{'cgi'}->{form_value} access in embedded Perl allows
+  complex conditional search or order routines to be more
+  intelligent with regard to user input.
+
+* New FormIgnore directive allows certain variables to be
+  expunged from the user session.
+
+* Runs with taint checking enabled, even when using
+  most embedded Perl code.
+
+* INET and UNIX servers run concurrently.
+
+* makecat program now parses httpd.conf (Apache/NSCA style) to
+  help determine defaults.
+
+* makecat program is now monolithic, and saves all catalog
+  configurations in one file.
+
+* Added [discount-price n*] tag, finds discounted price within
+  [item-list].
+
+* Added [item-discount] tag, finds difference between regular and
+  discounted price within [item-list].
+
+* mv_click_map and mv_click.action allows mapping of mv_click to any
+  <INPUT TYPE=IMAGE ...> submit.
+
+* Added configureable [more-list].
+
+* Changed default CheckoutPage to work without explicitly setting.
+
+* Added FrameFlyPage directive for frames flypage default.
+
+* Documentation changes and improvements.
+
+* Many other minor bug fixes, improvements, and changes.
+
+MiniVend 2.03c - Fix session ID bug introduced in 2.03b.
+
+MiniVend 2.03b - AOL-inspired Cookiehost to avoid proxy
+server problems.
+
+MiniVend 2.03a - Sendmail security fix, sort-command security
+fix.
+
 MiniVend 2.03 - User reconfiguration and internet-domain server,
 
 * Re-configuring a catalog can now be done on an individual

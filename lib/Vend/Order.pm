@@ -47,6 +47,7 @@ $DEBUG = 0;
 
 check_required
 check_order
+cyber_charge
 mail_order
 
 );
@@ -116,6 +117,185 @@ my %Parse = (
 						    $Vend::Session->{'values'}->{$var} = $value;
 							},
 );
+
+eval {
+
+	require CCLib;
+	import CCLib qw(SetServer sendmserver);
+
+};
+
+$Vend::CyberCash = ! $@;
+
+# Uncomment this to test CyberCash
+# in debug mode (start -D)
+$Vend::CyberCash = 1;
+sub SetServer {
+	my %options = @_;
+	if ($Global::DEBUG) {
+		for(sort keys %options) {
+			print "$_=$options{$_}\n";
+		}
+	}
+	1;
+}
+
+sub sendmserver {
+	my ($type, %options) = @_;
+print "type=$type\n" if $Global::DEBUG;
+	if ($Global::DEBUG) {
+		for(sort keys %options) {
+			print "$_=$options{$_}\n";
+		}
+	}
+	return ('MStatus', 'success', 'order-id', 1);
+}
+
+
+sub cyber_charge {
+
+	my $val = $Vend::Session->{'values'};
+
+    my %map = qw(
+		mv_credit_card_number       mv_credit_card_number
+		name                        name
+		b_name                      b_name
+		address                     address
+		b_address                   b_address
+		city                        city
+		b_city                      b_city
+		state                       state
+		b_state                     b_state
+		zip                         zip
+		b_zip                       b_zip
+		country                     country
+		b_country                   b_country
+		mv_credit_card_exp_month    mv_credit_card_exp_month
+		mv_credit_card_exp_year     mv_credit_card_exp_year
+		mode                        mv_cyber_type
+		amount                      amount
+    );
+
+	# Allow remapping of the variable names
+	my $remap = $Vend::Cfg->{Variable}->{CYBER_REMAP};
+	$remap =~ s/^\s+//;
+	$remap =~ s/\s+$//;
+	%remap = split /[\s=]+/, $remap;
+	for (keys %remap) {
+		$map{$_} = $remap{$_};
+	}
+
+	my %actual;
+	my $key;
+
+	# pick out the right values, need alternate billing address
+	# substitution
+	foreach $key (keys %map) {
+		$actual{$key} = $val->{$map{$key}} || $CGI::values{$key}
+			and next;
+		my $secondary = $key;
+		next unless $secondary =~ s/^b_//;
+		$actual{$key} = $val->{$map{$secondary}} ||
+						$CGI::values{$map{$secondary}};
+	}
+
+    my $currency = $Vend::Cfg->{Variable}->{CYBER_CURRENCY} || 'usd';
+    $actual{mv_credit_card_exp_month} =~ s/\D//g;
+    $actual{mv_credit_card_exp_month} =~ s/^0+//;
+    $actual{mv_credit_card_exp_year} =~ s/\D//g;
+    $actual{mv_credit_card_exp_year} =~ s/\d\d(\d\d)/$1/;
+
+    $actual{mv_credit_card_number} =~ s/\D//g;
+
+    my $exp = $actual{mv_credit_card_exp_month} . '/' .
+    		  $actual{mv_credit_card_exp_year};
+
+    #
+    # Constants to find the merchant payment server
+    #
+    my %payment = (
+    'host' => $Vend::Cfg->{Variable}->{CYBER_HOST} || 'localhost',
+    'port' => $Vend::Cfg->{Variable}->{CYBER_PORT} || 8000,
+    'secret' => $Vend::Cfg->{Variable}->{CYBER_SECRET} || '',
+        );
+	
+    SetServer(%payment);
+
+    my($orderID);
+    my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = gmtime(time());
+
+    # We'll make an order ID based on date, time, and MiniVend session
+
+    # $mon is the month index where Jan=0 and Dec=11, so we use
+    # $mon+1 to get the more familiar Jan=1 and Dec=12
+    $orderID = sprintf("%02d%02d%02d%02d%02d%05d%s",
+            $year,$mon+1,$mday,$hour,$min,$Vend::SessionName);
+
+    # The following characters are illegal in an order ID:
+    #    : < > = + @ " % = &
+    #
+    # If you want, you could use a line similar to the following
+    # to remove these illegal characters:
+
+    $orderID =~ tr/:<>=+\@\"\%\&/_/d;
+
+    #
+    # Or use something like the following line to only allow
+    # alphanumeric and dash, converting other characters to underscore:
+    #    $orderID =~ tr/A-Za-z0-9\-/_/c;
+
+    # Our test order ID only contains digits, so we don't have
+    # to strip any characters here. You might have to if you
+    # use a different scheme.
+
+    $amount = Vend::Interpolate::tag_total_cost;
+    $amount =~ s/[^.\d]//g;
+    $amount = "$currency $amount";
+print "cyber_charge: amount is '$amount'\n" if $Global::DEBUG;
+
+	$actual{cyber_mode} = 'mauthcapture'
+		unless $actual{cyber_mode};
+
+    my %result = sendmserver(
+		$actual{cyber_mode},
+        'Order-ID'     => $orderID,
+        'Amount'       => $amount,
+        'Card-Number'  => $actual{mv_credit_card_number},
+        'Card-Name'    => $actual{b_name},
+        'Card-Address' => $actual{b_address},
+        'Card-City'    => $actual{b_city},
+        'Card-State'   => $actual{b_state},
+        'Card-Zip'     => $actual{b_zip},
+        'Card-Country' => $actual{b_country},
+        'Card-Exp'     => $exp,
+    );
+
+	if($result{MStatus} !~ /^success/) {
+		$Vend::Session->{cybercash_error} = $result{MErrMsg};
+		return undef;
+	}
+	elsif($result{MStatus} =~ /success-duplicate/) {
+		$Vend::Session->{cybercash_error} = $result{MErrMsg};
+	}
+	else {
+		$Vend::Session->{cybercash_error} = '';
+	}
+	$Vend::Session->{cybercash_id} = $result{'order-id'};
+	if($Vend::Cfg->{EncryptProgram} =~ /pgp/i) {
+		(
+			$val->{mv_credit_card_valid},
+			$val->{mv_credit_card_info},
+			$val->{mv_credit_card_exp_month},
+			$val->{mv_credit_card_exp_year},
+			$val->{mv_credit_card_exp_all},
+			$val->{mv_credit_card_type},
+			$val->{mv_credit_card_error}
+		)	= Vend::ValidCC::encrypt_standard_cc(\%CGI::values);
+	}
+	return $result{'order-id'};
+}
+
+
 
 # AUTOLOAD
 #1;
@@ -309,7 +489,7 @@ sub mail_order {
 			logError("PGP failed with status " . $? << 8 . ": $!");
 			return 0;
 		}
-		$body = `cat pgp$$.out`;
+		$body = readfile("pgp$$.out");
 		unlink "pgp$$.out";
 		unlink "pgp$$.err";
 	}

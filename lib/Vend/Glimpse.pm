@@ -1,6 +1,6 @@
 # Vend/Glimpse.pm:  Search indexes with Glimpse
 #
-# $Id: Glimpse.pm,v 1.5 1997/05/22 07:00:05 mike Exp $
+# $Id: Glimpse.pm,v 1.6 1997/06/17 04:22:52 mike Exp $
 #
 # ADAPTED FOR USE WITH MINIVEND from Search::Glimpse
 #
@@ -28,7 +28,7 @@ package Vend::Glimpse;
 require Vend::Search;
 @ISA = qw(Vend::Search);
 
-$VERSION = substr(q$Revision: 1.5 $, 10);
+$VERSION = substr(q$Revision: 1.6 $, 10);
 use Text::ParseWords;
 use strict;
 
@@ -224,18 +224,18 @@ sub search {
 
 #	$s->debug($s->dump_options());
 
+	$joiner = $g->{or_search} ? ',' : ';';
   CREATE_LIMIT: {
+  	$f = sub { 1; };
   	last CREATE_LIMIT unless scalar @{$s->{'fields'}};
   	last CREATE_LIMIT if $g->{'coordinate'};
 	if ($g->{or_search}) {
-		$joiner = ',';
 		eval {$f = $s->create_search_or(	$g->{case_sensitive},
 											$g->{substring_match}, '',
 											@pats);
 						};
 	}
 	else  {	
-		$joiner = ';';
 		eval {$f = $s->create_search_and(	$g->{case_sensitive},
 											$g->{substring_match}, '',
 											@pats);
@@ -246,6 +246,7 @@ sub search {
 		$g->{matches} = -1;
 		return undef;
 	}
+  } # last CREATE_LIMIT:
 
 	eval {$limit_sub = $s->get_limit($f)};
 	if($@) {
@@ -253,7 +254,6 @@ sub search {
 		$g->{matches} = -1;
 		return undef;
 	}
-  } # last CREATE_LIMIT:
 
 	$spec = join $joiner, @pats;
     push @cmd, "'$spec'";
@@ -277,8 +277,9 @@ EOF
 #	$s->debug("Glimpse command line: $cmd");
 
     # searches for debug
+    $Vend::Glimpse::PID = open(Vend::Glimpse::SEARCH,qq!$cmd |$sort_string !);
 
-    if (!open(Vend::Glimpse::SEARCH,qq!$cmd |$sort_string !)) {
+    if (! $Vend::Glimpse::PID ) {
 		$g->{matches} = -1;
         &{$g->{log_routine}}("Can't fork glimpse: $!");
         &{$g->{error_routine}}($g->{error_page},
@@ -314,6 +315,11 @@ EOF
 		undef $limit_sub;
 	}
 
+	my $save = $SIG{ALRM};
+	$SIG{ALRM} = sub {kill 'KILL', $Vend::Glimpse::PID};
+
+	alarm $Global::HammerLock;
+
 	if(defined $limit_sub) {
 		while(<Vend::Glimpse::SEARCH>) {
 			next unless &$limit_sub($_);
@@ -325,7 +331,11 @@ EOF
 			push @out, &$return_sub($_);
 		}
 	}
+
+	$SIG{ALRM} = $save;
+
 	close Vend::Glimpse::SEARCH;
+
 	if($?) {
 		&{$g->{error_routine}}
 			($g->{error_page},"glimpse returned error $?: $!");
@@ -350,8 +360,4 @@ EOF
 }
 
 1;
-__END__
-
-1;
-
 __END__

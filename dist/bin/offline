@@ -1,0 +1,211 @@
+#!/usr/local/bin/perl
+#
+# offline - MiniVend database builder and indexer
+#
+# $Id: offline,v 1.2 1997/04/10 05:17:09 mike Exp $
+#
+# This program is largely based on Vend 0.2
+# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+#
+# Portions from Vend 0.3
+# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+#
+# Enhancements made by and
+# Copyright 1996,1997 by Michael J. Heins <mikeh@minivend.com>
+#
+# See the file 'Changes' for information.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+BEGIN {
+    eval {
+        require 5.004;
+        require FindBin;
+		1 and $Global::VendRoot = $FindBin::RealBin;
+        1 and $Global::VendRoot =~ s/.bin$//;
+    };
+	($Global::VendRoot = $ENV{MINIVEND_ROOT})
+		if defined $ENV{MINIVEND_ROOT};
+
+	$Global::VendRoot = $Global::VendRoot || '/home/minivend';
+}
+
+### END CONFIGURABLE VARIABLES
+
+$Global::ConfigFile = 'minivend.cfg';
+$Global::ErrorFile = "$Global::VendRoot/error.log";
+
+use lib "$Global::VendRoot/lib";
+
+my $DEBUG = 0;
+
+sub dontwarn { $FindBin::RealBin; }
+
+use strict;
+use Fcntl;
+
+#select a DBM
+
+BEGIN {
+	$Global::GDBM = $Global::DB_File = $Global::Msql = 0;
+    AUTO: {
+        last AUTO if
+            (defined $ENV{MINIVEND_DBFILE} and $Global::DB_File = 1);
+        last AUTO if
+			(defined $ENV{MINIVEND_NODBM});
+        eval {require GDBM_File and $Global::GDBM = 1} ||
+        eval {require DB_File and $Global::DB_File = 1};
+    }
+	if($Global::GDBM) {
+		require Vend::Table::GDBM;
+		import GDBM_File;
+		$Global::GDBM = 1;
+	}
+	elsif($Global::DB_File) {
+		require Vend::Table::DB_File;
+		import DB_File;
+		$Global::DB_File = 1;
+	}
+	else {
+		die "No DBM defined! Offline import not necessary.\n";
+	}
+}
+
+use Vend::Config;
+use Vend::Offline;
+
+my $USAGE = <<EOF;
+usage: offline -c catalog [-d offline_dir]
+
+If specifying a subcatalog, make sure the databases to be built
+are defined in the subcatalog definition.  If they are in the base
+catalog, use that catalog as the parameter for the -c directive.
+EOF
+
+my ($catalog,$directory,$delimiter);
+my (@Indices);
+
+GETOPT: {
+
+	if($ARGV[0] eq '-c') {
+		shift(@ARGV);
+		$catalog = shift(@ARGV);
+		redo GETOPT;
+	}
+	elsif($ARGV[0] eq '-d') {
+		shift(@ARGV);
+		$directory = shift(@ARGV);
+		redo GETOPT;
+	}
+	elsif($ARGV[0] !~ /^-/) {
+		push(@Indices, @ARGV); 
+		@ARGV = ();
+		last GETOPT;
+	}
+
+} # END GETOPT
+
+die "Unrecognized args, aborting.\n$USAGE\n" 
+		if @ARGV;
+
+die $USAGE unless defined $catalog;
+
+my($name,$dir,$param,$subcat,$subconfig);
+chdir $Global::VendRoot;
+open(GLOBAL, $Global::ConfigFile) or
+	die "No global configuration file? Aborting.\n";
+while(<GLOBAL>) {
+	next unless /^\s*(sub)?catalog\s+$catalog\s+/i;
+	$subcat = $1 || '';
+	chomp;
+	s/^\s+//;
+	unless($subcat) {
+		(undef,$name,$dir,$param) = split /\s+/, $_, 4;
+	}
+	else {
+		(undef,$name,$subconfig,$dir,$param) = split /\s+/, $_, 5;
+	}
+	last;
+
+}
+close GLOBAL;
+
+global_config();
+
+chdir $dir or die "Couldn't change directory to $dir: $!\n";
+
+$Vend::Cfg = config($name, $dir, 'config', $subconfig || undef);
+
+open_database();
+
+use FileHandle;
+
+if(@Indices) {
+	print "In index build with " . (join " ", @Indices) . "\n" if $DEBUG;
+	my ($name, $file, $pos, $handle, $key, $val, $p, @fields);
+	my $index = {};
+	for(@Indices) {
+		@fields = split /\s*,\s*/, $_;
+		$name = $fields[0];
+		$file = "$Vend::Cfg->{OfflineDir}/$name.idx";
+		print "$file = '" . (join " ", @fields) . "'\n" if $DEBUG;
+
+		$handle = new FileHandle ">$file";
+		die "Couldn't write $file: $!"
+			unless defined $handle;
+		for(@fields) {
+			$pos = column_exists($_);
+			die "Unknown products field '$_'. Aborting."
+				unless defined $pos;
+			$_ = $pos;
+		}
+		print "$file = '" . (join " ", @fields) . "'\n" if $DEBUG;
+		$index->{$name} = {
+							fields => [@fields],
+							file => $file,
+							handle => $handle,
+						};
+	}
+
+	$p = database_ref();
+
+	my @index = sort keys %$index;
+	my ($idx, $fld, $output, @out);
+
+    while( ($key,@fields) = $p->each_record() ) {
+        foreach $idx (@index) {
+			$handle = $index->{$idx}->{'handle'};
+			@out = @fields[@{$index->{$idx}->{'fields'}}];
+			$output = join $delimiter, @out, $key;
+			$output .= "\n";
+			print $handle $output;
+		}
+    }
+	undef $handle;
+	for(@index) { undef $index->{$_}->{'handle'} }
+	for(@index) {
+		$file = $index->{$_}->{'file'};
+		system "cat $file | sort -t'$delimiter' > $file.new";
+		if($?) {
+			die "Couldn't sort $file properly: $!\n";
+		}
+		unlink $file				or die "Couldn't unlink $file: $!\n";
+		rename "$file.new", $file	or die "Couldn't rename $file.new: $!\n";
+	}
+
+}
+
+close_database();
+

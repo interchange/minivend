@@ -1,4 +1,4 @@
-# $Id: Util.pm,v 1.9 1997/05/22 07:00:05 mike Exp $
+# $Id: Util.pm,v 1.11 1997/06/27 11:32:10 mike Exp mike $
 
 package Vend::Util;
 require Exporter;
@@ -56,8 +56,18 @@ use Config;
 use Fcntl;
 use POSIX 'strftime';
 use subs qw(logError logGlobal);
-# We now use File::Lock for Solaris and SGI systems
-#use File::Lock;
+
+BEGIN {
+	eval {
+		require 5.004;
+	};
+	if($@) {
+		if($Config{osname} =~ /solaris/) {
+			require File::Lock;
+			import File::Lock;
+		}
+	}
+}
 
 my $Uneval_routine;
 
@@ -438,10 +448,10 @@ sub readin {
 
 	if( defined $level and ! check_security($file, $level) ){
 		$file = $Vend::Cfg->{SpecialPage}->{violation};
-		$fn = $Vend::Cfg->{'PageDir'} . "/" . escape_chars($file) . ".html";
+		$fn = $Vend::Cfg->{'PageDir'} . "/" . escape_chars($file) . "$Vend::Cfg->{StaticSuffix}";
 	}
 	else {
-		$fn = $Vend::Cfg->{'PageDir'} . "/" . escape_chars($file) . ".html";
+		$fn = $Vend::Cfg->{'PageDir'} . "/" . escape_chars($file) . "$Vend::Cfg->{StaticSuffix}";
 	}
 
     if (open(Vend::IN, $fn)) {
@@ -884,6 +894,8 @@ sub logGlobal {
 	my(@params);
     $msg = format_log_msg($msg);
 
+	$Vend::Errors .= $msg if $Global::DisplayErrors;
+
     eval {
 		open(Vend::ERROR, ">>$Global::ErrorFile") or die "open\n";
 		lockfile(\*Vend::ERROR, 1, 1) or die "lock\n";
@@ -913,6 +925,9 @@ sub logError {
 
     $msg = format_log_msg($msg);
 
+	$Vend::Errors .= $msg if ($Vend::Cfg->{DisplayErrors} ||
+							  $Global::DisplayErrors);
+
     eval {
 		open(Vend::ERROR, ">>$Vend::Cfg->{ErrorFile}")
 											or die "open\n";
@@ -934,3 +949,4 @@ EOF
 }
 
 1;
+__END__

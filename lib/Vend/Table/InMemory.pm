@@ -50,12 +50,7 @@ sub columns {
 
 sub test_column {
     my ($s, $column) = @_;
-    my $i = $s->[1]{$column};
-    unless(defined $i) {
-		carp "There is no column named '$column'\n";
-		return undef;
-	}
-	return $i;
+	return $s->[1]{$column};
 }
 
 sub column_index {
@@ -148,6 +143,10 @@ sub clear_table {
 }
 
 sub touch { 1 }
+
+sub ref {
+	return $_[0];
+}
 
 sub version { $Vend::Table::InMemory::VERSION }
 

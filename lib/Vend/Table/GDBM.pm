@@ -143,12 +143,7 @@ sub columns {
 
 sub test_column {
     my ($s, $column) = @_;
-    my $i = $s->[$COLUMN_INDEX]{$column};
-    unless(defined $i) {
-		carp "There is no column named '$column'\n";
-		return undef;
-	}
-	return $i;
+    return $s->[$COLUMN_INDEX]{$column};
 }
 
 sub column_index {
@@ -219,6 +214,10 @@ sub touch {
     utime $now, $now, $s->[$FILENAME];
 }
 
+sub ref {
+	return $_[0];
+}
+
 sub each_record {
     my ($s) = @_;
     my ($key, $value);
@@ -240,10 +239,7 @@ sub record_exists {
     my ($s, $key) = @_;
     # guess what?  The GDBM "exists" function got renamed to "EXISTS" 
     # in 5.002.
-    my $r = eval { $s->[$DBM]->EXISTS("k$key") };
-    if ($@) {
-        $r = $s->[$DBM]->exists("k$key");
-    }
+    my $r = $s->[$DBM]->EXISTS("k$key");
     return $r;
 }
 

@@ -1,0 +1,208 @@
+#!/usr/local/bin/perl
+#
+# MiniVend session expiration
+#
+# $Id: expire,v 1.2 1997/04/10 05:17:09 mike Exp $
+#
+# This program is largely based on Vend 0.2
+# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+#
+# Portions from Vend 0.3
+# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+#
+# Enhancements made by and
+# Copyright 1996,1997 by Michael J. Heins <mikeh@minivend.com>
+#
+# See the file 'Changes' for information.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+BEGIN {
+
+    eval {
+        require 5.004;
+        require FindBin;
+        1 and $Global::VendRoot = "$FindBin::RealBin";
+        1 and $Global::VendRoot =~ s/.bin$//;
+    };
+	($Global::VendRoot = $ENV{MINIVEND_ROOT})
+		if defined $ENV{MINIVEND_ROOT};
+$Global::VendRoot = $Global::VendRoot || '/ext/test';
+	
+}
+### END CONFIGURABLE VARIABLES
+
+sub dontwarn { $FindBin::RealBin; }
+
+$Global::ConfigFile = 'minivend.cfg';
+$Global::HammerLock = 20;
+$Global::ErrorFile = 'error.log';
+
+use lib $Global::VendRoot;
+use lib "$Global::VendRoot/lib";
+
+use strict;
+use Fcntl;
+my $DEBUG = 0;
+
+$Vend::SessionName = 'utility';
+
+#select a DBM
+
+BEGIN {
+	$Global::GDBM = $Global::DB_File = $Global::Msql = 0;
+    AUTO: {
+        last AUTO if
+            (defined $ENV{MINIVEND_DBFILE} and $Global::DB_File = 1);
+        last AUTO if
+            (defined $ENV{MINIVEND_NODBM});
+        eval {require GDBM_File and $Global::GDBM = 1} ||
+        eval {require DB_File and $Global::DB_File = 1};
+    }
+	if($Global::GDBM) {
+		require Vend::Table::GDBM;
+		import GDBM_File;
+		$Global::GDBM = 1;
+	}
+	elsif($Global::DB_File) {
+		require Vend::Table::DB_File;
+		import DB_File;
+		$Global::DB_File = 1;
+	}
+	else {
+		require Vend::Table::InMemory;
+	}
+}
+
+use Vend::Session;
+use Vend::Config qw(get_catalog_default parse_time);
+
+my $USAGE = <<EOF;
+usage: expire -c catalog [-e 'SessionExpire']
+           or
+       expire [-e 'SessionExpire'] sessionfile [sessionfile.lock]
+
+      ('SessionExpire' is a time notation like '4 hours' or '2 days')
+EOF
+
+my $catalog;
+my $expiretime;
+
+$Vend::Cfg = {};
+
+GETOPT: {
+
+if($ARGV[0] eq '-c') {
+	shift(@ARGV);
+	$catalog = shift(@ARGV);
+	redo GETOPT if $ARGV[0] eq '-e';
+	last GETOPT;
+}
+elsif($ARGV[0] eq '-e') {
+	shift(@ARGV);
+	$expiretime = shift(@ARGV);
+	redo GETOPT;
+}
+else {
+	$Vend::Cfg->{SessionDatabase} = shift
+		|| die $USAGE;
+	$Vend::Cfg->{SessionDatabase} =~ s/\.(gdbm|db)$//;
+	$Vend::Cfg->{SessionLockFile} = shift;
+	if (defined $Vend::Cfg->{SessionLockFile}) { 
+		die <<EOF unless -f $Vend::Cfg->{SessionLockFile};
+Session lock file '$Vend::Cfg->{SessionLockFile}' doesn't exist.
+Create one if you are sure the MiniVend server is down, then try
+again.
+EOF
+	}
+	elsif (-f "$Vend::Cfg->{SessionDatabase}.lock") {
+		$Vend::Cfg->{SessionLockFile} = 
+				"$Vend::Cfg->{SessionDatabase}.lock";
+	}
+	else {
+		my $dir = $Vend::Cfg->{SessionDatabase};
+		$dir = s:/?([^/]+)$::;
+		my $file = $1 || die $USAGE;
+		die "Aborting, no lock files found!\n"
+			unless -f "$dir/$file.lock";
+	}
+
+}
+
+} # END GETOPT
+
+die "too many args, aborting.\n" 
+		if @ARGV;
+my (%wanted) = qw(	sessionexpire	SessionExpire
+					sessiondatabase SessionDatabase
+					sessionlockfile SessionLockFile
+					scratchdir		ScratchDir
+					errorfile       ErrorFile);
+
+if(defined $catalog) {
+	my($name,$dir,$param);
+	chdir $Global::VendRoot;
+	open(GLOBAL, $Global::ConfigFile) or
+		die "No global configuration file? Aborting.\n";
+	while(<GLOBAL>) {
+		next unless /^\s*catalog\s+$catalog\s+/i;
+		chomp;
+		s/^\s+//;
+		(undef,$name,$dir,$param) = split /\s+/, $_, 4;
+		last;
+	}
+	close GLOBAL;
+	die "Catalog $catalog not found in $Global::ConfigFile.\n"
+		unless defined $name;
+	chdir $dir or die "chdir to $dir: $!\n";
+	open(CATALOG, 'catalog.cfg') or
+		die "No catalog configuration file? Aborting.\n";
+	my (%seen);
+	while(<CATALOG>) {
+		next unless /\S/;
+		next if /^\s*#/;
+		chomp;
+		s/^\s+//;
+		s/\s+$//;
+		($name,$param) = split /\s+/, $_, 2;
+		next unless defined $wanted{lc $name};
+		$seen{$wanted{lc $name}} = $param;
+	}
+	close CATALOG;
+	for(values %wanted) {
+		next if defined $seen{$_};
+		$seen{$_} = get_catalog_default($_);
+	}
+	for(keys %seen) {
+		$Vend::Cfg->{$_} = $seen{$_};
+		warn "$_: $Vend::Cfg->{$_}\n"
+			if $DEBUG;
+	}
+	$expiretime = $Vend::Cfg->{SessionExpire} unless defined $expiretime;
+}
+else {
+	$Vend::Cfg->{ScratchDir} = '/tmp';
+	$Vend::Cfg->{ErrorFile} = $Global::ErrorFile;
+	$expiretime = '1 day' unless defined $expiretime;
+}
+
+$Vend::Cfg->{SessionExpire} = parse_time('SessionExpire', $expiretime);
+
+die $USAGE unless defined $Vend::Cfg->{SessionLockFile};
+
+get_session();
+expire_sessions();
+release_session();
+

@@ -1,0 +1,131 @@
+#!/usr/local/bin/perl -w
+#
+# stop - stops all MiniVend sessions when in multiple server mode
+
+$VendRoot = $VendRoot || '/home/minivend';
+## END CONFIGURABLE VARIABLES
+
+sub dontwarn { $FindBin::RealBin; }
+
+BEGIN {
+    eval {
+        require 5.004;
+        require FindBin;
+        $VendRoot = "$FindBin::RealBin";
+        $VendRoot =~ s/.bin$//;
+    };
+	($VendRoot = $ENV{MINIVEND_ROOT})
+		if defined $ENV{MINIVEND_ROOT};
+}
+
+$ConfDir = "$VendRoot/etc";
+$PidFile = "$ConfDir/minivend.pid";
+
+$ENV{'IFS'} = " ";
+$ENV{'PATH'} = "/bin:/usr/bin:$VendRoot/bin";
+use Config;
+
+$force = 0;
+while (@ARGV) {
+	$_ = shift @ARGV;
+	$_ eq '-f'
+		or die <<EOF;
+usage: stop [-f]
+
+Stops all MiniVend daemons. The -f flag forces unlink of
+all PID files, status files, and sockets.
+EOF
+	$force = 1;
+}
+
+sub warn_pid {
+					warn <<EOF;
+We couldn't immediately terminate the MiniVend server running
+on PID $PID. The server is probably just waiting for a request,
+but it is conceivable it was stopped by an error. 
+
+If your system has SYSV signals (like IRIX and Solaris), it
+may be stopped already.  Wait at least 60 seconds (or make
+a request to the catalog) and try this from the command line:
+
+	kill $PID
+
+It should complain about "no such process", which means the
+server has stopped normally. If it does not (and you have
+waited for the housekeeping timer to elapse) then it is hung.
+Do:
+
+	kill -9 $PID
+	rm -f $ConfDir/$PidFile
+
+EOF
+}
+
+chdir $ConfDir
+	or die "Couldn't enter $ConfDir: $!\n";
+opendir(CONFDIR, '.')
+	or die "Couldn't open $ConfDir: $!\n";
+
+while( @pids = grep /^minivend.pid/, readdir CONFDIR) {
+
+	foreach $PidFile (@pids) {
+		$tried{$PidFile} = 1
+			unless defined $tried{$PidFile};
+		open(PID, $PidFile)
+			or die "Couldn't open $PidFile. This shouldn't happen, tell somebody.\n";
+		chomp($PID = <PID>);
+
+		# The PID should be secure, let it pass taint check
+		$PID =~ /(\d+)/;
+		$PID = $1;
+
+		unless(kill 15, $PID) {
+			if($force) {
+				close PID;
+				kill 9, $PID;
+				unlink $PidFile;
+
+				chdir $ConfDir
+					or die "Couldn't enter $ConfDir: $!\n";
+				opendir(CONFDIR, '.')
+					or die "Couldn't open $ConfDir: $!\n";
+				@rms = grep /^(socket|minivend.pid)/, readdir CONFDIR;
+				closedir CONFDIR;
+
+				unlink @rms;
+
+			}
+			elsif ($tried{$PidFile} > 3) {
+				warn_pid();
+				exit;
+			}
+			else {
+				$tried{$PidFile}++;
+			}
+		}
+		else { 	print "Sent TERM to server on PID $PID.\n";
+				$tried{$PidFile}++;
+				if ($tried{$PidFile} > 3) {
+					warn_pid();
+					exit;
+				}
+		}
+	}
+	select(undef,undef,undef, .1);
+	rewinddir CONFDIR;
+}
+
+if($force) {
+	rewinddir CONFDIR;
+	my(@running) = grep /^mvrunning/, readdir CONFDIR;
+	unlink @running;
+}
+
+closedir CONFDIR;
+
+if(defined %tried) {
+	print "MiniVend server stopped.\n";
+}
+else {
+	print "Apparently no MiniVend daemons were up -- no PID files.\n";
+}

@@ -1,0 +1,24 @@
+### MiniVend 3.00 Manifest ###
+###                        ###
+###   DON'T edit this !!!  ###
+###                        ###
+### $Revision: 1.5 $
+##############################
+
+bin/autosplit script 0755 shbang
+bin/check script 0755 shbang,vars:VendRoot
+bin/dump script 0755 shbang,vars:VendRoot
+bin/expire script 0755 shbang,vars:VendRoot
+bin/htpasswd.pl script 0755 shbang
+bin/ifdef script 0755 shbang
+bin/makecat script 0755 shbang,vars:VendRoot
+bin/offline script 0755 shbang,vars:VendRoot
+bin/reconfig script 0755 shbang
+bin/restart script 0755 shbang,vars:VendRoot
+bin/start script 0755 shbang,vars:VendRoot:PERL
+bin/stop script 0755 shbang,vars:VendRoot
+bin/update script 0755 shbang,vars:VendRoot
+configure.pl script 0755 shbang
+bin/minivend script 0644 shbang,vars:VendRoot:SendMailLocation
+src/config.h.in csrc 0644 defs:LINK_FILE
+src/vlink.pl script 0755 vars:LINK_FILE

@@ -1,0 +1,1203 @@
+#!/usr/local/bin/perl
+#
+# makecat = MiniVend catalog configurator
+#
+# Copyright 1996,1997 by Michael J. Heins <mikeh@minivend.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+sub dontwarn { $FindBin::RealBin; }
+
+BEGIN {
+    eval {
+        require 5.004;
+        require FindBin;
+        1 and $VendRoot = "$FindBin::RealBin";
+        1 and $VendRoot =~ s/.bin$//;
+    };
+	($VendRoot = $ENV{MINIVEND_ROOT})
+		if defined $ENV{MINIVEND_ROOT};
+	$VendRoot = $VendRoot || '/home/minivend';
+}
+
+## END CONFIGURABLE VARIABLES
+
+use lib "$VendRoot/lib";
+
+$| = 1; select STDERR; 
+$| = 1; select STDOUT; 
+
+#use Data::Dumper;
+#$Data::Dumper::Terse = 1;
+#$Data::Dumper::Indent = 3;
+
+use File::Find;
+use File::Copy;
+use File::Path;
+use Vend::MakeCat;
+use Vend::Util;
+use Getopt::Std;
+use IniConf;
+
+#use strict;
+
+my $USAGE = <<EOF;
+usage: $0 [-rf] <catalogname>
+
+options:
+
+	-F    Force make of catalog with defaults
+	-f    Configuration file (default is $0.cfg)
+	-i    Display info about <catalogname>
+	-r    Reconfigure defaults
+
+EOF
+
+use vars qw($opt_i $opt_F $opt_f $opt_r);
+getopts('rf') or die "Couldn't get options: $@\n$USAGE\n";
+
+my $catalog_name = shift || (print( STDOUT $USAGE), prompt ("Catalog name? "));
+die "$USAGE\n" unless $catalog_name;
+
+$Vend::MakeCat::Force = 1 if $opt_F;
+my $Reconfigure = 0;
+$Reconfigure = 1 if $opt_r;
+my $Configfile = $opt_f || "$0.cfg";
+my $Servername;
+my $Servers;
+
+print <<EOF;
+makecat -- MiniVend catalog installation program.
+
+*** We will be making a catalog named '$catalog_name'. ***
+
+EOF
+
+my $isroot = 0;
+if ($< == 0) {
+	$isroot = 1;
+}
+
+my %Config;
+my %Initial;
+
+my %IfRoot = (qw( minivenduser 1 minivendgroup 1 catuser 1));
+
+my %Prefix = (
+	vendroot     =>  $VendRoot,
+	basedir      =>  sub { $isroot ? '' : "$ENV{HOME}/catalogs" },
+	minivenduser =>  sub { $isroot ? '' : get_id(); },
+	minivendgroup=>  sub {
+						my $gid = (getpwnam($Config{minivenduser}))[3];
+						(getgrgid($gid))[0];
+					 },
+    documentroot =>  "$ENV{HOME}/www",
+	cgidir       =>  "$ENV{HOME}/cgi-bin",
+	cgibase      =>  '/cgi-bin',
+	demotype     =>  'simple',
+    catuser      =>  sub { $isroot ? '' : $Config{'minivenduser'} },
+    mailorderto  =>  sub {  if($Config{servername} =~ s:(/~[^/]+)$:: ) {
+								$Tilde = $1;
+							}
+    						$Config{catuser} },
+	catroot      =>  sub { $Config{basedir} . "/" . $catalog_name },
+	cgiurl       =>  sub { my $url = '';
+							if ($Config{cgibase} eq '') {
+								$url =	$Tilde if defined $Tilde;
+								$url .=	'/' .
+										$catalog_name .
+										'.cgi';
+							}
+							else {
+								$url .= $Config{cgibase} . '/' . $catalog_name;
+							}
+							$url;
+						  },
+	imagedir     =>  sub { $Config{samplehtml} . '/' . 'images' },
+	imageurl     =>  sub {  my $url = '';
+	                        if(defined $Tilde) {
+								$url = $Tilde;
+							}
+							$url .= '/' . $catalog_name . '/' . 'images';
+							$url;
+						},
+	samplehtml   =>  sub { $Config{documentroot} . '/' . $catalog_name },
+
+);
+
+sub prefix {
+	return $Config{$p} if $Config{$p};
+	if(ref $Prefix{$_[0]}) { 
+		return &{ $Prefix{$_[0]} };
+	}
+	else {
+		return $Prefix{$_[0]};
+	}
+}
+
+my %History = (
+    documentroot =>  sub {
+						if(defined $Servers->{$Servername}) {
+							return $Servers->{$Servername}->{documentroot}
+							 if defined $Servers->{$Servername}->{documentroot};
+						}
+						else {
+							return (@_);
+						}
+					},
+
+	cgidir       =>  sub {
+						if(defined $Servers->{$Servername}) {
+							return values %{$Servers->{$Servername}->{scriptalias}}
+							 if defined $Servers->{$Servername}->{scriptalias};
+						}
+						else {
+							return (@_);
+						}
+					},
+
+	cgibase      =>  sub {
+						if(defined $Servers->{$Servername}) {
+							return keys %{$Servers->{$Servername}->{scriptalias}}
+							 if defined $Servers->{$Servername}->{scriptalias};
+						}
+						else {
+							return (@_);
+						}
+					},
+    mailorderto  =>	 sub {
+						my(@return) = @_;
+						if(defined $Servers->{$Servername}) {
+							push(@return, $Servers->{$Servername}->{serveradmin})
+							 if defined $Servers->{$Servername}->{serveradmin};
+						}
+						@return;
+					},
+	imagedir     =>   sub {
+						my @return = @_;
+						if(defined $Servers->{$Servername}) {
+							push (@return,
+								values %{$Servers->{$Servername}->{alias}})
+							 if defined $Servers->{$Servername}->{alias};
+						}
+					},
+
+	imageurl     =>   sub {
+						my @return = @_;
+						if(defined $Servers->{$Servername}) {
+							push (@return,
+								keys %{$Servers->{$Servername}->{alias}})
+							 if defined $Servers->{$Servername}->{alias};
+						}
+					},
+
+	minivenduser  =>   sub {
+						my @return = (@_);
+						my $u;
+						if(defined $Servers->{$Servername}) {
+							$nogood = $Servers->{$Servername}->{user}
+							 if defined $Servers->{$Servername}->{user};
+						}
+						while($u = getpwent) {
+							next if $u eq 'root';
+							next if $u eq $nogood;
+							push(@return, $u);
+						}
+						@return;
+					},
+
+	minivendgroup  =>   sub {
+						my @return = (@_);
+						my $u;
+						if(defined $Servers->{$Servername}) {
+							$nogood = $Servers->{$Servername}->{user}
+							 if defined $Servers->{$Servername}->{user};
+						}
+						while($u = getgrent) {
+							next if $u eq 'root';
+							next if $u eq $nogood;
+							push(@return, $u);
+						}
+						@return;
+					},
+
+);
+
+unless($isroot) {
+	@Prefix{qw(minivenduser minivendgroup)} = get_ids();
+	$Prefix{catuser} = $Prefix{minivenduser};
+	$Prefix{basedir} = "$ENV{HOME}/catalogs";
+}
+
+my($ask,$param);
+
+unless (-f $Configfile) {
+	open(CFGFILE, ">$Configfile")	or die "Can't write $Configfile: $!\n";
+	while(<DATA>) {
+		print CFGFILE $_;
+	}
+	close(CFGFILE)					or die "Can't close $Configfile: $!\n";
+	warn "\nNew configuration file '$Configfile'\n" ;
+	$Reconfigure = 1;
+}
+
+my $Cfg = new IniConf -file => $Configfile, -nocase => 1;
+
+die "Can't read config file $Configfile: $!\n" unless defined $Cfg;
+my @parms;
+
+unless($Reconfigure or $Cfg->val('base', 'vendroot')) {
+	$Reconfigure = 1;
+}
+
+CHECKEXIST: {
+
+	if(grep /^catalog $catalog_name$/i, $Cfg->Sections()) {
+		@parms = $Cfg->Parameters("catalog $catalog_name");
+	}
+	else {
+		@parms = ();
+	}
+	unless(@parms) {
+		@parms = $Cfg->Parameters('legalconfig');
+		undef $Cfg;
+		open(CFGFILE, ">>$Configfile")	or die "Can't write $Configfile: $!\n";
+		print CFGFILE <<EOF;
+
+# New catalog definition '$catalog_name' written by makecat
+[catalog $catalog_name]
+EOF
+		for(@parms) {
+			printf CFGFILE "%-19s =\n", $_;
+		}
+		close(CFGFILE)					or die "Can't close $Configfile: $!\n";
+		$Cfg = new IniConf -file => $Configfile, -nocase => 1;
+		die "Can't read config file $Configfile: $!\n" unless defined $Cfg;
+		redo CHECKEXIST;
+	}
+		
+}
+
+my @conf;
+my @Servers;
+
+FINDCONF: {
+
+	my $httpdconf;
+	print <<EOF unless @conf;
+
+If you are using the Apache or NCSA web server, MiniVend can set
+some of the default parameters for you by reading the file.
+
+If you use the Netscape Enterprise server or other non-NCSA HTTP server,
+enter 'none' -- the information, if any, will not be useful.
+
+EOF
+	if (defined $Vend::MakeCat::Prompt_sub) {
+		print <<EOF;
+
+Try using the UP arrow at some of the prompts -- you have the
+Term::ReadLine module installed, and MiniVend may find some
+default values in your HTTP server configuration file.  You can
+cycle among them with the UP and DOWN arrows.
+
+EOF
+	}
+
+	if(@conf) {
+		# Skip doing this again
+	}
+	elsif($param = $Cfg->val('global', 'serverconf')) {
+		last FINDCONF if $param =~ /^none$/i;
+		@conf = split /\s+/, $param;
+	}
+	else {
+		if(findexe('locate')) {
+			@conf = findfiles('httpd.conf');
+			$Cfg->setval('global', 'serverconf', join(" ", @conf));
+		}
+		else {
+			print <<EOF;
+
+MiniVend can look for Apache or NCSA HTTP server configuration
+files for you by a slow method (using the system find
+command). This may take as many as several minutes.
+
+EOF
+			$ask = prompt("Find httpd.conf files? ", 'y');
+			@conf = findfiles('httpd.conf') if $ask =~ /^\s*y/i;
+			$Cfg->setval('global', 'serverconf', join(" ", @conf));
+		}
+	}
+	sethistory(@conf);
+	$httpdconf = prompt("Enter path to httpd.conf file: ", shift @conf);
+
+	last FINDCONF if $httpdconf =~ /^none$/i;
+	if($httpdconf) {
+		$Servers = conf_parse_http($httpdconf);
+		unless (defined $Servers) {
+			print <<EOF;
+
+The file '$httpdconf' was not parsed properly. You can try
+again if you wish. (Don't worry if it didn't work, you will
+have the opportunity to enter all of the proper information
+manually.)
+
+EOF
+			$ask = prompt("Try again? ", 'y');
+			last FINDCONF if $ask =~ /^\s*n/i;
+			redo FINDCONF;
+		}
+	}
+
+	@Servers = sort keys %{$Servers};
+}
+
+##############
+SETDEFAULTS: {
+	unless ($Reconfigure) {
+		my @parms = $Cfg->Parameters('base');
+		for(@parms) {
+			$Config{$_} = $Cfg->val('base', $_) || undef;
+		}
+		last SETDEFAULTS;
+	}
+
+	PERMS: {
+
+		unless ($isroot) {
+			print <<EOF ;
+
+This demo configuration sometimes requires root permissions,
+depending on your ISP.  It needs to copy a few files to the CGI
+and HTML directories.
+
+You must either have your own CGI directory, or be able to run
+a CGI with an extension like '.cgi'.
+
+If you will be operating only on directories owned by the
+user you are running this as, you will be able to do
+everything.
+
+EOF
+
+		}
+		else {
+			print <<EOF ;
+
+You are the super-user. You can set the permissions to GROUP, MULTIPLE
+GROUP, or USER mode for catalogs on this server.
+
+GROUP or MULTIPLE GROUP is appropriate when multiple users will be running
+catalogs on the same server.
+
+Perhaps the best way is to put each user in their own group, and place
+the MiniVend user in that group, i.e.  MULTIPLE GROUP permissions. In
+this mode, only the user of each catalog and the MiniVend server may
+read database and error files -- files that may contain sensitive 
+information.
+
+You can also place all catalog users in a single group, i.e. the
+"minivend" group. This allows the MiniVend user and each individual
+user to read the files associated with a catalog, but others in the
+group may read files from a catalog. This may not be secure. This is
+GROUP mode.
+
+USER mode is appropriate when only one user owns all catalogs running
+on this server.
+
+  M) MULTIPLE GROUP
+  G) GROUP
+  U) USER
+
+EOF
+			sethistory("MULTIPLE GROUP", "GROUP", "USER");
+			$Config{permtype} = prompt("Permission Mode? ", "");
+			unless($Config{permtype} =~ s/^\s*([mgu]).*/lc $1/ie) {
+				warn "Must be one of M(ULTIPLE), G(ROUP), or U(SER).\n";
+				redo PERMS;
+			}
+			$Cfg->setval('base', 'permtype', $Config{permtype});
+
+		}
+
+	} # END PERMS
+
+	print <<EOF;
+
+Since there was no master configuration file, we will ask
+some questions to help set initial defaults for making this
+and future catalogs.
+
+EOF
+
+
+	##############
+	DEFSERVER: {
+
+	last DEFSERVER unless @Servers;
+
+	#print Dumper $Servers;
+
+	print <<EOF;
+
+MiniVend can set many of the defaults for you if it knows the server
+name that is going to be used.
+
+Enter the default server that should be used. This is only a default, to
+determine the *first* one that will be looked at -- you will be given
+a choice of all available servers.
+
+EOF
+
+	print <<EOF if defined $Vend::MakeCat::Prompt_sub;
+
+There is a "history" mechanism that will allow you to use the up
+and down arrows on your terminal (assuming you have a standard terminal)
+to cycle between possible choices.  This should contain the available
+servers.
+
+EOF
+
+	sethistory(@Servers);
+	$Config{servername} = prompt('Default server? ', $Servers[0]);
+	$Servername = $Config{servername};
+
+	}
+	############
+
+	my @ask = $Cfg->val('global', 'askbase');
+
+	for('cgidir') {
+		print <<EOF;
+
+
+We need to know if all of your CGI programs are run as a file ending
+in .cgi or some other extension, or whether you have your own personal
+CGI directory.
+
+EOF
+		$ask = prompt ("Do you have a CGI directory? ", 'y');
+		last if is_yes($ask);
+		$Prefix{cgidir} = $Prefix{documentroot};
+	}
+
+	my ($p, $i);
+
+	for ($i = 0; $i < scalar @ask; $i++) {
+		$p = $ask[$i];
+		@history = &{$History{$p}}(prefix($p)) if defined $History{$p};
+		if(@history) {
+			sethistory(@history);
+		}
+		$val = $Cfg->val("base", $p);
+		$val = $val || prefix($p);
+		print "\n";
+		print description($p);
+		print "\n\n";
+		my $msg = pretty($p) . "? ";
+		$Config{$p} = prompt ($msg, $val);
+		if($Config{$p} eq '@') {
+			$i--;
+			$i = 0 if $i < 0;
+			redo;
+		}
+		$Cfg->setval('base', $p, $Config{$p});
+	}
+
+	$Cfg->WriteConfig("$Configfile.new")
+		and rename "$Configfile.new", $Configfile;
+
+	print "#########     END BASE CONFIGURATION      #########\n\n";
+
+}
+#############
+
+
+# Set server
+
+print "######### BEGINNING CATALOG CONFIGURATION #########\n";
+print <<EOF if $Vend::MakeCat::History;
+
+During many of the following operations, defaults are placed in
+a buffer for you.  You may use the up and down arrows to toggle
+between the defaults.
+
+EOF
+SETSERVER: {
+	sethistory(@Servers);
+	print description('servername');
+	$Servername = $Config{servername} = prompt("Server name? ", $Servers[0]);
+	$Cfg->setval("catalog $catalog_name", 'servername', $Config{servername});
+}
+
+@ask = $Cfg->val('global', 'askconfig');
+
+
+	for ($i = 0; $i < scalar @ask; $i++) {
+		$p = $ask[$i];
+		@history = ();
+		@history = &{$History{$p}}(prefix($p)) if defined $History{$p};
+		if(@history) {
+			sethistory(@history);
+		}
+		$val = $Cfg->val("catalog $catalog_name", $p);
+		$val = $val || prefix($p);
+		if (! $isroot and defined $IfRoot{$p}) {
+			$Config{$p} = $val;
+			next;
+		}
+		print "\n";
+		print description($p);
+		print "\n\n";
+		my $msg = pretty($p) . "? ";
+		$Config{$p} = prompt ($msg, $val);
+		if($Config{$p} eq '@') {
+			$Config{$p} = $val;
+			$i--;
+			$i = 0 if $i < 0;
+			redo;
+		}
+		$Cfg->setval("catalog $catalog_name", $p, $Config{$p});
+	}
+
+$Cfg->WriteConfig("$Configfile.new")
+	and rename "$Configfile.new", $Configfile;
+
+# Try and get the URL we will use to access the catalog
+GUESS: {
+
+	my $tempurl;
+    $guessdir = $Config{samplehtml};
+
+    unless($guessdir =~ s/^$Config{documentroot}//) {
+        print <<EOF;
+\a
+The specified HTML directory, $Config{samplehtml},
+is not a subdirectory of DocumentRoot. This will make it
+hard for us to guess the URL needed to access pages from
+the catalog. Please re-specify your HTML document root.
+
+# The base directory for HTML for the catalog, the DocumentRoot.
+# This is a UNIX file name, not a URL.
+
+EOF
+        $val = '';
+		my $msg = pretty('documentroot');
+        $Config{documentroot} = prompt ("\n$msg? ", '');
+        redo GUESS;
+    }
+
+    $guessdir =~ s:^/+::;
+    $guessdir = "$Tilde/$guessdir" if defined $Tilde;
+    $guessdir =~ s:^/+::;
+    $tempurl = "http://$Config{servername}/$guessdir";
+    if (defined $Config{sampleurl} and $Config{sampleurl} ne $tempurl) {
+		print <<EOF;
+
+We were given a previous value for the URL that will run the catalog
+(from the catalog configuration file $Configfile):
+
+    $Config{sampleurl}
+
+This conflicts with what we guess from what you have just
+entered:
+
+   	$tempurl
+
+EOF
+
+	$tempurl  = prompt ("\nPlease re-enter or confirm: ",
+						"http://$Config{servername}/$guessdir");
+
+	}
+
+	$Config{sampleurl} = $tempurl;
+
+}
+
+$mvuid = getpwnam($Config{minivenduser});
+unless (defined $mvuid) {
+	die "$Config{minivenduser} is not a valid user name on this machine.\n";
+}
+
+if($isroot) {
+	chown ($mvuid, $mvgid, $configfile)
+		or warn "\nCouldn't set ownership of $configfile: $!\n";
+}
+
+if ($Config{minivendgroup}) {
+	$mvgid = getgrnam($Config{minivendgroup});
+	unless (defined $mvgid) {
+		die "$Config{minivendgroup} is not a valid group name on this machine.\n";
+	}
+}
+else {
+	$mvgid = (getpwnam($Config{minivenduser}))[3];
+}
+
+($catuid,$catgid) = (getpwnam($Config{catuser}))[2,3];
+unless (defined $catuid) {
+	die "$Config{catuser} is not a valid user name on this machine.\n";
+}
+
+# Now change to the directory defined as VendRoot
+chdir $Config{vendroot}
+	or die "Couldn't change directory to $Config{vendroot}: $!\n";
+
+
+$warn = 0;
+$msg = q# supposed to be a directory, not a file. Can't continue.#;
+for ( $Config{catroot}, $Config{documentroot}, $Config{basedir},
+	$Config{samplehtml}, $Config{imagedir} ) {
+	next unless -f $_;
+	warn "$_ $msg\n";
+	$warn++;
+}
+die "\n" if $warn;
+
+print <<EOF;
+
+MiniVend can use either UNIX- or internet-domain sockets.
+Most ISPs would prefer UNIX mode, and it is more secure.
+
+EOF
+print "(You can use the up/down arrows to toggle).\n" if $Vend::MakeCat::Prompt_sub;
+
+sethistory("UNIX", "INET");
+$ask = prompt("INET or UNIX mode? ", "UNIX");
+
+my $prog = "$VendRoot/bin/vlink";
+
+if($ask =~ /^\s*i/i) {
+	$prog = "$VendRoot/bin/tlink";
+}
+
+FINDPROG: {
+	unless (-x "$prog" and -f _) {
+		my @history = ();
+		$prog =~ s:.*bin/::;
+		print <<EOF;
+	Couldn't find the executable file '$prog'.
+
+	Please give the complete path to the link program.
+
+EOF
+		if($Config{osname} =~ /win32/i) {
+			# do nothing
+		}
+		elsif(findexe('locate')) {
+			@history = findfiles($prog);
+		}
+		else {
+			@history = `find . -name \*[vt]link\* -print`;
+			chop @history;
+		}
+		sethistory(@history);
+		$prog = prompt("Link program? ", $history[0]);
+	}
+}
+
+$warn = 0;
+print do_msg("Checking directories");
+
+$msg = q#directory exists!#;
+for($Config{catroot}, $Config{samplehtml}) {
+	next unless -d $_;
+	print "\n$_: $msg\n";
+	$warn++;
+}
+
+if($warn) {
+	$ask = prompt "The above directories already exist. Overwrite files? ";
+	exit 2 unless is_yes($ask);
+}
+
+$warn = 0;
+for($Config{documentroot}, $Config{basedir}) {
+	next if -d $_;
+	$warn++;
+}
+
+for($Config{catroot}, $Config{samplehtml}, $Config{imagedir}) {
+	next if -d $_;
+	$warn++;
+}
+
+if($warn) {
+	for(qw(catroot samplehtml imagedir)) {
+		$dir = $Config{$_};
+		(warn "\n$_ is empty, skipping.\n", next)
+			unless $dir =~ /\S/;
+		unless(-d $dir) {
+			File::Path::mkpath([$dir], 1, 0775)
+				or die "Couldn't make directory $dir: $!\n";
+		}
+		if($isroot) {
+			chown ($mvuid, $mvgid, $dir)
+				or die "Couldn't change ownership of $dir: $!\n";
+		}
+	}
+}
+
+for(qw(catroot samplehtml imagedir)) {
+		$dir = $Config{$_};
+		die "Directory $dir not writable, can't continue.\n"
+			unless -w $dir;
+}
+print "done.\n";
+
+# Now change to the directory defined as VendRoot if the checks
+# have left us elsewhere
+chdir $Config{vendroot}
+	or die "Couldn't change directory to $Config{vendroot}: $!\n";
+
+print do_msg("Copying demo files");
+unless (-d $Config{'demotype'}) {
+	print "No $Config{vendroot}/$Config{'demotype'} directory is present,\n";
+	$dir = prompt("where should the files come from? ", '');
+}
+else {
+	$dir = $Config{'demotype'};
+}
+chdir $dir || die "Couldn't change directory to $dir: $!\n";
+
+system "tar -cf - * | (cd $Config{catroot}; tar -xf -)";
+
+if($?) {
+	die <<EOF . "\n";
+There were errors in copying the demo files.  Cannot
+continue.  Check to see if permissions are correct, and
+that the 'tar' program is available.
+
+EOF
+}
+
+File::Copy::copy( $prog, "$Config{catroot}/executable")
+	or die "Couldn't copy link program from $prog: $!\n";
+
+print "done.\n";
+
+
+chdir $Config{catroot} 
+ 	|| die "Couldn't change directory to $Config{catroot}: $!\n";
+
+%Mfile = ( qw(
+                catalog.cfg     1
+                error.log       1
+                etc             1
+                products        1
+                products.db     1
+                products.gdbm   1
+				session			1
+                session.db      1
+                session.gdbm    1
+                session.lock    1
+            ) );
+
+my ($umode, $gmode);
+
+if($Config{permtype} =~ /^[mg]/i) {
+	$umode = 0; $gmode = 1;
+}
+else {
+	$umode = 1; $gmode = 0;
+}
+
+
+%MacroString = qw(
+
+    __MVC_CGIURL        cgiurl
+    __MVC_CGIDIR        cgidir
+    __MVC_MAILORDERTO   mailorderto
+    __MVC_IMAGEURL      imageurl
+    __MVC_SAMPLEURL     sampleurl
+    __MVC_SERVERNAME    servername
+
+);
+
+sub substitute {
+	my($parm,$new) = @_;
+	if($new) {
+		return $Config{lc $parm} || '';
+	}
+	else {
+		return $Config{$MacroString{"__MVC_$parm"}}
+			if defined $MacroString{"__MVC_$parm"};
+	}
+	return "__MVC_$parm";
+}
+
+sub wanted {
+
+	my ($mode,$file);
+	$file = $_;
+	my $name = $File::Find::name;
+	EDIT: {
+     	return if        (-l $file);
+
+		# Ugly, but necessary on BSDI
+		$File::Find::prune = 1 if -f _;
+
+        last EDIT unless (-f _);
+        last EDIT unless (-T _);
+  
+		open(IN, $file) or die "Couldn't open $name: $!\n";
+		open(OUT, ">$file.new") or die "Couldn't create $name.new: $!\n";
+		while(<IN>) {
+			s/__MVC_([A-Z0-9]+)(__)?/substitute($1,$2)/eg;
+			print OUT $_;
+		}
+		close OUT;
+		close IN;
+		unlink ($file)
+			or die "Couldn't unlink $name: $!\n";
+		rename ("$file.new", $file)
+			or die "Couldn't rename $name.new to $name: $!\n";
+	}
+	if(defined $Mfile{$file} or $file =~ /\.gdbm$|\.asc$|\.txt$|\.csv$|\.db$/) {
+		if($isroot) {
+			chown ($mvuid, $mvgid, $file)
+				or die "\nCouldn't set ownership of $name: $!\n";
+		}
+		$mode = (stat($file))[2];
+		$mode |= 16 unless $umode;
+		chmod ($mode, $file)
+			or die "\nCouldn't set permissions on $name: $!\n";
+			
+	}
+	else {
+		chmod(0755, $file) if $file =~ /reconfig$/;
+		if($isroot) {
+			chown ($catuid, $catgid, $file)
+				or die "\nCouldn't set ownership on $name: $!\n";
+		}
+	}
+}
+	
+	$File::Find::dont_use_nlink = 1;
+	File::Find::find(\&wanted, $Config{catroot});
+
+	if($isroot) {
+		chown ($mvuid, $mvgid, $Config{catroot})
+			or warn "\nCouldn't set ownership of $Config{catroot}: $!\n";
+	}
+
+	$cginame = $Config{cgiurl};
+	$cginame =~ s:.*/::;
+	$cginame = "$Config{cgidir}/$cginame";
+
+	print do_msg("Moving link program to $cginame");
+	
+	system "mv $Config{catroot}/executable $cginame";
+	if($?) {
+		die "Couldn't move link executable from $prog to $cginame: $!\n";
+	}
+
+	if($isroot) {
+		chown ($mvuid, $mvgid, $cginame)
+			or die "\nCouldn't set ownership of $cginame: $!\n";
+	}
+
+	unless ($isroot or can_do_suid()) {
+		print <<EOF;
+
+My test indicates you can't change vlink to SUID mode.
+This will cause big problems -- you can make MiniVend work anyway
+by changing the ReadPermission and WritePermission directives in
+all of your catalogs to 'world', but this is not secure. If you can,
+you should run this as root, or su to root and do:
+
+    chmod 4755 $cginame
+
+EOF
+		$ask = prompt("Continue? ", 'n');
+		exit 2 unless is_yes($ask);
+	}
+	chmod 04755, $cginame
+		or warn "\nCouldn't set permissions on $cginame: $!\n";
+
+	print "done.\n";
+
+	
+	print do_msg("Moving HTML files to $Config{samplehtml}");
+	system "mv html/* $Config{samplehtml}";
+	if($?) {
+		die "Couldn't move HTML files $Config{samplehtml}: $!\n";
+	}
+	rmdir 'html'
+		or die "Couldn't remove HTML directory: $!\n";
+	print "done.\n";
+
+	print do_msg("Moving image files to $Config{imagedir}");
+	system "mv images/* $Config{imagedir}";
+	if($?) {
+		die "Couldn't move image files to $Config{imagedir}: $!\n";
+	}
+	if($isroot) {
+		opendir(CHGIT,$Config{imagedir})
+			or die "couldn't open $Config{imagedir}: $!\n";
+        my (@files) = grep !/^\./, readdir CHGIT;
+		closedir CHGIT;
+		for(@files) {
+			chown ($catuid, $catgid, "$Config{imagedir}/$_")
+				or die "Couldn't chown image files in $Config{imagedir}: $!\n";
+		}
+	}
+	rmdir 'images'
+		or die "Couldn't remove image directory: $!\n";
+	print "done.\n";
+
+	chdir $Config{vendroot}
+		or die "Couldn't change directory to $VendRoot: $!\n";
+
+	$yes = prompt "Add catalog to minivend.cfg? ", 'y';
+
+	if( is_yes($yes) ) {
+		my ($newcfgline, $mark, @out);
+		my ($tmpfile) = "minivend.cfg.$$";
+		if (-f 'minivend.cfg') {
+			rename ("minivend.cfg", $tmpfile)
+				or die "Couldn't rename minivend.cfg: $!\n";
+		}
+		else {
+			File::Copy::copy('minivend.cfg.dist', $tmpfile);
+		}
+		open(CFG, $tmpfile)
+			or die "Couldn't open $tmpfile: $!\n";
+		$newcfgline = sprintf "%-19s %s %s %s\n", 'Catalog',
+				$catalog_name, $Config{catroot}, $Config{cgiurl};
+		while(<CFG>) {
+			$mark = $. if /^#?\s*catalog\s+/i;
+			warn "\nDeleting old configuration $catalog_name.\n"
+				if s/^(\s*catalog\s+$catalog_name\s+)/#$1/io;
+			push @out, $_;
+		}
+		close CFG;
+		open(NEWCFG, ">minivend.cfg")
+			or die "\nCouldn't write minivend.cfg: $!\n";
+		if (defined $mark) {
+			print NEWCFG @out[0..$mark-1];
+			print NEWCFG $newcfgline;
+			print NEWCFG @out[$mark..$#out];
+		}
+		else { 
+			$newconfig = 1;
+			warn "\nNo catalog previously defined. Adding $catalog_name at top.\n";
+			print NEWCFG $newcfgline;
+			print NEWCFG @out;
+		}
+		close NEWCFG || die "close: $!\n";
+		unlink $tmpfile;
+		if($isroot) {
+			chown ($mvuid, $mvgid, 'minivend.cfg')
+				or warn "Couldn't set ownership of 'minivend.cfg': $!\n";
+		}
+	}
+	else {
+		my $newcfgline = sprintf "%-19s %s %s %s\n", 'Catalog',
+				$catalog_name, $Config{catroot}, $Config{cgiurl};
+		print <<EOF;
+You will need to add the following line to your minivend.cfg file
+to activate the catalog.
+
+$newcfgline
+
+EOF
+	}
+
+	print <<EOF;
+
+Done with installation. If my reading of your input is correct, you
+should be able to access the demo catalog with the following URL:
+
+	$Config{sampleurl}
+
+In any case, you should get direct access at:
+
+	http://$Config{servername}$Config{cgiurl}
+
+That is, after you START or RESTART the MiniVend server.  8-)
+It is best done with:
+
+	$Config{vendroot}/bin/restart
+
+EOF
+	print "Good luck with MiniVend 2.0!\n" if defined $newconfig;
+
+__END__
+
+# Sample catalog definition
+[catalog sample]
+basedir      =
+catroot      =
+catuser      =
+cgibase      =
+cgibin       =
+cgidir       =
+cgiurl       =
+demotype     = sample
+documentroot =
+imagedir     =
+imageurl     =
+mailorderto  =
+minivendgroup=
+minivenduser =
+samplehtml   =
+sampleurl    =
+servername   =
+vendroot     =
+
+# Simple catalog definition
+[catalog simple]
+basedir      =
+catroot      =
+catuser      =
+cgibase      =
+cgibin       =
+cgidir       =
+cgiurl       =
+demotype     = simple
+documentroot =
+imagedir     =
+imageurl     =
+mailorderto  =
+minivendgroup=
+minivenduser =
+samplehtml   =
+sampleurl    = 
+servername   =
+vendroot     =
+
+[base]
+permtype=
+basedir=
+cgidir=
+cgibase=
+documentroot=
+minivendgroup=
+minivenduser=
+serverconf=
+vendroot=
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#
+# DO NOT EDIT BELOW HERE
+#
+# These are global parameters used by the program
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+[global]
+# 
+# All params allowed
+#
+params=<<EOF
+basedir
+catroot
+catuser
+cgibase
+cgibin     
+cgidir
+cgiurl
+demotype
+documentroot
+imagedir
+imageurl
+mailorderto
+minivendgroup
+minivenduser
+samplehtml
+sampleurl
+serverconf
+servername
+vendroot
+EOF
+
+catparams=<<EOF
+catroot
+catuser
+cgidir
+cgiurl
+demotype
+documentroot
+imagedir
+imageurl
+mailorderto
+minivendgroup
+minivenduser
+samplehtml
+sampleurl
+servername
+EOF
+
+# 
+# Default (base) parameters to ask about, in order
+#
+askbase=<<EOF
+vendroot
+basedir
+minivenduser
+minivendgroup
+documentroot
+cgidir
+cgibase
+EOF
+
+# 
+# Catalog parameters to ask about, in order
+#
+askconfig=<<EOF
+demotype
+minivenduser
+minivendgroup
+catuser
+mailorderto
+catroot
+cgidir
+cgiurl
+documentroot
+samplehtml
+imagedir
+imageurl
+EOF
+
+######## END GLOBAL SECTION ########
+
+# Simple test to make sure legal for config file
+[legalconfig]
+cgidir=1
+cgiurl=1
+catuser=1
+demotype=1
+imagedir=1
+imageurl=1
+mailorderto=1
+minivenduser=1
+minivendgroup=1
+samplehtml=1
+sampleurl=1
+servername=1
+catroot=1
+
+# Simple test to make sure legal for base file
+[legalbase]
+basedir=1
+cgidir=1
+cgibase=1
+documentroot=1
+minivendgroup=1
+minivenduser=1
+serverconf=1
+vendroot=1

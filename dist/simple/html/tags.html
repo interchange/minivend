@@ -1,0 +1,2284 @@
+<!-- $Id$ -->
+<HTML><HEAD>
+<CENTER><TITLE>tags</TITLE>
+</HEAD>
+<BODY BGCOLOR=WHITE></CENTER><p><hr>
+
+<H1> 
+<A NAME="tags_minivend_0">
+MiniVend Alphabetical Tag Reference</A>
+</H1>
+MiniVend has over 80 different elements (we will also interchangeably
+refer to them as tags) which are used to access the database, format
+and display HTML pages, and perform system control.
+A reference to most of the tags follows.
+<p><STRONG>NOTE:</STRONG> In the descriptions, parameters marked with an asterisk* are
+optional.
+<p>When a tag is separated by an underscore, as in <STRONG>item_list</STRONG>, a dash
+is just as appropriate (i.e. <STRONG>item-list</STRONG>). They are interchangeable,
+except that the ending tag and beginning tag should match (don't
+use [item-list] list [/item_list]).
+<p>Beginning with MiniVend 3.0, there is an experimental page
+syntax which interprets tags with named arguments, similar to HTML.
+It has more regular precedence rules -- tags are interpreted in
+sequential order rather than a set interpolation sequence. (Page serving
+speed is usually somewhat slower when using the new syntax.)
+The calling syntax is shown under the normal syntax -- if not specified,
+it is the same.  Some tags (those inside item_list or loop constructs,
+for example) are not changed.
+<p>To use the new page syntax, place <STRONG>one</STRONG> [new] tag at the top of the page.
+To force old syntax, place <STRONG>one</STRONG> [old] tag at the very top of the page. Further
+[new] and [old] tags will control syntax in re-evaluated portions of
+the page (for example, within the [tag]minivend tags[/tag] construct).
+<p>
+<H2> 
+<A NAME="tags_tag_0">
+Tag Descriptions</A>
+</H2>
+<p>
+<DL COMPACT>
+<DT><STRONG>
+
+<A NAME="tags_accessories_0">
+[accessories code attribute*, type*, field*, database*, name*]</A>
+
+</STRONG>
+<DD>
+(new syntax [accessories code=``code''
+arg="attribute*, type*, field*, database*, name*])
+<p>If not given one of the optional arguments, expands into the value
+of the accessories database entry for the product
+identified by <EM>code</EM> as found in the products database.
+<p>If passed any of the optional arguments, initiates special processing
+of item attributes based on entries in the product database.
+<p>
+<XMP>
+   attribute     The item attribute as specified in the UseModifier
+                 configuration directive. Typical are "size" or
+                 "color".
+   type          The action to be taken. The default is 'select', which
+                 builds an HTML select form entry for the attribute.
+                 Also recognized are 'multiple', which builds a multiple
+                 select box, and 'list', which simply lists the possible
+                 values.
+   field         The database field name to be used to build the
+                 entry (usually a select form field). Defaults to
+                 a field named the same as the attribute.
+   database      The database to find B<field> in, defaults to the
+                 first products file where the item code is found.
+   name          Name of the form variable to use if a form is being
+                 built. Defaults to mv_order_B<attribute> -- i.e.
+                 if the attribute is B<size>, the form variable will
+                 be named B<mv_order_size>.
+
+</XMP>
+<p>When called with an attribute, the database is consulted and looks for
+a comma-separated list of attribute options. They take the form:
+<p>
+<XMP>
+    name=Label Text, name=Label Text*
+
+</XMP>
+<p>The label text is optional -- if none is given, the <STRONG>name</STRONG> will
+be used.
+<p>If an asterisk is the last character of the label text, the item is
+the default selection. If no default is specified, the first will be
+the default. An example:
+<p>
+<XMP>
+    [accessories TK112 color]
+
+</XMP>
+<p>This will search the product database for a field named ``color''. If
+an entry ``beige=Almond, gold=Harvest Gold, White*, green=Avocado'' is found,
+a select box like this will be built:
+<p>
+<XMP>
+    <SELECT NAME="mv_order_color">
+    <OPTION VALUE="beige">Almond
+    <OPTION VALUE="gold">Harvest Gold
+    <OPTION SELECTED>White
+    <OPTION VALUE="green">Avocado
+    </SELECT>
+
+</XMP>
+<p>In combination with the <EM>mv_order_item</EM> and <EM>mv_order_quantity</EM> variables
+this can be used to allow entry of an attribute at time of order.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_any_0">
+[[any]]</A>
+
+</STRONG>
+<DD>
+Forces early interpolation of any tag. Sometimes needed if the order
+of interpolation does not achieve the desired result (meaning you see
+MiniVend tags displayed on the page).
+<p><STRONG>NOTE:</STRONG> This is ignored if using the new syntax.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_area_0">
+[area pg]</A>
+
+</STRONG>
+<DD>
+(new syntax [area href=``dir/page'' target=``frame'' arg=``argument''])
+<p>Like the <EM>areatarget</EM> element, except it will never yield
+a frame target.
+<p>The optional <EM>arg</EM> is used just as in the <EM>page</EM> tag.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_areatarget_0">
+[areatarget pg frame arg*]</A>
+
+</STRONG>
+<DD>
+(new syntax [area href=``dir/page'' target=``frame'' arg=``argument'']
+<p>Inserts a Vend URL in a format to provide a targeted reference for a
+client-side imagemap. You set up the &lt;AREA> tag with:
+<p>
+<XMP>
+      <AREA COORDS="220,0,270,20" HREF="[areatarget page frame]">
+
+</XMP>
+<p>If frames are enabled, this will expand to:
+<p>
+<XMP>
+      <AREA COORDS="220,0,270,20"
+         HREF="http://machine.company.com/vlink/page?ErTxVV8l;;38" TARGET="frame">
+
+</XMP>
+<p>If frames are <EM>not</EM> enabled, this will expand to:
+<p>
+<XMP>
+      <AREA COORDS="220,0,270,20"
+         HREF="http://machine.company.com/vlink/page?ErTxVV8l;;38">
+
+</XMP>
+<p>The optional <EM>arg</EM> is used just as in the <EM>page</EM> tag.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_body_0">
+[body n]</A>
+
+</STRONG>
+<DD>
+(new syntax [body type=``n''])
+<p>Selects from the predefined color schemes and/or backgrounds, and
+just becomes a &lt;BODY> tag if none are defined. See 
+<EM>Controlling Page Appearance</EM>.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_buttonbar_0">
+[buttonbar n]</A>
+
+</STRONG>
+<DD>
+(new syntax [buttonbar type=``n''])
+<p>Selects from the predefined buttonbars, and is stripped if it
+doesn't exist. See <EM>Controlling Page Appearance</EM>.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_calc_0">
+[calc]</A>
+
+</STRONG>
+<DD>
+Starts a region where the arguments are calculated according to normal
+arithmetic symbols. For instance:
+<p>
+<XMP>
+    [calc] 2 + 2 [/calc]
+
+</XMP>
+<p>will display:
+<p>
+<XMP>
+    4
+
+</XMP>
+<p>TIP: The [calc] tag is really the same as the [perl] tag, except
+that it doesn't accept arguments, is more efficient to parse, and
+is interpolated at a higher precedence.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_calc_1">
+[/calc]</A>
+
+</STRONG>
+<DD>
+Terminates the calculated region.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_cart_0">
+[cart name]</A>
+
+</STRONG>
+<DD>
+(new syntax [cart name=``name''])
+<p>Sets the name of the current shopping cart for display of shipping, price,
+total, subtotal, and nitems tags. If you wish to use a different price for
+the cart, all of the above except [nitems] and [shipping] will reflect the
+normal price field -- you must either emulate those operations with embedded Perl
+or the [item-list], [calc], and [currency] tags, or use an embedded Perl
+routine to set it. This would change the price field used:
+<p>
+<XMP>
+    [[perl config]$Safe{'config'}->{PriceField} = 'discount_price'[/perl]]
+
+</XMP>
+<p>Place it at the top of the page, before the [item-list], to ensure it
+is interpolated early enough.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_checked_0">
+[checked var_name value]</A>
+
+</STRONG>
+<DD>
+(new syntax [checked name=``var_name'' value=``value''])
+<p>This will output CHECKED if the variable <EM>var_name</EM> is equal to
+
+<A HREF="tags.html#tags_value_0">value</A>
+. Not case sensitive.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_col_0">
+[col width=nn wrap=yes|no gutter=n align=left|right|input spacing=n]</A>
+
+</STRONG>
+<DD>
+Sets up a column for use in a [row]. This parameter can only be contained
+inside a [row nn] [/row] tag pair. Any number of columns (that fit within
+the size of the row) can be defined.
+<p>The parameters are:
+<p>
+<XMP>
+    width=nn        The column width, I<including the gutter>. Must be
+                    supplied, there is no default. A shorthand method
+                    is to just supply the number as the I<first> parameter,
+                    as in [col 20].
+        
+    gutter=n        The number of spaces used to separate the column (on
+                    the right-hand side) from the next. Default is 2.
+        
+    spacing=n       The line spacing used for wrapped text. Default is 1,
+                    or single-spaced.
+        
+    wrap=(yes|no)   Determines whether text that is greater in length than
+                    the column width will be wrapped to the next line. Default
+                    is I<yes>.
+        
+    align=(L|R|I)   Determines whether text is aligned to the left (the default),
+                    the right, or in a way that might display an HTML text
+                    input field correctly.
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="tags_col_1">
+[/col]</A>
+
+</STRONG>
+<DD>
+Terminates the column field.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_comment_0">
+[comment] code [/comment]</A>
+
+</STRONG>
+<DD>
+Comments out MiniVend tags (and anything else) from a page. The 
+contents are not displayed unless DisplayComments is set in minivend.cfg.
+Can be nested.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_condition_0">
+[condition] text [/condition]</A>
+
+</STRONG>
+<DD>
+Only used with the [if explicit] tag. Allows an arbitrary expression
+<STRONG>in Perl</STRONG> to be placed inside, with its return value interpreted as
+the result of the test. If arguments are added to [if explicit args],
+those will be passed as arguments are in the <EM>[perl]</EM> construct.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_currency_0">
+[currency]</A>
+
+</STRONG>
+<DD>
+When passed a value of a single number, formats it according to the
+currency specification. For instance:
+<p>
+<XMP>
+    [currency]4[/currency]
+
+</XMP>
+<p>will display:
+<p>
+<XMP>
+    4.00
+
+</XMP>
+<p>Uses the <EM>Locale</EM>, <EM>PriceDivide</EM>, and <EM>PriceComma</EM> settings as
+appropriate, and can contain a [calc] region. If Locale is set to 'pt',
+and <EM>PriceDivide</EM> to 100, the following
+<p>
+<XMP>
+    [currency] [calc] 50000 + 100000 [/calc] [/currency]
+
+</XMP>
+<p>the number 1.500,00 will be displayed.
+<p>
+<DT><STRONG>
+<EM>[data area field key ``value''* increment*]</EM>
+</STRONG>
+<DD>
+(new syntax:
+    [data base=``database'' name=``field'' code=``key''
+        value=``value'' op="increment] )
+<p>Returns the value of the field in any of the arbitrary databases,
+or from the variable namespaces. If the optional 
+<A HREF="tags.html#tags_value_0">value</A>
+ is supplied,
+the database value will be changed to it -- no ] characters may be
+present in the value unless using the new tag style. If the option
+increment* is present, the field will be atomically incremented with
+the value in 
+<A HREF="tags.html#tags_value_0">value</A>
+.
+<p>If a DBM-based database is to be modified, it must be flagged writable
+on the page calling the write tag. Use [tag flag write]products[/tag]
+to mark the <EM>products</EM> database writeable, for example.
+<p>Databases will hide variables, so don't name a database ``session'',
+``scratch'', or any of the other reserved names! Case is sensitive, so in
+a pinch you could call the database ``Session'', but it would be better
+not to.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_description_0">
+[description code database*]</A>
+
+</STRONG>
+<DD>
+(new syntax [description code=``code'' base=``database''])
+<p>Expands into the description of the product identified by code as found in
+the products database. If there is more than one products file defined,
+they will be searched in order unless constrained by the optional
+argument <STRONG>base</STRONG>.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_discount_price_0">
+[discount_price n*]</A>
+
+</STRONG>
+<DD>
+Evaluates to the discount price for quantity <CODE>n</CODE> (from the products file)
+of the current item. Returns regular price if not discounted.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_else_0">
+[else] text [/else]</A>
+
+</STRONG>
+<DD>
+The optional else-text for an if or if_field conditional.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_field_0">
+[field name code]</A>
+
+</STRONG>
+<DD>
+(new syntax [field code=``code'' name=``fieldname''])
+<p>Expands into the value of the field <EM>name</EM> for the product
+identified by <EM>code</EM> as found by searching the products database.
+It will return the first entry found in the series of <EM>Product Files</EM>.
+the products database. If you want to constrain it to a particular
+database, use the [data base name code] tag.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_file_0">
+[file name]</A>
+
+</STRONG>
+<DD>
+(new syntax [file name=``name''])
+<p>Inserts the contents of the named file. The file should normally
+be relative to the catalog directory -- file names beginning with
+/ or .. are only allowed if the MiniVend server administrator
+has disabled <EM>NoAbsolute</EM>.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_finish_order_0">
+[finish_order page*]</A>
+
+</STRONG>
+<DD>
+(new syntax [finish_order href=``page''])
+<p>This element is used to give the customer, while browsing, a way to go
+to the shopping basket page to check on their order. If they haven't
+ordered anything yet [finish_order] does not appear at all on the
+displayed page. If they have ordered an item, the element will expand
+into something like:
+<p>
+<XMP>
+ <a href="http://machine.company.com/cgi-bin/vlink/order;WehUkATn;;1">
+ Finish Incomplete Order</a>
+
+</XMP>
+<p>If the optional page is supplied, that will be the order page used
+to finish the order.
+<p>This tag is deprecated -- it is suggested that you use the construct:
+<p>
+<XMP>
+    [if items]
+    [page ord/basket]Check Basket[/page]
+    [/if]
+
+</XMP>
+<p>It will be removed in a future version of MiniVend.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_frames_off_0">
+[frames_off]</A>
+
+</STRONG>
+<DD>
+Turns off the frames processing option. This can be used to disable
+frames, perhaps as a clickable option for users. It is persistent for
+the entire session, or until counteracted with a [frames_on] tag.
+<p>IMPORTANT NOTE:  This doesn't turn of frames in your browser! If
+you let a TARGET tag escape, it will probably cause a new window
+to be opened, or other types of anomalous operation.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_frames_on_0">
+[frames_on]</A>
+
+</STRONG>
+<DD>
+Turns on the frames processing option, which is disabled by default.
+The proper way to use this is to put it ONLY in the first page which
+is loaded by frame-based browsers, as part of the initial frame load.
+It is persistent for the entire session, or until counteracted with a
+[frames_off] tag.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_if_data_0">
+[if_data database fieldname]</A>
+
+</STRONG>
+<DD>
+If the database field <EM>fieldname</EM> in <EM>database</EM> is non-blank for the current
+item, the following text up to the [/if_data] tag is substituted. This can be
+used to substitute IMG or other tags only if the corresponding source item is
+present. Also accepts a [else]else text[/else] pair for the opposite condition.
+Operates in search lists, item list, and the on-the-fly page.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_if_data_1">
+[/if_data]</A>
+
+</STRONG>
+<DD>
+Terminates an [if_data database fieldname] element.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_if_field_0">
+[if_field fieldname]</A>
+
+</STRONG>
+<DD>
+If the database field <EM>fieldname</EM> is non-blank, the following text up to
+the [/if_field] tag is substituted. This can be used to substitute IMG
+or other tags only if the corresponding source item is present. Also
+accepts a [else]else text[/else] pair for the opposite condition.
+Operates in search lists, item lists, and the on-the-fly page.
+<p>COMPATIBILITY NOTE: MiniVend 1.02 used the [/if] end tag for
+an [if_field] element. This was supported through MiniVend 1.03,
+but is gone in 2.0 -- you may need to change it.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_if_field_1">
+[/if_field]</A>
+
+</STRONG>
+<DD>
+Terminates an [if_field fieldname] element.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_if_loop_data_0">
+[if_loop_data database fieldname]</A>
+
+</STRONG>
+<DD>
+Same as [if_data ...], except operates in loop lists.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_if_loop_data_1">
+[/if_loop_data]</A>
+
+</STRONG>
+<DD>
+Terminates an [if_loop_data database fieldname] element.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_if_loop_field_0">
+[if_loop_field fieldname]</A>
+
+</STRONG>
+<DD>
+Same as [if_field ...], except operates in loop lists.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_if_loop_field_1">
+[/if_loop_field]</A>
+
+</STRONG>
+<DD>
+Terminates an [if_loop_field fieldname] element.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_if_msql_data_0">
+[if_msql_data database fieldname]</A>
+
+</STRONG>
+<DD>
+Same as [if_data ...], except operates in Msql lists.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_if_msql_data_1">
+[/if_msql_data]</A>
+
+</STRONG>
+<DD>
+Terminates an [if_msql_data database fieldname] element.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_if_msql_field_0">
+[if_msql_field fieldname]</A>
+
+</STRONG>
+<DD>
+Same as [if_field ...], except operates in Msql lists.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_if_msql_field_1">
+[/if_msql_field]</A>
+
+</STRONG>
+<DD>
+Terminates an [if_msql_field fieldname] element.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_if_data_1">
+[/if_data]</A>
+
+</STRONG>
+<DD>
+Terminates an [if_data database fieldname] element.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_if_0">
+[if type field op* compare*]</A>
+
+</STRONG>
+<DD>
+(new syntax [if type=``type'' term=``field'' op=``op'' compare=``compare''])
+<p>Allows conditional building of HTML based on the setting of various MiniVend
+session and database values. Accessible areas are:
+<p>
+<DL COMPACT>
+<DT><STRONG>
+
+<A NAME="tags_config_0">
+config Directive</A>
+
+</STRONG>
+<DD>
+The MiniVend configuration variables. These are set
+by the directives in your MiniVend configuration file (or
+the defaults).
+<p>
+<XMP>
+    [if config CreditCardAuto]
+    Auto credit card validation is enabled.
+    [/if]
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="tags_data_1">
+data  database::field::key</A>
+
+</STRONG>
+<DD>
+The MiniVend databases. Retrieves a field in the database and
+returns true or false based on the value.
+<p>
+<XMP>
+    [if data products::size::99-102]
+    There is size information.
+    [else]
+    No size information.
+    [/else]
+    [/if]
+    [if data products::size::99-102 =~ /small/i]
+    There is a small size available.
+    [else]
+    No small size available.
+    [/else]
+    [/if]
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="tags_discount_0">
+discount</A>
+
+</STRONG>
+<DD>
+Checks to see if a discount is present for an item.
+<p>
+<XMP>
+    [if discount 99-102]
+    Item is discounted.
+    [/if]
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="tags_explicit_0">
+explicit</A>
+
+</STRONG>
+<DD>
+A test for an explicit value. If perl code is placed between
+a [condition] [/condition] tag pair, it will be used to make
+the comparison. Arguments can be passed to import data from
+user space, just as with the [perl] tag.
+<p>
+<XMP>
+    [if explicit]
+    [condition]
+        $country = '[value country]';
+        return 1 if $country =~ /u\.?s\.?a?/i;
+        return 0;
+    [/condition]
+    You have indicated a US address.
+    [else]
+    You have indicated a non-US address. 
+    [/else]
+    [/if]
+
+</XMP>
+<p>This example is a bit contrived, as the same thing could be
+accomplished with [if value country =~ /u\.?s\.?a?/i], but
+you will run into many situations where it is useful.
+<p>This will work for <EM>Variable</EM> values:
+<p>
+<XMP>
+    [if explicit "__MYVAR__"] .. [/if]
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="tags_file_1">
+file</A>
+
+</STRONG>
+<DD>
+Tests for existence of a file. Useful for placing image
+tags only if the image is present.
+<p>
+<XMP>
+    [if file /home/user/www/images/[item-code].gif]
+    <IMG SRC="[item-code].gif">
+    [/if]
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="tags_items_0">
+items</A>
+
+</STRONG>
+<DD>
+The MiniVend shopping carts. If not specified, the cart
+used is the main cart. Usually used as a litmus test to
+see if anything is in the cart, for example:
+<p>
+<XMP>
+  [if items]You have items in your shopping cart.[/if]
+  
+  [if items layaway]You have items on layaway.[/if]
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="tags_ordered_0">
+ordered</A>
+
+</STRONG>
+<DD>
+Order status of individual items in the MiniVend shopping
+carts. If not specified, the cart used is the main cart.
+The following items refer to a part number of 99-102.
+<p>
+<XMP>
+  [if ordered 99-102] ... [/if]
+    Checks the status of an item on order, true if item
+    99-102 is in the main cart.
+  [if ordered 99-102 layaway] ... [/if]
+    Checks the status of an item on order, true if item
+    99-102 is in the layaway cart.
+  [if ordered 99-102 main size] ... [/if]
+    Checks the status of an item on order in the main cart,
+    true if it has a size attribute.
+  [if ordered 99-102 main size =~ /large/i] ... [/if]
+    Checks the status of an item on order in the main cart,
+    true if it has a size attribute containing 'large'.
+    THE CART NAME IS REQUIRED IN THE OLD SYNTAX. The new
+    syntax for that one would be:
+    [if type=ordered term="99-102" compare="size =~ /large/i"]
+    To make sure it is exactly large, you could use:
+    [if ordered 99-102 main size eq 'large'] ... [/if]
+  [if ordered 99-102 main lines] ... [/if]
+      Special case -- counts the lines that the item code is
+      present on. (Only useful, of course, when mv_separate_items
+      or SeparateItems is defined.)
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="tags_salestax_0">
+salestax</A>
+
+</STRONG>
+<DD>
+The salestax database.
+<p>
+<XMP>
+    [if salestax [value state] > 0]
+    There is salestax for your state.
+    No salestax for your state.
+    [/else]
+    [/if]
+
+</XMP>
+<p>Key matching is case-insensitive.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_scratch_0">
+scratch</A>
+
+</STRONG>
+<DD>
+The MiniVend scratchpad variables, which can be set
+with the [set name]value[/set] element. 
+<p>
+<XMP>
+    [if scratch mv_separate_items]
+    Ordered items will be placed on a separate line.
+    [else]
+    Ordered items will be placed on the same line.
+    [/else]
+    [/if]
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="tags_session_0">
+session</A>
+
+</STRONG>
+<DD>
+The MiniVend session variables. Of particular interest
+are <EM>login</EM>, 
+<A HREF="tags.html#tags_frames_0">frames</A>
+, <EM>secure</EM>, and 
+<A HREF="tags.html#tags_browser_0">browser</A>
+.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_shipping_0">
+shipping</A>
+
+</STRONG>
+<DD>
+The shipping database.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_validcc_0">
+validcc</A>
+
+</STRONG>
+<DD>
+A special case, takes the form [if validcc no type exp_date].
+Evaluates to true if the supplied credit card number, type
+of card, and expiration date pass a validity test. Does
+checksum digit calculation to weed out typos or phony 
+card numbers.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_value_0">
+value</A>
+
+</STRONG>
+<DD>
+The MiniVend user variables, typically set in search,
+control, or order forms. Variables beginning with 'mv_'
+are MiniVend special values, and should be tested/used
+with caution.
+<p>
+</DL>
+The <EM>field</EM> term is the specifier for that area. For example, [if session.frames] would return true if the 'frames' session parameter was set.
+<p>As an example, consider buttonbars for frame-based setups. It would be
+nice to display a different buttonbar (with no frame targets) for sessions
+that are not using frames:
+<p>
+<XMP>
+    [if session frames]
+        [buttonbar 1]
+    [else]
+        [buttonbar 2]
+    [/else]
+    [/if]
+
+</XMP>
+<p>Another example might be the when search matches are displayed. If
+you use the string '[value mv_match_count] titles found', it will display
+a plural for only one match. Use:
+<p>
+<XMP>
+    [if value mv_match_count != 1]
+        [value mv_match_count] matches found.
+    [else]
+        Only one match was found.
+    [/else]
+    [/if]
+
+</XMP>
+<p>The <EM>op</EM> term is the compare operation to be used. Compare operations are
+as in Perl:
+<p>
+<XMP>
+    ==  numeric equivalence
+    eq  string equivalence
+    >   numeric greater-than
+    gt  string greater-than
+    <   numeric less-than
+    lt  string less-than
+    !=  numeric non-equivalence
+    ne  string equivalence
+
+</XMP>
+<p>Any simple perl test can be used, including some limited regex matching (no
+whitespace or conditionals can be contained in the comparison string). Discussion
+of this is beyond the scope of this document.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_if_1">
+[/if]</A>
+
+</STRONG>
+<DD>
+Terminates an if conditional.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_item_accessories_0">
+[item_accessories attribute*, type*, field*, database*, name*]</A>
+
+</STRONG>
+<DD>
+Evaluates to the value of the Accessories database entry for the item.
+If passed any of the optional arguments, initiates special processing
+of item attributes based on entries in the product database.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_item_code_0">
+[item_code]</A>
+
+</STRONG>
+<DD>
+Evaluates to the product code for the current item.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_item_data_0">
+[item_data database fieldname]</A>
+
+</STRONG>
+<DD>
+Evaluates to the field name <EM>fieldname</EM> in the arbitrary database
+table <EM>database</EM>, for the current item.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_item_description_0">
+[item_description]</A>
+
+</STRONG>
+<DD>
+Evaluates to the product description (from the products file)
+for the current item.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_item_discount_0">
+[item_discount]</A>
+
+</STRONG>
+<DD>
+Returns the difference between the regular price and the discounted price.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_item_field_0">
+[item_field fieldname]</A>
+
+</STRONG>
+<DD>
+Evaluates to the field name <EM>fieldname</EM> in the database,  for
+the current item.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_item_increment_0">
+[item_increment]</A>
+
+</STRONG>
+<DD>
+Evaluates to the number of the item in the match list. Used
+for numbering search matches or order items in the list.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_item_link_0">
+[item_link code]</A>
+
+</STRONG>
+<DD>
+Expands into a hyperlink which will jump the user to a page
+under the <EM>ItemLinkDir</EM> (default is the pages directory),
+with anchor text as set in <EM>ItemLinkValue</EM> (default is ``More Details'').
+If the page is not present, then <EM>flypage.html</EM> will be used to build
+a page from the entry in the database. If that doesn't work (perhaps
+due to a missing flypage.html) then the error page <EM>notfound.html</EM> will
+be displayed. Only active in the search list.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_item_list_0">
+[/item_list]</A>
+
+</STRONG>
+<DD>
+Ends an item list.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_item_list_1">
+[item_list cart*]</A>
+
+</STRONG>
+<DD>
+(new syntax [item_list name=``cart''])
+<p>Within any order page, the [item_list cart*] element shows a list of all the
+items ordered by the customer so far. It works by repeating the source
+between [item_list] and [/item_list] once for each item ordered.
+Between the item_list markers the various [item_....] elements will return
+information for the current item.
+<p>Item lists cannot be used inside the on-the-fly page or within
+search lists, as the tags are the same.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_item_modifier_0">
+[item_modifier attribute]</A>
+
+</STRONG>
+<DD>
+Evaluates to the modifier value of <EM>attribute</EM> for the current item.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_item_price_0">
+[item_price n*]</A>
+
+</STRONG>
+<DD>
+Evaluates to the price for quantity <CODE>n</CODE> (from the products file)
+of the current item.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_item_quantity_0">
+[item_quantity]</A>
+
+</STRONG>
+<DD>
+Evaluates to the quantity ordered for the current item.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_item_subtotal_0">
+[item_subtotal]</A>
+
+</STRONG>
+<DD>
+Evaluates to the subtotal (quantity * price) for the current item.
+Quantity price breaks are taken into account.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_loop_accessories_0">
+[loop_accessories]</A>
+
+</STRONG>
+<DD>
+Evaluates to the value of the Accessories database entry for
+the item.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_loop_code_0">
+[loop_code]</A>
+
+</STRONG>
+<DD>
+Evaluates to the product code for the current item.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_loop_data_0">
+[loop_data database fieldname]</A>
+
+</STRONG>
+<DD>
+Evaluates to the field name <EM>fieldname</EM> in the arbitrary database
+table <EM>database</EM>, for the current item.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_loop_description_0">
+[loop_description]</A>
+
+</STRONG>
+<DD>
+Evaluates to the product description (from the products file)
+for the current item.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_loop_field_0">
+[loop_field fieldname]</A>
+
+</STRONG>
+<DD>
+Evaluates to the field name <EM>fieldname</EM> in the database,  for
+the current item.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_loop_increment_0">
+[loop_increment]</A>
+
+</STRONG>
+<DD>
+Evaluates to the number of the item in the list. Used
+for numbering items in the list.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_loop_price_0">
+[loop_price n*]</A>
+
+</STRONG>
+<DD>
+Evaluates to the price for optional quantity n (from the products file)
+of the current item.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_loop_0">
+[loop item item item] value [/loop]</A>
+
+</STRONG>
+<DD>
+(new syntax: [loop arg=``item item item''])
+<p>Returns a string consisting of the value, repeated for every item in a
+comma-separated or space-separated list. Operates in the same fashion
+as the [item-list] tag, except for order-item-specific values. Intended
+to pull multiple attributes from an item modifier -- but can be useful
+for other things, like building a pre-ordained product list on a page.
+<p>Limited to 1024 values in the list in the direct call -- to iterate
+over a complete <EM>database</EM> use [tag each database] list text [/tag].
+<p>
+<DT><STRONG>
+
+<A NAME="tags_matches_0">
+[matches]</A>
+
+</STRONG>
+<DD>
+Replaced with the range of match numbers displayed by the
+search page. Looks something like ``1-50''. Make sure
+you insert this item between a [more_list] and [/more_list]
+element pair.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_modifier_name_0">
+[modifier_name attribute]</A>
+
+</STRONG>
+<DD>
+Evaluates to the name to give an input box in which the
+customer can specify the modifier to the ordered item.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_more_0">
+[more]</A>
+
+</STRONG>
+<DD>
+Inserts a series of hyperlinks that will call up the next matches
+in a series. They look like this:
+<p>
+<XMP>
+    Previous 1 2 3 4 5 6 Next
+
+</XMP>
+<p>The current page will not be a hyperlink. Every time the new
+link is pressed, the list is re-built to correspond to the current
+page. If there is no <EM>Next</EM> or <EM>Previous</EM> page, that link
+will not be shown.
+<p>See the <EM>fr_resul.html</EM> or <EM>search.html</EM> files for examples. Make sure
+you insert this item between a [more_list] and [/more_list] element pair.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_more_list_0">
+[/more_list]</A>
+
+</STRONG>
+<DD>
+Companion to [more_list]. 
+<p>
+<DT><STRONG>
+
+<A NAME="tags_more_list_1">
+[more_list next_img* prev_img* page_img*]</A>
+
+</STRONG>
+<DD>
+Starts the section of the search page which is only displayed
+if there are more matches than specified in <EM>mv_matchlimit</EM>.
+If there are less matches than the number in mv_matchlimit, all
+text/html between the [more_list] and [/more_list] elements is
+stripped.
+<p>Use in conjunction with the [more] element to place pointers to
+additional pages of matches.
+<p>If the optional arguments <EM>next_img</EM>, <EM>prev_img</EM>, and/or <EM>page_img</EM>
+are present, they represent image files that will be inserted instead
+of the standard 'Next', 'Previous', and page number. If <EM>prev_img</EM>
+is <STRONG>none</STRONG>, then no previous link will be output. If <EM>page_img</EM> is
+<STRONG>none</STRONG>, then no links to pages of matches will be output. These are
+URLs, are substituted for with <EM>ImageDir</EM>, and will be encased in
+IMG tags.
+<p>In addition, if <EM>page_img</EM> is used, it will be passed an argument of
+the digit that is to be represented. This would allow an image generator
+program to be used, generating page numbers on the fly.
+<p>As an example, if you use [more-list next.gif prev.gif page_num.cgi], the
+following will be the anchors:
+<p>
+<XMP>
+  Previous   <IMG SRC="prev.gif">
+  Page 1     <IMG SRC="/cgi-bin/page_num.cgi?1">
+  Page 2     <IMG SRC="/cgi-bin/page_num.cgi?2">
+  Next       <IMG SRC="next.gif">
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="tags__0">
+[ n [any] HTML n ]</A>
+
+</STRONG>
+<DD>
+Where n is a single digit in the range 0-9. If present, it forces early
+interpolation of that region of MiniVend tags, and is differentiated from
+other early interpolation areas. The enclosed MiniVendtags will still
+be interpolated in the normal order, but it can usually be combined
+with the [post] [/post] pair to achieve the desired order.
+<p><STRONG>NOTE:</STRONG> This is ignored if using the new syntax.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_nitems_0">
+[nitems cart*]</A>
+
+</STRONG>
+<DD>
+Expands into the total number of items ordered so far. Takes an
+optional cart name as a parameter.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_order_0">
+[/order]</A>
+
+</STRONG>
+<DD>
+Expands into &lt;/a&gt;. Used with the order element, such as: Buy a
+[order TK112]Toaster[/order] today.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_order_1">
+[order code cart/page* database*]</A>
+
+</STRONG>
+<DD>
+(new syntax [order code=``code'' href=``cart/page'' base=``database''])
+<p>Expands into a hypertext link which will include the specified
+code in the list of products to order and display the order page. <STRONG>code</STRONG>
+should be a product code listed in one of the ``products'' databases. The
+optional argument <STRONG>cart/page</STRONG> selects the shopping cart the item will be
+placed in (begin with / to use the default cart 'main') and the order page
+that will display the order. The optional argument <STRONG>database</STRONG> constrains
+the order to a particular products file -- if not specified, all databases
+defined as products files will be searched in sequence for the item.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_page_0">
+[/page], [/pagetarget]</A>
+
+</STRONG>
+<DD>
+Expands into &lt;/a&gt;. Used with the page or pagetarget elements, such as:
+[page shirts]Our shirt collection[/page] or [pagetarget pants main] Our
+pants collection[/pagetarget]. They are syntactically the same, so
+you can use either one to terminate an anchor -- the two different ones
+are provided for consistency. 
+<p>TIP: A small efficiency boost in large pages is to just use the &lt;/A>
+tag.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_page_1">
+[page pg arg*]</A>
+
+</STRONG>
+<DD>
+(new syntax [page href=``dir/page'' target=``frame'' arg=``argument''])
+<p>Insert a hyperlink to the specified catalog page pg. For
+example, [page shirts] will expand into &lt;
+a <A HREF="href=``http://machine.company.com/cgi-bin/vlink/shirts?WehUkATn;;1''>">href=``http://machine.company.com/cgi-bin/vlink/shirts?WehUkATn;;1''></A>. The
+catalog page displayed will come from ``shirts.html'' in the
+pages directory.
+<p>The additional argument will be passed to MiniVend and placed in
+the {arg} session parameter. This allows programming of a conditional
+page display based on where the link came from. The argument is then
+available with the tag [data session arg], or the embedded Perl session
+variable <STRONG>$Safe</STRONG>{'session'}-&gt;{arg}.
+<p>A bit of magic occurs if MiniVend has built a static page for the
+target page. Instead of generating a normal MiniVend-parsed page
+reference, a static page reference will be inserted. 
+<p>
+<DT><STRONG>
+
+<A NAME="tags_pagetarget_0">
+[pagetarget pg frame arg*]</A>
+
+</STRONG>
+<DD>
+(new syntax [page href=``dir/page'' target=``frame'' arg=``argument''])
+<p>Same as the page element above, except it specifies an output frame to
+target if frames are turned on. The name <EM>is</EM> case-sensitive, and if
+it doesn't exist a new window will be popped up. This is the same as
+the [page ...] tag if frames are not activated.
+For example, [pagetarget shirts main] will expand into a link like &lt;a
+<A HREF="href=``http://machine.company.com/cgi-bin/vlink/shirts?WehUkATn;;1''">href=``http://machine.company.com/cgi-bin/vlink/shirts?WehUkATn;;1''</A> TARGET=``main''&gt;. The
+catalog page displayed will come from ``shirts.html'' in the
+pages directory, and be output to the 'main' frame. Be careful,
+frame names are case-sensitive.
+<p>The optional <EM>arg</EM> is used just as in the <EM>page</EM> tag.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_perl_0">
+[perl args] code [/perl]</A>
+
+</STRONG>
+<DD>
+Perl code can be directly embedded in MiniVend pages. The tag
+is specified as [perl arguments] any_legal_perl_code [/perl].
+<p>(new syntax [perl arg=``arguments''])
+<p>Using MiniVend variables with embedded Perl capability is not recommended
+unless you are thoroughly familiar with Perl 5 references. It is best to
+pass the values you need with MiniVend tags, which are mostly interpolated
+before the [perl] tags. Example:
+<p>
+<XMP>
+    # Simple example
+    my $shipmode = '[value mv_shipmode]';
+    # If the item might contain a single quote
+    my $comments = '[value comments escaped]';
+    # Another method
+    my $comments = q{[value comments]};
+
+</XMP>
+<p>This allows you to pass user-space variables for most needed
+operations. You can pass whole lists of items with constructs
+like:
+<p>
+<XMP>
+    # Perl ignores the trailing comma
+    my(%prices) = ( [item_list]
+                    '[item_code]', '[item-price]',
+                    [/item_list]);
+
+</XMP>
+<p>Even easier is the definition of a subroutine:
+<p>
+<XMP>
+    [set Thanks]
+    my($name, $number) = @_;
+    "Thanks, $name, for your order! The order number is $number.\n";
+    [/set]
+    [perl sub]
+        Thanks ('[value name escaped]', '[value mv_order_number escaped]')
+    [/perl]
+
+</XMP>
+<p>(The <EM>escaped</EM> causes any single quotes which might be contained in the
+values to be escaped, preventing syntax errors in the case of a name like
+``O'Reilly''.)
+<p>The arguments that can be passed are any to all of:
+<p>
+<DL COMPACT>
+<DT><STRONG>
+
+<A NAME="tags_browser_0">
+browser</A>
+
+</STRONG>
+<DD>
+The browser string from the users browser, read-only. Referred
+to in your code as <STRONG>$Safe</STRONG>{browser}.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_carts_0">
+carts</A>
+
+</STRONG>
+<DD>
+Gives read-write access to all of the shopping carts. on order. This
+is an array of hashes, and includes the product
+code, quantity, and any modifiers you have specified.
+Referred to in your code as a reference to the
+array, <STRONG>$Safe</STRONG>{items} or @{<STRONG>$Safe</STRONG>{items}}.
+<p>
+<XMP>
+    # Move contents of 'layaway' cart to main cart
+    $Safe{carts}->{main} = $Safe{carts}->{layaway};
+    $Safe{carts}->{main} = [];
+
+</XMP>
+<p>Careful with this -- you can lose the items on order with improper
+code, though syntax errors will be caught before the code is run.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_cgi_0">
+cgi</A>
+
+</STRONG>
+<DD>
+Gives read-only access to the actual variables that were passed
+in the current CGI session. This is useful for testing what the
+user actually placed on the form, not just what MiniVend placed
+in the session database. Called with
+<p>
+<XMP>
+  # Set if the user had a value for name in the *current* form
+  $name = $Safe{'cgi'}->{name};
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="tags_config_0">
+config</A>
+
+</STRONG>
+<DD>
+Gives read-write access to the configuration of the catalog. USE WITH
+EXTREME CAUTION -- many of the variables are references to anonymous
+arrays and hashes. You can crash your catalog if you modify the wrong
+thing. Referred to in your code as <STRONG>$Safe</STRONG>{config}, a reference to the
+hash containing the configuration structure. If you use this, it
+is recommended that you refer frequently to the MiniVend source code.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_discount_0">
+discount</A>
+
+</STRONG>
+<DD>
+Gives read-write access to session discounts, an
+anonymous hash. Referred to in your code as <STRONG>$Safe</STRONG>-&gt;{discounts}.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_file_1">
+file</A>
+
+</STRONG>
+<DD>
+If specified, the anchor text is a file name to read the Perl code from.
+This allows code to be maintained in separate files, though you need
+to remember that any MiniVend tags contained will generally not be
+interpolated (depending on interpolation order and use of the [[any]]
+and [post] modifiers). The file name is relative to the MiniVend base
+directory unless specified as an absolute path.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_frames_0">
+frames</A>
+
+</STRONG>
+<DD>
+The true/false value determining whether frames processing is
+enabled. Read-only -- you can set the value with [frames-off] or
+[frames-on]. Referred to in your code as <STRONG>$Safe</STRONG>{frames}.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_items_0">
+items</A>
+
+</STRONG>
+<DD>
+Gives read-only access to the items on order, <EM>for the current cart</EM>.
+This is an array of hashes, and includes the product code, quantity,
+and any modifiers you have specified. Referred to in your code as a
+reference to the array, <STRONG>$Safe</STRONG>{items} or @{<STRONG>$Safe</STRONG>{items}}.
+<p>
+<XMP>
+    # Product code of first item in cart
+    $item_code = $Safe{items}->[0]->{code};  
+    # Quantity for third item in cart
+    $item_code = $Safe{items}->[2]->{quantity};  
+    # Color of second item in cart
+    $item_code = $Safe{items}->[2]->{color};  
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="tags_scratch_0">
+scratch</A>
+
+</STRONG>
+<DD>
+Gives read-write access to the scratch variables, a reference to an
+anonymous hash. Referred to in your code as <STRONG>$Safe</STRONG>{scratch}.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_sub_0">
+sub</A>
+
+</STRONG>
+<DD>
+If specified, the anchor text is a subroutine name and optional
+parameters to be passed. The subroutine can be defined in three
+ways; as a global subroutine (works for entire server); as a
+catalog-wide pre-defined subroutine; or in a scratchpad variable.
+All are called with the same syntax -- the arguments are passed
+in via the <STRONG>@_</STRONG> argument array.
+<p><STRONG>IMPORTANT NOTE:</STRONG> Global subroutines are not subject to the stringent
+security checking of the <EM>Safe</EM> module, so almost anything goes
+there. The subroutine will be able to modify any variable in MiniVend,
+and will be able to write to read and write any file that the MiniVend
+daemon has permission to write. Though this gives great power, it should
+be used with caution. Careful! They are defined in the main minivend.cfg
+file, so should be safe from individual users in a multi-catalog system.
+<p>Global subroutines are defined in <EM>minivend.cfg</EM> with the
+<EM>GlobalSub</EM> directive.
+<p>Catalog subroutines are defined in <EM>catalog.cfg</EM>, with
+the <EM>Sub</EM> directive. They are subject to the stringent <EM>Safe.pm</EM>
+security restrictions that are controlled by <EM>SafeUntrap</EM>. If you
+wish to have default arguments supplied to them, use the <EM>SubArgs</EM>
+directive.
+<p>Scratch subroutines are defined in the pages, and are also subject
+to <EM>Safe.pm</EM> checking. See the beginning of this section for an
+example of a subroutine definition. There is no ``sub name { }'' that
+surrounds it -- the subroutine is named from the name of the 
+scratch variable.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_values_0">
+values</A>
+
+</STRONG>
+<DD>
+Gives read-write access to the user variables, including the MiniVend
+special variables, an anonymous hash. Referred to in your code as
+<STRONG>%{</STRONG>Safe{'values'}} or <STRONG>$Safe</STRONG>{'values'}-&gt;{variable}.
+<p>
+<XMP>
+    # Read the user's selected shipping mode
+    my $shipmode = $Safe{values}->{mv_shipmode};
+
+</XMP>
+<p>
+</DL>
+The code can be as complex as desired, but cannot use any operators.that modify the filesystem or use ``unsafe'' operations like ``system'',
+``exec'', or backticks. These constraints are enforced with the default
+permissions of the standard Perl module <EM>Safe</EM> -- operations may
+be untrapped on a system-wide basis with the <EM>SafeUntrap</EM> directive.
+<p>The result of the tag will be the result of the last expression
+evaluated, just as in a subroutine. If there is a syntax error
+or other problem with the code, there will be no output.
+<p>Here is a simple one which does the equivalent of the classic
+hello.pl program:
+<p>
+<XMP>
+    [perl] my $tmp = "Hello, world!"; $tmp; [/perl]
+
+</XMP>
+<p>Of course you wouldn't need to set the variable -- it is just there
+to show the capability.
+<p>To echo the user's browser, but within some HTML tags:
+<p>
+<XMP>
+    [perl browser]
+    my $html = '<H5>';
+    $html .= $Safe{'browser'};
+    $html .= '</H5>';
+    $html;
+    [/perl]
+
+</XMP>
+<p>To show the user their name, and the current time:
+<p>
+<XMP>
+    [perl values]
+    my $string = "Hi, " . $Safe{values}->{'name'} ". The time is now ";
+    $string .= localtime;
+    $string;
+    [/perl]
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="tags_post_0">
+[post]</A>
+
+</STRONG>
+<DD>
+Selects an area that will not be interpolated until after the rest of
+the page is interpolated. If followed by a number, will match a terminating
+[/post] tag with the corresponding number.
+<p><STRONG>NOTE:</STRONG> This is ignored if using the new syntax.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_post_1">
+[/post]</A>
+
+</STRONG>
+<DD>
+Terminates a [post] region.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_price_0">
+[price code quantity* database*]</A>
+
+</STRONG>
+<DD>
+(new syntax [price code=``code'' quantity=``quantity'' base=``database''])
+<p>Expands into the price of the product identified by code as found in
+the products database. If there is more than one products file defined,
+they will be searched in order unless constrained by the optional
+argument <STRONG>base</STRONG>. The optional argument <STRONG>quantity</STRONG> selects an entry
+from the quantity price list.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_process_search_0">
+[process_search]</A>
+
+</STRONG>
+<DD>
+Calls the search with the proper URL, including MiniVend session tags. Used
+as the ACTION value for the search form.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_process_target_0">
+[process_target frame]</A>
+
+</STRONG>
+<DD>
+Calls the search with the proper URL, including MiniVend session tags.
+Used as the ACTION value for the search form if the results are to be
+targeted to a different window than the one set by SearchFrame (which is
+``_self'' by default).
+<p>
+<DT><STRONG>
+
+<A NAME="tags_quantity_name_0">
+[quantity_name]</A>
+
+</STRONG>
+<DD>
+Evaluates to the name to give an input box in which the
+customer can enter the quantity to order.
+A [loop item,item..] list is similar, but does not include the items
+that are associated with the order list, and the tags are prefixed
+<EM>loop_</EM>, so that loop and item lists may be interspersed. Item lists
+are evaluated before loop lists, so you can put an item-code inside of
+an loop list. If you want to reverse the order, put the loop list in a
+double set of brackets to force earlier evaluation. Up to 1024 items
+may be present in a loop list.
+<p>
+<DL COMPACT>
+<DT><STRONG>
+
+<A NAME="tags_random_0">
+[random]</A>
+
+</STRONG>
+<DD>
+Selects from the predefined random messages, and is stripped if none
+exist. See <EM>Controlling Page Appearance</EM>.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_rotate_0">
+[rotate ceiling*]</A>
+
+</STRONG>
+<DD>
+(new syntax [rotate ceiling=``n''])
+<p>Selects from the predefined rotating banner messages, and is stripped if
+none exist. The optional <STRONG>ceiling</STRONG> sets the highest number that will
+be selected -- the default is to sequence through all defined rotating
+banners. Each user has a separate rotation pattern. See
+<EM>Controlling Page Appearance</EM>.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_row_0">
+[row nn]</A>
+
+</STRONG>
+<DD>
+(new syntax [row width=``nn''])
+<p>Formats text in tables. Intended for use in reports or &lt;PRE&gt;&lt;/PRE&gt; HTML
+areas. The parameter <EM>nn</EM> gives the number of columns to use. Inside the
+row tag, [col param=value ...] tags may be used. 
+<p>
+<DT><STRONG>
+
+<A NAME="tags_row_1">
+[/row]</A>
+
+</STRONG>
+<DD>
+Terminates a [row nn] element.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_salestax_1">
+[salestax]</A>
+
+</STRONG>
+<DD>
+Expands into the sales tax on the subtotal of all the
+items ordered so far. If there is no key field to derive the
+proper percentage, such as state or zip code, it is set to whatever
+the default is. See <EM>Sales Tax</EM> for more information.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_search_list_0">
+[search_list]</A>
+
+</STRONG>
+<DD>
+Starts the representation of a search list. MiniVend tags can be
+embedded in the search list, yielding a table or formatted
+list of items with part number, description, price, and  hyperlinks to
+order or go to its catalog page. 
+<p>In particular, all of the item tags described under order page
+are active. The most useful one might be [item_link], which if
+properly used, can allow the user to search the catalog for
+an item, then click a link to go to detailed catalog page
+for the item. See the sample results.html page for an example.
+<p>In fact, any of the MiniVend database access tags can be used,
+allowing you to pull data from any of the fields in any of
+your predefined databases. Along with the MiniVend conditional
+tags, very complex pages can be built for each individual item
+returned in the search.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_search_list_1">
+[/search_list]</A>
+
+</STRONG>
+<DD>
+Ends the search list. 
+<p>
+<DT><STRONG>
+
+<A NAME="tags_selected_0">
+[selected var_name value MULTIPLE*]</A>
+
+</STRONG>
+<DD>
+(new syntax [selected name=``var_name'' value=``value'' multiple=``yes''])
+<p>This will output SELECTED if the variable <EM>var_name</EM> is equal to
+
+<A HREF="tags.html#tags_value_0">value</A>
+. If the optional MULTIPLE argument is present, it will
+look for any of a variety of values. Not case sensitive.
+<p>Here is a drop-down menu that remembers an item-modifier
+color selection:
+<p>
+<XMP>
+    <SELECT NAME="color">
+    <OPTION [selected color blue]> Blue
+    <OPTION [selected color green]> Green
+    <OPTION [selected color red]> Red
+    </SELECT>
+
+</XMP>
+<p>Here is the same thing, but for a shopping-basket color
+selection
+<p>
+<XMP>
+    <SELECT NAME="[modifier-name color]">
+    <OPTION [selected [modifier-name color] blue]> Blue
+    <OPTION [selected [modifier-name color] green]> Green
+    <OPTION [selected [modifier-name color] red]> Red
+    </SELECT>
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="tags_set_0">
+[set variable]value[/set]</A>
+
+</STRONG>
+<DD>
+(new syntax [set name=``variable''] value [/set])
+<p>Sets a scratchpad variable to 
+<A HREF="tags.html#tags_value_0">value</A>
+. One way this is used is to
+save pages that a customer has seen -- perhaps for a rotating message.
+A rotating message implementation is shown in the sample page <EM>flypage.html</EM>.
+<p>The mv_* variables that are used for search and order conditionals are
+in another namespace -- they can be set by means of hidden fields in a
+form.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_shipping_description_0">
+[shipping_description mode*]</A>
+
+</STRONG>
+<DD>
+(new syntax [shipping_description name=``mode''])
+<p>The text description of <STRONG>mode</STRONG> -- the default is the 
+shipping mode currently selected.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_sort_0">
+[sort frn]</A>
+
+</STRONG>
+<DD>
+Placed inside the search list. Causes sorting of the search return,
+starting from the first position on the line. The fields that are there
+to sort are set by <EM>mv_return_fields</EM>. Accepts none, any, or combinations
+of the flags:
+<p>
+<XMP>
+  f   case-insensitive sort (folded) (mutually exclusive of n)
+  n   numeric order (mutually exclusive of f)
+  r   reverse sort
+
+</XMP>
+<p>
+<DT><STRONG>
+<EM>[sort]&lt;options&gt;[/sort]</EM>
+</STRONG>
+<DD>
+Placed inside the search list. Causes sorting of the search return
+based on the passed options. The fields that are there
+to sort are set by <EM>mv_return_fields</EM>.
+<p>The field options passed in either numeric or field name form. If
+they are field numbers, they are numbered as sent to the search list
+in the order specified by <EM>mv_return_fields</EM>,
+starting from 0 and proceeding upwards. If column names, they are
+as found in the first record of the searched file (by default the
+ASCII source for the product database), <EM>except for the key or first field</EM>.
+followed by a <EM>required</EM> colon (:) and the options, if any.
+<p>Accepts none, any, or combinations of the flags:
+<p>
+<XMP>
+  f   case-insensitive sort (folded) (mutually exclusive of n)
+  n   numeric order (mutually exclusive of f)
+  r   reverse sort
+
+</XMP>
+<p>The &lt;options&gt; are a field number and an optional flag or flags, in a
+similar fashion to the Unix sort command, and are interpolated for form
+values before being used. As an example, if you set up the following
+fields on your search form:
+<p>
+<XMP>
+  <INPUT TYPE="hidden" NAME="mv_return_fields" VALUE="0,title,artist,price">
+  <INPUT TYPE="radio" NAME="the_sort_field" VALUE="title"> Sort by Title
+  <INPUT TYPE="radio" NAME="the_sort_field" VALUE="artist"> Sort by Artist
+  <INPUT TYPE="radio" NAME="the_sort_option" VALUE=""> Forward sort
+  <INPUT TYPE="radio" NAME="the_sort_option" VALUE="r"> Reverse sort
+  
+  NOTE: The 0 refers to the database code/key used for [item-code]
+
+</XMP>
+<p>This would combine with the following search result page fragment
+to sort by either title or artist.
+<p>[search-list]
+  [sort]
+    [value the_sort_field]:[value the_sort_option]
+  [/sort]
+<B&gt;[item-field title]&lt;/B&gt;, by [item-field artist]&lt;BR&gt;
+[/search-list]
+   
+The [value...] lines will end up looking like 'artist:r' or 'title:'. This
+could also be specified with <EM>2r</EM> or &lt;1&gt;.
+<p>PERFORMANCE TIP: on heavily trafficed systems, it will pay to use only
+column numbers rather than named fields, as it reduces processing and may
+obviate an access to the searched file to find the field names.
+<p>
+<DT><STRONG>
+<EM>[static /html/path] static-area [/static]</EM>
+</STRONG>
+<DD>
+Removed in MiniVend 3.00 -- the automatic static page-building capability
+of MiniVend takes care of this automatically.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_subtotal_0">
+[subtotal]</A>
+
+</STRONG>
+<DD>
+Expands into the subtotal cost, exclusive of sales tax, of
+all the items ordered so far.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_tag_1">
+[tag arg* arg*]text[/tag]</A>
+
+</STRONG>
+<DD>
+Performs any of a number of operations, based on the presence of <EM>arg</EM>.
+The arguments that may be given are:
+<p>
+<DL COMPACT>
+<DT><STRONG>
+
+<A NAME="tags_each_0">
+each database</A>
+
+</STRONG>
+<DD>
+Returns a loop-list with every key in <EM>database</EM> evaluated
+as the [loop-code]. This will return the key and field <EM>name</EM>
+for every record in the <EM>products</EM> database:
+<p>
+<XMP>
+    [tag each products][loop-code]  [loop-field name]<BR>[/tag]
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="tags_export_0">
+export database file* type*</A>
+
+</STRONG>
+<DD>
+Exports a complete MiniVend database to its text source file (or any
+specified file). The integer <EM>n</EM>, if specified, will select export in
+one of the enumerated MiniVend export formats. The following tag will
+export the products database to products.txt (or whatever you have
+defined its source file as), in the format specified by the
+<EM>Database</EM> directive:
+<p>
+<XMP>
+    [tag export products][/tag]
+
+</XMP>
+<p>Same thing, except to the file products/new_products.txt:
+<p>
+<XMP>
+    [tag export products products/newproducts.txt][/tag]
+
+</XMP>
+<p>Same thing, except the export is done with a PIPE delimiter:
+<p>
+<XMP>
+    [tag export products products/newproducts.txt 5][/tag]
+
+</XMP>
+<p>The file is relative to the catalog directory, and only may be
+an absolute path name if <EM>NoAbsolute</EM> is set to <EM>No</EM>.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_flag_0">
+flag arg</A>
+
+</STRONG>
+<DD>
+Sets a MiniVend condition.
+<p>The following enables writes on the <EM>products</EM> and <EM>sizes</EM> databases:
+<p>
+<XMP>
+    [tag flag write]products sizes[/tag]
+
+</XMP>
+<p>mSQL and in-memory databases are always writeable.
+<p>The [tag flag build][/tag] combination forces static build of a page, even
+if dynamic elements are contained. Similarly, the [tag flag cache][/tag]
+forces search or page caching (not usually wise).
+<p>
+<DT><STRONG>
+
+<A NAME="tags_log_0">
+log dir/file</A>
+
+</STRONG>
+<DD>
+Logs a message to a file, fully interpolated for MiniVend tags.
+The following tag will send every item code and description in the user's
+shopping cart to the file logs/transactions.txt:
+<p>
+<XMP>
+    [tag log logs/transactions.txt]
+    [item_list][item-code]  [item-description]
+    [/item_list][/tag]
+
+</XMP>
+<p>The file is relative to the catalog directory, and only may be
+an absolute path name if <EM>NoAbsolute</EM> is set to <EM>No</EM>.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_mime_0">
+mime description_string</A>
+
+</STRONG>
+<DD>
+Returns a MIME-encapsulated message with the boundary as employed
+in the other mime tags, and the <EM>description</EM> used as the 
+Content-Description. For example
+<p>
+<XMP>
+   [tag mime My Plain Text]Your message here.[/tag]
+
+</XMP>
+<p>will return
+<p>
+<XMP>
+  Content-Type: TEXT/PLAIN; CHARSET=US-ASCII
+  Content-ID: [sequential, lead as in mime boundary]
+  Content-Description: My Plain Text
+  Your message here.
+
+</XMP>
+<p>When used in concert with [tag mime boundary], [tag mime header], and
+[tag mime id], allows MIME attachments to be included -- typically with
+PGP-encrypted credit card numbers. See the demo page ord/receipt.html
+for an example.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_mime_1">
+mime boundary</A>
+
+</STRONG>
+<DD>
+Returns a MIME message boundary with unique string keyed on
+session ID, page count, and time.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_mime_2">
+mime header</A>
+
+</STRONG>
+<DD>
+Returns a MIME message header with the proper boundary for that
+session ID, page count, and time.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_mime_3">
+mime id</A>
+
+</STRONG>
+<DD>
+Returns a MIME message id with the proper boundary for that
+session ID, page count, and time.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_tag_2">
+[tag scan/options]encased text[/tag]</A>
+
+</STRONG>
+<DD>
+Builds a one-click search based on the enclosed text. 
+Properly translates whitespace and non-word characters to
+be parseable by MiniVend. You can add the normal scan options,
+just the se=searchtext parameter will be affected. These two
+sequences evaluate the same:
+<p>
+<XMP>
+    [tag scan/sf=category]Renaissance[/tag]
+    [page scan/sf=category/se=Renaissance]Renaissance[/page]
+
+</XMP>
+<p>Where it is useful is in adding long strings that would otherwise
+be difficult to encode, like
+<p>
+<XMP>
+    [tag scan/sf=author/os=yes]John F. Kennedy[/tag]
+
+</XMP>
+<p>instead of:
+<p>
+<XMP>
+    [page scan/sf=author/se=John.20F..20Kennedy]John F. Kennedy[/page]
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="tags_show_tags_0">
+show_tags</A>
+
+</STRONG>
+<DD>
+The encased text will not be substituted for with MiniVend tags, 
+with &lt; and [ characters changed to <CODE>&amp;</CODE>#lt; and <CODE>&amp;</CODE>#91; respectively.
+<p>
+<XMP>
+    [tag show_tags][value whatever][/tag]
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="tags_time_0">
+time</A>
+
+</STRONG>
+<DD>
+Formats the current time according to POSIX strftime arguments.
+The following is the string for Thursday, April 30, 1997.
+<p>
+<XMP>
+    [tag time]%A, %B %d, %Y[/tag]
+
+</XMP>
+<p>
+<DT><STRONG>
+<EM>touch </EM>
+</STRONG>
+<DD>
+Touches a database to allow use of the <EM>tag_data()</EM> routine in 
+user-defined subroutines.  If this is not done, the routine
+will error out if the database has not previously been accessed
+on the page.
+<p>
+<XMP>
+    [tag touch]products[/tag]
+
+</XMP>
+<p>
+<DT><STRONG>
+
+<A NAME="tags_tag_encased_0">
+[tag]encased text[/tag]</A>
+
+</STRONG>
+<DD>
+If no argument is supplied to the [tag][/tag] pair, the encased
+text will be early-interpolated for MiniVend tags. This can be
+especially useful when using the new page syntax, as you can
+force certain tags to be interpolated using the old syntax (just
+use an [old] tag to begin with).
+<p>
+</DL>
+.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_then_0">
+[then] text [/then]</A>
+
+</STRONG>
+<DD>
+This is optional, as the text immediately following the [if ..] tag is
+used as the conditionally substitued text. When used, the [then] [/then]
+pair allows more readable constructs, as all whitespace around the [then]
+and tags will be stripped. If you wish to have leading or trailing
+whitespace, you can enclose the value in single or double quotes.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_total_cost_0">
+[total_cost]</A>
+
+</STRONG>
+<DD>
+Expands into the total cost of all the items ordered so far, including
+sales tax (if any).
+<p>
+<DT><STRONG>
+
+<A NAME="tags_uniq_0">
+[uniq]</A>
+
+</STRONG>
+<DD>
+Placed <EM>immediately</EM> after the [search_list] tag. If specified on a
+sorted return list, causes only the first line containing an [item-code]
+to be returned -- all subsequent lines will not be interpreted on the
+list. Note that [matches] and [more-list] may not operate as you
+wish in this case.
+<p>
+<DT><STRONG>
+
+<A NAME="tags_value_1">
+[value field flag*]</A>
+
+</STRONG>
+<DD>
+Expands into the current value of the customer input field
+named by field. If 
+<A HREF="tags.html#tags_flag_0">flag</A>
+ is present, single and double
+quotes will be escaped with a backslash; this allows reliable
+SQL inserts. See the section on input fields for more
+information.
+<p>
+</DL>
+.
+<p>
+<H2> 
+<A NAME="tags_cache_0">
+Cache Invalidation</A>
+</H2>
+Tags which cause static building or cacheing to fail are:
+<p>
+<XMP>
+    [cart ...]           [if validcc ...]       [salestax]
+    [checked ...]        [if value ...]         [salestax]
+    [data ...]*          [item_list]            [scratch ...]
+    [default ...]        [last_page]            [selected ...]
+    [discount]           [lookup ..]            [shipping]
+    [frames_on|off]      [loop-data ...]*       [shipping_desc]
+    [if data ...]*       [loop-field ...]*      [sql set]
+    [if discount ...]    [msql set]             [subtotal]
+    [if items ...]       [nitems]               [total_cost]
+    [if scratch ...]     [nitems]               [value ...]
+    [if session ...]     [perl]
+    * Only if database referenced is dynamic
+
+</XMP>
+<p>
+</DL>
+
+</BODY>
+</HTML>

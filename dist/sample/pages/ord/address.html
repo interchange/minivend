@@ -1,0 +1,139 @@
+<HTML>
+<HEAD>
+<TITLE>__COMPANY__ - Enter shipping address / gift information</TITLE>
+</HEAD>
+[body 1]
+<FORM ACTION="[process-target _self]" METHOD="POST">
+
+<input type="hidden" name="mv_doit" value="refresh">
+<input type="hidden" name="mv_orderpage" value="ord/address">
+<input type="hidden" name="mv_successpage" value="ord/checkout">
+<input type="hidden" name="mv_order_profile" value="address">
+[item_list]
+<input type="hidden" name="[quantity-name]" value="[item-quantity]">
+[/item_list]
+
+<CENTER>
+	<H2><B>Shipping Address/Gift Information</B></H2>
+<TABLE>
+<TR>
+	<TD ALIGN=RIGHT>
+		<IMG WIDTH=12 HEIGHT=12 SRC="redball.gif">
+	</TD>
+	<TD ALIGN=RIGHT>Name</TD>
+	<TD>
+	<input type="text" name="s_name" value="[value s_name]" size=40>
+	</TD>
+</TR>
+<TR>
+	<TD ALIGN=RIGHT>
+		<IMG WIDTH=12 HEIGHT=12 SRC="bg.gif">
+	</TD>
+	<TD ALIGN=RIGHT>Company</TD>
+	<TD>
+		   <input type="text" name="s_company" value="[value s_company]" size=40>
+	</TD>
+</TR>
+<TR>
+	<TD ALIGN=RIGHT>
+		<IMG WIDTH=12 HEIGHT=12 SRC="redball.gif">
+	</TD>
+	<TD ALIGN=RIGHT>Address</TD>
+	<TD ALIGN=LEFT>
+		<input type="text" name="s_address" value="[value s_address]" size=40>
+	</TD>
+</TR>
+<TR>
+	<TD ALIGN=RIGHT>
+		<BR>
+	<IMG WIDTH=12 HEIGHT=12 SRC="redball.gif">
+	</TD>
+	<TD ALIGN=RIGHT><BR>City</TD>
+	<TD VALIGN=BOTTOM>
+	<TABLE>
+	<TR>
+		<TD VALIGN=BOTTOM>
+		<input type="text" name="s_city" value="[value s_city]" size=20>
+		</TD>
+		<TD ALIGN=RIGHT>
+		<BR>
+		<IMG WIDTH=12 HEIGHT=12 SRC="redball.gif">
+		</TD>
+		<TD ALIGN=CENTER VALIGN=BOTTOM>
+		State/Province<BR>
+		<input type="text" name="s_state" value="[value s_state]" size=8>
+		</TD>
+		<TD ALIGN=RIGHT>
+		<BR>
+		<IMG WIDTH=12 HEIGHT=12 SRC="redball.gif">
+		</TD>
+		<TD ALIGN=CENTER VALIGN=BOTTOM>
+		Zip/Postal Code<BR>
+		<input type="text" name="s_zip" value="[value s_zip]" size=10>
+		</TD> 
+	</TR>
+	</TABLE>
+	</TD>
+<TR>
+	<TD ALIGN=RIGHT>
+	<IMG WIDTH=12 HEIGHT=12 SRC="redball.gif">
+	</TD>
+	<TD ALIGN=RIGHT>Phone*</TD>
+	<TD>
+	<TABLE>
+	<TR>
+		<TD>
+		<input type="text" name="s_phone" value="[value s_phone]" size=16>
+		</TD>
+		<TD ALIGN=RIGHT>
+		<IMG WIDTH=12 HEIGHT=12 SRC="bg.gif">
+		</TD>
+		<TD ALIGN=RIGHT>
+		Country
+		</TD>
+		<TD ALIGN=RIGHT>
+		[if value s_country]
+			<B>[value s_country]</B>
+			Change <input type="checkbox" name="mv_click" value="change_country">
+		[else]
+			[help s_country_select]
+		[/else]
+		[/if]
+		</TD>
+	</TR>
+	</TABLE>
+	</TD>
+</TR>
+<TR>
+	<TD COLSPAN=3 ALIGN=CENTER>
+	<input type="submit" name="mv_todo" value="Next Screen">
+	</TD>
+</TR>
+<TR>
+	<TD ALIGN=RIGHT>
+	<IMG WIDTH="12" HEIGHT="12" SRC="redball.gif">
+	<P>*
+	</TD>
+	<TD COLSPAN=2>
+		<I>We need these fields to process your order</I>
+	<P><I>phone only used if necessary to make delivery</I>
+	</TD>
+</TR>
+<TR>
+<TD COLSPAN=3>
+	<TABLE BORDER=1>
+		<TR><TD>
+		Note for gift<BR>
+	<TEXTAREA NAME="gift_note" ROWS=6 COLS=80>[value gift_note]</TEXTAREA>
+		</TD></TR>
+	</TABLE>
+</TD>
+</TABLE>
+
+</CENTER>
+</FORM>
+<P>
+<CENTER>
+[buttonbar 2]
+</CENTER>
+</body> </html>

@@ -1,6 +1,6 @@
 # Http.pm:  interface to cgi protocol
 #
-# $Id: Http.pm,v 1.5 1997/05/22 07:00:05 mike Exp $
+# $Id: Http.pm,v 1.6 1997/06/17 04:22:52 mike Exp $
 #
 package Vend::Http;
 
@@ -25,60 +25,60 @@ package Vend::Http::Base;
 
 use strict;
 
-sub Server_Software           { $_[0]->{'Server_Software'} }
-sub Server_Host               { $_[0]->{'Server_Host'} }
-sub Server_Port               { $_[0]->{'Server_Port'} }
-sub Client_Hostname           { $_[0]->{'Client_Hostname'} }
-sub Client_IP_Address         { $_[0]->{'Client_IP_Address'} }
-sub Client_Ident              { $_[0]->{'Client_Ident'} }
-sub Path_Info                 { $_[0]->{'Path_Info'} }
-sub Path_Translated           { $_[0]->{'Path_Translated'} }
-sub Reconfigure               { $_[0]->{'Reconfigure'} }
-sub Query                     { $_[0]->{'Query'} }
-sub Script                	  { $_[0]->{'Script'} }
-sub Authorization_Type        { $_[0]->{'Authorization_Type'} }
-sub Authenticated_User        { $_[0]->{'Authenticated_User'} }
-sub Date                      { $_[0]->{'Date'} }
-sub Forwarded                 { $_[0]->{'Forwarded'} }
-sub Message_ID                { $_[0]->{'Message_ID'} }
-sub MIME_Version              { $_[0]->{'MIME_Version'} }
-sub Method                    { $_[0]->{'Method'} }
-sub Request_URI               { $_[0]->{'Request_URI'} }
-sub HTTP_Version              { $_[0]->{'HTTP_Version'} }
-sub Cookie                    { $_[0]->{'Cookie'} }
-sub Https_on              	  { $_[0]->{'Https_on'} }
+#sub Server                    { $_[0]->{'Server'} }
+#sub Content_Encoding          { $_[0]->{'Content_Encoding'} }
+#sub Content_Language          { $_[0]->{'Content_Language'} }
+#sub Content_Transfer_Encoding { $_[0]->{'Content_Transfer_Encoding'} }
+#sub Server_Software           { $_[0]->{'Server_Software'} }
+#sub URI                      { $_[0]->{'URI'} }
 sub Accept                    { $_[0]->{'Accept'} }
 sub Accept_Charset            { $_[0]->{'Accept_Charset'} }
 sub Accept_Encoding           { $_[0]->{'Accept_Encoding'} }
 sub Accept_Language           { $_[0]->{'Accept_Language'} }
-sub Authorization             { $_[0]->{'Authorization'} }
-sub From                      { $_[0]->{'From'} }
-sub If_Modified_Since         { $_[0]->{'If_Modified_Since'} }
-sub Pragma                    { $_[0]->{'Pragma'} }
-sub no_cache                  { $_[0]->{'no_cache'} }
-sub Referer                   { $_[0]->{'Referer'} }
-sub User_Agent                { $_[0]->{'User_Agent'} }
-sub Status_Code               { $_[0]->{'Status_Code'} }
-sub Reason_Phrase             { $_[0]->{'Reason_Phrase'} }
-sub Public                    { $_[0]->{'Public'} }
-sub Retry_After               { $_[0]->{'Retry_After'} }
-# sub Server                    { $_[0]->{'Server'} }
-sub WWW_Authenticate          { $_[0]->{'WWW_Authenticate'} }
 sub Allow                     { $_[0]->{'Allow'} }
-sub Content_Encoding          { $_[0]->{'Content_Encoding'} }
-sub Content_Language          { $_[0]->{'Content_Language'} }
+sub Authenticated_User        { $_[0]->{'Authenticated_User'} }
+sub Authorization             { $_[0]->{'Authorization'} }
+sub Authorization_Type        { $_[0]->{'Authorization_Type'} }
+sub Client_Hostname           { $_[0]->{'Client_Hostname'} }
+sub Client_IP_Address         { $_[0]->{'Client_IP_Address'} }
+sub Client_Ident              { $_[0]->{'Client_Ident'} }
 sub Content_Length            { $_[0]->{'Content_Length'} }
-sub Content_Transfer_Encoding { $_[0]->{'Content_Transfer_Encoding'} }
 sub Content_Type              { $_[0]->{'Content_Type'} }
+sub Cookie                    { $_[0]->{'Cookie'} }
+sub Date                      { $_[0]->{'Date'} }
 sub Derived_From              { $_[0]->{'Derived_From'} }
 sub Expires                   { $_[0]->{'Expires'} }
+sub Forwarded                 { $_[0]->{'Forwarded'} }
+sub From                      { $_[0]->{'From'} }
+sub HTTP_Version              { $_[0]->{'HTTP_Version'} }
+sub Https_on              	  { $_[0]->{'Https_on'} }
+sub If_Modified_Since         { $_[0]->{'If_Modified_Since'} }
 sub Last_Modified             { $_[0]->{'Last_Modified'} }
 sub Link                      { $_[0]->{'Link'} }
 sub Location                  { $_[0]->{'Location'} }
+sub MIME_Version              { $_[0]->{'MIME_Version'} }
+sub Message_ID                { $_[0]->{'Message_ID'} }
+sub Method                    { $_[0]->{'Method'} }
+sub Path_Info                 { $_[0]->{'Path_Info'} }
+sub Path_Translated           { $_[0]->{'Path_Translated'} }
+sub Pragma                    { $_[0]->{'Pragma'} }
+sub Public                    { $_[0]->{'Public'} }
+sub Query                     { $_[0]->{'Query'} }
+sub Reason_Phrase             { $_[0]->{'Reason_Phrase'} }
+sub Reconfigure               { $_[0]->{'Reconfigure'} }
+sub Referer                   { $_[0]->{'Referer'} }
+sub Request_URI               { $_[0]->{'Request_URI'} }
+sub Retry_After               { $_[0]->{'Retry_After'} }
+sub Script                	  { $_[0]->{'Script'} }
+sub Server_Host               { $_[0]->{'Server_Host'} }
+sub Server_Port               { $_[0]->{'Server_Port'} }
+sub Status_Code               { $_[0]->{'Status_Code'} }
 sub Title                     { $_[0]->{'Title'} }
-#sub URI                      { $_[0]->{'URI'} }
-sub Version                   { $_[0]->{'Version'} }
 sub URI				 		  { $_[0]->{'Server_Host'} . $_[0]->{'Script'} }
+sub User_Agent                { $_[0]->{'User_Agent'} }
+sub Version                   { $_[0]->{'Version'} }
+sub WWW_Authenticate          { $_[0]->{'WWW_Authenticate'} }
+sub no_cache                  { $_[0]->{'no_cache'} }
 
 sub new {
     my ($class) = @_;
@@ -115,60 +115,68 @@ sub new {
 }
 
 my @Map =
-    ('Server_Software' => 'SERVER_SOFTWARE',
-     'Server_Host' => 'SERVER_NAME',
-     'Server_Port' => 'SERVER_PORT',
+    (
+     'Authenticated_User' => 'REMOTE_USER',
+     'Authorization_Type' => 'AUTH_TYPE',
      'Client_Hostname' => 'REMOTE_HOST',
      'Client_IP_Address' => 'REMOTE_ADDR',
      'Client_Ident' => 'REMOTE_IDENT',
+     'Content_Length' => 'CONTENT_LENGTH',
+     'Content_Type' => 'CONTENT_TYPE',
+     'Cookie' => 'HTTP_COOKIE',
+     'From' => 'HTTP_FROM',
+     'Https_on' => 'HTTPS',
+     'Method', => 'REQUEST_METHOD',
      'Path_Info' => 'PATH_INFO',
      'Path_Translated' => 'PATH_TRANSLATED',
      'Query' => 'QUERY_STRING',
      'Reconfigure' => 'RECONFIGURE_MINIVEND',
+     'Referer' => 'HTTP_REFERER',
      'Script' => 'SCRIPT_NAME',
-     'Https_on' => 'HTTPS',
-     'Authorization_Type' => 'AUTH_TYPE',
-     'Authenticated_User' => 'REMOTE_USER',
-# Date
-# Forwarded
-# Message_ID
-# MIME_Version
-     'Method', => 'REQUEST_METHOD',
-# Request_URI
-# HTTP_Version
+     'Server_Host' => 'SERVER_NAME',
+     'Server_Port' => 'SERVER_PORT',
+     'User_Agent' => 'HTTP_USER_AGENT',
+#     'Content_Encoding' => 'HTTP_CONTENT_ENCODING',
+#     'Content_Language' => 'HTTP_CONTENT_LANGUAGE',
+#     'Content_Transfer_Encoding' => 'HTTP_CONTENT_TRANSFER_ENCODING',
+#     'Server_Software' => 'SERVER_SOFTWARE',
 # Accept
 # Accept_Charset
 # Accept_Encoding
 # Accept_Language
-# Authorization
-     'From' => 'HTTP_FROM',
-# If_Modified_Since
-# Pragma
-# no_cache
-# Referer
-     'Cookie' => 'HTTP_COOKIE',
-     'Referer' => 'HTTP_REFERER',
-     'User_Agent' => 'HTTP_USER_AGENT',
-# Status_Code
-# Reason_Phrase
 # Allow
-     'Content_Encoding' => 'HTTP_CONTENT_ENCODING',
-     'Content_Language' => 'HTTP_CONTENT_LANGUAGE',
-     'Content_Length' => 'CONTENT_LENGTH',
-     'Content_Transfer_Encoding' => 'HTTP_CONTENT_TRANSFER_ENCODING',
-     'Content_Type' => 'CONTENT_TYPE',
+# Authorization
+# Date
 # Derived_From
 # Expires
+# Forwarded
+# HTTP_Version
+# If_Modified_Since
 # Last_Modified
 # Link
 # Location
+# MIME_Version
+# Message_ID
+# Pragma
+# Reason_Phrase
+# Referer
+# Request_URI
+# Status_Code
 # Title
 # URI
 # Version
+# no_cache
+
      );
 
 sub populate {
     my ($s, $cgivar) = @_;
+
+	if($Global::Environment) {
+		for(@{$Global::Environment}) {
+			$ENV{$_} = $cgivar->{$_} if defined $cgivar->{$_};
+		}
+	}   
 
     my @map = @Map;
     my ($field, $cgi);
@@ -264,3 +272,4 @@ sub read_form_input {
 }
 
 1;
+__END__

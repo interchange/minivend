@@ -192,10 +192,6 @@ sub test_column {
 		$col = $i;
 	}
 
-    unless(defined $col) {
-		carp "There is no column named '$column' in $s->[0]\n";
-		return undef;
-	}
 #print("test_column: returning '$col' from $s->[0]") if $Global::DEBUG;
 	return $col - 1;
 
@@ -384,6 +380,10 @@ sub set_field {
     my ($s, $key, $column, $value) = @_;
     my $ref = $s->[2]->do("insert into $s->[0] ($column) VALUES ($value) where $s->[1] = '$key'");
 	$value;
+}
+
+sub ref {
+	return $_[0];
 }
 
 sub record_exists {

@@ -1,6 +1,6 @@
 # Parse.pm - Parse MiniVend tags
 # 
-# $Id: Parse.pm,v 1.7 1997/05/05 20:14:20 mike Exp $
+# $Id: Parse.pm,v 1.8 1997/06/17 04:22:52 mike Exp $
 #
 # Copyright 1997 by Michael J. Heins <mikeh@iac.net>
 #
@@ -20,12 +20,12 @@
 
 package Vend::Parse;
 
-# $Id: Parse.pm,v 1.7 1997/05/05 20:14:20 mike Exp $
+# $Id: Parse.pm,v 1.8 1997/06/17 04:22:52 mike Exp $
 
 require Vend::Parser;
 
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.7 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.8 $ =~ /(\d+)\.(\d+)/);
 
 use Safe;
 use Vend::Util;
@@ -46,7 +46,7 @@ require Exporter;
 @ISA = qw(Exporter Vend::Parser);
 # END NOAUTO
 
-$VERSION = substr(q$Revision: 1.7 $, 10);
+$VERSION = substr(q$Revision: 1.8 $, 10);
 @EXPORT = ();
 @EXPORT_OK = qw(find_matching_end find_end);
 
@@ -68,6 +68,7 @@ use vars qw($VERSION);
 #%Required
 #%Routine
 #%canNest
+#%Default
 #%hasEndTag
 #%isEndAnchor
 #%isOperator
@@ -91,7 +92,7 @@ my %PosNumber =	(
 				body			=> 1,
 				buttonbar		=> 1,
 				cart			=> 1,
-				checked			=> 2,
+				checked			=> 3,
 				data			=> 4,
 				default			=> 1,
 				discount		=> 1,
@@ -148,7 +149,7 @@ my %Order =	(
 				calc			=> [],
 				cart			=> [qw( name  )],
 				'currency'		=> [],
-				checked			=> [qw( name value )],
+				checked			=> [qw( name value multiple)],
 				data			=> [qw( base name code value increment)],
 				default			=> [qw( name )],
 				description		=> [qw( code base )],
@@ -295,6 +296,7 @@ my %Implicit = (
 				escaped	escaped
 			    increment  increment
 				secure	secure
+				multiple	multiple
 			   )
 			);
 
@@ -326,7 +328,7 @@ my %Routine = (
 				buttonbar		=> \&Vend::Interpolate::tag_buttonbar,
 				calc			=> \&Vend::Interpolate::tag_calc,
 				cart			=> \&Vend::Interpolate::tag_cart,
-				checked			=> \&Vend::Interpolate::tag_checked,
+				checked			=> \&Vend::Interpolate::tag_selected,
 				'currency'		=> \&Vend::Interpolate::currency,
 				data			=> \&Vend::Interpolate::tag_data,
 				default			=> \&Vend::Interpolate::tag_default,
@@ -390,6 +392,16 @@ my %canNest = (
 				)
 			);
 
+
+# AUTOLOAD
+#%Default = (
+# END AUTOLOAD
+
+# NOAUTO
+my %Default = (
+# END NOAUTO
+						checked	 =>	{ value => 'on' }
+			);
 
 # AUTOLOAD
 #%hasEndTag = (
@@ -469,7 +481,7 @@ sub start
 {
     my($self, $tag, $attr, $attrseq, $origtext) = @_;
 	$tag =~ tr/-/_/;   # canonical
-##print("called start @_\n") if $Global::DEBUG;
+#print("called start @_\n") if $Global::DEBUG;
 	my($tmpbuf);
     # $attr is reference to a HASH, $attrseq is reference to an ARRAY
 	unless (defined $Routine{$tag}) {
@@ -486,7 +498,11 @@ sub start
 	#unless (!$Vend::Cfg->{AllowMixed}) {
 		for(@{$Required{$tag}}) {
 			next if defined $attr->{$_};
-##print("Returning blank, required attribute $_ not found\n$origtext\n") if $Global::DEBUG;
+			if (defined $Default{$tag}->{$_}) {
+				$attr->{$_} = $Default{$tag}->{$_};
+				next;
+			}
+#print("Returning blank, required attribute $_ not found\n$origtext\n") if $Global::DEBUG;
 			return undef;
 		}
 	}
@@ -523,9 +539,6 @@ sub start
 	}
 
 	# Check for old-style positional tag
-	#if($origtext =~ s/\[[-\w]+\s+//i and
-	#	(! @$attrseq or $origtext !~ m/^$attrseq->[0]\b/) )
-	#{
 	if($origtext =~ s/\[[-\w]+\s+//i and !@$attrseq)
 	{
 #print("called old $tag with args $origtext\n") if $Global::DEBUG;
@@ -666,3 +679,4 @@ sub find_end {
 }
 
 1;
+__END__

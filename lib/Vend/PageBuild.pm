@@ -1,6 +1,6 @@
 # PageBuild.pm - Interpret MiniVend tags
 # 
-# $Id: PageBuild.pm,v 1.1 1997/01/24 15:37:12 mike Exp $
+# $Id: PageBuild.pm,v 1.2 1997/06/17 04:22:52 mike Exp $
 #
 # Copyright 1996 by Michael J. Heins <mikeh@iac.net>
 #
@@ -22,7 +22,7 @@ package Vend::PageBuild;
 require Exporter;
 @ISA = qw(Exporter);
 
-$VERSION = substr(q$Revision: 1.1 $, 10);
+$VERSION = substr(q$Revision: 1.2 $, 10);
 
 @EXPORT = qw ( fake_html );
 
@@ -166,3 +166,4 @@ sub fakeUrl
 
 
 1;
+__END__

@@ -1,4 +1,4 @@
-# $Id: Data.pm,v 1.8 1997/05/22 07:00:05 mike Exp $
+# $Id: Data.pm,v 1.10 1997/06/27 11:32:10 mike Exp mike $
 
 package Vend::Data;
 require Exporter;
@@ -189,10 +189,9 @@ sub product_description {
 
 sub database_field {
     my ($db, $key, $field_name) = @_;
-
-    my ($real, $ref) = $db->record_exists($key);
-    return '' unless $real;
-	$db = $ref if defined $ref;
+    $db = database_exists_ref($db) or return '';
+	$db = $db->ref;
+    return '' unless $db->record_exists($key);
     return '' unless defined $db->test_column($field_name);
     return $db->field($key, $field_name);
 }
@@ -211,8 +210,7 @@ sub call_method {
 	my($base, $method, @args) = @_;
 
 	my $db = ref $base ? $base : $Vend::Database{$base};
-	my ($real, $ref) = $db->record_exists('NeVAIRbE');
-	$db = $ref if defined $ref;
+	$db = $db->ref();
 
 	no strict 'refs';
 	$db->$method(@args);
@@ -305,7 +303,7 @@ sub column_exists {
 
 sub db_column_exists {
     my ($db,$field_name) = @_;
-    return $db->test_column($field_name);
+    return defined $db->test_column($field_name);
 }
 
 
@@ -400,9 +398,15 @@ sub read_shipping {
 #print("\nZone fields: $zone[0]") if $Global::DEBUG;
 		}
 	}
+	my %seen;
+	my $append = '0000';
     while(<Vend::SHIPPING>) {
 		chomp;
+		next unless /\S/;
 		($code, $desc, $criterion, $min, $max, $cost) = split(/\t/);
+		$code = defined $seen{$code} ? $code . $append++ : $code; 
+		$seen{$code} = 1;
+#print "reading shipping code $code\n" if $Global::DEBUG;
 		$Vend::Cfg->{Shipping_desc}->{$code} = $desc;
 		$Vend::Cfg->{Shipping_criterion}->{$code} = $criterion;
 		$Vend::Cfg->{Shipping_min}->{$code} = $min;
@@ -430,7 +434,7 @@ sub read_accessories {
 			redo;
 		}
 		($code, $accessories) = split(/\t/, $_, 2);
-		$Vend::Accessories{$code} = $accessories;
+		$Vend::Cfg->{Accessories}->{$code} = $accessories;
     }
     close Vend::ACCESSORIES;
 	1;
@@ -545,6 +549,9 @@ sub import_database {
 		$data = $Vend::Cfg->{DataDir};
 		$database_txt = "$data/$database_txt";
 	}
+	else {
+		$data = $path;
+	}
 
 	$data =~ s:/$:: ;
 
@@ -600,7 +607,10 @@ sub import_database {
     	$create_sub = \&create_database_mem;
 		$cacheable = 1;
 	}
-
+	if (defined $Vend::ForceImport{$name}) {
+		undef $database_dbm;
+		delete $Vend::ForceImport{$name};
+	}
   IMPORT: {
 	last IMPORT if $no_import;
 	last IMPORT if defined $Vend::Cfg->{NoImport}->{$name};
@@ -663,7 +673,7 @@ sub import_database {
 }   
 
 sub export_database {
-	my($db, $file, $type) = @_;
+	my($db, $file, $type, $field, $delete) = @_;
 	my(@data);
 	return undef unless defined $db;
 
@@ -675,22 +685,47 @@ sub export_database {
 
 	$db = database_exists_ref($db) || return undef;
 
-	my $ref = $Vend::Cfg->{Database}->{$Vend::Basefinder{$db}};
+	my $ref;
+	$ref = $Vend::Cfg->{Database}->{$Vend::Basefinder{$db}};
 	croak "Bad database '$ref', name $Vend::Basefinder{$db}.\n" unless $ref;
 
-	my($result, $test) = $db->record_exists('NeVAIrBe');
-
-	$db = $test if defined $test;
-
+	$db = $db->ref();
 
 	my ($delim, $record_delim) = find_delimiter($type || $ref->{'type'});
 
 	$file = $file || $ref->{'file'};
 
-	unless($file =~ m:^/:) {
+	unless($file =~ m!^([A-Za-z]:)?/!) {
 		$file = "$Vend::Cfg->{DataDir}/$file";
 	}
 
+	my @cols = $db->columns();
+
+	my ($notouch, $nuke);
+	if ($field and ! $delete) {
+		logError("Adding field $_");
+		push @cols, $_;
+		$notouch = 1;
+	}
+	elsif ($field and $delete) {
+		logError("Deleting $field...");
+		my @new = @cols;
+		@cols = ();
+		my $i = 0;
+		for(@new) {
+			unless ($_ eq $field) {
+				push @cols, $_;
+			}
+			else {
+				$nuke = $i;
+				$notouch = 1;
+				logError("Deleting field $_");
+			}
+			$i++;
+		}
+	}
+
+	my $tempdata;
 	open(Vend::Data::EXPORT, "+<$file") or
 	   open(Vend::Data::EXPORT, "+>$file") or
 	   		croak "Couldn't open $file: $!\n";
@@ -701,19 +736,27 @@ sub export_database {
 	if($delim eq 'CSV') {
 		$delim = '","';
 		print Vend::Data::EXPORT '"key","';
-		print Vend::Data::EXPORT join $delim, $db->columns();
+		print Vend::Data::EXPORT join $delim, @cols;
 		print Vend::Data::EXPORT qq%"\n%;
 		while( (@data) = $db->each_record() ) {
 			print Vend::Data::EXPORT '"';
-			print Vend::Data::EXPORT join $delim, @data;
+			splice(@data, $nuke, 1) if defined $nuke;
+			$tempdata = join $delim, @data;
+			$tempdata =~ tr/\n/\r/;
+			print Vend::Data::EXPORT $tempdata;
 			print Vend::Data::EXPORT qq%"\n%;
 		}
 	}
 	else {
-		print Vend::Data::EXPORT join $delim, 'key', $db->columns();
+		print Vend::Data::EXPORT join $delim, 'key', @cols;
 		print Vend::Data::EXPORT $record_delim;
 		while( (@data) = $db->each_record() ) {
-			print Vend::Data::EXPORT join $delim, @data;
+			splice(@data, $nuke, 1) if defined $nuke;
+			$tempdata = join $delim, @data;
+			if($record_delim eq "\n") {
+				$tempdata =~ tr/\n/\r/;
+			}
+			print Vend::Data::EXPORT $tempdata;
 			print Vend::Data::EXPORT $record_delim;
 		}
 	}
@@ -721,43 +764,8 @@ sub export_database {
 		or croak "Couldn't unlock $file: $!\n";
 	close(Vend::Data::EXPORT)
 		or croak "Couldn't close $file: $!\n";
-	$db->touch();
+	$db->touch() unless defined $notouch;
 	1;
-}
-
-sub apply_discount {
-    my($item,$price) = @_;
-
-    my($formula, $cost);
-    my(@formulae);
-
-    # Check for individual item discount
-    push(@formulae, $Vend::Session->{discount}->{$item->{code}})
-        if defined $Vend::Session->{discount}->{$item->{code}};
-    # Check for all item discount
-    push(@formulae, $Vend::Session->{discount}->{ALL_ITEMS})
-        if defined $Vend::Session->{discount}->{ALL_ITEMS};
-
-	return $price unless @formulae;
-
-    my $safe = new Safe;
-
-    my $subtotal = $price;
-
-    # Calculate any formalas found
-    foreach $formula (@formulae) {
-        next unless $formula;
-        $formula =~ s/\$q/$item->{quantity}/g;
-        $formula =~ s/\$s/$subtotal/g;
-        $cost = $safe->reval($formula);
-        if($@) {
-            logError
-                "Discount for $item->{code} has bad formula. Not applied.";
-            next;
-        }
-        $subtotal = $cost;
-    }
-    $subtotal;
 }
 
 sub build_quantity_price {
@@ -801,7 +809,7 @@ foreach $break (@{$Vend::Cfg->{PriceBreaks}}) {
 EOF
 
 	my $sub = eval $code;
-	die "Bad quanity_price routine:\n\n$@\n" if $@;
+	die "Bad quantity_price routine:\n\n$@\n" if $@;
 	return $sub;
 }
 
@@ -910,3 +918,5 @@ sub item_subtotal {
 }
 
 1;
+
+__END__

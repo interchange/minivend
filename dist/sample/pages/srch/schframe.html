@@ -1,0 +1,95 @@
+<HTML>
+<HEAD>
+<TITLE>Browse __COMPANY__</TITLE>
+<FRAMESET rows="*,200">
+    <FRAMESET cols="340,*">
+        <FRAME SRC="[area feature]" NAME=main>
+        </FRAME>
+        <FRAME SRC="[area main]" NAME=details>
+        </FRAME>
+    </FRAMESET>
+    <FRAMESET cols="140,*">
+		<FRAME SRC="[area srch/category]" NAME=category>
+		</FRAME>
+		<FRAME SRC="[area srch/query]" NAME=search>
+		</FRAME>
+    </FRAMESET>
+</FRAMESET>
+<NOFRAMES>
+
+</HEAD>
+[body 1]
+<H3>
+<IMG    WIDTH=40 HEIGHT=40 SRC="web_srch.gif" ALT="SEARCH">
+Search our Catalog
+</H3>
+
+<P>
+<FORM ACTION="[process-search]" METHOD=POST>
+
+<B>Artist/Title</B><BR>
+<INPUT TYPE=text NAME="mv_searchspec" SIZE=25>
+<BR>
+<INPUT TYPE="TEXT" NAME="junk" SIZE=0>
+<INPUT TYPE="submit" NAME="mv_todo" VALUE="Search">
+<INPUT TYPE="hidden" NAME="mv_doit" VALUE="search">
+<P>[finish-order]<BR>
+[page help/help]
+	<STRONG>Help</STRONG>[/page]
+Matches per page:
+	<SELECT NAME="mv_matchlimit">
+			<OPTION>10
+			<OPTION SELECTED>25
+			<OPTION>50
+			<OPTION>100
+	</SELECT><BR>
+<INPUT TYPE="radio" NAME="mv_orsearch" VALUE="no" CHECKED>Must match all<BR>
+<INPUT TYPE="radio" NAME="mv_orsearch" VALUE="yes">Match any<BR>
+<INPUT TYPE="checkbox" NAME="mv_case" VALUE="yes">Case sensitive<BR>
+<INPUT TYPE="checkbox" NAME="mv_perl" VALUE="yes">Match exactly<BR>
+	Spelling errors allowed
+	<INPUT TYPE="radio" NAME="mv_spelling_errors" VALUE="0" CHECKED> 0
+	<INPUT TYPE="radio" NAME="mv_spelling_errors" VALUE="1"> 1 
+	<INPUT TYPE="radio" NAME="mv_spelling_errors" VALUE="2"> 2
+</FORM>
+<H3>
+Select by Category
+</H3>
+<P>
+<FORM ACTION="[process-search]" METHOD=POST>
+
+<B>Category</B><BR>
+<SELECT NAME="mv_searchspec">
+	<OPTION VALUE="Renaissance$"> Renaissance
+	<OPTION VALUE="Impressionists$"> Impressionists
+	<OPTION VALUE="Surrealists$"> Surrealists
+	<OPTION VALUE="Americana$"> Americana
+	<OPTION VALUE="Contemporary$"> Contemporary
+</SELECT>
+<INPUT TYPE=HIDDEN NAME="mv_case" VALUE="yes">
+<INPUT TYPE=HIDDEN NAME="mv_perl" VALUE="yes">
+<INPUT TYPE=HIDDEN NAME="mv_orsearch" VALUE="yes">
+<P>
+<INPUT NAME=junk SIZE=0>
+<INPUT TYPE="submit" NAME="mv_todo" VALUE="Search">
+<INPUT TYPE="hidden" NAME="mv_doit" VALUE="search"><BR>
+<P>
+[finish-order]
+<P>
+[page help/help]
+<STRONG>Help</STRONG>[/page]
+<P>
+	Matches per page:
+	<SELECT NAME="mv_matchlimit">
+			<OPTION>10
+			<OPTION SELECTED>25
+			<OPTION>50
+			<OPTION>100
+	</SELECT><BR>
+</FORM>
+Just select the category you want to browse, then press the
+<B>Search</B> button.  The search engine
+will select up to 400 items from our great catalog!
+<P>
+[[buttonbar 3]]
+</body> </html>

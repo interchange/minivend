@@ -70,6 +70,10 @@ sub opendb {
 	Msql->connect();
 }
 
+sub ref {
+	return $_[0];
+}
+
 sub create {
     my ($class, $columns, $tablename, $config) = @_;
 
@@ -180,10 +184,6 @@ sub test_column {
 		$col = $i;
 	}
 
-    unless(defined $col) {
-		carp "There is no column named '$column'\n";
-		return undef;
-	}
 	return $col - 1;
 
 }

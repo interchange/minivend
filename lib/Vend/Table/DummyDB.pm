@@ -63,6 +63,11 @@ sub field {
 	return $db->field($key, $field_name);
 }
 
+sub ref {
+    my ($self) = @_;
+	return $self->import_db();
+}
+
 sub test_column {
     my ($self, $field_name) = @_;
 	my $db = $self->import_db();

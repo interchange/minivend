@@ -1,4 +1,4 @@
-# $Id: Session.pm,v 1.10 1997/05/25 06:10:54 mike Exp mike $
+# $Id: Session.pm,v 1.11 1997/06/17 04:22:52 mike Exp $
 
 package Vend::Session;
 require Exporter;
@@ -470,15 +470,19 @@ sub check_save {
 		unless($expire =~ /^\d{6,}$/) {
 			$expire = Vend::Config::time_to_seconds($expire);
 			if(defined $expire) {
-				$Vend::Expire = $time + $expire;
 				$Vend::Session->{'values'}->{mv_expire_time} = $expire;
 			}
 		}
 	}
+	else {
+		$expire = $Vend::Cfg->{SaveExpire};
+	}
 
-	$expire = $expire || $Vend::Cfg->{SavedExpire};
+	$Vend::Expire = $time + $expire;
 
 	return ($time - $expire < $Vend::Session->{'time'}) ? 1 : 0;
 }	
 
 1;
+
+__END__

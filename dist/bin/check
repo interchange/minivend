@@ -1,0 +1,90 @@
+#!/usr/local/bin/perl
+
+BEGIN {
+	$VendRoot = '/home/minivend';
+	($VendRoot = $ENV{MINIVEND_ROOT})
+		if defined $ENV{MINIVEND_ROOT};
+}
+$ENV{SCRIPT_NAME}= '/cgi-bin/test_union';
+$ENV{REQUEST_METHOD}= 'GET';
+$CLINK = "/home/minivend/cgi-bin/clink";
+$ERRORS_TO = 'mikeh@minivend.com';
+
+my $RESTARTING = "$VendRoot/restart.in.progress";
+
+# a minivend server
+($prog = $0) =~ s:.*/::;
+
+use lib "$VendRoot/lib";
+use File::CounterFile;
+
+my $okfile = "$VendRoot/.ok.count";
+my $badfile= "$VendRoot/.bad.count";
+
+unlink($okfile, $badfile) if shift(@ARGV);
+
+my $ok = new File::CounterFile $okfile;
+my $bad = new File::CounterFile $badfile;
+
+#$RESTART = "echo 'Would have restarted'";
+$RESTART = "$VendRoot/bin/stop; rm -f $VendRoot/etc/socket $VendRoot/etc/mvrun*; $VendRoot/bin/start -D 2>> $VendRoot/debug.out &";
+$RESTART_HARD = "kill -9 `cat $VendRoot/etc/minivend.pid`; rm -f $VendRoot/etc/socket $VendRoot/etc/minivend.pid $VendRoot/etc/mvrun* ; $VendRoot/bin/start -D 2>> $VendRoot/debug.out &";
+$USAGE = <<EOF ;
+$prog - Simple URL checker
+
+    $prog [-t period]
+
+    OPTIONS
+
+        -t  Check period in seconds (approximate)
+
+EOF
+use Getopt::Std;
+
+getopts('gt:') or
+    die "Couldn't get options: $@\n$USAGE\n";
+
+my $period =    $opt_t || $opt_t || 20;
+
+my $count = 0;
+
+system "echo $$ > $VendRoot/.check.pid";
+
+my $restarted;
+
+for (;;) {
+    $string = `$CLINK`;
+        CHECK: {
+                last CHECK if -f $RESTARTING;
+                unless (defined $string and length($string) > 500) {
+                        (sleep 3, next) if $count++ < 2;
+                        $bad->inc;
+                        my $status = length($string || '');
+                        if (! defined $restarted) {
+							system $RESTART;
+							$restarted = 1;
+						}
+						elsif ($restarted == 1) {
+							system $RESTART_HARD;
+							$restarted = 2;
+						}
+			
+                        sleep $period;
+                        my $good = $ok->value;
+                        my $not = $bad->value;
+					if($restarted > 1) {
+						system qq% echo 'MiniVend will not restart. MUST DO MANUAL RESTART.' | /bin/mail -s "Server timeout" $ERRORS_TO %;
+						exit;
+					}
+					else {
+						#system qq% echo 'MiniVend not responding, restarted. OK: $good BAD: $not' | /bin/mail -s "Server timeout" $ERRORS_TO %;
+					}
+				}
+                else {
+					undef $restarted;
+					$count = 0;
+					$ok->inc;
+                }
+        }
+    sleep $period;
+}

@@ -1,4 +1,4 @@
-# $Id: Offline.pm,v 1.2 1997/03/29 08:53:37 mike Exp $
+# $Id: Offline.pm,v 1.3 1997/06/17 04:22:52 mike Exp $
 #
 # Offline.pm - Offline database build module for Vend
 #              Also builds product indices and the other
@@ -380,3 +380,4 @@ sub import_database {
 
 
 1;
+__END__

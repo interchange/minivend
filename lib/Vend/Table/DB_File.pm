@@ -143,12 +143,7 @@ sub columns {
 
 sub test_column {
     my ($s, $column) = @_;
-    my $i = $s->[$COLUMN_INDEX]{$column};
-    unless(defined $i) {
-		carp "There is no column named '$column'\n";
-		return undef;
-	}
-	return $i;
+	return $s->[$COLUMN_INDEX]{$column};
 }
 
 sub column_index {
@@ -234,6 +229,10 @@ sub each_record {
             return ();
         }
     }
+}
+
+sub ref {
+	return $_[0];
 }
 
 sub record_exists {

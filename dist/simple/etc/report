@@ -1,0 +1,17 @@
+      ORDER DATE: [calc]localtime()[/calc]
+
+            Name: [value name]
+         Company: [value company]
+   Email address: [value email]
+
+ Billing address: [value address]
+City, State, Zip: [value city], [value state]  [value zip]
+         Country: [value country]
+
+   Daytime Phone: [value phone_day]
+   Evening Phone: [value phone_night]
+
+Shipping Address: [value s_address]
+City, State, Zip: [value s_city], [value s_state]  [value s_zip]
+Shipping Country: [value s_country]
+

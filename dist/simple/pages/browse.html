@@ -1,0 +1,35 @@
+<HTML>
+<HEAD>
+<TITLE>Browse __COMPANY__</TITLE>
+</HEAD>
+[body 1]
+<CENTER>
+<H1>
+Browse __COMPANY__
+</H1>
+<HR>
+[loop 00-0011 00-343 00-342 00-341 21-221 34-101 19-202]
+
+Category: [loop-field category]
+<P>
+[set current][loop-code][/set]
+[if_loop_field image]
+<IMG SRC="[loop_field image]">
+<P>
+[/if_loop_field]
+
+<H2>[loop-description]</H2>
+<P>
+Catalog No.: [loop-code]
+<P>
+Price: $[loop-price]
+<P>
+[page [loop-code]]<IMG BORDER=0 SRC="details.gif">[/page]
+[order [loop-code]]<IMG BORDER=0 SRC="ordernow.gif" ALT="(ORDER NOW)">[/order]
+<HR>
+[/loop]
+[[buttonbar 0]][finish-order]
+</CENTER>
+
+</BODY>
+</HTML>

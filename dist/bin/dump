@@ -1,0 +1,212 @@
+#!/usr/local/bin/perl
+#
+# MiniVend session dumper
+#
+# $Id: dump,v 1.4 1997/05/05 20:17:16 mike Exp $
+#
+# This program is largely based on Vend 0.2
+# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+#
+# Portions from Vend 0.3
+# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+#
+# Enhancements made by and
+# Copyright 1996,1997 by Michael J. Heins <mikeh@minivend.com>
+#
+# See the file 'Changes' for information.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+BEGIN {
+
+    eval {
+        require 5.004;
+        require FindBin;
+        1 and $Global::VendRoot = "$FindBin::RealBin";
+        1 and $Global::VendRoot =~ s/.bin$//;
+    };
+
+	($Global::VendRoot = $ENV{MINIVEND_ROOT})
+		if defined $ENV{MINIVEND_ROOT};
+
+	$Global::VendRoot = $Global::VendRoot || '/home/minivend';
+	$Global::ErrorFile = "$Global::VendRoot/error.log";
+}
+
+### END CONFIGURABLE VARIABLES
+
+sub dontwarn { $FindBin::RealBin; }
+
+$Global::ConfigFile = 'minivend.cfg';
+$Global::HammerLock = 20;
+
+$Vend::SessionID = 'dumpprog';
+
+use lib $Global::VendRoot;
+use lib "$Global::VendRoot/lib";
+
+my $DEBUG;
+$Global::DEBUG = $DEBUG = 0;
+
+use strict;
+use Fcntl;
+
+#select a DBM
+
+# Will be set if GDBM or DB_File
+
+my $Extension;
+
+BEGIN {
+	$Global::GDBM = $Global::DB_File = $Global::NDBM = $Global::Msql = 0;
+	$Extension = '';
+    AUTO: {
+        last AUTO if
+            (defined $ENV{MINIVEND_DBFILE} and $Global::DB_File = 1);
+        eval {require GDBM_File and $Global::GDBM = 1} ||
+        eval {require DB_File and $Global::DB_File = 1};
+    }
+	if($Global::GDBM) {
+		require Vend::Table::GDBM;
+		import GDBM_File;
+		$Global::GDBM = 1;
+		$Extension = '.gdbm';
+	}
+	elsif($Global::DB_File) {
+		require Vend::Table::DB_File;
+		import DB_File;
+		$Global::DB_File = 1;
+		$Extension = '.db';
+	}
+	else {
+		die "No DBM defined! (File sessions can be viewed without this program.)\n";
+	}
+}
+
+use Vend::Session;
+use Vend::Config;
+
+my $USAGE = <<EOF;
+usage: dump -c catalog [-n session_id]
+           or
+       dump sessionfile [sessionfile.lock]
+
+If specifying a subcatalog database, make sure SessionFile and
+SessionLockFile are defined in the subcatalog configuration
+file.  If it is in the base catalog, use that catalog as the
+parameter for the -c directive.
+EOF
+
+my ($catalog, $name);
+
+$Vend::Cfg = {};
+
+GETOPT: {
+
+if($ARGV[0] eq '-c') {
+	shift(@ARGV);
+	$catalog = shift(@ARGV);
+	redo GETOPT;
+}
+elsif($ARGV[0] eq '-n') {
+	shift(@ARGV);
+	$name = shift(@ARGV);
+	redo GETOPT;
+}
+elsif(! defined $ARGV[0]) {
+	last GETOPT;
+}
+else {
+	$Vend::Cfg->{SessionDatabase} = shift
+		|| die $USAGE;
+	$Vend::Cfg->{SessionDatabase} =~ s/\.(gdbm|db)$//;
+	warn "Session Database: $Vend::Cfg->{SessionDatabase}\n" if $DEBUG;
+	$Vend::Cfg->{SessionLockFile} = shift;
+	if (defined $Vend::Cfg->{SessionLockFile}) { 
+		die <<EOF unless -f $Vend::Cfg->{SessionLockFile};
+Session lock file '$Vend::Cfg->{SessionLockFile}' doesn't exist.
+Create one if you are sure the MiniVend server is down, then try
+again.
+EOF
+	}
+	elsif (-f "$Vend::Cfg->{SessionDatabase}.lock") {
+		$Vend::Cfg->{SessionLockFile} = 
+				"$Vend::Cfg->{SessionDatabase}.lock";
+	}
+	else {
+		my $dir = $Vend::Cfg->{SessionDatabase};
+		my $file;
+		$dir =~ s:/?([^/]+)$::;
+		$file = $1;
+		die "Aborting, no lock files found, even in $dir/etc/$file.lock!\n"
+			unless -f "$dir/etc/$file.lock";
+		$Vend::Cfg->{SessionLockFile} ="$dir/etc/$file.lock";
+	}
+
+	last GETOPT;
+
+}
+
+} # END GETOPT
+
+die "too many args, aborting.\n" 
+		if @ARGV;
+
+if(defined $catalog) {
+	my($name,$dir,$param,$subcat,$subconfig,$junk);
+	chdir $Global::VendRoot;
+	open(GLOBAL, $Global::ConfigFile) or
+		die "No global configuration file? Aborting.\n";
+	while(<GLOBAL>) {
+		next unless /^\s*(sub)?catalog\s+$catalog\s+/i;
+		$subcat = $1 || '';
+		chomp;
+		s/^\s+//;
+		unless($subcat) {
+			($junk,$name,$dir,$param) = split /\s+/, $_, 4;
+		}
+		else {
+			($junk,$name,$subconfig,$dir,$param) = split /\s+/, $_, 5;
+		}
+		last;
+
+	}
+	close GLOBAL;
+
+	$Global::SendMailLocation = '/usr/lib/sendmail';
+	global_config();
+
+	chdir $dir or die "Couldn't change directory to $dir: $!\n";
+
+	$Vend::Cfg = config($name, $dir, 'config', $subconfig || undef);
+
+}
+
+CHECKEXIST: {
+	my $sessfile = $Vend::Cfg->{SessionDatabase} . $Extension;
+	die "No session database $sessfile to dump.\n" unless -f $sessfile;
+	die $USAGE unless defined $Vend::Cfg->{SessionLockFile};
+}
+
+
+Vend::Util::setup_escape_chars();
+$CGI::user = 'DUMP';
+$CGI::host = 'LOCAL';
+$Vend::SessionName = session_name();
+get_session();
+dump_sessions($name || undef);
+put_session();
+release_session();
+

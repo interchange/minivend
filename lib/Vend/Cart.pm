@@ -2,7 +2,7 @@
 #
 # MiniVend version 2.03
 #
-# $Id: Cart.pm,v 1.5 1997/05/22 07:00:05 mike Exp $
+# $Id: Cart.pm,v 1.6 1997/06/17 04:22:52 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -44,7 +44,7 @@ require Exporter;
 @EXPORT_OK = qw(create add set);
 
 
-$VERSION = substr(q$Revision: 1.5 $, 10);
+$VERSION = substr(q$Revision: 1.6 $, 10);
 $DEBUG   = 0;
 
 use Carp;
@@ -167,3 +167,5 @@ sub get_cart {
 }
 
 1;
+
+__END__

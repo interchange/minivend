@@ -1,0 +1,200 @@
+## Default: blank
+#
+# Specify a catalog to be run by this MiniVend server. The three
+# required parameters are the name, the directory, and the script
+# name that (the path vlink is named to) will run the catalog.
+# Additional parameters are aliases for the catalog.
+# 
+# If FullUrl is enabled, you will need to set the full server
+# and script path.
+#
+# This is a multiple directive -- the number of catalogs that
+# can be defined is limited only by your machine resources.
+#
+# An old-style minivend.cfg will work for a standalone
+# catalog.
+#
+# Catalog  sample /home/user/catalogs/sample /cgi-bin/sample /cgi-bin/alias
+
+
+## Default: No
+#
+# Normally MiniVend determines which catalog to call by
+# determining the SCRIPT_NAME from the CGI call. This means
+# that different (and maybe virtual) hosts cannot use the
+# same SCRIPT_NAME to call different catalogs. Set FullUrl
+# to yes to differentiate based on the calling host.
+# You must then set the server name in the Catalog
+# directive accordingly, i.e. yourdomain.com/cgi-bin/sample.
+#
+# FullUrl
+
+
+## Default: 4
+#
+# The number of servers that MiniVend will allow to
+# serve requests simultaneously.  Set lower if you
+# wish to conserve memory at all costs.
+#
+# MaxServers
+
+
+## Default: 60
+#
+# How often (in seconds) MiniVend will wake up to look for
+# user reconfiguration requests and check for hung processes.
+#
+# If you have a very lightly used server then you could set
+# this to a high number to allow MiniVend to be swapped to
+# disk more readily.
+#
+# HouseKeeping
+
+
+## Default: No
+#
+# Controls whether program errors will be appended to the
+# browser display.
+#
+# DisplayErrors
+
+
+## Default: Yes
+#
+# Implements the domain/ip session qualifiers so that only the
+# major domain is used to qualify the session ID.  This is a
+# compromise on security, but it allows non-cookie-accepting
+# browsers like AOL's V2.0 to use multiple proxy servers.
+# 
+# Default is yes, since most everyone wants AOL to work.
+#
+# DomainTail
+
+
+## Default: blank
+#
+# Defines a F<global> subroutine for use by the B<[perl sub]
+# subname arg [/perl]> construct.
+#
+# IMPORTANT NOTE: These global subroutines are NOT SUBJECT TO
+# SECURITY CHECKS -- they can do most anything!  For most purposes,
+# scratch subroutines or catalog subroutines are better.
+#
+# You may define as many as desired.
+#
+# GlobalSub
+
+
+## Default: No
+#
+# Implements the domain/ip session qualifiers so that only the
+# first two dot-quads of the IP address are used to qualify the
+# session ID.  This is a compromise on security, but it allows
+# non-cookie-accepting browsers like AOL's V2.0 to use multiple
+# proxy servers.
+#
+# DomainTail is preferable unless one of your HTTP servers does
+# not do host name lookups.
+# 
+# Default is no, and DomainTail must be set to 'no' for it to
+# operate.
+#
+# IpHead
+
+
+## Default: 30
+#
+# The number of seconds after which a locked or running
+# session could be considered to be lost due to malfunction.
+#
+# Controls the timeout for killing an apparently hung process,
+# like a glimpse search, as well as the lock on a session.
+# 
+# If you don't have long-running searches or long-running database
+# imports, consider setting this to 15 seconds or less. If you
+# may have long-running searches, consider setting to 60 seconds.
+# The default of 30 is probably a good bet for most catalogs.
+#
+# HammerLock
+
+
+## Default: No
+#
+# Whether MiniVend will send cookies corresponding to only the CGI
+# program in use.  Allows different stores in the same domain to each
+# store separate cookie information -- affects cookie path.
+#
+# May be used to control other settings in the future.
+#
+# Mall
+
+
+## Default: No
+#
+# Whether MiniVend [file ...] and other tags can read any file on
+# the system. The default is to allow any file to be read -- this
+# should be changed in a multi-user environment.
+#
+# NoAbsolute
+
+
+## Default: 148 249
+#
+# Sets the codes that will be untrapped in the Safe.pm module,
+# used for embedded Perl and conditional operations.  You can see
+# the Safe.pm documentation by typing 'perldoc Safe' at the
+# command prompt.  The default is '249 148' (or 'ftfile sort' if
+# using Perl 5.004), which untraps the file existence test
+# operator and the sort operator.  Define it as blank to not
+# allow any besides the very restrictive Safe.pm defaults.
+#
+# SafeUntrap
+
+
+## Default: Yes
+#
+# If your operating system does not have a re-entrant C library that
+# can guarantee that signal race conditions will not occur, then
+# set this to NO.
+#
+# BSDI and FreeBSD libraries are NOT safe, and SafeSignals will
+# automatically be disabled for those operating systems.
+#
+# In general, if MiniVend ever just "hangs", particularly if you
+# can see a perl.core file, disable this directive.
+#
+# SafeSignals
+
+
+## Default: localhost
+#
+# The host(s) that will be allowed to generate MiniVend requests
+# when running in INET mode.  You are responsible for security!
+# Remember that socket communications are not necessarily secure
+# when going over a wire!
+#
+# TcpHost
+
+
+## Default: 7786
+#
+# The port that will be monitored for MiniVend requests
+# when running in INET mode. 
+#
+# TcpPort
+
+
+## Default: No
+#
+# Whether user-stimulated page builds are allowed.  If you don't
+# have large user catalogs, should be no problem to enable.  But
+# if there are multi-megabyte databases, could cause a huge
+# performance problem.
+#
+# If allowed, pages will be built presuming the proper
+# StaticAll/StaticPage setting is present and mv_build_static is
+# set in the CGI values.
+#
+# UserBuild
+
+
