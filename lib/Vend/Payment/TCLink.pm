@@ -290,6 +290,7 @@ sub trustcommerce {
 		return			=>	'credit',
 		sale	 		=>	'sale',
 		settle 			=>	'postauth',
+		settle_prior 	=>	'postauth',
 	);
 	
 	if (defined $type_map{$transtype}) {
