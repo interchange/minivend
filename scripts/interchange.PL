@@ -273,6 +273,29 @@ use Vend::Interpolate;
 use Vend::Page;
 use Vend::CounterFile;
 
+if($ENV{INTERCHANGE_REQUIRE}) {
+	my @mods = split /[;\s]+/, $ENV{INTERCHANGE_REQUIRE};
+	foreach my $mod (@mods) {
+		eval {
+			eval "require $mod";
+			die $@ if $@;
+		};
+		if($@) {
+			die errmsg(
+				"FAILED to require module %s as specified in environment. Error: %s\n", 
+				$mod,
+				$@,
+			);
+		}
+		else {
+			warn errmsg(
+				"Required module %s successfully as specified in environment.\n", 
+				$mod,
+			);
+		}
+	}
+}
+
 if( ! $Global::Windows and $> == -1 || scalar(getpwuid($>)) eq 'nobody' ) {
 	warn errmsg("\aYou probably don't want to run as nobody!\n");
 	sleep 1;
