@@ -1656,6 +1656,7 @@ my %Default = (
 								return (undef, "No default search file!") 
 									unless scalar @out;
 							}
+							$C->{Variable}{MV_DEFAULT_SEARCH_FILE} = \@out;
 							return 1;
 						},
 );
