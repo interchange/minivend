@@ -368,8 +368,7 @@ sub inc_field {
     die "inc_field: $DBI::errstr\n" unless defined $sth;
     $sth->execute();
     $value += ($sth->fetchrow_array)[0];
-	$value = $s->[$DBI]->quote($value)
-		unless exists $s->[$CONFIG]{NUMERIC}{$column};
+	#$value = $s->[$DBI]->quote($value, $column);
     $sth = $s->[$DBI]->do("update $s->[$TABLE] SET $column=$value where $s->[$KEY] = $key");
     $value;
 }
