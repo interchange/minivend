@@ -81,7 +81,8 @@ sub interaction_error {
     $page = readin(find_special_page('interact'));
     if (defined $page) {
 		$page =~ s#\[message\]#$msg#ig;
-		::response(::interpolate_html($page, 1));
+		::interpolate_html($page, 1);
+		::response();
     }
 	else {
 		logError( "Missing special page: interact" , '');

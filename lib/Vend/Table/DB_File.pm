@@ -100,8 +100,20 @@ sub open_table {
 		}
 	}
 
-	my $dbm = tie(%$tie, 'DB_File', $filename, $flags, 0600)
-		or die "Could not open '$filename': $!";
+	my $dbm;
+	my $failed = 0;
+
+	my $retry = $Vend::Cfg->{Limit}{dbm_open_retries} || 10;
+
+	while( $failed < $retry ) {
+		$dbm = tie(%$tie, 'DB_File', $filename, $flags, 0600)
+			and undef($failed), last;
+		$failed++;
+		select(undef,undef,undef,$failed * .100);
+	}
+
+	die ::errmsg("%s could not tie to '%s': %s", 'DB_File', $filename, $!)
+		unless $dbm;
 
 	my $columns = [split(/\t/, $tie->{'c'})];
 

@@ -101,7 +101,8 @@ sub parse
 	while (1) {  # the loop will end by returning when text is parsed
 		# If a preceding routine sent the response, stop 
 		if ($Vend::Sent) {
-			$self->{OUT} = $self->{_buf} = '';
+			${$self->{OUT}} = $self->{_buf} = '';
+			@Vend::Output = ();
 			return $self;
 		}
 		# We try to pull off any plain text (anything before a '[')
@@ -142,7 +143,7 @@ sub parse
 #::logDebug("tag='$tag' eat='$eaten'");
 
 				# Then we would like to find some attributes
-				while (	$$buf =~ s|^(([a-zA-Z][-a-zA-Z0-9._]*)\s*)|| or
+				while (	$$buf =~ s|^(([_a-zA-Z][-a-zA-Z0-9._]*)\s*)|| or
 					 	$$buf =~ s|^(([=!<>][=~]?)\s+)||                 )
 				{
 					$eaten .= $1;

@@ -105,15 +105,18 @@ sub open_table {
 	my $dbm;
 	my $failed = 0;
 
-	while( $failed < 10 ) {
+	my $retry = $Vend::Cfg->{Limit}{dbm_open_retries} || 10;
+
+	while( $failed < $retry ) {
 		$dbm = tie(%$tie, 'GDBM_File', $filename, $flags, 0777)
 			and undef($failed), last;
 		$failed++;
 		select(undef,undef,undef,$failed * .100);
 	}
 
-	die ::errmsg("Could not tie to '%s': %s", $filename, $!)
-		if $failed;
+	die ::errmsg("%s could not tie to '%s': %s", 'GDBM', $filename, $!)
+		unless $dbm;
+
 	my $columns = [split(/\t/, $tie->{'c'})];
 	my $column_index = Vend::Table::Common::create_columns($columns, $config);
 

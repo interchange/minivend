@@ -70,6 +70,7 @@ sub {
 					} );
 		}
 	}
+	$::Pragma->{download} = 1;
 	::response($out);
 	$Vend::Sent = 1;
 	return 1;
