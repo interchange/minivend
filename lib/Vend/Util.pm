@@ -580,7 +580,7 @@ sub hexify {
 
 sub unhexify {
     my $s = shift;
-    $s =~ s/%(..)/chr(hex($1))/ge;
+    $s =~ s/%([0-9A-Fa-f][0-9A-Fa-f])/chr(hex($1))/ge;
     return $s;
 }
 
