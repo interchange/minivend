@@ -2181,7 +2181,7 @@ you would need to use new syntax.
 
 The optional I<arg> is used just as in the I<page> tag.
 
-=head2 [/page]
+=item [/page]
 
 Expands into </a>. Used with the page element, such as:
 
