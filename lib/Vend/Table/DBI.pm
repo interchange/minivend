@@ -597,7 +597,7 @@ sub open_table {
 
 
 	die "DBI: no column names returned for $tablename\n"
-			unless defined $config->{NAME}[1];
+			unless defined $config->{NAME}[0];
 
 	# Check if we have a non-first-column key
 	if($config->{KEY}) {
@@ -638,6 +638,12 @@ sub close_table {
 	return 1 if $Global::HotDBI->{$Vend::Cat};
 	undef $DBI_connect_cache{$cfg->{dsn_id}};
 	$s->[$DBI]->disconnect();
+}
+
+sub dbh {
+	my ($s) = shift;
+	$s = $s->import_db() if ! defined $s->[$DBI];
+	return $s->[$DBI];
 }
 
 sub columns {

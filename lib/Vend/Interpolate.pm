@@ -2546,6 +2546,58 @@ sub tag_counter {
     my $file = shift || 'etc/counter';
 	my $opt = shift;
 #::logDebug("counter: file=$file start=$opt->{start}");
+	if($opt->{sql}) {
+		my ($tab, $seq) = split /:+/, $opt->{sql}, 2;
+		my $db = database_exists_ref($tab);
+		my $dbh;
+		my $dsn;
+		if($opt->{bypass}) {
+			$dsn = $opt->{dsn} || $ENV{DBI_DSN};
+			$dbh = DBI->connect(
+						$dsn,
+						$opt->{user},
+						$opt->{pass},
+						$opt->{attr},
+					);
+		}
+		else {
+			$dbh = $db->dbh();
+			$dsn = $db->config('DSN');
+		}
+
+		my $val;
+
+		eval {
+			my $diemsg = errmsg(
+							"Counter sequence '%s' failed, using file.\n",
+							$opt->{sql},
+						);
+			if(! $dbh) {
+				die errmsg(
+						"No database handle for counter sequence '%s', using file.",
+						$opt->{sql},
+					);
+			} 
+			elsif($dsn =~ /^dbi:mysql:/i) {
+				$dbh->do("INSERT INTO $tab VALUES (0)")		or die $diemsg;
+				my $sth = $dbh->prepare("select LAST_INSERT_ID()")
+					or die $diemsg;
+				$sth->execute()								or die $diemsg;
+				($val) = $sth->fetchrow_array;
+			}
+			elsif($dsn =~ /^dbi:Pg:/i) {
+				my $sth = $dbh->prepare("select nextval('$seq')")
+					or die $diemsg;
+				$sth->execute()
+					or die $diemsg;
+				($val) = $sth->fetchrow_array;
+			}
+
+		};
+
+		return $val if defined $val;
+	}
+
     $file = $Vend::Cfg->{VendRoot} . "/$file"
         unless Vend::Util::file_name_is_absolute($file);
     my $ctr = new Vend::CounterFile $file, $opt->{start} || undef;
