@@ -873,8 +873,15 @@ sub tag_data {
 					$val =~ s/\0+//g;
 					return $val 
 						unless $val =~ m:(\d+)[-/]+(\d+)[-/]+(\d+):;
-					my ($yr, $mon, $day) = ($3, $1, $2);
+					my ($yr, $mon, $day);
 
+					if (length($1) == 4) {
+						# MySQL date style 2003-03-20
+						($yr, $mon, $day) = ($1, $2, $3);
+					} else {
+						($yr, $mon, $day) = ($3, $1, $2);
+					}
+					
 					my $time;
 					$val =~ /:(\d+)$/
 						and $time = $1;
