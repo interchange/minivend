@@ -1058,8 +1058,12 @@ EOF
                 }
 
 				eval {
-					$c = ::config_named_catalog($cat->{CatalogName},
-                                    "from running server ($$)", $table, $cfile);
+					$c = Vend::Config::config_named_catalog(
+									$cat->{CatalogName},
+                                    "from running server ($$)",
+									$table,
+									$cfile
+								);
 				};
 
 				if (defined $c) {
@@ -2225,7 +2229,7 @@ sub touch_pid {
 sub cron_job {
 	my ($cat, @jobs) = @_;
 	for my $job (@jobs) {
-		::run_in_catalog($cat, $job);
+		Vend::Dispatch::run_in_catalog($cat, $job);
 	}
 }
 

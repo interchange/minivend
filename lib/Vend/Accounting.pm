@@ -224,7 +224,7 @@ sub post_data {
 	my %result;
 	if($Have_Net_SSLeay) {
 #::logDebug("placing Net::SSLeay request: host=$server, port=$port, script=$script");
-#::logDebug("values: " . ::uneval($query) );
+#::logDebug("values: " . uneval($query) );
 		my ($page, $response, %reply_headers)
                 = post_https(
 					   $server, $port, $script,
@@ -247,7 +247,7 @@ sub post_data {
 		my @query = %{$query};
 		my $ua = new LWP::UserAgent;
 		my $req = POST($submit_url, \@query, %header);
-#::logDebug("placing LWP request: " . ::uneval_it($req) );
+#::logDebug("placing LWP request: " . uneval_it($req) );
 		my $resp = $ua->request($req);
 		$result{status_line} = $resp->status_line();
 		$result{status_line} =~ /(\d+)/
@@ -257,7 +257,7 @@ sub post_data {
 #::logDebug("received LWP header: $header_string");
 		$result{result_page} = $resp->content();
 	}
-#::logDebug("returning thing: " . ::uneval_it(\%result) );
+#::logDebug("returning thing: " . uneval_it(\%result) );
 	return \%result;
 }
 

@@ -217,7 +217,7 @@ package Vend::Payment;
 sub mcve {
     my ($opt) = @_;
 
-    ::logDebug("mcve called, args=" . ::uneval(\@_));
+#::logDebug("mcve called, args=" . ::uneval(\@_));
 
     my $sess;
     my %result;
@@ -471,7 +471,7 @@ sub mcve {
     &MCVE::MCVE_DestroyConn($conn);
     &MCVE::MCVE_DestroyEngine();
 
-    ::logDebug("mcve returns, result=" . ::uneval(\%result));
+#::logDebug("mcve returns, result=" . ::uneval(\%result));
     return %result;
 }
 

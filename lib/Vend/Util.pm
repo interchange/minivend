@@ -32,6 +32,7 @@ require Exporter;
 	check_security
 	copyref
 	currency
+	dbref
 	dump_structure
 	errmsg
 	escape_chars
@@ -113,6 +114,11 @@ $ESCAPE_CHARS::ok_in_url =
 		'0123456789'				 .
 		'-_./~='
 	;
+
+## This is an alias for a commonly-used function
+sub dbref {
+	return Vend::Data::database_exists_ref(@_);
+}
 
 ## This is a character class for HTML::Entities
 $ESCAPE_CHARS::std = "^\n\t !\#\$%\'-;=?-Z\\\]-~";

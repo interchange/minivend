@@ -647,8 +647,8 @@ sub open_table {
 	$config->{KEY_INDEX} = $config->{COLUMN_INDEX}{lc $key}
 		if ! $config->{KEY_INDEX};
 	die ::errmsg("Bad key specification: %s"  .
-					::uneval_it($config->{NAME}) .
-					::uneval_it($config->{COLUMN_INDEX}),
+					Vend::Util::uneval_it($config->{NAME}) .
+					Vend::Util::uneval_it($config->{COLUMN_INDEX}),
 					$key
 		)
 		if ! defined $config->{KEY_INDEX};

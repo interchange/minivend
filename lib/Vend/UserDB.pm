@@ -500,7 +500,7 @@ sub _set_acl {
 	else {
 		$f->{$options{location}} = $options{mode} || 'rw';
 	}
-	my $return = $self->{DB}->set_field( $self->{USERNAME}, $loc, Vend::Util::uneval_it($f) );
+	my $return = $self->{DB}->set_field( $self->{USERNAME}, $loc, uneval_it($f) );
 	return $return if $options{show};
 	return;
 }
@@ -897,7 +897,7 @@ sub delete_nickname {
 		return undef;
 	}
 
-	my $s = ::uneval_it($self->{$name});
+	my $s = uneval_it($self->{$name});
 
 	$self->{DB}->set_field( $self->{USERNAME}, $field_name, $s);
 
@@ -935,7 +935,7 @@ sub set_hash {
 		return undef;
 	}
 
-	my $s = ::uneval_it($self->{$name});
+	my $s = uneval_it($self->{$name});
 
 	$self->{DB}->set_field( $self->{USERNAME}, $field_name, $s);
 

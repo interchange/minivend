@@ -99,7 +99,7 @@ sub hello {
 	my $self = shift;
 	my @args = @_;
 	return "hello from the Vend::SOAP server, pid $$, world!\nreceived args:\n"
-		. ::uneval(\@args);
+		. uneval(\@args);
 }
 
 sub soaptest {

@@ -112,7 +112,7 @@ sub full_dump {
 	my $out = '';
 	if($portion) {
 		$out .= "###### SESSION ($portion) #####\n";
-		$out .= ::uneval($Vend::Session->{$portion});
+		$out .= uneval($Vend::Session->{$portion});
 		$out .= "\n###### END SESSION    #####\n";
 		$out =~ s/\0/\\0/g;
 		return $out;
@@ -122,17 +122,17 @@ sub full_dump {
 	local($Data::Dumper::Indent) = 2;
 	$out .= "###### ENVIRONMENT     #####\n";
 	if(my $h = ::http()) {
-		$out .= ::uneval($h->{env});
+		$out .= uneval($h->{env});
 	}
 	else {
-		$out .= ::uneval(\%ENV);
+		$out .= uneval(\%ENV);
 	}
 	$out .= "\n###### END ENVIRONMENT #####\n";
 	$out .= "###### CGI VALUES      #####\n";
-	$out .= ::uneval(\%CGI::values);
+	$out .= uneval(\%CGI::values);
 	$out .= "\n###### END CGI VALUES  #####\n";
 	$out .= "###### SESSION         #####\n";
-	$out .= ::uneval($Vend::Session);
+	$out .= uneval($Vend::Session);
 	$out .= "\n###### END SESSION    #####\n";
 	$out =~ s/\0/\\0/g;
 	return $out;
