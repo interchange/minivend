@@ -5230,12 +5230,9 @@ sub tag_loop_list {
 			};
 		}
 		else {
-			my @keys = grep $_ ne 'code', keys %$meta;
-			unshift @keys, 'code';
 			$opt->{object} = {
 					matches		=> 1,
-					mv_results	=> [ [ @{$meta}{@keys} ] ],
-					mv_field_names => \@keys,
+					mv_results	=> [ $meta ],
 			};
 		}
 		return region($opt, $text);
