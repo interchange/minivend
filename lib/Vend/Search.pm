@@ -25,8 +25,17 @@
 #
 package Vend::Search;
 
-$VERSION = substr(q$Revision: 1.15 $, 10);
+$VERSION = substr(q$Revision: 1.16 $, 10);
 $DEBUG = 0;
+
+my $Joiner;
+
+if($ =~ /win32/i) {
+	$Joiner = '_';
+}
+else {
+	$Joiner = ':';
+}
 
 =head1 NAME
 
@@ -750,7 +759,7 @@ sub more_matches {
 	$mod = defined $mod ? $mod : 1;
 	$g->{search_mod} = $mod;
 	$id = ref $id ? $$id : $id;
-	$id .= ":$mod";
+	$id .= "$Joiner$mod";
 	
 	my $file = $g->{save_dir} . '/' . $id if $g->{save_dir};
 
@@ -1154,7 +1163,7 @@ sub save_more {
 	my $g = $s->{'global'};
 	my $file;
 	my $id = $g->{session_key} || $g->{session_id};
-	$id .=  ':' . $g->{search_mod};
+	$id .=  $Joiner . $g->{search_mod};
 	$g->{overflow} = 1;
 	$g->{next_pointer} = $g->{match_limit};
 	my $save = $s->save_context( @{$g->{'save_context'}} )
@@ -1176,7 +1185,7 @@ sub save_more {
 	elsif(ref $g->{save_hash}) {
 		$g->{save_hash}->{"~$id"} = $save
 				if defined $save;
-		my $id = $g->{session_id} . ':' . $g->{search_mod};
+		my $id = $g->{session_id} . $Joiner . $g->{search_mod};
 		$g->{save_hash}->{$id} = join "\n", @$out;
 	}
 	else {

@@ -1,6 +1,6 @@
 # Http.pm:  interface to cgi protocol
 #
-# $Id: Http.pm,v 1.10 1998/01/31 05:15:27 mike Exp $
+# $Id: Http.pm,v 1.11 1998/03/21 12:06:18 mike Exp $
 #
 package Vend::Http;
 
@@ -28,7 +28,7 @@ package Vend::Http::Base;
 
 use strict;
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.10 $, 10);
+$VERSION = substr(q$Revision: 1.11 $, 10);
 
 #sub Server                    { $_[0]->{'Server'} }
 sub Content_Encoding          { $_[0]->{'Content_Encoding'} }
@@ -55,6 +55,7 @@ sub Derived_From              { $_[0]->{'Derived_From'} }
 sub Expires                   { $_[0]->{'Expires'} }
 sub Forwarded                 { $_[0]->{'Forwarded'} }
 sub From                      { $_[0]->{'From'} }
+#sub Glue	              	  { $_[0]->{'Glue'} }
 sub HTTP_Version              { $_[0]->{'HTTP_Version'} }
 sub Https_on              	  { $_[0]->{'Https_on'} }
 sub If_Modified_Since         { $_[0]->{'If_Modified_Since'} }
@@ -130,6 +131,7 @@ my @Map =
      'Content_Type' => 'CONTENT_TYPE',
      'Cookie' => 'HTTP_COOKIE',
      'From' => 'HTTP_FROM',
+#     'Glue' => 'MV_GLUE',
      'Https_on' => 'HTTPS',
      'Method', => 'REQUEST_METHOD',
      'Path_Info' => 'PATH_INFO',

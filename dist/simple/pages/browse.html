@@ -1,5 +1,5 @@
 <HTML>
-<HEAD>
+<HEAD>[tag flag build][/tag]
 <TITLE>Browse __COMPANY__</TITLE>
 </HEAD>
 [body 1]
@@ -7,8 +7,12 @@
 <H1>
 Browse __COMPANY__
 </H1>
+<FONT SIZE="-1">
+	Browse [page browse1 1:1]one</A>
+	or     [page browse1 1:2]two</A> at a time </FONT></BR>
 [tag each products]
 [sort products:category products:price:rn]
+[loop-next][calc]'[loop-field category]' eq 'Accessory'[/calc][/loop-next]
 [loop-change 1]
 [condition][loop-field category][/condition]
 <TABLE WIDTH="80%"><TR BGCOLOR="#cccccc" TEXT="WHITE"><TD ALIGN=CENTER>
@@ -25,13 +29,13 @@ Browse __COMPANY__
 <P>
 Catalog No.: [loop-code]
 <P>
-Price: $[loop-price]
+Price: [loop-price]
 <P>
 [page [loop-code]]<IMG BORDER=0 SRC="details.gif">[/page]
 [order [loop-code]]<IMG BORDER=0 SRC="ordernow.gif" ALT="(ORDER NOW)">[/order]
 [/tag]
 <HR>
-[buttonbar 0][finish-order]
+[buttonbar 0]
 </CENTER>
 
 </BODY>

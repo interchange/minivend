@@ -1,8 +1,8 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 #
 # offline - MiniVend database builder and indexer
 #
-# $Id: offline,v 1.5 1997/09/03 05:55:05 mike Exp $
+# $Id: offline,v 1.6 1998/03/21 12:17:29 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -59,8 +59,11 @@ use Fcntl;
 #select a DBM
 
 BEGIN {
-	$Global::GDBM = $Global::DB_File = $Global::Msql = 0;
+
+	$Global::GDBM = $Global::DB_File = $Global::DBI = $Global::Msql = 0;
     AUTO: {
+		# This is for standard DBI
+		eval {require DBI and $Global::DBI = 1};
         last AUTO if
             (defined $ENV{MINIVEND_DBFILE} and $Global::DB_File = 1);
         last AUTO if

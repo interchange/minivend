@@ -1,6 +1,6 @@
 # Data.pm - Minivend databases
 #
-# $Id: Data.pm,v 1.32 1998/01/31 05:26:38 mike Exp $
+# $Id: Data.pm,v 1.33 1998/03/14 23:46:21 mike Exp $
 # 
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -287,9 +287,33 @@ sub product_field {
     return $db->field($code, $field_name);
 }
 
+my %T;
+
+TAGBUILD: {
+
+	my @th = (qw!
+
+		arg
+		/arg
+		control
+		/control
+		query
+		/query
+
+	! );
+
+	my $tag;
+	for (@th) {
+		$tag = $_;
+		s/(\w)/[\u$1\l$1]/g;
+		s/[-_]/[-_]/g;
+		$T{$tag} = "\\[$_";
+	}
+}
+
 sub sql_query {
-	my($type, $query, $list, $msql, $table) = @_;
-	my $db;
+	my($type, $internal_query, $query, $msql, $table, $list) = @_;
+	my ($db);
 	if($msql) {
 		$table = $table || $Vend::Cfg->{MsqlDB};
 		$db = Vend::Table::Msql::get_msql('Vend::Table::Msql', $table);
@@ -300,20 +324,45 @@ sub sql_query {
 			or croak "dbi_query: unknown base table $table.\n";
 		$db = $db->ref();
 	}
-	"\L$type" eq 'array' and
-		return uneval $db->array_query($list, $table);
-	"\L$type" eq 'hash' and
-		return uneval $db->hash_query($list, $table);
-	"\L$type" eq 'param' and
-		return $db->param_query($list, $table);
-	"\L$type" eq 'set' and
-		return $db->set_query($list, $table);
-	"\L$type" eq 'html' and
-		return $db->html_query($list, $table);
-	"\L$type" eq 'list' and
+
+	$type = lc $type;
+
+	if (defined $list) {
+		$query = $internal_query if $internal_query and $type ne 'list';
+		$query .= $list;
+	}
+
+	my @arg;
+	while ($query =~ s:$T{'arg'}\](.*?)$T{'/arg'}\]::o) {
+		push(@arg, $1);
+	}
+
+	my $config = {};
+	while ($query =~ s:$T{'control'}\s+([\w][-\w]*)\]([\000-\377]*?)$T{'/control'}\]::) {
+		$config->{uc $1} = $2;
+	}
+
+	if($type eq 'list') {
+		$list = $query;
+		$query = $internal_query;
+		push(@arg, $1) while $query =~ s:$T{'arg'}\](.*?)$T{'/arg'}\]::o;
+		$list =~ s:$T{'query'}\]([\000-\377]+)$T{'/query'}\]::o and $query = $1;
+	}
+
+	$type eq 'array' and
+		return uneval $db->array_query($query, $table, $config, @arg);
+	$type eq 'hash' and
+		return uneval $db->hash_query($query, $table, $config, @arg);
+	$type eq 'param' and
+		return $db->param_query($query, $table, $config, @arg);
+	$type eq 'set' and
+		return $db->set_query($query, $table, $config, @arg);
+	$type eq 'html' and
+		return $db->html_query($query, $table, $config, @arg);
+	$type eq 'list' and
 		return Vend::Interpolate::tag_sql_list(
 							$list,
-							$db->array_query($query, $table)
+							$db->array_query($query, $table, $config, @arg)
 							);
 	# shouldn't reach this if proper tag
 	logError("Bad SQL query selector: '$type' for $table");
@@ -531,8 +580,9 @@ sub quantity_price {
 			database_key_exists($Vend::Cfg->{Pricing}, $code);
 	my(@prices);
 
+	my $fn = ! $Vend::Cfg->{Locale} ? 'price' : $Vend::Cfg->{PriceField};
 	@prices =
-			split /\s/, database_field($Vend::Cfg->{Pricing}, $code, 'price');
+			split /\s/, database_field($Vend::Cfg->{Pricing}, $code, $fn);
 
 	my ($break,$i,$price,$scratch);
 	$price = $one;
@@ -985,6 +1035,10 @@ $code .= <<'EOF';
 	my $adder = database_field($Vend::Database{$Vend::Cfg->{CommonAdjust}},
 							 $item->{$_}, $_ ) || 0;
 	$price = 0 if $adder =~ s/^=//;
+	$price = 0 if $adder =~ /^\s*\[/
+				 && $Vend::Session->{'item_code'}     = $item->{'code'}
+				 && $Vend::Session->{'item_quantity'} = $item->{'quantity'}
+				 && $adder = interpolate_html($adder);
 	$price += $adder;
 EOF
 ###
@@ -1006,9 +1060,9 @@ EOF
 ###
 
 	}
-	if($Vend::Cfg->{PriceDivide} != 1) {
-		$code .= <<EOF;
-\$price = \$price / $Vend::Cfg->{PriceDivide};
+	if($Vend::Cfg->{Locale} or $Vend::Cfg->{PriceDivide} != 1) {
+		$code .= <<'EOF';
+$price = $price / $Vend::Cfg->{PriceDivide};
 EOF
 ###
 	}

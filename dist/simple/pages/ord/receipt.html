@@ -1,7 +1,7 @@
 <HTML><HEAD><TITLE>__COMPANY__ -- Receipt</TITLE>
 </HEAD>
 [body 1]
-<IMG SRC="artstore.gif"><BR>
+<IMG SRC="__LOGO__"><BR>
 <FONT SIZE="-1">
 <IMG VSPACE=5 HSPACE=50 SRC="bg.gif"><B>__COMPANY__</B><BR>
 <IMG VSPACE=5 HSPACE=50 SRC="bg.gif">__ADDRESS__<BR>
@@ -48,9 +48,7 @@ Quan  Item No.    Description                           Price      Extension
 [column width=12 gutter=1]  [item-code] [/column]
 [column width=32 gutter=1 align=left wrap=1]
 [item-description]
-[if explicit "[item-modifier size]"]
-SIZE: [item-modifier size]
-[/if]
+[if-modifier size]SIZE-->[item-modifier size][/if-modifier][if-modifier color] COLOR-->[item-modifier color][/if-modifier]
 [/column]
 [column width=14 gutter=1 align=r]  [item-price] [/column]
 [column width=15 gutter=0 align=r] [item-subtotal] [/column]

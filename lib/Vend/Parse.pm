@@ -1,6 +1,6 @@
 # Parse.pm - Parse MiniVend tags
 # 
-# $Id: Parse.pm,v 1.25 1998/01/31 09:44:28 mike Exp mike $
+# $Id: Parse.pm,v 1.28 1998/03/21 12:12:27 mike Exp mike $
 #
 # Copyright 1997-1998 by Michael J. Heins <mikeh@iac.net>
 #
@@ -20,12 +20,12 @@
 
 package Vend::Parse;
 
-# $Id: Parse.pm,v 1.25 1998/01/31 09:44:28 mike Exp mike $
+# $Id: Parse.pm,v 1.28 1998/03/21 12:12:27 mike Exp mike $
 
 require Vend::Parser;
 
 
-$VERSION = sprintf("%d.%02d", q$Revision: 1.25 $ =~ /(\d+)\.(\d+)/);
+$VERSION = sprintf("%d.%02d", q$Revision: 1.28 $ =~ /(\d+)\.(\d+)/);
 
 use Safe;
 use Vend::Util;
@@ -33,12 +33,13 @@ use Vend::Interpolate;
 # STATICPAGE
 use Vend::PageBuild;
 # END STATICPAGE
+use Vend::Data qw/product_field/;
 
 require Exporter;
 
 @ISA = qw(Exporter Vend::Parser);
 
-$VERSION = substr(q$Revision: 1.25 $, 10);
+$VERSION = substr(q$Revision: 1.28 $, 10);
 @EXPORT = ();
 @EXPORT_OK = qw(find_matching_end find_end);
 
@@ -46,6 +47,8 @@ use strict;
 
 use vars qw($VERSION);
 
+my($CurrentSearch, $CurrentCode, $CurrentDB, $CurrentWith, $CurrentItem);
+my(@SavedSearch, @SavedCode, @SavedDB, @SavedWith, @SavedItem);
 
 my %PosNumber =	( qw!
 					
@@ -63,9 +66,10 @@ my %PosNumber =	( qw!
 				field			 2
 				file			 2
 				finish_order	 1
+				fly_list		 2
 				framebase		 1
 				help			 1
-				if			 1
+				if				 1
 				include			 1
 				last_page		 2
 				lookup			 1
@@ -101,8 +105,8 @@ my %PosNumber =	( qw!
 my %Order =	(
 
 				accessories		=> [qw( code arg )],
-				area			=> [qw( href arg )],
-				areatarget		=> [qw( href target arg )],
+				area			=> [qw( href arg secure)],
+				areatarget		=> [qw( href target arg secure)],
 				body			=> [qw( type  )],
 				buttonbar		=> [qw( type  )],
 				calc			=> [],
@@ -117,6 +121,7 @@ my %Order =	(
 				field			=> [qw( name code )],
 				file			=> [qw( name )],
 				finish_order	=> [qw( href )],
+				fly_list		=> [qw( code base )],
 				framebase		=> [qw( target  )],
 				frames_off		=> [],
 				frames_on		=> [],
@@ -127,11 +132,12 @@ my %Order =	(
 				last_page		=> [qw( target arg )],
 				lookup			=> [qw( table field key value )],
 				loop			=> [qw( with arg )],
+				loop_change		=> [qw( with arg )],
 				msql			=> [qw( type query list true base)],
 				nitems			=> [qw( name  )],
 				order			=> [qw( code href base )],
-				page			=> [qw( href arg )],
-				pagetarget		=> [qw( href target arg )],
+				page			=> [qw( href arg secure)],
+				pagetarget		=> [qw( href target arg secure)],
 				perl			=> [qw( arg )],
 				post			=> [],
 				price			=> [qw( code quantity base )],
@@ -171,6 +177,7 @@ my %Required = (
 				discount	=> [ qw( code )],
 				field		=> [ qw( name code )],
 				file		=> [ qw( name )],
+				fly_list	=> [ qw( code )],
 				framebase	=> [ qw( target )],
 				help		=> [ qw( name )],
 				'if'		=> [ qw( base )],
@@ -240,6 +247,7 @@ my %PosRoutine = (
 
 				'if'			=> \&Vend::Interpolate::tag_if,
 				tag				=> \&Vend::Interpolate::do_tag,
+				sql				=> \&Vend::Data::sql_query,
 			);
 
 
@@ -267,6 +275,7 @@ my %Routine = (
 				field			=> \&Vend::Data::product_field,
 				file			=> \&Vend::Interpolate::tag_file,
 				finish_order	=> \&Vend::Interpolate::tag_finish_order,
+				fly_list		=> \&Vend::Interpolate::fly_page,
 				framebase		=> \&Vend::Interpolate::tag_frame_base,
 				frames_off		=> \&Vend::Interpolate::tag_frames_off,
 				frames_on		=> \&Vend::Interpolate::tag_frames_on,
@@ -336,10 +345,12 @@ my %hasEndTag = (
 						compat		1
 						currency	1
 						discount	1
+						fly_list	1
 						if			1
 						item_list	1
 						loop		1
 						msql		1
+						sql			1
 						perl		1
 						post		1
 						row			1
@@ -371,6 +382,7 @@ my %isEndAnchor = (
 
 my $Initialized = 0;
 
+
 sub global_init {
 		add_tags($Global::UserTag);
 }
@@ -381,6 +393,7 @@ sub new
     my $self = new Vend::Parser;
 	$self->{INVALID} = 0;
 	$self->{INTERPOLATE} = shift || 0;
+	$self->{OBJECT} = shift || undef;
 	$self->{WAIT_BRACKET} = 0;
 
 	if(!$Initialized) {
@@ -417,11 +430,21 @@ my %myRefs = (
 
 my %attrAlias = (
 	 page          	=> { 'base' => 'arg' },
+	 field          	=> { 
+	 						'field' => 'name',
+	 						'column' => 'name',
+	 						'col' => 'name',
+	 						'key' => 'code',
+	 						'row' => 'code',
+						},
 	 data          	=> { 
 	 						'database' => 'table',
 	 						'base' => 'table',
 	 						'name' => 'field',
+	 						'column' => 'field',
+	 						'col' => 'field',
 	 						'code' => 'key',
+	 						'row' => 'key',
 						},
 	 'if'			=> { 
 	 						'comp' => 'compare',
@@ -429,6 +452,7 @@ my %attrAlias = (
 	 						'base' => 'type',
 						},
 	 loop	          	=> { args => 'arg', },
+	 item_list	       	=> { cart => 'name', },
 	 lookup          	=> { 
 	 						'database' => 'table',
 	 						'base' => 'table',
@@ -584,11 +608,15 @@ sub start
 			@args = ($origtext);
 			if(defined $PosNumber{$tag} and $PosNumber{$tag} > 1) {
 				@args = split /\s+/, $origtext, $PosNumber{$tag};
+				push(@args, undef) while @args < $PosNumber{$tag};
 			}
 			$routine =  $PosRoutine{$tag} || $Routine{$tag};
 	}
 	else {
 		$routine = $Routine{$tag};
+		$attr->{interpolate} = 1
+			if  defined $Interpolate{$tag} and ! defined $attr->{interpolate};
+		$attr->{interpolate} = 1 if defined $Interpolate{$tag};
 		@args = @{$attr}{ @{ $Order{$tag} } };
 	}
 

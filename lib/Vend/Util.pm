@@ -1,6 +1,6 @@
 # Util.pm - Minivend utility functions
 #
-# $Id: Util.pm,v 1.25 1998/01/31 05:22:32 mike Exp $
+# $Id: Util.pm,v 1.28 1998/03/21 12:12:58 mike Exp mike $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
@@ -33,10 +33,11 @@ check_security
 dump_structure
 file_modification_time
 format_log_msg
-international_number
 is_no
 is_yes
+find_close_square
 generate_key
+international_number
 logtime
 logData
 logDebug
@@ -59,6 +60,7 @@ tag_item_quantity
 tainted
 trim_desc
 uneval
+us_number
 vendUrl
 
 );
@@ -70,7 +72,7 @@ use Config;
 use Fcntl;
 use subs qw(logError logGlobal);
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.25 $, 10);
+$VERSION = substr(q$Revision: 1.28 $, 10);
 
 BEGIN {
 	eval {
@@ -158,6 +160,20 @@ sub strftime {
 	return $fmt;
 }
 
+sub find_close_square {
+    my $chunk = shift;
+    my $first = index($chunk, ']');
+    return undef if $first < 0;
+    my $int = index($chunk, '[');
+    my $pos = 0;
+    while( $int > -1 and $int < $first) {
+        $pos   = $int + 1;
+        $first = index($chunk, ']', $first + 1);
+        $int   = index($chunk, '[', $pos);
+    }
+    return substr($chunk, 0, $first);
+}
+
 ## ESCAPE_CHARS
 
 $ESCAPE_CHARS::ok_in_filename = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' .
@@ -205,24 +221,6 @@ sub tabbed {
                             s/\t/ /g;
                             $_;
                           } @_);
-}
-
-my(%Tab);
-
-sub international_number {
-    return $_[0] unless $Vend::Cfg->{Locale};
-	unless (%Tab) {
-		%Tab = (	',' => $Vend::Cfg->{Locale}->{mon_thousands_sep},
-					'.' => $Vend::Cfg->{Locale}->{mon_decimal_point}  );
-	}
-    $_[0] =~ s/([^0-9])/$Tab{$1}/g;
-	return $_[0];
-}
-
-sub commify {
-    local($_) = shift;
-    1 while s/^(-?\d+)(\d{3})/$1,$2/;
-    return $_;
 }
 
 # Trims the description output for the order and search pages
@@ -287,19 +285,98 @@ sub format_log_msg {
 
 # Return AMOUNT formatted as currency.
 
-sub currency {
-    my($amount) = @_;
-	my $fmt = "%.2f";
-	$fmt = "%." . $Vend::Cfg->{Locale}->{frac_digits} .  "f"
-		if $Vend::Cfg->{Locale} && defined $Vend::Cfg->{Locale}->{frac_digits};
-
-    $amount = sprintf $fmt, $amount;
-    $amount = commify($amount)
-        if is_yes($Vend::Cfg->{PriceCommas});
-
-    return international_number($amount);
+sub commify {
+    local($_) = shift;
+	my $sep = shift || ',';
+    1 while s/^(-?\d+)(\d{3})/$1$sep$2/;
+    return $_;
 }
 
+sub picture_format {
+	my($amount, $pic, $sep, $point) = @_;
+    $pic	= reverse $pic;
+	$point	= '.' unless defined $point;
+	$sep	= ',' unless defined $sep;
+	$pic =~ /(#+)\Q$point/;
+	my $len = length($1);
+	$amount = sprintf('%.' . $len . 'f', $amount);
+	$amount =~ tr/0-9//cd;
+	my (@dig) = split //, $amount;
+	$pic =~ s/#/pop(@dig)/eg;
+	$pic =~ s/\Q$sep\E+(?!\d)//;
+	$pic =~ s/\d/*/g if @dig;
+	$amount = reverse $pic;
+	return $amount;
+}
+
+sub us_number {
+	local($_) = shift;
+	if (! $Vend::Cfg->{Locale}) {
+		tr/-0-9.//cd;
+	}
+	elsif(/[^.\d]/) {
+		my $chars = "[." .
+			(   $Vend::Cfg->{Locale}->{decimal_point} ||
+				$Vend::Cfg->{Locale}->{mon_decimal_point} ) .
+			']';
+		s/$chars(\d*)$/\0$1/;
+		tr/-0-9\0//cd;
+		tr/\0/./;
+	}
+	return $_;
+}
+
+sub currency {
+	my($amount) = @_;
+	my $loc;
+	my $sep;
+	my $dec;
+	my $fmt;
+	my $precede = '';
+	my $succede = '';
+	if ($loc = $Vend::Cfg->{Locale}) {
+		$sep = $loc->{mon_thousands_sep} || $loc->{thousands_sep} || ',';
+		$dec = $loc->{mon_decimal_point} || $loc->{decimal_point} || '.';
+		return picture_format($amount, $loc->{price_picture}, $sep, $dec)
+			if defined $loc->{price_picture};
+		$fmt = "%." . $loc->{frac_digits} .  "f";
+		my $cs;
+		if($cs = ($loc->{currency_symbol} ||$loc->{currency_symbol} || '') ) {
+			if($loc->{p_cs_precedes}) {
+				$precede = $cs;
+				$precede = "$precede " if $loc->{p_sep_by_space};
+			}
+			else {
+				$succede = $cs;
+				$succede = " $succede" if $loc->{p_sep_by_space};
+			}
+		}
+	}
+	else {
+		$fmt = "%.2f";
+	}
+
+	$amount = sprintf $fmt, $amount;
+	$amount =~ s/\./$dec/ if defined $dec;
+	$amount = commify($amount, $sep || undef)
+		if $Vend::Cfg->{PriceCommas};
+	return "$precede$amount$succede";
+}
+
+sub international_number {
+	return (@_) unless $Vend::Cfg->{Locale};
+	local($_) = shift;
+	my $loc = $Vend::Cfg->{Locale};
+	if ($loc->{picture}) {
+        my ($sep, $dec);
+        $sep = $loc->{thousands_sep} || $loc->{mon_thousands_sep} || ',';
+        $dec = $loc->{decimal_point} || $loc->{mon_decimal_point} || '.';
+        return picture_format($_, $loc->{picture}, $sep, $dec);
+    }
+
+	s/\.(\d*)$/ ($loc->{decimal_point} || $loc->{mon_decimal_point}) . $1/e;
+	return $_;
+}
 
 ## random_string
 
@@ -582,6 +659,13 @@ sub readin {
     } else {
 		$contents = undef;
     }
+	if($Vend::Cfg->{Locale}) {
+		my $key;
+		$contents =~ s~\[L(\s+([^\]]+))?\]([\000-\377]*?)\[/L\]~
+						$key = $2 || $3;		
+						defined $Vend::Cfg->{Locale}->{$key}
+						?  ($Vend::Cfg->{Locale}->{$key})	: $key ~eg;
+	}
     $contents;
 }
 
@@ -619,6 +703,14 @@ sub readfile {
     } else {
 		$contents = undef;
     }
+
+	if($Vend::Cfg->{Locale} and $Vend::Cfg->{Locale}->{ReadFile}) {
+		my $key;
+		$contents =~ s~\[L(\s+([^\]]+))?\]([\000-\377]*?)\[/L\]~
+						$key = $2 || $3;		
+						defined $Vend::Cfg->{Locale}->{$key}
+						?  ($Vend::Cfg->{Locale}->{$key})	: $key ~eg;
+	}
     $contents;
 }
 
@@ -639,14 +731,16 @@ sub vendUrl
     my($path, $arguments, $r) = @_;
     $r = $Vend::Cfg->{VendURL}
 		unless defined $r;
-	$arguments = '' unless defined $arguments;
+
+	$arguments =~ s!([^\w-_:#=/.%])! '%' . sprintf("%02x", ord($1))!eg
+		if defined $arguments && $Vend::Cfg->{NewEscape};
 
 	if(defined $Vend::Cfg->{AlwaysSecure}->{$path}) {
 		$r = $Vend::Cfg->{SecureURL};
 	}
 
     $r .= '/' . $path . '?' . $Vend::SessionID .
-	';' . $arguments . ';' . ++$Vend::Session->{pageCount};
+	';' . ($arguments || '') . ';' . ++$Vend::Session->{pageCount};
     $r;
 }    
 
@@ -656,10 +750,11 @@ sub secure_vendUrl
     my($r);
 	return undef unless $Vend::Cfg->{SecureURL};
 
-	$arguments = $arguments || '';
+	$arguments =~ s!([^\w-_:#=/.%])! '%' . sprintf("%02x", $1)!eg
+		if defined $arguments && $Vend::Cfg->{NewEscape};
 
     $r = $Vend::Cfg->{SecureURL} . '/' . $path . '?' . $Vend::SessionID .
-	';' . $arguments . ';' . ++$Vend::Session->{pageCount};
+	';' . ($arguments || '') . ';' . ++$Vend::Session->{pageCount};
     $r;
 }    
 

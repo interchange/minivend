@@ -94,7 +94,7 @@ EOF
 }
 elsif(	$Config{osname} =~ /linux/i		and
 		$Config{d_gnulibc} eq 'define'	and
-		$Config{ccflags} !~ /STRUCT_TM_HASZONE/	and
+		$Config{POSIX_cflags} !~ /STRUCT_TM_HASZONE/	and
 		! defined $ENV{MINIVEND_BADPOSIX})
 {
 			print <<EOF;
@@ -117,7 +117,7 @@ sub copyright_prompt {
 
 	print <<'EOF';
 
- MiniVend V3.06
+ MiniVend V3.07
  
  Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
 

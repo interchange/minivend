@@ -2,7 +2,7 @@
 #
 # MiniVend version 1.04
 #
-# $Id: Order.pm,v 1.18 1998/01/31 05:16:49 mike Exp $
+# $Id: Order.pm,v 1.19 1998/03/14 23:46:48 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -30,7 +30,7 @@
 package Vend::Order;
 require Exporter;
 
-$VERSION = substr(q$Revision: 1.18 $, 10);
+$VERSION = substr(q$Revision: 1.19 $, 10);
 $DEBUG = 0;
 
 @ISA = qw(Exporter);
@@ -513,15 +513,22 @@ sub mail_order {
 
 sub check_order {
 	my ($profile) = @_;
-	my $ref = \%CGI::values;
     my($codere) = '[\w-_#/.]+';
-	unless($profile =~ /^\d+$/) {
-		return undef
-			unless defined $Vend::Cfg->{'OrderProfileName'}->{$profile};
+	my $params;
+	if(defined $Vend::Cfg->{'OrderProfileName'}->{$profile}) {
 		$profile = $Vend::Cfg->{'OrderProfileName'}->{$profile};
+		$params = $Vend::Cfg->{'OrderProfile'}->[$profile];
 	}
-	my $params = $Vend::Cfg->{'OrderProfile'}->[$profile];
+	elsif($profile =~ /^\d+$/) {
+		$params = $Vend::Cfg->{'OrderProfile'}->[$profile];
+	}
+	elsif(defined $Vend::Session->{scratch}->{$profile}) {
+		$params = $Vend::Session->{scratch}->{$profile};
+	}
+	else { return undef }
 	return undef unless $params;
+
+	my $ref = \%CGI::values;
 	$params = interpolate_html($params);
 	@Errors = ();
 	$Fatal = $Final = 0;

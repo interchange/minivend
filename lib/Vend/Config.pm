@@ -1,6 +1,6 @@
 # Config.pm - Configure Minivend
 #
-# $Id: Config.pm,v 1.38 1998/02/01 20:29:14 mike Exp mike $
+# $Id: Config.pm,v 1.41 1998/03/21 12:11:46 mike Exp mike $
 # 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
@@ -38,7 +38,7 @@ use Text::ParseWords;
 use Vend::Parse;
 use Vend::Util;
 
-$VERSION = substr(q$Revision: 1.38 $, 10);
+$VERSION = substr(q$Revision: 1.41 $, 10);
 
 for( qw(search refresh cancel return secure unsecure submit control checkout) ) {
 	$Global::LegalAction{$_} = 1;
@@ -203,6 +203,7 @@ sub catalog_directives {
     ['MixMatch',		 'yesno',     	     'No'],
     ['AlwaysSecure',	 'boolean',  	     ''],
 	['Password',         undef,              ''],
+    ['NewEscape',	 	 'yesno',     	     'No'],
     ['ExtraSecure',		 'yesno',     	     'No'],
     ['Cookies',			 'yesno',     	     'Yes'],
 	['CookieDomain',     undef,              ''],
@@ -252,7 +253,7 @@ sub catalog_directives {
     ['UpsZoneFile',		 undef,     	     ''],
     ['OrderProfile',	 'profile',     	 ''],
     ['SearchProfile',	 'profile',     	 ''],
-    ['PriceCommas',		 undef,     	     'yes'],
+    ['PriceCommas',		 'yesno',     	     'Yes'],
     ['ItemLinkDir',	 	 undef,     	     ''],
     ['FramesDefault', 	 'yesno',     	     'No'],
     ['FrameLinkDir', 	 undef,     	     'framefly'],
@@ -270,7 +271,7 @@ sub catalog_directives {
     ['PriceField',		 undef,              'price'],
     ['ItemLinkValue',    undef,              'More Details'],
 	['FinishOrder',      undef,              'Finish Incomplete Order'],
-	['Shipping',         undef,               0],
+	['Shipping',         'locale',           ''],
 	['Help',            'help',              ''],
 	['Random',          'random',            ''],
 	['Rotate',          'random',            ''],
@@ -515,8 +516,9 @@ CONFIGLOOP: {
 		($lvar = $var) =~ tr/A-Z/a-z/;
 		my($codere) = '[\w-_#/.]+';
 
-		if ($value =~ /^(.*)<<(.*)/) {                  # "here" value
+		if ($value =~ /^(.*)<<(\w+)\s*/) {                  # "here" value
 			my $begin  = $1 || '';
+			$begin .= "\n" if $begin;
 			my $mark  = $2;
 			my $startline = $.;
 			$value = $begin . read_here(\*Vend::CONFIG, $mark);
@@ -817,8 +819,9 @@ sub global_config {
 		($lvar = $var) =~ tr/A-Z/a-z/;
 		my($codere) = '[\w-_#/.]+';
 
-		if ($value =~ /^(.*)<<(.*)/) {                  # "here" value
-			my $begin = $1 || '';
+		if ($value =~ /^(.*)<<(\w+)\s*/) {                  # "here" value
+			my $begin  = $1 || '';
+			$begin .= "\n" if $begin;
 			my $mark = $2;
 			my $startline = $.;
 			$value = $begin . read_here(\*Vend::GLOBAL, $mark);
@@ -962,19 +965,18 @@ sub parse_boolean {
 	my(@setting) = split /[\s,]+/, $settings;
 	my $c;
 
-	unless (@setting) {
-        if(defined $C) {
-            $c = $C->{$item} || {};
-        }
-        else {
-            no strict 'refs';
-            $c = ${"Global::$item"} || {};
-        }
-		return $c;
+	my $val = $item eq "StaticPage" ? '' : 1;
+
+	if(defined $C) {
+		$c = $C->{$item} || {};
+	}
+	else {
+		no strict 'refs';
+		$c = ${"Global::$item"} || {};
 	}
 
 	for (@setting) {
-		$c->{$_} = 1;
+		$c->{$_} = $val;
 	}
 	return $c;
 }
@@ -1028,17 +1030,35 @@ use POSIX qw(setlocale LC_ALL localeconv);
 # accepts a 'custom' setting with the proper definitions of
 # decimal_point,  mon_thousands_sep, and frac_digits (the only supported at
 # the moment).  Otherwise uses US-English settings if not set.
+#
+# Also used to define special shipping based on geography
+#
 sub parse_locale {
     my($item,$settings) = @_;
-	return '' unless $settings;
+	return ($settings || '') unless $settings =~ /[^\d.]/;
 	$settings = '' if "\L$settings" eq 'default';
     my $name;
-    my $c = {};
+    my ($c, $store);
+	if(defined $C) {
+		$c = $C->{$item} || { };
+		$C->{$item . "_repository"} = {}
+			unless $C->{$item . "_repository"};
+		$store = $C->{$item . "_repository"};
+	}
+	else {
+		no strict 'refs';
+		$c = ${"Global::$item"} || {};
+		${"Global::$item" . "_repository"} = {}
+			unless ${"Global::$item" . "_repository"};
+		$store = ${"Global::$item" . "_repository"};
+	}
 
-    # Try POSIX first.
-    $name = POSIX::setlocale(POSIX::LC_ALL, $settings);
+    # Try POSIX first if Locale.
+    $name = POSIX::setlocale(POSIX::LC_ALL, $settings)
+		if $item eq 'Locale';
 
-    if (defined $name and $name) {
+	my ($eval, $safe);
+    if (defined $name and $name and $item eq 'Locale') {
         $c = POSIX::localeconv();
         $c->{mon_thousands_sep} = ','
             unless $c->{mon_thousands_sep};
@@ -1046,33 +1066,64 @@ sub parse_locale {
             unless $c->{decimal_point};
         $c->{frac_digits} = 2
             unless defined $c->{frac_digits};
-        $c->{Name} = $name;
+		$store->{$name} = $c;
     }
     # else Try to read the ones we have defined
-    elsif($settings eq 'pt') {
+    elsif($settings eq 'pt' and $item eq 'Locale') {
+		$name = 'pt';
         $c->{decimal_point} = ',';
         $c->{mon_thousands_sep} = '.';
         $c->{frac_digits} = 2;
         $c->{Name} = 'Portugal';
     }
-    elsif ($settings =~ /^custom\s+/) {
-
-        my(@setting) = split /\s+/, $settings;
-        $c->{Name} = shift(@setting);
-        my(%setting) = @setting;
-        for (keys %setting) {
-            $c->{$_} = $setting{$_};
+    elsif ($settings =~ s/^\s*(\w+)\s+//) {
+		$name = $1;
+		undef $eval;
+		$settings =~ /^\s*{/
+			and $settings =~ /}\s*$/
+				and $eval = 1;
+		$eval and ! $safe and $safe = new Safe;
+		if(! defined $store->{$name}) {
+			if(POSIX::setlocale(POSIX::LC_ALL, $settings) ) {
+				$store->{$name} = POSIX::localeconv();
+			}
+		}
+#		if(defined $store->{$name}) {
+#			for (sort keys %{$store->{$name}}) {
+#				printf "%-5s %-16s %s\n", $name, $_, $store->{$name}{$_};
+#			}
+#		}
+        my($sethash);
+		if ($eval) {
+			$sethash = $safe->reval($settings)
+				or config_warn("bad Locale setting in $name: $settings"),
+						$sethash = {};
+		}
+		elsif(index($settings, "\n") > -1) {
+			$settings =~ s/^(\S+\s+)"([\000-\377]*)"\s+$/$1$2/;
+			%{$sethash} = split(/\s+/, $settings, 2);
+		}
+		else {
+			%{$sethash} = quoted_string($settings);
+		}
+		$c = $store->{$name} || {};
+        for (keys %{$sethash}) {
+            $c->{$_} = $sethash->{$_};
         }
-        $c->{mon_thousands_sep} = ','
-            unless $c->{mon_thousands_sep};
-        $c->{decimal_point} = '.'
-            unless $c->{decimal_point};
-        $c->{frac_digits} = 2
-            unless defined $c->{frac_digits};
+		if($item eq 'Locale') {
+			$c->{mon_thousands_sep} = ','
+				unless defined $c->{mon_thousands_sep};
+			$c->{decimal_point} = '.'
+				unless $c->{decimal_point};
+			$c->{frac_digits} = 2
+				unless defined $c->{frac_digits};
+		}
     }
     else {
-        config_error("Bad Locale setting $settings.\n");
+        config_error("Bad locale setting $settings.\n");
     }
+
+	$store->{$name} = $c unless $store->{$name};
 
     return $c;
 }
@@ -1342,7 +1393,7 @@ sub parse_time {
     my($var, $value) = @_;
     my($n);
 
-	$C->{'Source'}->{$var} = $value;
+	$C->{'Source'}->{$var} = [$value];
 
     $n = time_to_seconds($value);
     config_error("Bad time format ('$value') in the $var directive\n")
@@ -1639,8 +1690,6 @@ sub save_variable {
 	my ($var, $value) = @_;
 	my ($c, $name, $param);
 
-	return 0 unless $var eq 'Variable';
-
     if(defined $C) {
         $c = $C->{$var};
     }
@@ -1649,12 +1698,27 @@ sub save_variable {
         $c = ${"Global::$var"};
     }
 
-	$value =~ s/^\s*(\w+)\s*//;
-	$name = $1;
-	return 1 if defined $c->{'save'}->{$name};
-	$value =~ s/\s+$//;
-	$c->{'save'}->{$name} = $value;
+	if ($var eq 'Variable') {
+		$value =~ s/^\s*(\w+)\s*//;
+		$name = $1;
+		return 1 if defined $c->{'save'}->{$name};
+		$value =~ s/\s+$//;
+		$c->{'save'}->{$name} = $value;
+	}
+	elsif ( !defined $C) { 
+		return 0;
+	}
+	elsif ( defined $C->{Source}{$var} && ref $C->{Source}{$var}) {
+		push @{$C->{Source}{$var}}, $value;
+	}
+	elsif ( defined $C->{Source}{$var}) {
+		$C->{Source}{$var} .= "\n$value";
+	}
+	else {
+		$C->{Source}{$var} = $value;
+	}
 	return 1;
+
 }
 
 my %tagCanon = ( qw(
@@ -1715,7 +1779,7 @@ sub parse_tag {
 	if($p eq 'Routine' or $p eq 'posRoutine') {
 
 		my $sub;
-
+		$c->{Source}->{$tag}->{$p} = $val;
 		unless(!defined $C or $Global::AllowGlobal->{$C->{CatalogName}}) {
 			my $safe = new Safe;
 			my $code = $val;

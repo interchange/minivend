@@ -5,10 +5,10 @@
 [body 1]
 
 <CENTER>
-<IMG SRC="artsmall.gif" ALT="[ __COMPANY__ Logo ]">
+<IMG SRC="__SMLOGO__" ALT="[ __COMPANY__ Logo ]">
 </CENTER>
 
-<FORM ACTION="[process-target none secure]" METHOD="POST">
+<FORM ACTION="[process-target secure=1]" METHOD="POST">
 <INPUT TYPE=hidden NAME=mv_session_id VALUE="[data session id]">
 [if items]
 [then]
@@ -28,7 +28,7 @@
 	[page [item-code]][item-description]</A>
 	[item-accessories size][item-accessories color]
 	</TD>
-	<TD VALIGN=TOP>[item-quantity] @ $[item-price]</TD>
+	<TD VALIGN=TOP>[item-quantity] @ [item-price]</TD>
 	<TD VALIGN=TOP ALIGN=RIGHT>[item-subtotal]</TD>
 </TR>
 [/item-list]
@@ -50,7 +50,7 @@
 <TR>
 	<TD COLSPAN=2></TD>
 	<TD>TOTAL</TD>
-	<TD ALIGN=RIGHT>$[total-cost]</TD>
+	<TD ALIGN=RIGHT>[total-cost]</TD>
 </TR>
 </TABLE>
 <P>
@@ -69,7 +69,7 @@ be saved, but no checkout will happen until you order something!</I>
 <INPUT TYPE="hidden" NAME="mv_orderpage" VALUE="ord/checkout">
 <INPUT TYPE="hidden" NAME="mv_order_report" VALUE="ord/report">
 <INPUT TYPE="hidden" NAME="mv_failpage" VALUE="special/needfield">
-<INPUT TYPE="hidden" NAME="mv_order_profile" VALUE="all_in_one">
+<INPUT TYPE="hidden" NAME="mv_order_profile" VALUE="checkout_profile">
 
 <TABLE WIDTH=500><TR><TD BGCOLOR="#00F0F0">
 <FONT SIZE="+2">Shipping Address</FONT>
@@ -115,7 +115,8 @@ be saved, but no checkout will happen until you order something!</I>
 		</TD>
 		<TD ALIGN=CENTER VALIGN=BOTTOM>
 		State/Province<BR>
-		<INPUT TYPE="text" NAME="state" VALUE="[value state]" size=8>
+		<INPUT onChange="document.forms[0].submit()"
+			TYPE="text" NAME="state" VALUE="[value state]" size=8>
 		</TD>
 		<TD ALIGN=RIGHT>
 		<BR>
@@ -196,16 +197,14 @@ be saved, but no checkout will happen until you order something!</I>
 
 <P>
 <SELECT NAME="mv_shipmode">
-    [loop __SHIPMODES__]
+[compat][loop __SHIPMODES__ ]
     <OPTION VALUE="[loop-code]" [selected mv_shipmode [loop-code]]> [shipping-desc [loop-code]] [shipping [loop-code]]
-    [/loop]
+    [/loop][/compat]
 </SELECT>
 <P>
-[post]
 [if session ship_message]
 <BR>Note: [data session ship_message]<BR>
 [/if]
-[/post]
 
 <TABLE WIDTH=500><TR><TD BGCOLOR="#00F0F0">
 <FONT SIZE="+2">Credit Card Information</FONT>
@@ -213,7 +212,7 @@ be saved, but no checkout will happen until you order something!</I>
 
 [if value mv_credit_card_info]
   <P>
-  <I>(A valid <B>[help [default mv_credit_card_type]]</B> number is on file.<BR>
+  <I>(A valid <B>[help name="[default mv_credit_card_type]"]</B> number is on file.<BR>
   If you need to change it, re-enter the number. Otherwise, leave it blank and<BR>
   press <B>Next Screen</B></I>.)
   <P>
@@ -256,7 +255,10 @@ Card Number<BR>
 		<OPTION VALUE=03 [selected mv_credit_card_exp_year 02]> 2003
 	</SELECT>
 </TD></TR></TABLE>
-<INPUT TYPE=checkbox NAME="fax_order" VALUE=on [checked fax_order]>
+<INPUT TYPE=radio NAME="fax_order" VALUE=0
+	[if !value fax_order]CHECKED[/if] [checked fax_order 0]>
+<I>Pay by credit card</I><BR>
+<INPUT TYPE=radio NAME="fax_order" VALUE=1 [checked fax_order 1]>
 <I>I will call with payment information</I><BR>
 <INPUT TYPE=checkbox NAME="mv_credit_card_force" VALUE=1>
 <I>Force this card number to be taken</I><BR>
@@ -289,13 +291,26 @@ Card Number<BR>
 [set Place Order!]
 mv_todo=submit
 [/set]
-<I><INPUT TYPE=checkbox NAME=mv_save_session VALUE=1> I plan on returning, save
-my information
+
+[if session logged_in]
+[then]
+<INPUT TYPE=checkbox NAME=mv_click CHECKED VALUE="Save_database"><I> Save my information in the database</I>
+
+[set Save_database]
+mv_arg0=LITERAL(save)
+mv_username=[value mv_username]
+mv_subroutine=userdb
+[/set]
+
+[/then]
+[else]
+<INPUT TYPE=checkbox NAME=mv_save_session VALUE=1> <I>I plan on returning, save my information
 	[if config EncryptProgram =~ /pgp/]
 	(credit card is encrypted with PGP!)
 	[else]
 	(OOPS! credit card not encrypted with PGP)
 	[/else][/if]<BR>
+[/else][/if]
 <CENTER>
 <B><INPUT TYPE=submit NAME=mv_todo VALUE="Place Order!"></B></BR>
 <INPUT TYPE=submit VALUE="(update without placing)">
@@ -305,4 +320,47 @@ my information
 <P>
 <CENTER>[buttonbar 0]</CENTER>
 </body> </html>
+
+
+[set checkout_profile]
+name=required
+address=required
+city=required
+country=required
+[perl values config]
+$state      = $Safe{'values'}->{state};
+$country    = $Safe{'values'}->{country};
+$zip        = $Safe{'values'}->{zip};
+$state_ok   = $state =~ /^\s*[A-Za-z][A-Za-z]\s*$/;
+$country    =~ s/\W//g;
+$zip_ok     = ($zip =~ /^\s*\d\d\d\d\d(-\d\d\d\d)?\s*$/);
+$us         = ($country =~ /^(usa?|unitedstates)$/i);
+
+if (! $us) {
+    return '';
+}
+
+$out = <<EOF;
+&set = mv_Not_a_state $state_ok
+&set = mv_Not_a_zip_code $zip_ok
+EOF
+return $out;
+[/perl]
+email=required
+phone_day=phone
+email=email
+&fatal = yes
+[if value fax_order]
+&set = mv_payment Call Us
+[elsif config CreditCardAuto]
+&set = mv_payment Credit Card ([default mv_credit_card_type])
+mv_credit_card_info=required
+[/elsif]
+[else]
+&set = mv_payment Credit Card ([default mv_credit_card_type])
+[/else]
+[/if]
+&final = yes
+&set=mv_email [value email]
+[/set]
 

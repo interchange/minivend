@@ -1,6 +1,6 @@
 # Vend/Scan.pm:  Prepare searches for MiniVend
 #
-# $Id: Scan.pm,v 1.25 1998/01/31 05:21:52 mike Exp $
+# $Id: Scan.pm,v 1.27 1998/03/21 12:12:39 mike Exp mike $
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ require Exporter;
 			perform_search
 			);
 
-$VERSION = substr(q$Revision: 1.25 $, 10);
+$VERSION = substr(q$Revision: 1.27 $, 10);
 
 use strict;
 use Vend::Util;
@@ -269,9 +269,9 @@ sub find_search_params {
 	my($var,$val);
 	for(@args) {
 		($var,$val) = split /=/, $_, 2;
-		$val =~ s!::!/!g;
 		$val =~ s/%([A-Fa-f0-9][A-Fa-f0-9])/chr(hex($1))/ge;
-		if ($var eq 'dl' || $var eq 'se') {
+		$val =~ s!::!/!g;
+		if (!$Vend::Cfg->{NewEscape} and $var eq 'dl' || $var eq 'se') {
 			$val =~ s/\.(..)/chr(hex($1))/ge;
 			unless
 			(defined $c->{$Scan{uc $var}})	{ $c->{$Scan{uc $var}} =  $val		}
@@ -292,21 +292,24 @@ sub parse_profile {
 	my($ref,$profile) = @_;
 	return undef unless defined $profile;
     my($codere) = '[\w-_#/.]+';
-    unless($profile =~ /^\d+$/) {
-        return undef
-            unless defined $Vend::Cfg->{'SearchProfileName'}->{$profile};
+	my($params);
+    if(defined $Vend::Cfg->{'SearchProfileName'}->{$profile}) {
         $profile = $Vend::Cfg->{'SearchProfileName'}->{$profile};
+        $params = $Vend::Cfg->{'SearchProfile'}->[$profile];
     }
-	my($params) = $Vend::Cfg->{'SearchProfile'}->[$profile];
+    elsif($profile =~ /^\d+$/) {
+        $params = $Vend::Cfg->{'SearchProfile'}->[$profile];
+    }
+    elsif(defined $Vend::Session->{scratch}->{$profile}) {
+        $params = $Vend::Session->{scratch}->{$profile};
+    }
+    else { return undef }
+
 	return undef unless $params;
-	if($params =~ /\[/) {
-		$params = interpolate_html($params);
-	}
-	else {
-		$params =~ s:\[value\s+($codere)\]:tag_value($1):igeo;
-		$params =~ s#\[if\s+([^\]]+)\]([\s\S]*?)\[/if\]#
-						tag_if($1,$2)#ige;
-	}
+
+	$params = interpolate_html($params)
+		if index($params, '[') != -1;
+
 	my($p, $var,$val);
 	my $status = $profile;
 	undef %Save;
@@ -391,20 +394,49 @@ FORMULATE: {
 	# We substitute search specs for ? if appropriate.
 	#
 
+	if($options->{return_fields}) {
+		$options->{return_fields} =~ s/[\0,\s]+/,/g;
+	}
+	else {
+		$options->{return_fields} = $db->[1];
+	}
+
+	if($options->{sort_field}) {
+		$options->{sort_field} =~ s/[\0,\s]+$//;
+		$options->{sort_field} =~ s/[\0,\s]+desc\b/\001DESC/ig;
+		$options->{sort_field} =~ s/[\0,\s]+asc\b/\001ASC/ig;
+		$options->{sort_field} =~ s/[\0,\s]+/,/g;
+		$options->{sort_field} =~ tr/\001/ /;
+	}
+
+	my $joiner = ' AND ';
+
+	$joiner = ' OR ' if _yes($options->{or_search});
+
 	if($options->{sql_query}) {
-		$i = 0;
-		for(@specs) {
-			$specs[$i] = $db->quote($specs[$i]) unless $numeric->[$i];
-			$options->{sql_query} =~ s/(\s)\?([\s]|$)/$1$specs[$i]$2/;
-			$i++;
-		}
+		$options->{sql_query} =~ s/\0+$//g;
+		$options->{sql_query} =~ s/[\0\s]*(where|order\s+by)[\s\0]+/ $1 /ig;
+		$options->{sql_query} =~ s/\bfrom\s+%t/'FROM ' . join(", ", @tables)/ei;
+		$options->{sql_query} =~ s/[\0\s]+order\s+by\s+%f\b/
+			$options->{sort_field}
+				?  " ORDER BY $options->{sort_field}"
+				: ''/ie;
+		$options->{sql_query} =~ s/(select(\s+distinct)?)\s+%f\b/$1 $options->{return_fields}/i;
+		$options->{sql_query} =~ s/order\s+by[\s\0]*$//ig;
+		$options->{sql_query} =~ s/where[\s\0]*$//ig;
+		$options->{sql_query} =~ s/\0+\s*([!=<>][=<>]?|like)\s*\0+$/ $1 /ig;
+		$options->{sql_query} =~ s/\0+\s*([!=<>][=<>]?|like)\s*$//i;
+		$options->{sql_query} =~ s/\0+/$joiner/g;
+		$options->{sql_query} =~ s/(\s)\?([\s]|$)/%s/;
 # DEBUG
 #Vend::Util::logDebug
-#("mv_sql_query: $options->{sql_query}\n")
+#("mv_sql_query: $options->{sql_query} specs: '" . join("','" @specs) . "'\n")
 #	if ::debug(0x10);
 # END DEBUG
-		$out = $db->array_query ($options->{sql_query},$tables[0])
-					or return 0;
+		my $cfg = {PERL => 1, BOTH => 1};
+		$out = $db->array_query(
+					$options->{sql_query},$tables[0], $cfg, @specs
+				) or return 0;
 		last FORMULATE;
 	}
 	elsif($options->{range_look}) {
@@ -412,17 +444,6 @@ FORMULATE: {
 		@range_min		= split /[,\000]/, $options->{range_min};
 		@range_max		= split /[,\000]/, $options->{range_max};
 		@range_alpha	= split /[,\000]/, $options->{range_alpha};
-	}
-
-	if($options->{sort_field}) {
-		$options->{sort_field} =~ s/[\0,\s]+/,/g;
-	}
-
-	if($options->{return_fields}) {
-		$options->{return_fields} =~ s/[\0,\s]+/,/g;
-	}
-	else {
-		$options->{return_fields} = 'code';
 	}
 
 
@@ -447,10 +468,6 @@ FORMULATE: {
 	my ($range,$val,$spec,$qb,$qe,@query);
 
 	my $coord = scalar @specs <=> scalar @fields;
-
-	my $joiner = ' AND ';
-
-	$joiner = ' OR ' if _yes($options->{or_search});
 
 	if(! @specs) {
 		# do nothing here

@@ -1,6 +1,6 @@
 # Table/Import.pm: import a table
 #
-# $Id: Import.pm,v 1.10 1998/01/31 05:27:12 mike Exp $
+# $Id: Import.pm,v 1.11 1998/03/14 23:50:08 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
@@ -19,7 +19,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::Import;
-$VERSION = substr(q$Revision: 1.10 $, 10);
+$VERSION = substr(q$Revision: 1.11 $, 10);
 
 require Exporter;
 @ISA = qw(Exporter);
@@ -64,7 +64,7 @@ sub import_ascii_delimited {
 	}
 	else {
 		$delimiter = quotemeta($delimiter);
-		$format = 'STANDARD';
+		$format = 'NONE';
 	}
 
     open(Vend::Table::Import::IN, "+<$infile")

@@ -181,6 +181,8 @@ if ($< == 0) {
 }
 
 my %Conf;
+$Conf{catalogname} = $catalog_name;
+
 my %Initial;
 
 my %IfRoot = (qw( permtype 1 minivenduser 1 minivendgroup 1 catuser 1));

@@ -1,4 +1,4 @@
-# MiniVend V3.06
+# MiniVend V3.07
 # 
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
 #
@@ -101,16 +101,16 @@
   
     Installation:
 
-    1. Download the minivend-3.06.exe distribution file
+    1. Download the minivend-3.07.exe distribution file
     and run it in the normal Windows fashion.
     
     ( If you don't want to execute the self-extracting ZIP file,
-      then you can obtain the standard minivend-3.06.tar.gz file and
+      then you can obtain the standard minivend-3.07.tar.gz file and
       install that instead. )
       
       You will have to obtain the CYGWIN.DLL file if you want to
       use TLINK.EXE as your link CGI. The standard distribution .EXE
-      file has it included -- the minivend-3.06-nodll.exe file
+      file has it included -- the minivend-3.07-nodll.exe file
       eliminates it.
 
     2. Select a directory to install MiniVend in -- it defaults

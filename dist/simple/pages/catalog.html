@@ -1,21 +1,21 @@
 <HTML>
-<HEAD>
-<TITLE>__COMPANY__ Home Page</TITLE>
+<HEAD>[tag flag build][/tag]
+<TITLE>[L]The Art Store Home Page[/L]</TITLE>
 </HEAD>
 [body 1]
  
 
-<IMG   WIDTH=307 HEIGHT=153 SRC="artstore.gif" ALIGN="CENTER">
-<H1>Welcome to __COMPANY__</H1>
+<IMG SRC="__LOGO__" ALIGN="CENTER">
+<H1>[L]Welcome to[/L] __COMPANY__</H1>
 <P>
-We have reproductions of some the great are of all ages.
-[page browse]Browse[/page] if you like -- or try
-[page srchform]searching[/page] for your favorite artist.
+[L]We have reproductions of some the great are of all ages.[/L]
+[page browse][L]Browse[/L][/page] [L]if you like -- or try[/L]
+[page srchform][L]searching[/L][/page] [L]for your favorite artist.[/L]
 <P>
 [perl values]
 my $name = $Safe{'values'}->{'name'};
 return '' unless $name =~ /\S/;
-my $what = "Hello, $name!";
+my $what = "[L]Hello[/L], $name!";
 $what;
 [/perl]
 <P>
@@ -24,32 +24,38 @@ $what;
 <TR>
 <TD ALIGN=ABSBOTTOM>
 [page srchform]
-<IMG   WIDTH=40 HEIGHT=40 SRC="web_srch.gif" ALT="[ SEARCH ]" BORDER=0><BR>
-Search for your<BR>favorite![/page]
+<IMG WIDTH=40 HEIGHT=40 SRC="web_srch.gif" ALT="[ SEARCH ]" BORDER=0><BR>
+[L]Search for your<BR>favorite![/L][/page]
 <TD>
 <P>
-To use the search feature, just press the link to your left.  That will
-send you to a frame that will let you search on artist, title, or
-museum. 
+[L]To use the search feature, just press the link to your left.  That will[/L]
+[L]send you to a frame that will let you search on artist, title, or museum.[/L]
 <TR>
 <TR>
 <TD ALIGN=ABSBOTTOM>
 <IMG   WIDTH=48 HEIGHT=48 SRC="art.gif" ALT="[ CATEGORY ]" BORDER=0><BR>
-Select by<BR>category!
+[L]Select by<BR>category![/L]
 <UL>
-<LI> [page scan/mp=0/se=Renaissance]Renaissance[/page]
-<LI> [page scan/mp=0/se=Impressionists]Impressionists[/page]
-<LI> [page scan/mp=0/se=Surrealists]Surrealists[/page]
-<LI> [page scan/mp=0/se=Americana]Americana[/page]
-<LI> [page scan/mp=0/se=Contemporary]Contemporary[/page]
+<LI> [page scan/mp=0/se=Renaissance][L]Renaissance[/L][/page]
+<LI> [page scan/mp=0/se=Impressionists][L]Impressionists[/L][/page]
+<LI> [page scan/mp=0/se=Surrealists][L]Surrealists[/L][/page]
+<LI> [page scan/mp=0/se=Americana][L]Americana[/L][/page]
+<LI> [page scan/mp=0/se=Contemporary][L]Contemporary[/L][/page]
 </UL>
 <TD>
 <P>
 </TABLE>
-Either way, just press the order button for an item you like!  Our
-electronic order form will automatically add it to your list. Fill out
-the attached order form to place your order. That's all there is to it!
+[L]Either way, just press the order button for an item you like!  Our[/L]
+[L]electronic order form will automatically add it to your list. Fill out[/L]
+[L]the attached order form to place your order. That's all there is to it![/L]
 <P>
-
+<CENTER>
+[page process/locale/en_US/page/catalog]English[/page]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+[page process/locale/fr_FR/page/catalog]Fran&#231;ais[/page]
+</CENTER>
+<P>
+<H3>Minivend <A HREF="__MVC_SAMPLEURL/toc.html">Documentation</A>
+(<A HREF="__MVC_SAMPLEURL/frtoc.html">frames</A>) and 
+<A HREF="http://www.minivend.com/minivend/faq/">FAQ</A></H3>
 </BODY>
 </HTML>

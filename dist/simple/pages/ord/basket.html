@@ -4,19 +4,19 @@
 </HEAD>
 [body 1]
 <CENTER>
-<FORM ACTION="[process-target none secure]" METHOD=POST>
+<FORM ACTION="[process-target secure=1]" METHOD=POST>
 <INPUT TYPE=hidden NAME=mv_session_id VALUE="[data session id]">
 <input type="hidden" name="mv_doit" value="refresh">
 <input type="hidden" name="mv_orderpage" value="ord/basket">
 <input type="hidden" name="mv_checkout" value="ord/checkout">
 <input type="hidden" name="mv_nextpage" value="catalog">
-<IMG SRC="artsmall.gif" ALT="- __COMPANY__ Logo -">
+<IMG SRC="__SMLOGO__" ALT="- __COMPANY__ Logo -">
 <TABLE BORDER=0>
 <CAPTION><FONT SIZE=7>Shopping Cart Contents</FONT><BR></CAPTION>
 <TR>
 <P>
 	<TH BGCOLOR="#00F0F0" WIDTH=70 VALIGN=BOTTOM>
-	ISBN
+	SKU
 	</TH>
 	<TH BGCOLOR="#00F0F0" VALIGN=BOTTOM ALIGN=LEFT>
 	Description
@@ -31,31 +31,35 @@
 [item-list]
 <TR>
 <P>
-	<TD BGCOLOR="#FFFFFF" VALIGN=TOP align=center>[item-code]</TD>
+	<TD BGCOLOR="#FFFFFF" VALIGN=TOP align=center>
+	[item-code]<FONT SIZE="-2"><BR><INPUT TYPE=checkbox NAME="[quantity-name]"
+			   VALUE=0 onClick="document.forms[0].submit()"> </FONT><FONT SIZE="-1">remove</FONT></TD>
 	<TD BGCOLOR="#FFFFFF" VALIGN=TOP MARGINWIDTH=12 MARGINHEIGHT=12>
-	[item-description]
-[if explicit items scratch]
-[condition]
-$no = $Safe{scratch}->{"nodisplay_[item-code]"};
-return 1 unless $no;
-foreach $item (reverse @{$Safe{items}}) {
-	return '' if $no eq $item->{'code'};
-}
-1;
-[/condition]
-	<BR><FONT SIZE="-1">[item-accessories][item-accessories size][item-accessories color]</FONT>	
+	[page [item-code]][item-description]</A>
+	<BR><FONT SIZE="-1">
+	[if-field related]
+	[loop arg="[item-field related]"]
+		[if !ordered [loop-code]]
+		<BR><B>Order this fine accessory:</B><BR>
+		[loop-field title]
+		<INPUT TYPE="CHECKBOX" NAME="mv_order_item"
+			onClick="document.forms[0].submit()"
+			VALUE="[loop-code]">
+			<INPUT TYPE="HIDDEN" NAME="mv_order_quantity" VALUE="1">
+		[/if]
+	[/loop]
+	[/if-field][item-accessories size][item-accessories color]</FONT>	
 	</TD>
-[/if]
 	<TD BGCOLOR="#FFFFFF" VALIGN=TOP ALIGN=CENTER>
 	<input type="text"
 		name=[quantity-name] value="[item-quantity]" size=3>
 
 	</TD>
 	<TD BGCOLOR="#FFFFFF" VALIGN=TOP ALIGN=RIGHT>
-		$[discount-price]
+		[discount-price]
 		[if discount [item-code]]
 		<BR><FONT COLOR=RED SIZE=-2>Item is discounted
-			$[item-discount]
+			[item-discount]
 			</FONT>
 		[/if]
 	</TD>
@@ -75,7 +79,7 @@ foreach $item (reverse @{$Safe{items}}) {
 <IMG BORDER=0 WIDTH=50 HEIGHT=2 SRC="bg.gif" ALT=" . . ">
 <IMG BORDER=0 WIDTH=50 HEIGHT=2 SRC="bg.gif" ALT=" . . ">
 	<B>Subtotal</B>
-<TD BGCOLOR="#FFFFFF" ALIGN=RIGHT VALIGN=CENTER>$[subtotal]</TD>
+<TD BGCOLOR="#FFFFFF" ALIGN=RIGHT VALIGN=CENTER>[subtotal]</TD>
 </TR>
 <TR>
 <TD BGCOLOR="#00F0F0" COLSPAN=4 ALIGN=CENTER>
@@ -95,9 +99,60 @@ foreach $item (reverse @{$Safe{items}}) {
 </TD>
 </TR>
 </TABLE>
+</FORM>
 
 
 <P>
+
+[if session logged_in]
+[then]
+<P>
+    <FORM ACTION="[process-target]" METHOD=POST>
+    Hi [value name]! You are logged in as user <B>[value mv_username]</B>.
+	&nbsp;&nbsp;<INPUT TYPE=submit NAME="mv_click" VALUE="Log out">
+	</FORM>
+[set Log out]
+mv_todo=return
+mv_nextpage=ord/basket
+mv_subroutine=userdb
+mv_arg0=LITERAL(logout)
+mv_username=[value mv_username]
+[/set]
+[/then]
+[else]
+[set Login]
+mv_arg0=LITERAL(login)
+mv_subroutine=userdb
+[/set]
+<P>
+[if session failure]
+[data session failure]
+[/if]
+<P>
+If you have an account with us, please enter your user
+name and password.
+<P>
+    <FORM ACTION="[process-target]" METHOD=POST>
+    <INPUT TYPE=hidden NAME=mv_click VALUE=Login>
+    <INPUT TYPE=hidden NAME=mv_doit  VALUE=return>
+    <INPUT TYPE=hidden NAME=mv_nextpage VALUE="ord/basket">
+
+    <TABLE CELLSPACING=0 CELLPADDING=0>
+    <TR><TD ALIGN=RIGHT>Username</TD>
+        <TD><INPUT NAME=mv_username VALUE="[value mv_username]" SIZE=10>
+		[page new_account]Create a new account[/page]
+        </TD></TR>
+
+    <TR><TD ALIGN=RIGHT>Password</TD>
+        <TD><INPUT
+				onChange="document.forms[1].submit()"
+			  TYPE=password NAME=mv_password VALUE="" SIZE=10>
+        <INPUT TYPE=submit VALUE="Log in"> &nbsp;&nbsp;
+        </TD></TR>
+    </TABLE>
+
+    </FORM>
+[/else][/if]
 
 [set Stop shopping]
 mv_todo=return
@@ -121,5 +176,4 @@ mv_nextpage=browse
 
 <BR>
 
-</FORM>
 </body> </html>

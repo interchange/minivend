@@ -1,6 +1,6 @@
 # Table/DBI.pm: access a table stored in an DBI/DBD Database
 #
-# $Id: DBI.pm,v 1.14 1998/01/31 05:22:52 mike Exp $
+# $Id: DBI.pm,v 1.16 1998/03/21 12:08:13 mike Exp $
 #
 # Copyright 1996-1998 by Michael J. Heins <mikeh@minivend.com>
 #
@@ -19,7 +19,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 package Vend::Table::DBI;
-$VERSION = substr(q$Revision: 1.14 $, 10);
+$VERSION = substr(q$Revision: 1.16 $, 10);
 
 use Carp;
 use strict;
@@ -162,10 +162,7 @@ sub create {
 		if(defined $config->{KEY}) {
 			$keycol = $i if $cols[$i] eq $key;
 		}
-        if ($cols[$i] =~ / +/) {
-			# do nothing
-		}
-		elsif(defined $config->{COLUMN_DEF}->{$cols[$i]}) {
+		if(defined $config->{COLUMN_DEF}->{$cols[$i]}) {
 			$cols[$i] .= " " . $config->{COLUMN_DEF}->{$cols[$i]};
 		}
 		else {
@@ -281,7 +278,10 @@ sub test_column {
 }
 
 sub quote {
-	return $_[0]->[$DBI]->quote($_[1]);
+	my($s, $value, $field) = @_;
+	return $s->[$DBI]->quote($value)
+		unless $field and $s->numeric($field);
+	return $value;
 }
 
 sub numeric {
@@ -289,8 +289,7 @@ sub numeric {
 #Vend::Util::logDebug
 #("called numeric with @_: status=")
 #	if ::debug(0x4);
-# END DEBUG
-	my $status = exists $_[0]->[$CONFIG]->{NUMERIC}->{$_[1]};
+#	my $status = exists $_[0]->[$CONFIG]->{NUMERIC}->{$_[1]};
 # DEBUG
 #Vend::Util::logDebug
 #("$status\n")
@@ -348,8 +347,39 @@ sub field_accessor {
     };
 }
 
+use vars qw/$mv_sql_hash $mv_sql_array @mv_sql_param/;
+
+sub substitute_arg {
+	my ($s, $query, @arg) = @_;
+	my ($tmp, $arg);
+	foreach $arg (@arg) {
+		$query =~
+			s{  (\w+)									# a field name
+				(
+					\s+like\s+			|       		# substring
+					\s*[!=><][=><]?\s*	|				# compare
+					\s+between\s+		|				# range
+					\s+in[(\s]+							# enumerated
+				)
+				'?(%?)%s(%?)'?									# The parameter
+			}{$1 . $2 . $s->quote("$3$arg$4", $1)}ixe 
+	or
+
+		$query =~ s/'(%?)%s(%?)'/$s->[$DBI]->quote("$1$arg$2")/e 
+	or
+		defined $s->[$CONFIG]->{QUOTEALL}
+			and $query =~ s/(([^%])%s)/$s->[$DBI]->quote($arg)/e
+	or
+		$query =~ s/([^%])%s/$1$arg/;
+	}
+	return $query;
+}
+
 sub param_query {
-	my($s, $text, $table) = @_;
+    my($s, $text, $table, $config, @arg) = @_;
+   
+    $text = $s->substitute_arg($text, @arg) if @arg;
+
 	my $db = $s->[$DBI];
     my $sth = $db->prepare($text)
 		or croak "$DBI::errstr\n";
@@ -360,27 +390,41 @@ sub param_query {
 		push @out, @row;
 	}
 	my $r = '"';
+	if(ref $config and $config->{PERL}) {
+		@mv_sql_param = @out;
+		return unless $config->{BOTH};
+	}
 	for(@out) { s/\s+$//; s/"/\\"/g }
 	$r .= join '" "', @out;
 	$r .= '"';
+	return $r;
 }
 
 sub array_query {
-	my($s, $text, $table) = @_;
+	my($s, $text, $table, $config, @arg) = @_;
 # DEBUG
 #Vend::Util::logDebug
 #("array_query: $text\n")
 #	if ::debug(0x4);
 # END DEBUG
+	$text = $s->substitute_arg($text, @arg) if @arg;
 	my $db = $s->[$DBI];
     my $sth = $db->prepare($text)
 		or croak "$DBI::errstr\n";
     $sth->execute() or croak $DBI::errstr;
-	return $sth->fetchall_arrayref;
+	my $out = $sth->fetchall_arrayref;
+	if(ref $config and $config->{PERL}) {
+		$mv_sql_array = $out;
+		return unless $config->{BOTH};
+	}
+	return $out;
 }
 
 sub hash_query {
-	my($s, $text, $table) = @_;
+    my($s, $text, $table, $config, @arg) = @_;
+   
+    $text = $s->substitute_arg($text, @arg) if @arg;
+
 # DEBUG
 #Vend::Util::logDebug
 #("hash_query: $text\n")
@@ -396,11 +440,18 @@ sub hash_query {
 	while($ref = $sth->fetchrow_hashref()) {
 		$out->{$ref->{$key}} = $ref;
 	}
+	if(ref $config and $config->{PERL}) {
+		$mv_sql_hash = $out;
+		return unless $config->{BOTH};
+	}
 	return $out;
 }
 
 sub html_query {
-	my($s, $text, $table) = @_;
+    my($s, $text, $table, $config, @arg) = @_;
+   
+    $text = $s->substitute_arg($text, @arg) if @arg;
+
 	my $db = $s->[$DBI];
     my $sth = $db->prepare($text)
 		or croak "$DBI::errstr\n";
@@ -418,14 +469,26 @@ sub html_query {
 		}
 		$r .= "</TR>";
 	}
+	if (ref $config) {
+		defined $config->{TR} and $r =~ s/<TR>/<TR $config->{TR}>/g;
+		defined $config->{TH} and $r =~ s/<TH>/<TH $config->{TH}>/g;
+		defined $config->{TD} and $r =~ s/<TD>/<TD $config->{TD}>/g;
+	}
 	$r;
 }
 
 sub set_query {
-	my($s, $text, $table) = @_;
-	$s->[$DBI]->do($text)
-		or croak "$DBI::errstr\n";
-	return '';
+	my($s, $text, $table, $config, @arg) = @_;
+	$config = {} unless ref $config;
+	$text = $s->substitute_arg($text, @arg) if @arg;
+	my $rc = $s->[$DBI]->do($text);
+	unless (defined $config->{IF} || defined $config->{ELSE}) {
+		croak "$DBI::errstr\n" unless defined $rc;
+		return '';
+	}
+	$rc = 0 if $rc eq '0E0';
+	return $config->{COUNT} . $rc if defined $config->{COUNT};
+	return $rc ? ($config->{IF} || '') : ($config->{ELSE} || '');
 }
 
 sub touch {return ''}

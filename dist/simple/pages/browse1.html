@@ -1,0 +1,88 @@
+<HTML>
+<HEAD>
+<TITLE>Browse __COMPANY__</TITLE>
+</HEAD>
+[body 1]
+<CENTER>
+[perl arg=scratch]
+	$start = tag_data('session', 'arg') || 1;
+	$chunk = 1;
+	if($start =~ /(\d+):(\d*)/) {
+		$start = $1;
+		$chunk = $2 || 1;
+	}
+	$prev = $start - $chunk;
+	if($prev < 1) {
+		$prev = 0;
+	}
+	$Safe{'scratch'}{'start'} = $start;
+	$Safe{'scratch'}{'chunk'} = $chunk;
+	$Safe{'scratch'}{'next'} = $start + $chunk;
+	$Safe{'scratch'}{'prev'} = $prev;
+	$Safe{'scratch'}{'not_shown'} = 1;
+	return '';
+[/perl]
+
+<H1>
+Browse __COMPANY__
+</H1>
+[tag each products]
+[sort products:category -[scratch start] +[scratch chunk]]
+
+[loop-change 1]
+[condition][loop-field category][/condition]
+	<TABLE WIDTH="80%"><TR BGCOLOR="#cccccc" TEXT="WHITE"><TD ALIGN=CENTER>
+		<BR><H1>[loop-field category]</H1>
+	</TD></TR></TABLE>
+[/loop-change 1]
+[set not_shown][/set]
+<P>
+
+[if_loop_field image]
+<IMG SRC="[loop_field image]">
+<P>
+[/if_loop_field]
+
+<H2>[loop-description]</H2>
+<P>
+Catalog No.: [loop-code]
+<P>
+Price: $[loop-price]
+<P>
+[page [loop-code]]<IMG BORDER=0 SRC="details.gif">[/page]
+
+[if-loop-field size]
+<FORM ACTION="[process-target]" METHOD=POST>
+<TABLE BACKGROUND="__IMAGE_DIR__/blue_pap.gif">
+<TR><TD VALIGN=TOP>
+<INPUT TYPE=image BORDER=0 SRC="ordernow.gif" VALUE="(ORDER NOW)">
+<INPUT TYPE=hidden NAME=mv_todo VALUE=refresh>
+<INPUT TYPE=hidden NAME=mv_order_item VALUE="[loop-code]">
+<INPUT TYPE=hidden NAME=mv_separate_items VALUE="1">
+</TD><TD VALIGN=TOP BGCOLOR="#00F0F0">
+<INPUT SIZE=3 NAME=mv_order_quantity VALUE="1">
+[loop-accessories size][loop-accessories color]
+</TD></TR></TABLE></FORM>
+[else]
+[order [loop-code]]<IMG BORDER=0 SRC="ordernow.gif" ALT="(ORDER NOW)">[/order]
+[/else]
+[/if-loop-field]
+
+[/tag]
+
+[if scratch not_shown]
+<H2> No more to show. </H2>
+[/if]
+<P>
+[if scratch prev]
+[page href=browse1 arg="[scratch prev]:[scratch chunk]"]<B>Previous</B></A>&nbsp;&nbsp;
+[/if]
+[if !scratch not_shown]
+[page href=browse1 arg="[scratch next]:[scratch chunk]"]<B>Next</B></A>
+[/if]
+<HR>
+[buttonbar 0]
+</CENTER>
+
+</BODY>
+</HTML>

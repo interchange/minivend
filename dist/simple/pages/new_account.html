@@ -1,0 +1,75 @@
+<HTML>
+<HEAD>
+<TITLE>__COMPANY__ New Account</TITLE>
+</HEAD>
+[body 1]
+ 
+
+<IMG SRC="__LOGO__" ALIGN="CENTER">
+<H1>Create an account at __COMPANY__</H1>
+<P>
+
+<P>
+
+[if session logged_in]
+[then]
+	You are logged in as user [value mv_username].
+<FORM ACTION="[process-target]" METHOD=POST>
+	<INPUT TYPE=hidden NAME=mv_click VALUE=Login>
+	<INPUT TYPE=hidden NAME=mv_doit  VALUE=return>
+	<INPUT TYPE=hidden NAME=function  VALUE=logout>
+	<INPUT TYPE=hidden NAME=mv_nextpage VALUE=ord/basket>
+	<INPUT TYPE=submit NAME=mv_Junk VALUE="Log out">
+</FORM>
+[/then]
+[else]
+
+[set Login]
+mv_arg0=function
+mv_subroutine=userdb
+[/set]
+
+<P>
+[if session failure]
+[data session failure]
+[/if]
+<P>
+	<FORM ACTION="[process-target]" METHOD=POST>
+	<INPUT TYPE=hidden NAME=mv_click VALUE=Login>
+	<INPUT TYPE=hidden NAME=mv_doit  VALUE=return>
+	<INPUT TYPE=hidden NAME=function  VALUE=new_account>
+	<INPUT TYPE=hidden NAME=mv_nextpage VALUE=ord/basket>
+
+	<TABLE>
+	<TR><TD ALIGN=RIGHT>Username</TD>
+		<TD><INPUT NAME=mv_username VALUE="[value mv_username]" SIZE=10>
+		</TD></TR>
+
+	<TR><TD ALIGN=RIGHT>Password</TD>
+		<TD><INPUT TYPE=password NAME=mv_password VALUE="" SIZE=10>
+		</TD></TR>
+
+	<TR><TD ALIGN=RIGHT>Verify</TD>
+		<TD><INPUT TYPE=password
+			onChange="document.forms[0].submit()"
+			NAME=mv_verify VALUE="" SIZE=10>
+		</TD></TR>
+
+	<TR><TD></TD>
+		<TD><INPUT TYPE=submit NAME=mv_Junk VALUE="Log in" SIZE=10>
+		</TD></TR>
+	</TABLE>
+
+	</FORM>
+
+	<TR><TD></TD>
+		<TD><INPUT TYPE=submit NAME=mv_Junk VALUE="Log in" SIZE=10>
+		</TD></TR>
+	</TABLE>
+
+	</FORM>
+[/else][/if]
+<P>
+[buttonbar 0]
+</BODY>
+</HTML>

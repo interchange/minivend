@@ -50,19 +50,21 @@ else {
 PARSECFG: {
 	my $file;
 	my @cfglines;
+
+	$file = "$VendRoot/minivend.cfg";
+	open(MVCFG, $file) or die "Couldn't read $file: $!\n";
+	while(<MVCFG>) { push(@cfglines, $_) if /^\s*(sub)?catalog\s+/i }
+	close MVCFG;
+
 	eval {
 		$file = "$VendRoot/etc/active.catalogs";
 		open(MVCFG, $file) or die "Couldn't read $file: $!\n";
-		while(<MVCFG>) {push @cfglines, $_}
+		while(<MVCFG>) { push(@cfglines, $_) if /^\s*(sub)?catalog\s+/i }
 		close MVCFG;
 		rename $file, "$file.bak";
 	};
-	if($@) {
-		$file = "$VendRoot/minivend.cfg";
-		open(MVCFG, $file) or die "Couldn't read $file: $!\n";
-		while(<MVCFG>) {push @cfglines, $_}
-		close MVCFG;
-	}
+	my %seen;
+	@cfglines = grep !$seen{$_}++, @cfglines;
 
 	$file = "$VendRoot/etc/active.catalogs";
 	open(MVOUT, ">$file") or die "Couldn't write $file: $!\n";

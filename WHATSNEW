@@ -1,6 +1,59 @@
 
                   W H A T ' S   N E W 
 
+MiniVend 3.07 is a major release adding complete POSIX-style
+I18N features and many other tag language enhancements.
+
+    * Complete multiple currency sets based on locale. Uses
+      standard POSIX definitions.
+
+    * POSIX gettext/LC_MESSAGES style message display
+      for multiple language capabilities. A script called
+      localize is included which helps build Locale definitions.
+
+    * Price number display greatly enhanced.
+
+    * Sort lists now can specify a beginning entry
+      and a length, allowing pageable browse lists. Previous
+      versions needed to be done entirely in Perl. Demo
+      includes example.
+
+    * Simple demo now uses NewTags by default. Several
+      deficiencies cleaned up.  Locale example (French front
+      page and currency) example given. Several additional
+      examples given. Examples using deprecated features
+      changed to use current features.
+
+    * Added simple user login facility as an add-on module.
+      documented in UserDB.pm and shown in the demo. This is
+      also a useful example of how you can add your own extensions
+      to MiniVend.
+
+    * All iterative lists now have an [item-next] and [item-last]
+      (or [loop-next] and [loop-last]) capability for exiting and
+      skipping entries in loops.
+
+    * PriceAdjustment now handles embedded MiniVend
+      tags, allowing completely flexible product pricing.
+
+    * OrderProfile and SearchProfile now can be specified
+      in the page.
+
+    * Cookies now set for every path and domain in Mall
+      mode.
+
+    It also fixes some bugs/deficiencies:
+
+    * Static builds handle #name anchors when you use
+      [pagetarget page#name].
+
+    * Fixed simple demo so scratch directory 'tmp' gets
+      created on new install.
+
+    * Documentation corrections.
+
+    * Search [more-list] did not work under Windows -- fixed.
+
 MiniVend 3.06 fixes some bugs with 3.05 and adds some features.
 
     * Catalog permissions configuration for multi-user,
@@ -54,7 +107,7 @@ MiniVend 3.06 fixes some bugs with 3.05 and adds some features.
 
     * [compat] [/compat] tag pairs are stripped from [old]
       pages.
-      
+
     * Static pages were shown to all browsers -- now only
       shown to those which have given us back our cookie.
 
@@ -186,7 +239,7 @@ As well as adding the following features/fixes:
       The above will sort a search return on two fields in
       the database -- and will work the same for shopping carts,
       loop lists, and [tag each products].
-      
+ 
       There are unlimited levels of sort, and all sorts may individually
       have options for numeric, case-insensitive, and reverse. See the
       section SORTING in minivend.html.
@@ -208,13 +261,13 @@ As well as adding the following features/fixes:
       second pause. Implemented with OrderLineLimit and RobotLimit
       directives on a per-catalog basis, and the LockoutCommand
       directive as a global parameter.
-    
+
     * SQL numerical types are now handled properly if you set the
       NUMERIC option in catalog.cfg, i.e.:
         
         Database  products  NUMERIC price
         Database  inventory NUMERIC on_hand
-    
+
     * The server will now fall back to UNIX mode only if the
       TcpPort (7786 by default) is occupied and it cannot bind().
       This does not apply if MiniVend was started in INET mode only,
@@ -280,7 +333,7 @@ Changes include:
       pages based on MiniVend databases.  Use it to build static
       category lists and product pages that will load quickly without
       the necessity of MiniVend parsing them.
-    
+
     * Dynamic page parsing speed is increased by about 30% when
       using the standard syntax.
 

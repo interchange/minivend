@@ -1,0 +1,73 @@
+Locale fr_FR <<EOF
+{
+'mon_decimal_point', ',',
+'mon_thousands_sep', '.',
+'currency_symbol', 'fr',
+'p_cs_precedes', '0',
+'p_sep_by_space', '1',
+
+'Hello',
+'Bonjour',
+
+'The Art Store Home Page',
+'Le Home Page De Mémoire D\'Art',
+
+'Welcome to',
+'Bienvenue &agrave; la m&eacute;moire d\'art',
+
+'We have reproductions of some the great are of all ages.',
+'Nous avons des reproductions de certains que les grands sont de tous les &acirc;ges.',
+
+'Browse',
+'Parcourez',
+
+'if you like -- or try',
+'si vous aimez -- ou essayez',
+
+'searching',
+'de rechercher',
+
+'for your favorite artist.',
+'votre artiste pr&eacute;f&eacute;r&eacute;.',
+
+'Search for your<BR>favorite!',
+'Recherchez le votre<BR>favori!',
+
+'To use the search feature, just press the link to your left.  That will',
+'Pour utiliser le dispositif de recherche, presse juste le lien vers votre gauche.',
+
+'send you to a frame that will let you search on artist, title, or museum.',
+'Cela vous enverra &agrave; une trame qui vous laissera rechercher sur l\'artiste, le titre, ou le mus&eacute;e.',
+
+'Select by<BR>category!',
+'Choisissez pr&egrave;s<BR>cat&eacute;gorie!',
+
+'Renaissance',
+'La Renaissance',
+
+'Impressionists',
+'Impressionnistes',
+
+'Surrealists',
+'Surrealists',
+
+'Americana',
+'Americana',
+
+'Contemporary',
+'Contemporain',
+
+'Either way, just press the order button for an item you like!  Our',
+'L\'une ou l\'autre voie, presse juste le bouton de commande pour un &eacute;l&eacute;ment que vous aimez!',
+
+'electronic order form will automatically add it to your list. Fill out',
+'Notre forme de commande &eacute;lectronique l\'ajoutera automatiquement &agrave; votre liste.',
+
+'the attached order form to place your order. That\'s all there is to it!',
+'Compl&eacute;tez la forme de commande ci-jointe pour passer votre commande.  C\'est tout l&agrave; est &agrave; lui!',
+
+
+}
+EOF
+
+Locale en_US default en_US

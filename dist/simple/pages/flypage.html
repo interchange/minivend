@@ -1,24 +1,40 @@
 <HTML>
+[tag flag build][/tag]
 <HEAD><TITLE>[item-description]</TITLE></HEAD>
 [body 1]
 <CENTER>
 Category: [item-field category]
 <P>
-[if_field image]
+[if-field image]
 <IMG SRC="[item_field image]">
 <P>
-[/if_field]
+[/if-field]
 
 <H2>[item-description]</H2>
 <I>[item-field comment]</I>
 <P>
 Catalog No.: [item-code]
 <P>
-Price: $[item-price 1] [page quantity [item-code]]See quantity pricing[/page]
+Price: [item-price 1] [page quantity [item-code]]See quantity pricing[/page]
 <P>
+[if-field size]
+<FORM ACTION="[process-target]" METHOD=POST>
+<TABLE BACKGROUND="__IMAGE_DIR__/blue_pap.gif">
+<TR><TD VALIGN=TOP>
+<INPUT TYPE=image BORDER=0 SRC="ordernow.gif" VALUE="(ORDER NOW)">
+<INPUT TYPE=hidden NAME=mv_todo VALUE=refresh>
+<INPUT TYPE=hidden NAME=mv_order_item VALUE="[item-code]">
+<INPUT TYPE=hidden NAME=mv_separate_items VALUE="1">
+</TD><TD VALIGN=TOP BGCOLOR="#00F0F0">
+<INPUT SIZE=3 NAME=mv_order_quantity VALUE="1">
+[item-accessories size][item-accessories color]
+</TD></TR></TABLE></FORM>
+[else]
 [order [item-code]]<IMG BORDER=0 SRC="ordernow.gif" ALT="(ORDER NOW)">[/order]
+[/else]
+[/if-field]
 <P>
-[[buttonbar 0]][finish-order]
+[buttonbar 0]
 </CENTER>
 </BODY>
 </HTML>

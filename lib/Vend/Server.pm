@@ -1,6 +1,6 @@
 # Server.pm:  listen for cgi requests as a background server
 #
-# $Id: Server.pm,v 1.35 1998/01/21 18:59:03 mike Exp $
+# $Id: Server.pm,v 1.36 1998/03/14 23:47:56 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 # Copyright 1996-1998 by Michael J. Heins <mikeh@iac.net>
@@ -24,7 +24,7 @@ require Vend::Http;
 @ISA = qw(Vend::Http::CGI);
 
 use vars qw($VERSION);
-$VERSION = substr(q$Revision: 1.35 $, 10);
+$VERSION = substr(q$Revision: 1.36 $, 10);
 
 use Vend::Util qw(strftime);
 use POSIX qw(setsid);
@@ -44,6 +44,17 @@ sub new {
 sub read_entity_body {
     my ($s) = @_;
     $s->{entity};
+}
+
+sub create_cookie {
+	my($domain,$path) = @_;
+	my $out = "Set-Cookie: MV_SESSION_ID=" . $Vend::SessionName . ";";
+	$out .= " path=$path;";
+	$out .= " domain=" . $domain . ";" if $domain;
+	$out .= " expires=" .
+					strftime "%a, %d-%b-%y %H:%M:%S GMT ", gmtime($Vend::Expire)
+			 if $Vend::Expire;
+	$out .= "\r\n";
 }
 
 sub respond {
@@ -70,19 +81,31 @@ sub respond {
 	}
 
 	if ((defined $Vend::Expire or ! $CGI::cookie) and $Vend::Cfg->{'Cookies'}) {
-		print $fh "Set-Cookie: MV_SESSION_ID=" . $Vend::SessionName . ";";
-		print $fh " domain=" . $Vend::Cfg->{CookieDomain} . ";"
-			if $Vend::Cfg->{CookieDomain};
+
+		my @domains;
+		@domains = ('');
+		if ($Vend::Cfg->{CookieDomain}) {
+			@domains = split /\s+/, $Vend::Cfg->{CookieDomain};
+		}
+
+		my @paths;
+		@paths = ('/');
 		if($Global::Mall) {
-			print $fh " path=$CGI::script_path;";
+			my $ref = $Global::Catalog{$Vend::Cfg->{CatalogName}};
+			@paths = ($ref->{'script'});
+			push (@paths, @{$ref->{'alias'}}) if defined $ref->{'alias'};
+			if ($Global::FullUrl) {
+				# remove domain from script
+				for (@paths) { s:^[^/]+/:/: ; }
+			}
 		}
-		else {
-			print $fh " path=/;";
+
+		my ($d, $p);
+		foreach $d (@domains) {
+			foreach $p (@paths) {
+				print $fh create_cookie($d, $p);
+			}
 		}
-		print $fh " expires=" .
-					strftime "%a, %d-%b-%y %H:%M:%S GMT ", gmtime($Vend::Expire)
-			if defined $Vend::Expire and $Vend::Expire;
-		print $fh "\r\n";
     }
 
     if (defined $Vend::StatusLine) {

@@ -10,7 +10,7 @@
 # This is a multiple directive -- the number of catalogs that can be defined is
 # limited only by your machine resources.
 #
-# Catalog  sample /home/user/catalogs/sample /cgi-bin/sample /cgi-bin/alias
+# Catalog  simple /home/user/catalogs/simple /cgi-bin/simple /cgi-bin/alias
 
 
 ## Default: blank
@@ -239,3 +239,5 @@ GlobalSub sub test_global_sub { return 'Test of global subroutine OK.' }
 # UserBuild
 
 Variable TEST_VARIABLE Test of global variable OK.
+
+#include userdb.cfg

@@ -1,19 +1,19 @@
 <HTML>
 [tag flag build][/tag]
-[loop [[data session arg]]]
-<HEAD><TITLE>[loop_description]</TITLE></HEAD>
+[loop arg="[data session arg]"]
+<HEAD><TITLE>[loop-description]</TITLE></HEAD>
 <CENTER>
 [body 1]
-[if_loop_field category]Category: [loop_field category][/if_loop_field]
+[if-loop-field category]Category: [loop-field category][/if-loop-field]
 <P>
-[if_loop_field image]
-<IMG SRC="[loop_field image]">
+[if-loop-field image]
+<IMG SRC="[loop-field image]">
 <P>
-[order [loop_code]]<IMG SRC="ordernow.gif" BORDER=0>[/order]
+[order [loop-code]]<IMG SRC="ordernow.gif" BORDER=0>[/order]
 <P>
-[/if_loop_field]
-<H2>[loop_field title]</H2>
-<H4>[loop_field artist]</H4>
+[/if-loop-field]
+<H2>[loop-field title]</H2>
+<H4>[loop-field artist]</H4>
 <P>
 <TABLE BORDER=2>
 <TR VALIGN=BOTTOM>
@@ -42,21 +42,21 @@
 </TR>
 <TR>
 <P>
-	<TD VALIGN=TOP>[loop_code]</TD>
+	<TD VALIGN=TOP>[loop-code]</TD>
 	<TD VALIGN=TOP ALIGN=RIGHT>
-	[loop_price 1]
+	[loop-price 1]
 	</TD>
 	<TD VALIGN=TOP ALIGN=RIGHT>
-	[loop_price 2]
+	[loop-price 2]
 	</TD>
 	<TD VALIGN=TOP ALIGN=RIGHT>
-	[loop_price 5]
+	[loop-price 5]
 	</TD>
 	<TD VALIGN=TOP ALIGN=RIGHT>
-	[loop_price 10]
+	[loop-price 10]
 	</TD>
 	<TD VALIGN=TOP ALIGN=RIGHT>
-	[loop_price 25]<p></TD>
+	[loop-price 25]<p></TD>
 </TR>
 </TABLE>
 

@@ -5,8 +5,8 @@ current software and then restart the server.  The only
 incompatible changes are bug fixes (which may fool any
 workarounds you have made).
 
-The "simple" demo runs unchanged from MiniVend 3.05 to
-3.06. The usual source of any upgrade problems is illegal
+The "simple" demo runs unchanged from MiniVend 3.01 to
+3.07. The usual source of any upgrade problems is illegal
 syntax in tags, which might work on earlier versions but
 is rejected in later, stricter versions. Especially check
 nested [if ...] tags -- some problems can be solved by

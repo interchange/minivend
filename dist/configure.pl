@@ -486,17 +486,7 @@ MiniVend to operate.  the latest version can be obtained from
 http://www.perl.com in the CPAN area.  Expect a ***fatal*** error
 if you don't have it when you start MiniVend.
 
-MiniVend will try and make a last ditch attempt to install this
-module now.
-
 EOF
-	eval {install_perl_module('File-Lock-0.9') };
-	if($@) {
-		print "$@\n\nMiniVend has to give up on File::Lock.\n";
-	}
-	else {
-		print "Module apparently installed correctly.\n";
-	}
 
 } # last LOCK
 

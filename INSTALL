@@ -17,7 +17,7 @@ IMPORTANT NOTE: If you don't give evidence of having read and
 WINDOWS INSTALLATION
 --------------------
 
-    Obtain the self-extracting executable minivend-3.06.exe
+    Obtain the self-extracting executable minivend-3.07.exe
     and double-click on it.
 
     IMPORTANT NOTE: If you get the message "Bad command or file name"
@@ -27,7 +27,7 @@ WINDOWS INSTALLATION
     port). MiniVend will not work with the ActiveState 5.003 port.
     
     If you already have the CYGWIN.DLL executable or plan on using the
-    Perl link CGI, you can download the file minivend-3.06-nodll.exe
+    Perl link CGI, you can download the file minivend-3.07-nodll.exe
     and do the same.
 
     The defaults are set for Microsoft Personal Web Server on Win95 --
@@ -49,25 +49,19 @@ UNIX INSTALLATION
 ------------------
 Here is the short version:
 
-    gzip -dc minivend-3.06.tar.gz | tar xvf -
-    cd minivend-3.06
-    perl Makefile.PL
-    make
-    make test
-    make install
-    (change directory to MiniVend root)
-    bin/makecat simple
-    bin/start
+    gzip -dc minivend-3.07.tar.gz | tar xvf -
+    cd minivend-3.07
+    ./configure
 
-With comments:
+Long version with comments:
 
     # Unzip and untar the file -- if you have GNU tar, you can substitute
-    # 'tar xzf minivend-3.06.tar.gz'
-    gzip -dc minivend-3.06.tar.gz | tar xvf -
+    # 'tar xzf minivend-3.07.tar.gz'
+    gzip -dc minivend-3.07.tar.gz | tar xvf -
 
     # Change directory to the one that was created 
     #
-    cd minivend-3.06
+    cd minivend-3.07
 
     # If you have trouble with picking up the wrong Perl version,
     # try  '/dir/where/perl/is/perl Makefile.PL
@@ -128,8 +122,6 @@ and pretty please reference the web site. And
        until it is done. You may even change a page and not see the
        effect until the server is restarted.
 
--------------------------------------------------------------
-
 
 ------------------------------------------------------------------
 
@@ -137,7 +129,7 @@ and pretty please reference the web site. And
                    Y O U R   C A T A L O G
 
 Setting up a MiniVend catalog can be quite complex, and that
-is why the documentation and demos were provided.  They should
+is why the documentation and demo were provided.  They should
 be sufficient to get you started. Many hours have been spent
 in documenting the features of MiniVend, and thoughtful users
 should almost always find their answers there.

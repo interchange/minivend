@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 #
-# MiniVend version 3.06
+# MiniVend version 3.07
 #
-# $Id: minivend,v 1.21 1998/01/25 06:29:45 mike Exp mike $
+# $Id: minivend,v 1.24 1998/03/21 12:24:00 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -122,7 +122,7 @@ sub debug {
 	return $_[0] & $Global::DEBUG;
 }
 
-$VERSION = '3.06';
+$VERSION = '3.07';
 use strict;
 use Fcntl;
 
@@ -1042,6 +1042,8 @@ sub update_user {
 
 }
 
+# If path not defined, then will return without doing a page.
+# Currently called from ROUTINES and action=subroutine
 sub do_sub {
 	my($args, $path) = @_;
 	my($routine, @args) = split /\//, $args;
@@ -1062,7 +1064,7 @@ sub do_sub {
 										);
 	}
 
-	return do_page($path);
+	return do_page($path) if defined $path;
 }
 
 ## DO PROCESS
@@ -1441,25 +1443,29 @@ sub config_named_catalog {
 
 	eval {
 # STATICPAGE
-		if ($c->{Static}) {
-			print "loading static page names...";
+	READSTATIC: {
 			my $basedir = $c->{PageDir};
-			open STATICPAGE, "$basedir/.static"
-				or warn <<EOF;
+			last READSTATIC unless -f "$basedir/.build";
+			if ($c->{Static}) {
+				print "loading static page names...";
+				open STATICPAGE, "$basedir/.static"
+					or warn <<EOF;
 Couldn't read static page status file $basedir/.static: $!
 EOF
-			while(<STATICPAGE>) {
-				chomp;
-				$c->{StaticPage}->{$_} = 1;
+				while(<STATICPAGE>) {
+					chomp;
+					s/\t(.*)//;
+					$c->{StaticPage}->{$_} = $1 || '';
+				}
+				close STATICPAGE;
 			}
-			close STATICPAGE;
 		}
 # END STATICPAGE
 		if($c->{ClearCache}) {
 			for('PageCache', 'SearchCache') {
 				next unless $c->{$_};
 				my $dir = $c->{'ScratchDir'} . "/$_";
-				rmtree($dir);
+				-d $dir && rmtree($dir);
 				mkpath ($dir)
 					or die "Couldn't make $dir: $!\n";
 				eval { logError("Cleared $dir") };
@@ -1557,10 +1563,33 @@ sub build_page {
 					$file = "scan" . ++$Vend::ScanCount .
 									$Vend::Cfg->{StaticSuffix};
 					pop @post;
-					$Vend::Found_scan{$search} = "$Vend::Cfg->{StaticPath}/$file";
+					$Vend::Found_scan{$search}			=
+									"$Vend::Cfg->{StaticPath}/$file";
+					$Vend::Cfg->{StaticPage}{"scan/$search"} = $file;
+					$Vend::Cfg->{StaticPage}{"scan/$search"}
+						=~ s/$Vend::Cfg->{StaticSuffix}$//o;
 					push @post, $Vend::Found_scan{$search};
 					Vend::Util::writefile(">$dir/$file", $newpage)
 						or die "Couldn't write $dir/$file: $!\n";
+					if($Vend::ScanName) {
+						eval {
+								$Vend::ScanName = "$dir/$Vend::ScanName" .
+										$Vend::Cfg->{StaticSuffix}
+									unless index($Vend::ScanName, '/') == 0;
+								die "Not a symlink"
+									unless ! -e $Vend::ScanName
+										or -l $Vend::ScanName;
+								unlink $Vend::ScanName;
+								symlink "$dir/$file", "$Vend::ScanName";
+						};
+						if($@) {
+							::logError ("Symlink problem $dir/$file --> $Vend::ScanName: $@");
+						}
+						else {
+							print "\b\b\b\b\b\b\b\b\b\blinked....";
+						}
+						undef $Vend::ScanName;
+					}
 					print "save.";
 				}
 				else {
@@ -1623,7 +1652,6 @@ sub build_all {
 	chdir $Vend::Cfg->{'VendRoot'} 
 		or die "Couldn't change to $Vend::Cfg{'VendRoot'}: $!\n";
 	$Vend::Cfg->{'ReadPermission'} = 'world';
-	$Vend::Cfg->{'WritePermission'} = 'user';
 	set_file_permissions();
 	umask $Vend::Cfg->{'Umask'};
 
@@ -1632,26 +1660,27 @@ sub build_all {
 
 	my $basedir = $Vend::Cfg->{'PageDir'};
 
-	my $build_file;
+	my @build_file;
 
 	if(-f "$basedir/.build" and -s _) {
 		print "Building from files listed in .build file.\n";
 		$build_list = 1;
-		$build_file = 1;
 		$all = 0;
 		open(BUILD, "$basedir/.build")
 			or die "Couldn't open build spec $basedir/.build: $!\n";
 		my $suf = $Vend::Cfg->{StaticSuffix};
 		while(<BUILD>) {
-			print;
 			next if /^\s*#/;
 			chomp;
+			print;
+			$_ .= $suf unless /$suf$/;
 			unless (-f "$basedir/$_") {
-				warn "Scheduled page $_ not found.\n";
+				warn "...not found.\n";
 				next;
 			}
 			s/($suf)?\s*$//o;
 			$build{$_} = 1;
+			push @build_file, $_;
 			print "...accepted.\n";
 		}
 		close BUILD;
@@ -1675,7 +1704,7 @@ sub build_all {
 
 	if($Vend::Cfg->{ClearCache}) {
 		print do_msg("Clearing output directory $outdir");
-		rmtree($outdir)
+		-d $outdir && rmtree($outdir)
 			or die "Couldn't clear output directory $outdir: $!\n";
 		print "done.\n"
 	}
@@ -1745,9 +1774,16 @@ sub build_all {
 
 					push @files, $name;
 			};
-	print do_msg("Finding files...");
-	File::Find::find($sub, $Vend::Cfg->{PageDir});
-	print "done.\n";
+	# Don't find recursive if listed in file
+
+	unless (@build_file) {
+		print do_msg("Finding files...");
+		File::Find::find($sub, $Vend::Cfg->{PageDir});
+		print "done.\n";
+	}
+	else {
+		@files = @build_file;
+	}
 	
 	chdir $Vend::Cfg->{'VendRoot'} 
 		or die "Couldn't change to $Vend::Cfg{'VendRoot'}: $!\n";
@@ -1760,7 +1796,7 @@ sub build_all {
 
 	foreach $key (@files) {
 		print do_msg("Checking page $key ...");
-		$Vend::Cfg->{StaticPage}->{$key} = 1 if $all;
+		$Vend::Cfg->{StaticPage}->{$key} = '' if $all;
 		$static = build_page($key,$outdir, 1);
 		unless ($static) {
 			$build{$key} = delete $Vend::Cfg->{StaticPage}->{$key};
@@ -1772,6 +1808,7 @@ sub build_all {
 
 	FLYCHECK: {
 		last FLYCHECK unless $Vend::Cfg->{StaticFly};
+		last FLYCHECK if @build_file;
 		my $save = $Vend::Session->{frames};
 	  for (@Vend::Productbase) {
 		$p = database_ref($_);
@@ -1781,14 +1818,14 @@ sub build_all {
 			if($Vend::Cfg->{FrameFlyPage}) {
 				$Vend::Session->{frames} = 1;
 				my $k = $Vend::Cfg->{FrameLinkDir} . "/$key";
-				$Vend::Cfg->{StaticPage}->{$k} = 1 if $all;
+				$Vend::Cfg->{StaticPage}->{$k} = '' if $all;
 				print do_msg("Checking part number $key - frames");
 				build_page($key,$framedir,1)
 					or delete($Vend::Cfg->{StaticPage}->{$k});
 				print "done.\n";
 				$Vend::Session->{frames} = $save;
 			}
-			$Vend::Cfg->{StaticPage}->{$key} = 1 if $all;
+			$Vend::Cfg->{StaticPage}->{$key} = '' if $all;
 			print do_msg("Checking part number $key");
 			build_page($key,$outdir, 1)
 				or (delete($Vend::Cfg->{StaticPage}->{$key}), next);
@@ -1810,6 +1847,7 @@ sub build_all {
 
 	FLY: {
 	  last FLY unless $Vend::Cfg->{StaticFly};
+	  last FLY if @build_file;
 	  my $save = $Vend::Session->{frames};
 	  for (@Vend::Productbase) {
 		$p = database_ref($_);
@@ -1838,7 +1876,7 @@ sub build_all {
 	open STATICPAGE, ">$basedir/.static"
 		or die "Couldn't write static page file: $!\n";
 	for(sort keys %{$Vend::Cfg->{StaticPage}}) {
-		print STATICPAGE "$_\n";
+		print STATICPAGE "$_\t$Vend::Cfg->{StaticPage}{$_}\n";
 	}
 	close STATICPAGE;
 
@@ -1848,7 +1886,7 @@ sub build_all {
 		print UNBUILT "$_\n";
 	}
 	close UNBUILT;
-	unlink "$basedir/.build" if $build_file;
+	unlink "$basedir/.build" if @build_file;
 
 	# Second level of search, no more than 1 is recommended, but
 	# can be set by StaticDepth
@@ -2056,6 +2094,8 @@ EOF
 			$CGI::cookiehost = $3 || '';
 			$CGI::cookieuser = $4 || '';
 		}
+		$argument =~ s/%([A-Fa-f0-9]{2})/chr(hex($1))/eg
+			if $Vend::Cfg->{NewEscape};
 		$Vend::Argument = $argument;
     }
 
@@ -2130,6 +2170,41 @@ EOF
     $path = $Vend::Session->{last_url} = $CGI::path_info;
     $Vend::Session->{last_search} = $path
 		if $path =~ m!^/scan!;
+	
+	ROUTINES: {
+		last ROUTINES unless index($path, '/process/') == 0;
+		while ($path =~ s:/process/(locale|language)/([^/]+)/:/process/:) {
+			$Vend::Session->{scratch}->{"mv_$1"} = $2;
+		}
+		if($path =~ s:/process/subroutine/(.*):/process:) {
+			do_sub($1);
+		}
+		$path =~ s:/process/page/:/:;
+	}
+	my $locale;
+	if($locale = $Vend::Session->{scratch}->{mv_language}) {
+		$Global::Variable->{LANG}
+			= $Vend::Cfg->{Variable}->{LANG} = $locale;
+	}
+
+	if(	$Vend::Cfg->{Locale}								and
+		$locale = $Vend::Session->{scratch}->{mv_locale}	and
+		defined $Vend::Cfg->{Locale_repository}->{$locale}
+	)
+	{
+			$Vend::Cfg->{Locale} = $Vend::Cfg->{Locale_repository}->{$locale};
+			for(qw/	PriceField		DescriptionField 
+					PageDir			ImageDir
+					TaxShipping		SalesTax
+					CommonAdjust	PriceCommas		PriceDivide/) {
+				$Vend::Cfg->{$_} = $Vend::Cfg->{Locale}->{$_}
+					if defined $Vend::Cfg->{Locale}->{$_};
+			} 
+			for(qw/	PriceAdjustment UseModifier /) {
+				@{$Vend::Cfg->{$_}} = split (/\s+/, $Vend::Cfg->{Locale}->{$_})
+					if $Vend::Cfg->{Locale}->{$_};
+			} 
+	}
 
     # If the cgi-bin program was invoked with no extra path info,
     # just display the catalog page.
@@ -2155,11 +2230,11 @@ EOF
     elsif ($action eq 'scan')     { do_scan($argument,@path);  } 
     elsif ($action eq 'search')   { do_search($argument);      } 
     elsif ($action eq 'order')    { do_order($argument,@path); }
+    elsif ($action eq 'subroutine') { do_sub($argument,@path) }
     elsif ($action eq 'obtain')   {
 									my($catalog,$page) = split '/', $path[0], 2;
 									do_order($argument,$page,$catalog);
 								  } 
-    elsif ($action eq 'subroutine')    { do_sub($argument,@path); }
     else {
 		# will try the on-the-fly page if it fails
 		do_page($path, $argument);
