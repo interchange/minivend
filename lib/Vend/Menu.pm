@@ -829,7 +829,7 @@ EOF
 	}
 
 	for my $row (@$rows) {
-		next if $_->{deleted};
+		next if $row->{deleted};
 		extra_value($opt->{extra_value}, $row)
 			if $opt->{extra_value};
 		push @out, Vend::Tags->uc_attr_list($row, $template);
