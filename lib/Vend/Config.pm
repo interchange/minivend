@@ -3252,8 +3252,8 @@ sub parse_database {
 				$c->{$val} = $d;
 			}
 		}
-		elsif ($p eq 'MAP') {
-			Vend::Table::Shadow::_parse_config_line ($d, $val);
+		elsif ($p =~ /^MAP/) {
+			Vend::Table::Shadow::_parse_config_line ($d, $p, $val);
 		}
 
 		else {
