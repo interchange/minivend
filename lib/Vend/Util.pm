@@ -87,12 +87,6 @@ use subs qw(logError logGlobal);
 use vars qw($VERSION @EXPORT @EXPORT_OK);
 $VERSION = substr(q$Revision$, 10);
 
-BEGIN {
-	eval {
-		require 5.004;
-	};
-}
-
 my $Eval_routine;
 my $Eval_routine_file;
 my $Pretty_uneval;
