@@ -120,8 +120,6 @@ sub import_db {
 	return $db;
 }
 
-my $Info;
-
 my %known_capability = (
 	AUTO_INDEX_PRIMARY_KEY => {
 		Oracle	=> 1,
@@ -587,10 +585,6 @@ sub open_table {
 	}
 
 	check_capability($config, $db->{Driver}{Name});
-
-	if(! $Info and ($db->can('table_info') and $Info = $db->table_info()) ) {
-#::logDebug("$tablename table_info: " . ::uneval($Info->fetchall_arrayref()));
-	}
 
     unless ($config->{hot_dbi}) {
 		$DBI_connect_count{$config->{dsn_id}}++;
