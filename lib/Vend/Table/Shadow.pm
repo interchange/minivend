@@ -105,6 +105,12 @@ sub test_column {
 	return $s->[$OBJ]->test_column($column);
 }
 
+sub quote {
+	my ($s, $value, $field) = @_;
+	$s = $s->import_db() unless defined $s->[$OBJ];
+	return $s->[$OBJ]->quote($value, $field);
+}
+
 sub numeric {
 	my ($s, $column) = @_;
 	my ($map, $locale);
