@@ -1439,6 +1439,7 @@ ADDITIONAL: {
 	}
 	my $said = 0;
 	while(<ADDL>) {
+		my $noprompt = '';
 		s/\s+$//;
 		s/__MVC_([A-Z0-9]+)(__)?/substitute($1,$2)/eg;
 		my ($var, $prompt, $default) = split /\n/, $_, 3;
@@ -1454,8 +1455,8 @@ ADDITIONAL: {
 			next unless $true;
 		}
 		$var =~ s/\s+//g;
-		$var =~ s:^(!)::;
-		my $noprompt = $1;
+		$var =~ s:^(!)::
+			and $noprompt = 1;
 		$var = lc $var;
 		my $ucvar = uc $var;
 		if($default =~ /\t/) {
