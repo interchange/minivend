@@ -224,10 +224,13 @@ sub parse_template {
 				 	(.*?)
 					\]  \s*  \[control\]
 				 |
-				 	\[ component \s+  (.*?) comp(?:[-_]name|onent) \s*=\s*["']\s*
+				 	\[ component \s+ 
+					(?:
+						(.*?) comp(?:[-_]name|onent) \s*=\s*["']\s*
 						(?:\[control \s+ component \s+ )?
 							(\w+)
 						\]? \s* ['"]
+					)?
 					(.*?)
 					\]
 				 )
