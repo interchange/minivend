@@ -570,7 +570,9 @@ sub auto_delimiter {
 
 =cut
 
-my %db_config = (
+use vars '%db_config';
+
+%db_config = (
 # SQL
 		'DBI' => {
 				qw/
