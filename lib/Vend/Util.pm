@@ -1239,7 +1239,7 @@ sub vendUrl {
 	$path = escape_chars_url($path)
 		if $path =~ $need_escape;
     	$r .= '/' . $path;
-	$r .= '.html' if $opt->{add_dot_html} and $r !~ /\.html?$/;
+	$r .= '.html' if $opt->{add_dot_html} and $r !~ m{(?:/|\.html?)$};
 
 	if($opt->{add_source} and $Vend::Session->{source}) {
 		my $sn = hexify($Vend::Session->{source});
