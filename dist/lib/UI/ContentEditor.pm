@@ -176,10 +176,15 @@ sub extract_template {
 	my $sref = shift;
 	my $opt = shift || {};
 	my $tname;
-	$sref =~ /\nui_page_template:\s*(\w+)/
-		or $sref =~ /\nui_template_name:\s*(\w+)/
-		or ( $sref =~ /\@_(\w+)_TOP_\@/ and $tname = lc $1);
-	$tname ||= $1;
+
+	if ($sref =~ /\nui_(page_template|template_name):\s*(\w+)/) {
+		$tname = $2;
+	} elsif ($sref =~ /\@_(\w+)_TOP_\@/) {
+		$tname = lc $1;
+	} else {
+		$tname = $opt->{ui_page_template};
+	}
+
 #::logDebug("extract_template read template name='$tname'");
 	my $tdef;
 	my $tref;
