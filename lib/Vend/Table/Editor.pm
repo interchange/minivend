@@ -750,12 +750,12 @@ function ${vpf}selectTab(n) {
 	width:$opt->{tab_width}px;
 	margin:0px;
 	height: ${int2}px;
-	position:absolute;
+	position:relative;
 	$opt->{tab_style}
 	}
 
 .${id}panel {
-	position:absolute;
+	position:relative;
 	width: $opt->{panel_width}px;
 	height: $opt->{panel_height}px;
 	left:0px;
