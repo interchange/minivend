@@ -476,9 +476,14 @@ sub list_images {
 	$suf = '\.(GIF|gif|JPG|JPEG|jpg|jpeg|png|PNG)'
 		unless $suf;
 	my @names;
+	my $regex;
+	eval {
+		$regex = qr{$suf$}o;
+	};
+	return undef if $@;
 	my $wanted = sub {
 					return undef unless -f $_;
-					return undef unless /$suf$/o;
+					return undef unless $_ =~ $regex;
 					my $n = $File::Find::name;
 					$n =~ s:^$base/?::;
 					push(@names, $n);
@@ -820,7 +825,7 @@ sub meta_record {
 		ref $view_hash
 			and @$record{keys %$view_hash} = values %$view_hash;
 	}
-::logDebug("return meta_record=" . ::uneval($record) );
+#::logDebug("return meta_record=" . ::uneval($record) );
 	return $record;
 }
 
