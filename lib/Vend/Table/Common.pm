@@ -723,6 +723,7 @@ sub import_csv {
 #::logDebug("fields: @fields");
         $out->set_row(@fields);
     }
+	delete $out->[$CONFIG]{Clean_start};
 	unlockfile(\*IN) or die "unlock\n";
     close(IN);
 	return $out;
@@ -1045,6 +1046,7 @@ EndOfRoutine
 			File::Copy::copy(@{$_});
 		}
 	}
+	delete $out->[$CONFIG]{Clean_start};
 	unlockfile(\*IN) or die "unlock\n";
     close(IN);
     return $out;

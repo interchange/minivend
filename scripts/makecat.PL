@@ -1221,7 +1221,8 @@ EOF
 	}
 	else {
 		$lm = 'u';
-		$ask = prompt("Do you use CGIWRAP or SUEXEC? ", 'n');
+		my $def = -u '/usr/bin/suexec' ? 'y' : 'n';
+		$ask = prompt("Do you use CGIWRAP or SUEXEC? ", $def);
 		$CGIwrap = $ask =~ /^\s*y/i;
 	}
 
