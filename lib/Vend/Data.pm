@@ -110,7 +110,7 @@ sub product_code_exists_ref {
 
     my $return;
     foreach $ref (@Vend::Productbase) {
-        return $ref if $ref->record_exists($code);
+        return ($return = $ref) if $ref->record_exists($code);
     }
     return undef;
 }
