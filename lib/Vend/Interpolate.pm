@@ -1983,9 +1983,10 @@ sub do_tag {
 sub tag_counter {
     my $file = shift || 'etc/counter';
 	my $opt = shift;
+#::logDebug("counter: file=$file start=$opt->{start}");
     $file = $Vend::Cfg->{VendRoot} . "/$file"
-        unless Vend::Util::filename_is_absolute($file);
-    my $ctr = new File::CounterFile $file, ($opt->{start} || undef);
+        unless Vend::Util::file_name_is_absolute($file);
+    my $ctr = new File::CounterFile $file, $opt->{start} || undef;
     return $ctr->value() if $opt->{value};
     return $ctr->dec() if $opt->{decrement};
     return $ctr->inc();
