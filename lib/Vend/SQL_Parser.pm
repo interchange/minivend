@@ -435,7 +435,7 @@ sub where {
 			$lhs = $val;
 		}
 		elsif(! $op) {
-			if(s/^([=!<>]+)(.+)/$1/) {
+			if(s/^([=!<>]+)([^=!<>]+)/$1/) {
 				$op = $1;
 				unshift @things, $2;
 #::logDebug("found merged operator and righthand term $things[0]");
