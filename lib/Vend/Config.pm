@@ -288,6 +288,8 @@ sub global_directives {
 	['TemplateDir',      'root_dir_array', 	 ''],
 	['DomainTail',		 'yesno',            'Yes'],
 	['AcrossLocks',		 'yesno',            'No'],
+	['RobotIP',			 'list_wildcard',    ''],
+	['RobotUA',			 'list_wildcard',    ''],
 	['TolerateGet',		 'yesno',            'No'],
 	['PIDcheck',		 'integer',          '0'],
 	['LockoutCommand',    undef,             ''],
@@ -2255,9 +2257,31 @@ sub parse_array_complete {
 
 	$c;
 }
+
+sub parse_list_wildcard {
+	my($var, $value) = @_;
+	return '' if ! $value;
+
+	if($value !~ /\|/) {
+		my @items = split /\s*,\s*/, $value;
+		my $iplist = $value =~ /^[\d.,\s]+$/;
+		for(@items) {
+			s/\./\\./g;
+			s/\*/.*/g;
+			s/\?/./g;
+			s/\s+/\\s+/g;
+			s/^/^/ if $iplist;
+		}
+		$value = join '|', @items;
+	}
+	$value = parse_regex($var, $value);
+	return qr/$value/;
+}
+
 # Make a dos-ish regex into a Perl regex, check for errors
 sub parse_wildcard {
 	my($var, $value) = @_;
+	return '' if ! $value;
 
 	$value =~ s/\./\\./g;
 	$value =~ s/\*/.*/g;

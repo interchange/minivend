@@ -1647,7 +1647,11 @@ sub config_named_catalog {
      	return undef;
     }
 
-	return $c if defined $g->{'base'};
+	if (defined $g->{base}) {
+		open_database(1);
+		dump_structure($c, $g->{name}) if $Global::DumpStructure;
+		return $c;
+	}
 
 	eval {
 		$Vend::Cfg = $c;	
@@ -2050,9 +2054,12 @@ sub dispatch {
 	$::Instance->{CookieName} = $Vend::Cfg->{CookieName};
 
 	if($CGI::values{mv_tmp_session}) {
+#::logDebug("setting tmp_session");
 		$Vend::tmp_session = $Vend::new_session = 1;
 		$sessionid = 'nsession';
 		$Vend::Cookie = 1;
+		$Vend::Cfg->{ScratchDefault}{mv_no_count} = 1;
+		$Vend::Cfg->{ScratchDefault}{mv_no_session_id} = 1;
 	}
 	elsif ($::Instance->{CookieName} and defined $CGI::cookie) {
 		$CGI::cookie =~ m{$::Instance->{CookieName}=($Vend::Cfg->{CookiePattern})};
