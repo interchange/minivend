@@ -72,7 +72,10 @@ sub writefile {
 				$dir =~ s:[\r\n]::g;   # Just in case
 				$dir =~ s:(.*)/.*:$1: or $dir = '';
 				if($dir and ! -d $dir) {
-					File::Path::mkpath($dir);
+					eval{
+						File::Path::mkpath($dir);
+					};
+					die "mkpath\n" unless -d $dir;
 				}
 			}
 			# We have checked for beginning > or | previously
