@@ -312,8 +312,8 @@ print STDERR ".";
         while ($data =~ m:\[loc\](\s*[^\[].*?[^\]]\s*)\[/loc\]:gsi) {
 					write_structure(undef, $1);
 		}
-        while ($data =~ m:\[msg(\s+arg\.\d+=".*?")*\s*\](\s*[^\[].*?[^\]]\s*)\[/msg\]:gsi) {
-					write_structure(undef, $2);
+        while ($data =~ m:\[msg(\s+arg\.\d+=(["`]).*?\2)*\s*\](\s*[^\[].*?[^\]]\s*)\[/msg\]:gsi) {
+					write_structure(undef, $3);
 		}
 	}
 
