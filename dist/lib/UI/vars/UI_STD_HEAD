@@ -273,6 +273,7 @@ function addItem(selector, receptor, joiner) {
 
 [menu
 	  name=Top
+	  superuser=super
 	  inactive=inactive
 	  localize=name
 	  indicator=indicator
