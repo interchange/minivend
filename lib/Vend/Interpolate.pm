@@ -5773,6 +5773,7 @@ sub subtotal {
 
 # figures any credits the customer may have
 # that can be applied to this order
+# for future developements, not currently used!!
 
 sub credit {
     my $credit = 0;
@@ -5818,7 +5819,6 @@ sub total_cost {
 		$total += subtotal();
 		$total += $shipping;
 		$total += salestax();
-		$total -= credit();
 	}
 	$Vend::Items = $save if defined $save;
 	$Vend::Session->{latest_total} = $total;
