@@ -2780,10 +2780,6 @@ PAGELINK: {
 
 my ($urlroutine, $page, $arg, $opt);
 
-sub static_url {
-	return $Vend::Cfg->{StaticPath} . "/" . shift;
-}
-
 sub tag_page {
     my ($page, $arg, $opt) = @_;
 
