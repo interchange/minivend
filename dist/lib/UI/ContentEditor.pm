@@ -2742,7 +2742,7 @@ sub page_editor {
 	parse_page($pref, $opt);
 	publish_page($pref, $opt) if $opt->{new};
 
-#::logDebug("found a template name=$pref->{ui_name} store=$pstore: " . uneval($pref));
+#::logDebug("found a template name=$pref->{ui_name} store=$name: " . uneval($pref));
 
 	my ($overall, $comp) = page_region($pref, $opt);
 
