@@ -566,12 +566,12 @@ sub map_actual {
 		$actual{$key} = $::Values->{$map{$secondary}} ||
 						$CGI::values{$map{$secondary}};
 	}
-	$actual{name}		 = "$actual{fname} $actual{lname}"
-		if ! $actual{name};
-	if(! $actual{address}) {
-		$actual{address} = "$actual{address1}";
-		$actual{address} .=  ", $actual{address2}"
-			if $actual{address2};
+	$actual{b_name}		 = "$actual{b_fname} $actual{b_lname}"
+		if $actual{b_lname};
+	if($actual{b_address1}) {
+		$actual{b_address} = "$actual{b_address1}";
+		$actual{b_address} .=  ", $actual{b_address2}"
+			if $actual{b_address2};
 	}
 	return %actual;
 }
