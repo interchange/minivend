@@ -176,7 +176,7 @@ sub search {
 	
 	my $spec = join ' ', @pats;
 
-	$spec =~ s/[^-\w()"\s]+//g
+	$spec =~ s/[^-\w()"\s\*]+//g
 		and $CGI::values{debug}
 		and ::logError("Removed unsafe characters from search string");
 
