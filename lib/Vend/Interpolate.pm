@@ -2346,7 +2346,7 @@ sub do_tag {
 sub tag_counter {
     my $file = shift || 'etc/counter';
 	my $opt = shift;
-::logDebug("counter: file=$file start=$opt->{start} sql=$opt->{sql} routine=$opt->{inc_routine} caller=" . scalar(caller()) );
+#::logDebug("counter: file=$file start=$opt->{start} sql=$opt->{sql} routine=$opt->{inc_routine} caller=" . scalar(caller()) );
 	if($opt->{sql}) {
 		my ($tab, $seq) = split /:+/, $opt->{sql}, 2;
 		my $db = database_exists_ref($tab);
