@@ -1823,7 +1823,7 @@ sub tag_options {
 	}
 	else {
 #::logDebug("simple options");
-		for(qw/code o_enable o_group o_value o_label o_widget price/) {
+		for(qw/code o_enable o_group o_value o_label o_widget price o_height o_width/) {
 			push @rf, ($map{$_} || $_);
 		}
 		my $fsel = $map{sku} || 'sku';
@@ -1854,6 +1854,8 @@ sub tag_options {
 								passed => $ref->[3],
 								price => $opt->{price},
 								price_data => $ref->[6],
+								height => $opt->{height} || $ref->[7],
+								width  => $opt->{width} || $ref->[8],
 								type => $opt->{type} || $ref->[5] || 'select',
 							},
 							$item || undef,
