@@ -1971,7 +1971,7 @@ sub auto_config {
 	my $string = shift;
 	my ($dsn, $user, $pass) = Text::ParseWords::shellwords($string);
 	my $handle = DBI->connect($dsn, $user, $pass)
-		or ::logDebug(errmsg("DatabaseAuto DSN '%s' does not connect.", $dsn));
+		or ::logDebug(::errmsg("DatabaseAuto DSN '%s' does not connect.", $dsn));
 	my $schema;
 	my @tabs;
 	my @out;
