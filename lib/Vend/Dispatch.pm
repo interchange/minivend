@@ -967,8 +967,31 @@ EOF
 					if defined $Vend::Cfg->{Locale_repository}{$loc};
 		}
 	}
+
 	$::Variable = $Vend::Cfg->{Variable};
 	$::Pragma   = { %{ $Vend::Cfg->{Pragma} } };
+
+	my $mt;
+	if($Vend::Cfg->{DeliverImage}
+		and $CGI::request_method eq 'GET'
+		and $CGI::path_info =~ /\.(\w+)$/
+		and $mt = Vend::Util::mime_type($CGI::path_info)
+		and $mt =~ m{^image/}
+	  )
+	{
+
+#::logDebug("deliver image: method=$CGI::request_method type=$mt");
+		my $imgdir = $Vend::Cfg->{ImageDir};
+		my $fn = $CGI::path_info;
+		$fn =~ s:^/+::;
+		if($CGI::secure) {
+			 $imgdir = $Vend::Cfg->{ImageDirSecure}
+				if $Vend::Cfg->{ImageDirSecure};
+		}
+		$Vend::tmp_session = 1;
+		Vend::Tags->deliver($mt, { location => "$imgdir$fn" } );
+		return;
+	}
 
 	if (defined $Global::SelectorAlias{$CGI::script_name}
 		and ! defined $Vend::InternalHTTP                 )
@@ -1021,6 +1044,7 @@ EOF
 #show_times("end cgi and config mapping") if $Global::ShowTimes;
 	open_database();
 #show_times("end open_database") if $Global::ShowTimes;
+	return 1;
 }
 
 sub close_cat {
@@ -1069,7 +1093,8 @@ sub dispatch {
 
 	adjust_cgi();
 
-	open_cat();
+	## If returns false then was a 404 no catalog or a delivered image
+	open_cat() or return 1;
 
 	$CGI::user = Vend::Util::check_authorization($CGI::authorization)
 		if defined $CGI::authorization;
@@ -1378,7 +1403,8 @@ EOF
     }
 
 	$Vend::FinalPath =~ s:^/+::;
-	$Vend::FinalPath =~ s/(\.html?)$//;
+	$Vend::FinalPath =~ s/(\.html?)$//
+		and $Vend::Extension = $1;
 
 	my $record;
 	my $adb;

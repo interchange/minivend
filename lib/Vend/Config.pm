@@ -454,6 +454,7 @@ sub catalog_directives {
 	['ImageDirSecure',   undef,     	     ''],
 	['ImageDirInternal', undef,     	     ''],
 	['ImageDir',	 	 undef,     	     ''],
+	['DeliverImage',     'yesno',			 'no'],
 	['UseCode',		 	 undef,     	     'yes'],
 	['SetGroup',		 'valid_group',      ''],
 	['UseModifier',		 'array',     	     ''],
