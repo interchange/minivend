@@ -1318,7 +1318,9 @@ sub server_start_message {
 	push (@types, 'SOAP') if $Global::SOAP;
 	push (@types, 'mod_perl') if $Global::mod_perl;
 	my $server_type = join(" and ", @types);
-	my $pid = $Global::Variable->{MV_BAD_LOCK} ? $$ : read_pidfile();
+	my $pid = ( $Global::PreFork || $Global::Variable->{MV_BAD_LOCK} )
+			  ? $$
+			  : read_pidfile();
 	my @args = $reverse ? ($server_type, $pid) : ($pid, $server_type);
 	return ::errmsg ($fmt , @args );
 }
