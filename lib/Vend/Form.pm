@@ -499,6 +499,8 @@ sub option_widget {
 	my @opts = split /\s*,\s*/, $val;
 	my $out = "<TABLE CELLPADDING=0 CELLSPACING=0><TR><TH><SMALL>Value</SMALL></TH><TH ALIGN=LEFT COLSPAN=2><SMALL>Label</SMALL></TH></TR>";
 	my $done;
+	my $height = $opt->{height} || 5;
+	$height -= 2;
 	for(@opts) {
 		my ($v,$l) = split /\s*=\s*/, $_, 2;
 		next unless $l || length($v);
@@ -508,7 +510,7 @@ sub option_widget {
 			and $default = 1;
 		$out .= option_widget_box($name, $v, $l, $default, $width);
 	}
-	while($done++ < 3) {
+	while($done++ < $height) {
 		$out .= option_widget_box($name, '', '', '', $width);
 	}
 	$out .= option_widget_box($name, '', '', '', $width);
