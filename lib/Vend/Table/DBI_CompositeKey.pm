@@ -314,7 +314,10 @@ sub set_slice {
 	}
 	else {
 		my $href = $fin;
-		if(ref $href ne 'HASH') {
+		if(ref $href eq 'HASH') {
+			$href = { %$href };
+		}
+		else {
 			$href = { splice (@_, 2) };
 		}
 
