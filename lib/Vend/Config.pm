@@ -248,6 +248,7 @@ sub global_directives {
 	['TcpMap',           'hash',             ''],
 	['Environment',      'array',            ''],
 	['TcpHost',           undef,             'localhost 127.0.0.1'],
+	['AcceptRedirect',	 'yesno',			 'No'],
 	['SendMailProgram',  'executable',		 [
 												$Global::SendMailLocation,
 											   '/usr/sbin/sendmail',
@@ -413,7 +414,7 @@ sub catalog_directives {
 	['MaxQuantityField', undef,     	     ''],
 	['MinQuantityField', undef,     	     ''],
 	['LogFile', 		  undef,     	     'etc/log'],
-	['Pragma',		 	 'boolean',     	 ''],
+	['Pragma',		 	 'boolean_value',    ''],
 	['DynamicData', 	 'boolean',     	 ''],
 	['NoImport',	 	 'boolean',     	 ''],
 	['NoImportExternal', 'yesno',	     	 'no'],
@@ -1827,6 +1828,34 @@ sub parse_boolean {
 
 	for (@setting) {
 		$c->{$_} = $val;
+	}
+	return $c;
+}
+
+# Sets a boolean array, but configurable value with tag=value
+sub parse_boolean_value {
+	my($item,$settings) = @_;
+	my(@setting) = split /[\s,]+/, $settings;
+	my $c;
+
+	if(defined $C) {
+		$c = $C->{$item} || {};
+	}
+	else {
+		no strict 'refs';
+		$c = ${"Global::$item"} || {};
+	}
+
+	for (@setting) {
+		my ($k,$v);
+		if(/=/) {
+			($k,$v) = split /=/, $_, 2;
+		}
+		else {
+			$k = $_;
+			$v = 1;
+		}
+		$c->{$k} = $v;
 	}
 	return $c;
 }

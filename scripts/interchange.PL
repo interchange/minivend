@@ -1997,6 +1997,7 @@ sub close_cat {
 sub run_macro {
 	my $macro = shift
 		or return;
+	my $content_ref = shift;
 
 	my @mac;
 	if(ref $macro eq 'ARRAY') {
@@ -2016,7 +2017,7 @@ sub run_macro {
 					logError("Unknown Autoload macro '%s'.", $macro);
 					next;
 				};
-			$sub->();
+			$sub->($content_ref);
 		}
 		elsif($m =~ /^\w+-\w+$/) {
 			Vend::Interpolate::tag_profile($m);
