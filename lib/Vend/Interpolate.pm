@@ -7261,7 +7261,7 @@ sub tax_vat {
 				|| $::Variable->{MV_COUNTRY_TAX_FIELD}
 				|| 'tax';
 #::logDebug("ctable=$ctable c_taxfield=$c_taxfield");
-	my $type = tag_data($ctable, $c_taxfield, $country)
+	$type = tag_data($ctable, $c_taxfield, $country)
 		or return 0;
 #::logDebug("tax type=$type");
 	$type =~ s/^\s+//;
