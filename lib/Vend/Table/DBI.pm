@@ -1203,7 +1203,7 @@ sub set_row {
 		or die "$DBI::errstr\n";
 
 	$val	= $cfg->{AUTO_SEQUENCE}
-			?  $s->last_sequence_value($val)
+			?  $s->last_sequence_value($fields[$ki])
 			: $fields[$ki];
 
 #::logDebug("set_row rc=$rc key=$val");
