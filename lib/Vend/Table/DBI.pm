@@ -1762,12 +1762,17 @@ eval {
 	}
 } # MVSEARCH
 #::logDebug("finished query, rc=$rc ref=$ref arrayref=$opt->{arrayref} Tmp=$Vend::Interpolate::Tmp->{$opt->{arrayref}}");
-	if(CORE::ref($ref)) {
-		# make sure rc is set if we got a ref from MVSEARCH
-		$rc = scalar @{$ref};
+
+	if ($opt->{row_count}) {
+		if($rc < 1 and CORE::ref($ref) and scalar(@$ref) ) {
+			$rc = scalar(@$ref);
+		}
+		return $rc unless $opt->{list};
+		$ref = [ [ $rc ] ];
+		@na = [ 'row_count' ];
+		%nh = ( 'rc' => 0, 'count' => 0, 'row_count' => 0 );
 	}
-	return $rc
-		if $opt->{row_count};
+
 	return Vend::Interpolate::tag_sql_list($text, $ref, \%nh, $opt, \@na)
 		if $opt->{list};
 	return Vend::Interpolate::html_table($opt, $ref, \@na)
