@@ -1265,11 +1265,11 @@ sub parse_type {
 		if($type =~ /nbsp/i) {
 			$opt->{nbsp} = 1;
 		}
-		elsif ($type  =~ /left[\s_]*(\d?)/i ) {
+		elsif ($type  =~ /left[\s_]*(\d*)/i ) {
 			$opt->{breakmod} = $1;
 			$opt->{left} = 1;
 		}
-		elsif ($type  =~ /right[\s_]*(\d?)/i ) {
+		elsif ($type  =~ /right[\s_]*(\d*)/i ) {
 			$opt->{breakmod} = $1;
 			$opt->{right} = 1;
 		}
