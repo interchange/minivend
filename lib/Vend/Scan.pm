@@ -849,6 +849,7 @@ sub _verbatim_array {
 	my @fields;
 #::logDebug("receiving verbatim_array: " . ::uneval (\@_));
 	@fields = ref $_[1] ? @{$_[1]} : split /\0/, $_[1], -1;
+	@fields = ('') if ! @fields;
 	unshift(@fields, @{$_[2]}) if $_[2];
 	return \@fields;
 }
