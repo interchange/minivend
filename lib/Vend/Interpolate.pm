@@ -1036,10 +1036,14 @@ sub tag_data {
 					$val =~ s/\D+//g;
 					return $val;
 				},
+	'alpha' =>	sub {
+					my $val = shift;
+					$val =~ s/[^A-Za-z]+//g;
+					return $val;
+				},
 	'alphanumeric' =>	sub {
 					my $val = shift;
-					$val =~ s/\W+//g;
-					$val =~ s/_+//g;
+					$val =~ s/[^A-Za-z0-9]+//g;
 					return $val;
 				},
 	'word' =>	sub {
@@ -1173,6 +1177,21 @@ sub tag_data {
 					$_[0] =~ /^0*(.*)/; return $1;
 				},
 
+	pgbool => sub {
+					my $val = shift;
+					return 'f' if ! defined($val);
+					$val =~ s/\s+//g;
+					return 'f' if $val =~ /^[Ff0]?$/;
+					return 't';
+				},
+
+	pgbooln => sub {
+					my $val = shift;
+					return if ! defined($val);
+					$val =~ s/\s+//g;
+					return 'f' if $val =~ /^[Ff0]?$/;
+					return 't';
+				},
 	);
 
 $Filter{upper} = $Filter{uc};
