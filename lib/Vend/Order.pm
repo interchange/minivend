@@ -511,12 +511,15 @@ sub validate_whole_cc {
 # by Jon Orwant, from Business::CreditCard and well-known algorithms
 
 sub luhn {
-	my ($number) = @_;
+	my ($number,$min_digits) = @_;
 	my ($i, $sum, $weight);
+
+	$min_digits ||= 13;
+	$min_digits = 2 if $min_digits < 2;
 
 	$number =~ s/\D//g;
 
-	return 0 unless length($number) >= 13 && 0+$number;
+	return 0 unless length($number) >= $min_digits && 0+$number;
 
 	for ($i = 0; $i < length($number) - 1; $i++) {
 		$weight = substr($number, -1 * ($i + 2), 1) * (2 - ($i % 2));
@@ -1298,6 +1301,13 @@ sub _required {
 	return (1, $var, '')
 		if (defined $ref->{$var} and $ref->{$var} =~ /\S/);
 	return (undef, $var, errmsg("blank"));
+}
+
+sub _luhn {
+	my($ref, $var, $val) = @_;
+
+	return (1, $var, '') if luhn($val,2);
+	return (undef, $var, errmsg('failed the LUHN-10 check'));
 }
 
 sub counter_number {
