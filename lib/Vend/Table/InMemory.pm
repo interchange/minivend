@@ -214,6 +214,7 @@ sub ref {
 }
 
 # Unfortunate hack need for Safe searches
+*test_column	= \&Vend::Table::Common::test_column;
 *column_index	= \&Vend::Table::Common::column_index;
 *field			= \&Vend::Table::Common::field;
 *numeric		= \&Vend::Table::Common::numeric;
