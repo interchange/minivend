@@ -733,8 +733,13 @@ unless (-f $Configfile) {
 }
 
 $Cfg = new IniConf -file => $Configfile;
+unless ($Cfg) {
+	if (@IniConf::errors) {
+		print join("\n", @IniConf::errors, '');
+	}
+	die "Can't parse config file $Configfile\n";
+}
 
-die "Can't read config file $Configfile: $!\n" unless defined $Cfg;
 my @parms;
 
 unless($Reconfigure or $Cfg->val('base', 'vendroot')) {
