@@ -1491,9 +1491,10 @@ sub tag_nitems {
 	if($opt->{qualifier}) {
 		$attr = $opt->{qualifier};
 		my $qr;
-		$qr = qr{$opt->{compare}}
-			if $opt->{compare};
-		if($opt->{compare}) {
+		eval { 
+			$qr = qr{$opt->{compare}} if $opt->{compare};
+		};
+		if($qr) {
 			$sub = sub { 
 							$_[0] =~ $qr;
 						};
