@@ -739,7 +739,10 @@ sub run_in_catalog {
 
 		# initialize or autoload can create session
 		# but must handle all aspects
-		init_session() unless $Vend::Session;
+		unless ($Vend::Session) {
+			$CGI::values{mv_tmp_session} = 1;
+			init_session();
+		}
 
 		$CGI::remote_addr ||= 'none';
 		$CGI::useragent   ||= 'commandline';
