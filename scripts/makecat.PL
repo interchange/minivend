@@ -1724,7 +1724,12 @@ EOF
 	chdir "$Conf{relocate}$Conf{vendroot}"
 		or die "\nCouldn't change directory to $Conf{relocate}$Conf{vendroot}: $!\n";
 
-	my $pidfile = 'etc/minivend.pid';
+	my $pidfile;
+	for(qw! etc/interchange.pid etc/minivend.pid etc/interchange.pid !) {
+		$pidfile = $_;
+		last if -f $_;
+	}
+
 	PID: {
 		local ($/);
 		open(PID,"+<$pidfile") or last PID;
