@@ -1853,7 +1853,12 @@ sub log {
 	my $status;
 
 	$file = $opt->{file} || $Vend::Cfg->{LogFile};
+	if($file =~ s/^\s*>\s*//) {
+		$opt->{create} = 1;
+	}
 	$file = Vend::Util::escape_chars($file);
+
+	$file = ">$file" if $opt->{create};
 
 	unless($opt->{process} =~ /\bnostrip\b/i) {
 		$data =~ s/\r\n/\n/g;
@@ -2755,12 +2760,6 @@ sub tag_sort_hash {
 }
 
 my %Prev;
-
-sub compile_sub {
-}
-
-sub check_sub {
-}
 
 sub check_change {
 	my($name, $value, $text, $substr) = @_;
