@@ -338,6 +338,9 @@ print STDERR ".";
         while ($data =~ m:\[loc\](\s*[^\[].*?[^\]]\s*)\[/loc\]:gsi) {
 					write_structure(undef, $1);
 		}
+        while ($data =~ m:\[msg(\s+arg\.\d+=".*?")*\s*\](\s*[^\[].*?[^\]]\s*)\[/msg\]:gsi) {
+					write_structure(undef, $2);
+		}
 	}
 
 	if($opt_c || $opt_o) {
