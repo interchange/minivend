@@ -1151,11 +1151,11 @@ sub readfile {
 }
 
 sub is_yes {
-    return( defined($_[$[]) && ($_[$[] =~ /^[yYtT1]/));
+    return( defined($_[0]) && ($_[0] =~ /^[yYtT1]/));
 }
 
 sub is_no {
-	return( !defined($_[$[]) || ($_[$[] =~ /^[nNfF0]/));
+	return( !defined($_[0]) || ($_[0] =~ /^[nNfF0]/));
 }
 
 # Returns a URL which will run the ordering system again.  Each URL
