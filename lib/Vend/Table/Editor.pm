@@ -844,6 +844,7 @@ EOF
 	id="${id}tab$i"
 	class="${id}tab"
 	style="
+		position: absolute;
 		background-color: $colors[$i]; 
 		cursor: pointer;
 		left: ${left}px;
@@ -1336,7 +1337,6 @@ sub resolve_options {
 	}
 
 	if( !   $opt->{ui_meta_view}
-		and $opt->{view_from}
 		and $opt->{view_from}
 		and $data
 		and ! $opt->{ui_no_meta_display}
