@@ -269,10 +269,14 @@ BEGIN {
 }
 
 package Vend::Payment;
+use strict;
+
 sub authorizenet {
 	my ($user, $amount) = @_;
 
 	my $opt;
+	my $secret;
+	
 	if(ref $user) {
 		$opt = $user;
 		$user = $opt->{id} || undef;
@@ -371,7 +375,7 @@ sub authorizenet {
         $amount = Vend::Util::round_to_frac_digits($amount,$precision);
     }
 
-	$order_id = gen_order_id($opt);
+	my $order_id = gen_order_id($opt);
 
 #::logDebug("auth_code=$actual->{auth_code} order_id=$opt->{order_id}");
     my %query = (
