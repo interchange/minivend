@@ -247,6 +247,7 @@ sub record_exists {
 sub row_hash {
     my ($s, $key) = @_;
 	$s = $s->import_db() if ! defined $s->[$TIE_HASH];
+	return undef unless $s->record_exists($key);
 	my %row;
     @row{ @{$s->[$COLUMN_NAMES]} } = $s->row($key);
 	return \%row;
