@@ -549,7 +549,6 @@ sub catalog_directives {
 	['Levies',		 	 'array',     	 	 ''],
 	['Levy',		 	 'locale',     	 	 ''],
 	['AutoVariable',	 'autovar',     	 ''],
-	['CreditField',     undef,			''],	
 
 	];
 
