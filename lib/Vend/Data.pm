@@ -492,7 +492,7 @@ sub db_column_exists {
 }
 
 sub close_database {
-	my($db, $name);
+	my $name;
 	undef $Products;
 	while( ($name)	= each %Vend::Database ) {
     	$Vend::Database{$name}->close_table()
