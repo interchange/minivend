@@ -1280,9 +1280,9 @@ sub vendUrl {
 
 	my($id, $ct);
 	$id = $Vend::SessionID
-		unless $can_cache and $Vend::Cookie && $opt->{no_session_id};
+		unless $can_cache and $Vend::Cookie and $opt->{no_session_id};
 	$ct = ++$Vend::Session->{pageCount}
-		unless $can_cache and $::Scratch->{mv_no_count};
+		unless $can_cache and $opt->{no_count};
 
 	if($opt->{match_security}) {
 		$opt->{secure} = $CGI::secure;
