@@ -3154,7 +3154,7 @@ sub finalize_mapped_code {
 sub parse_mapped_code {
 	my ($var, $value) = @_;
 
-	return '' if ! $value;
+	return {} if ! $value and $C;
 
 	## Can't give CodeDef a default or this will be premature
 	get_system_code() unless defined $SystemCodeDone;
