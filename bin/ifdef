@@ -1,0 +1,79 @@
+#!/usr/local/bin/perl -i.bak
+# Small script to configure code based on comments
+
+use Getopt::Std;
+
+getopts('nyt:');
+
+$no = $opt_n;
+$yes = $opt_y;
+
+my $found;
+
+$USAGE = <<EOF;
+usage: $0  -(y|n) [-t STRING] filespec
+EOF
+
+if($opt_n and $opt_y) {
+	die "$USAGE\nCan't both set and unset at same time!\n";
+}
+
+if(!$opt_n and !$opt_y) {
+	die "$USAGE\nNeed to specify either -y or -n.\n";
+}
+
+$string = $opt_t || 'AUTO(LOAD)?';
+
+unless($opt_t) {
+	require 5.003_93;
+}
+
+
+if($no) {
+
+	while(<>) {
+		(print, next) unless /^# (NO)?$string$/o;
+		$found = 1;
+		print;
+		if($1) {
+			while(<>) {
+				(print, last) if /^# END NO$string$/o;
+				s/^#//;
+				print;
+			}
+		}
+		else {
+			while(<>) {
+				(print, last) if /^# END $string$/o;
+				s/^([^#])/#$1/;
+				print;
+			}
+		}
+	}
+
+}
+else {
+
+	while(<>) {
+		(print, next) unless /^# (NO)?$string$/o;
+		$found = 1;
+		print;
+		if($1) {
+			while(<>) {
+				(print, last) if /^# END NO$string$/o;
+				s/^([^#])/#$1/;
+				print;
+			}
+		}
+		else {
+			while(<>) {
+				(print, last) if /^# END $string$/o;
+				s/^#//;
+				print;
+			}
+		}
+	}
+
+}
+
+warn "Warning: no '$string' includes found.\n" unless defined $found;

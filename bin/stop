@@ -2,7 +2,7 @@
 #
 # stop - stops all MiniVend sessions when in multiple server mode
 
-$VendRoot = '/home/minivend';
+$VendRoot = '/ext/minivend';
 $ConfDir = "$VendRoot/etc";
 $PidFile = "$ConfDir/minivend.pid";
 
@@ -20,7 +20,7 @@ while (@ARGV) {
 usage: stop [-f]
 
 Stops all MiniVend daemons. The -f flag forces unlink of
-all PID files and sockets.
+all PID files, status files, and sockets.
 EOF
 	$force = 1;
 }
@@ -43,7 +43,7 @@ waited for the housekeeping timer to elapse) then it is hung.
 Do:
 
 	kill -9 $PID
-	rm -f $PidFile
+	rm -f $ConfDir/$PidFile
 
 EOF
 }
@@ -98,8 +98,14 @@ while( @pids = grep /^minivend.pid/, readdir CONFDIR) {
 				}
 		}
 	}
-	sleep 3;
+	select(undef,undef,undef, .1);
 	rewinddir CONFDIR;
+}
+
+if($force) {
+	rewinddir CONFDIR;
+	my(@running) = grep /^mvrunning/, readdir CONFDIR;
+	unlink @running;
 }
 
 closedir CONFDIR;

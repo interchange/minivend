@@ -1,0 +1,28 @@
+To reduce memory consumption for MiniVend, you can autoload some
+routines, and remove some modules from the source.
+
+IMPORTANT NOTE: Autoloading will only work with Perl
+                version 5.003_93 and above.
+
+Perform the following commands *from the MiniVend software directory*.
+
+	bin/ifdef -y lib/Vend/*.pm
+	bin/autosplit lib/Vend/*.pm
+
+If you are not planning on using the new parsed page syntax, you can
+save more memory:
+
+	bin/ifdef -n -t NEWTAGS lib/Vend/Interpolate.pm
+
+If you are not planning on using the static page building capability
+of MiniVend, you can do:
+
+	bin/ifdef -n -t STATICPAGE minivend.pl lib/Vend/Interpolate.pm lib/Vend/Parse.pm
+
+If you are not planning on using the Glimpse search capability
+of MiniVend, you can do:
+
+	bin/ifdef -n -t GLIMPSE minivend.pl
+
+To reverse the process on any of the above, change the sense of
+'-y' to '-n' and vice versa.

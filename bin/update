@@ -1,0 +1,274 @@
+#!/usr/local/bin/perl
+#
+# update - MiniVend database updater
+#
+# $Id: update,v 1.1 1997/05/05 20:17:16 mike Exp mike $
+#
+# This program is largely based on Vend 0.2
+# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+#
+# Portions from Vend 0.3
+# Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
+#
+# Enhancements made by and
+# Copyright 1996, 1997 by Michael J. Heins <mikeh@iac.net>
+#
+# See the file 'Changes' for information.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+BEGIN {
+$Global::VendRoot = '/ext/minivend';
+}
+### END CONFIGURABLE VARIABLES
+
+$Global::ConfigFile = 'minivend.cfg';
+$Global::ErrorFile = "$Global::VendRoot/error.log";
+
+use lib $Global::VendRoot;
+
+my $DEBUG = 0;
+
+use strict;
+use Fcntl;
+
+#select a DBM
+
+BEGIN {
+	$Global::GDBM = $Global::DB_File = 0;
+    AUTO: {
+        last AUTO if
+            (defined $ENV{MINIVEND_DBFILE} and $Global::DB_File = 1);
+        last AUTO if
+			(defined $ENV{MINIVEND_NODBM});
+        eval {require GDBM_File and $Global::GDBM = 1} ||
+        eval {require DB_File and $Global::DB_File = 1};
+    }
+	if($Global::GDBM) {
+		require Vend::Table::GDBM;
+		import GDBM_File;
+		$Global::GDBM = 1;
+	}
+	elsif($Global::DB_File) {
+		require Vend::Table::DB_File;
+		import DB_File;
+		$Global::DB_File = 1;
+	}
+	else {
+		die "No DBM defined! Offline import not necessary.\n";
+	}
+}
+
+use Vend::Config qw(get_catalog_default);
+use Vend::Data;
+
+$Vend::Cfg = {};
+
+my $Name = 'products';
+my $Directory;
+
+my $USAGE = <<EOF;
+usage: update -c catalog [-n name] \
+            -f field [-f field1 -f field2 ...] -k key value [value1 value2 ...]
+    or
+
+usage: update -c catalog -i inputfile [-n name]
+
+Options:
+
+  -c catalog    Catalog name as defined in minivend.cfg.
+  -f field      Field name(s) in database. If multiple fields are specified,
+                multiple corresponding values must be supplied.  Use '' to
+                set to the empty string.
+  -i file       Input file to add entries to an existing database. (Must
+                be in same format/order as existing database.)
+  -k key        Key (item code) to be updated.
+  -n name       Database name as defined in catalog.cfg (default products).
+
+EOF
+
+sub parse_database {
+	my ($var, $value) = @_;
+	my $c;
+	unless (defined $value && $value) { 
+		$c = {};
+		return $c;
+	}
+	$c = $Vend::Cfg->{'Database'};
+	
+	my($database,$file,$type) = split /[\s,]+/, $value, 3;
+
+	$c->{$database}->{'file'} = $file;
+	$c->{$database}->{'type'} = $type;
+
+	return $c;
+}
+
+my ($Inputfile, $Key, @Fields, @Values);
+my ($Catalog,$delimiter,$db);
+my (%wanted) = qw(	datadir   DataDir
+					database   Database
+					delimiter   Delimiter
+					errorfile  ErrorFile);
+
+GETOPT: {
+
+	if($ARGV[0] eq '-c') {
+		shift(@ARGV);
+		$Catalog = shift(@ARGV);
+		redo GETOPT;
+	}
+	elsif($ARGV[0] eq '-d') {
+		shift(@ARGV);
+		$Directory = shift(@ARGV);
+		redo GETOPT;
+	}
+	elsif($ARGV[0] eq '-n') {
+		shift(@ARGV);
+		$Name = shift(@ARGV);
+		redo GETOPT;
+	}
+	elsif($ARGV[0] eq '-k') {
+		shift(@ARGV);
+		$Key = shift(@ARGV);
+		redo GETOPT;
+	}
+	elsif($ARGV[0] eq '-i') {
+		shift(@ARGV);
+		$Inputfile = shift(@ARGV);
+		redo GETOPT;
+	}
+	elsif($ARGV[0] eq '-f') {
+		shift(@ARGV);
+		push(@Fields, shift @ARGV); 
+		redo GETOPT;
+	}
+
+} # END GETOPT
+
+die $USAGE unless defined $Catalog;
+
+push @Values, @ARGV;
+
+if(@Fields and ! @Values) {
+	die $USAGE . "\n";
+}
+elsif (scalar(@Fields) != scalar(@Values) ) {
+	die "Number of fields and number of values don't match.\n" . $USAGE . "\n";
+}
+elsif ((@Fields or @Values) and defined $Inputfile) {
+	die "No field or value arguments accepted when inputting from a file.\n" .
+	$USAGE . "\n";
+}
+elsif (@Fields and ! $Key) {
+	die $USAGE . "\n";
+}
+elsif (!defined $Inputfile and ! @Fields and !@Values) {
+	die $USAGE . "\n";
+}
+
+
+	my($name,$dir,$param);
+	chdir $Global::VendRoot;
+	open(GLOBAL, $Global::ConfigFile) or
+		die "No global configuration file? Aborting.\n";
+	while(<GLOBAL>) {
+		next unless /^\s*catalog\s+$Catalog\s+/i;
+		chomp;
+		s/^\s+//;
+		(undef,$name,$dir,$param) = split /\s+/, $_, 4;
+		last;
+	}
+	close GLOBAL;
+	die "Catalog $Catalog not found in $Global::ConfigFile.\n"
+		unless defined $name;
+	chdir $dir or die "chdir to $dir: $!\n";
+	open(CATALOG, 'catalog.cfg') or
+		die "No catalog configuration file? Aborting.\n";
+	my (%seen);
+	$Vend::Cfg->{Database} = parse_database($name,'');
+	while(<CATALOG>) {
+		next unless /\S/;
+		next if /^\s*#/;
+		chomp;
+		s/^\s+//;
+		s/\s+$//;
+		($name,$param) = split /\s+/, $_, 2;
+		next unless defined $wanted{lc $name};
+		if($name =~ /^database$/i) {
+			$Vend::Cfg->{Database} = parse_database($name, $param);
+		}
+		else {
+			$seen{$wanted{lc $name}} = $param;
+		}
+	}
+	close CATALOG;
+	for(values %wanted) {
+		next if defined $seen{$_};
+		$seen{$_} = get_catalog_default($_);
+	}
+	for(keys %seen) {
+		$Vend::Cfg->{$_} = $seen{$_}
+			unless /^database$/i;
+		warn "$_: $Vend::Cfg->{$_}\n"
+			if $DEBUG;
+	}
+
+
+$Vend::Cfg->{DataDir} = $Directory
+	if defined $Directory;
+
+die "Bad data directory $Vend::Cfg->{DataDir} -- doesn't exist.\n"
+	unless -d $Vend::Cfg->{DataDir};
+
+die "Bad database $Name -- doesn't exist.\n"
+	unless
+	ref
+	($db = $Vend::Cfg->{Database}->{$Name});
+
+$Vend::WriteDatabase{$Name} = 1;
+
+my $ref = import_database($db->{'file'}, $db->{'type'}, $Name);
+
+die "Bad import of database $Name from catalog $Catalog: $!\n"
+	unless defined $ref;
+
+unless($ref->record_exists($Key)) {
+	die "Key $Key not found in database $Name.\n";
+}
+
+my ($key,$field,@fields);
+
+if (! defined $Inputfile ) {
+	foreach $field (@Fields) {
+		unless ( $ref->test_column($field) ) {
+			die "$field is not a column in the database.\n";
+		}
+		$ref->set_field($Key, $field, shift(@Values));
+	}
+}
+else {
+	open INPUT, $Inputfile or die "Couldn't open input file $Inputfile: $!\n";
+	while(<INPUT>) {
+		chomp;
+		s/[\r\cZ]+//;
+		($key,@fields) = split /\t/, $_;
+		$ref->set_row($key, @fields);
+	}
+	close INPUT;
+}
+
+close_database();
+

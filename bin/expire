@@ -2,7 +2,7 @@
 #
 # MiniVend session expiration
 #
-# $Id: expire,v 2.3 1997/01/07 01:40:44 mike Exp mike $
+# $Id: expire,v 1.2 1997/04/10 05:17:09 mike Exp $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -11,7 +11,7 @@
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
 # Enhancements made by and
-# Copyright 1996 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>
 #
 # See the file 'Changes' for information.
 #
@@ -30,7 +30,7 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 BEGIN {
-$Global::VendRoot = '/home/minivend';
+$Global::VendRoot = '/ext/minivend';
 }
 ### END CONFIGURABLE VARIABLES
 
@@ -39,6 +39,7 @@ $Global::HammerLock = 20;
 $Global::ErrorFile = 'error.log';
 
 use lib $Global::VendRoot;
+use lib "$Global::VendRoot/lib";
 
 use strict;
 use Fcntl;

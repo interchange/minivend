@@ -2,7 +2,7 @@
 #
 # MiniVend session dumper
 #
-# $Id: dump,v 2.3 1997/01/07 01:40:44 mike Exp mike $
+# $Id: dump,v 1.4 1997/05/05 20:17:16 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -11,7 +11,7 @@
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
 # Enhancements made by and
-# Copyright 1996 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>
 #
 # See the file 'Changes' for information.
 #
@@ -30,27 +30,34 @@
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 BEGIN {
-$Global::VendRoot = '/home/minivend';
+$Global::VendRoot = '/ext/minivend';
+$Global::ErrorFile = "$Global::VendRoot/error.log";
 }
 ### END CONFIGURABLE VARIABLES
 
 $Global::ConfigFile = 'minivend.cfg';
 $Global::HammerLock = 20;
-$Global::ErrorFile = "$Global::VendRoot/error.log";
 
-$Vend::SessionName = 'utility';
+$Vend::SessionID = 'dumpprog';
 
 use lib $Global::VendRoot;
+use lib "$Global::VendRoot/lib";
 
-my $DEBUG = 1;
+my $DEBUG;
+$Global::DEBUG = $DEBUG = 0;
 
 use strict;
 use Fcntl;
 
 #select a DBM
 
+# Will be set if GDBM or DB_File
+
+my $Extension;
+
 BEGIN {
 	$Global::GDBM = $Global::DB_File = $Global::NDBM = $Global::Msql = 0;
+	$Extension = '';
     AUTO: {
         last AUTO if
             (defined $ENV{MINIVEND_DBFILE} and $Global::DB_File = 1);
@@ -61,11 +68,13 @@ BEGIN {
 		require Vend::Table::GDBM;
 		import GDBM_File;
 		$Global::GDBM = 1;
+		$Extension = '.gdbm';
 	}
 	elsif($Global::DB_File) {
 		require Vend::Table::DB_File;
 		import DB_File;
 		$Global::DB_File = 1;
+		$Extension = '.db';
 	}
 	else {
 		die "No DBM defined! (File sessions can be viewed without this program.)\n";
@@ -76,12 +85,12 @@ use Vend::Session;
 use Vend::Config qw(get_catalog_default);
 
 my $USAGE = <<EOF;
-usage: dump -c catalog 
+usage: dump -c catalog [-n session_id]
            or
        dump sessionfile [sessionfile.lock]
 EOF
 
-my $catalog;
+my ($catalog, $name);
 my (%wanted) = qw(	sessiondatabase SessionDatabase
 					sessionlockfile SessionLockFile
 					errorfile       ErrorFile);
@@ -93,6 +102,14 @@ GETOPT: {
 if($ARGV[0] eq '-c') {
 	shift(@ARGV);
 	$catalog = shift(@ARGV);
+	redo GETOPT;
+}
+elsif($ARGV[0] eq '-n') {
+	shift(@ARGV);
+	$name = shift(@ARGV);
+	redo GETOPT;
+}
+elsif(! defined $ARGV[0]) {
 	last GETOPT;
 }
 else {
@@ -121,6 +138,8 @@ EOF
 			unless -f "$dir/etc/$file.lock";
 		$Vend::Cfg->{SessionLockFile} ="$dir/etc/$file.lock";
 	}
+
+	last GETOPT;
 
 }
 
@@ -170,9 +189,19 @@ if(defined $catalog) {
 	}
 }
 
-die $USAGE unless defined $Vend::Cfg->{SessionLockFile};
+CHECKEXIST: {
+	my $sessfile = $Vend::Cfg->{SessionDatabase} . $Extension;
+	die "No session database $sessfile to dump.\n" unless -f $sessfile;
+	die $USAGE unless defined $Vend::Cfg->{SessionLockFile};
+}
 
+
+Vend::Util::setup_escape_chars();
+$CGI::user = 'LOCAL';
+$CGI::host = 'LOCAL';
+$Vend::SessionName = session_name();
 get_session();
-dump_sessions();
+dump_sessions($name || undef);
+put_session();
 release_session();
 

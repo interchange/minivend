@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl -w
 # start - starts Vend in UNIX server mode
-$VendRoot = '/home/mvend203';
+$VendRoot = '/ext/minivend';
 $PERL = '/usr/local/bin/perl';
 $VEND = "$VendRoot/minivend.pl";
 $PerlFlags = '-w';
@@ -9,30 +9,20 @@ $PerlFlags = '-w';
 $ENV{'IFS'} = " ";
 $ENV{'PATH'} = "/bin:/usr/bin:$VendRoot/bin";
 
+$| = 1;
+
 if($0 =~ /_inet$/) {
 	$Inet_mode = 1;
 }
-$n = shift || 1;
-if ($n < 1 or $n > 9) {
-	die <<EOF;
-usage: start [n]
 
-Starts n minivend servers, where n is a number from 1 to 9.
-EOF
-
+# Untaint alphanuerics, periods, slashes, and minus signs
+# for options
+my $tmp;
+for(@ARGV) {
+    m{([-./\w]+)};
+    $tmp = $1;
+    $_ = $tmp;
 }
-
-if (defined $Inet_mode and $n > 1) {
-	print <<EOF;
-
-NOTE: Only one server is started in inet mode, ignoring '$n'.
-
-EOF
-}
-
-# Untaint a single digit from $n;
-$n =~ /(\d)/;
-$n = $1;
 
 sub prompt {
     my($pr) = shift || '? ';
@@ -86,31 +76,6 @@ EOM
 
 }
 
-
-CHECK: {
-	last CHECK if $n == 1;
-	$found = 0;
-	if( open(CFG, "$VendRoot/minivend.cfg") ) {
-		while (<CFG>) {
-			next unless /^multiserver\s+(\S)/i;
-			$found = $1;
-			$found =~ s/[^Yy1tT]//ig;
-			last;
-		}
-		close CFG;
-	}
-	else {	# Assume they know what they are doing
-		$found = 1;
-	}
-	die <<EOF unless $found;
-You aren't in MultiServer mode, you can only start one MiniVend.
-Please try again.
-EOF
-
-}
-
-$n = int($n);
-
 if (defined $Trysu) {
 	exec <<EndOfExec;
 su $name <<EOF
@@ -130,15 +95,12 @@ if (defined $ENV{GATEWAY_INTERFACE}) {
 	#push(@Flags, '-u', $userdata);
 }
 
-for($i = 1; $i <= $n; $i++) {
-
-	if (defined $Inet_mode) {
-		system $PERL, $PerlFlags, $VEND, '-serve', '-i';
-	}
-	else {
-		system $PERL, $PerlFlags, $VEND, '-serve';
-	}
-
+if (defined $Inet_mode) {
+	system $PERL, $PerlFlags, $VEND, '-serve', '-i', @ARGV;
+}
+else {
+	system $PERL, $PerlFlags, $VEND, '-serve', @ARGV;
 }
 
-sleep 2;
+
+sleep 1;

@@ -2,7 +2,7 @@
 #
 # make_virtual = catalog configurator for a plain user
 #
-# Copyright 1996 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-$VendRoot = '/home/mvend203';
+$VendRoot = '/ext/minivend';
 
 # Set this to '' if your system doesn't support mkdir -p
 $mkdirgood = '-p';

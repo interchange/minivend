@@ -2,8 +2,8 @@
 #
 # configure.pl - Configure the MiniVend program
 #
-# Version 1.0
-# Copyright 1996 by Mike Heins <mikeh@iac.net>
+# Version 1.1
+# Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ $| = 1;
 
 $Rerun = 0;
 
+use lib "./lib";
 my $param;
 PARAM: {
 	my $param = shift || '';
@@ -152,25 +153,26 @@ sub prompt {
     $ans ? $ans : $def;
 }
 
-sub install_file_lock {
-
-    mkdir('auto', 0755) or die "mkdir auto/: $!\n";
+sub install_perl_module {
+	my ($mod, $dir) = @_;
+	$dir = $dir || $mod;
+    mkdir('lib/auto', 0755);
     chdir 'src' or die "Source directory src/ not found: $!\n";
-    system "tar xf File-Lock-0.9.tar";
-    chdir 'File-Lock-0.9' or die "chdir: $!\n";
+    system "tar xf $mod.tar";
+    chdir $dir or die "chdir: $!\n";
     my $makemake = <<EOF;
-$PERL Makefile.PL INSTALLPRIVLIB=$Initial{'VendRoot'} \
-                  INSTALLARCHLIB=$Initial{'VendRoot'} \
-                  INSTALLSITELIB=$Initial{'VendRoot'} \
-                  INSTALLMAN1DIR=$Initial{'VendRoot'}/doc \
-                  INSTALLMAN3DIR=$Initial{'VendRoot'}/doc \
-                  INSTALLSITEARCH=$Initial{'VendRoot'} \
+$PERL Makefile.PL INSTALLPRIVLIB=$Initial{VendRoot}/lib \
+                  INSTALLARCHLIB=$Initial{VendRoot}/lib \
+                  INSTALLSITELIB=$Initial{VendRoot}/lib \
+                  INSTALLMAN1DIR=none \
+                  INSTALLMAN3DIR=none \
+                  INSTALLSITEARCH=$Initial{VendRoot}/lib \
                   INSTALLDIRS=perl
 EOF
     for ($makemake, 'make', 'make test', 'make pure_perl_install') {
         system $_;
         if($?) {
-            die "File::Lock make process failed.\n";
+			chdir '../..' or die "chdir: $!\n";
             return 0;
         }
     }
@@ -292,13 +294,14 @@ EOF
 							warn <<EOF . "\n";
 
 You are running Solaris 2, and you don't have the File::Lock module
-installed. This is a show-stopper -- Solaris doesn't support flock(),
-and you need this module. The good news is that it is included with
-MiniVend. It is also available at any CPAN site -- you can download it
-from http://www.perl.com at any time.
+installed. This is a show-stopper with less than Perl 5.004, as Solaris
+doesn't support flock().  and you need this module. The good news is that
+it is included with MiniVend. It is also available at any CPAN site --
+you can download it from http://www.perl.com at any time.
 
 MiniVend's attempt to install it apparently failed, so try and install
-it manually.  See you when you get it.
+it manually.  If you have Perl 5.004, MiniVend may work without this
+module.
 
 EOF
 						}
@@ -965,14 +968,45 @@ it and MiniVend is not able to install it..
 MiniVend will try and install the module now.
 
 EOF
-		install_file_lock() or die "\nInstall FAILED.\n";
-		print "\nInstall successful, apparently.\n";
-		system	$PERL,
-			'-npi', '-e',
-			"'s!^\s*#\s*(use\s+File::Lock)!$1!'",
-			'Vend/Util.pm';
+		if(install_perl_module('File-Lock-0.9')) {
+			print "\nInstall successful, apparently.\n";
+			system	$PERL,
+				'-npi', '-e',
+				"'s!^\s*#\s*(use\s+File::Lock)!$1!'",
+				'Vend/Util.pm';
+		}
+		else {
+			warn "\nInstall FAILED.\n";
+			require 5.00393;
+		}
 
 } # last LOCK_GCC
+
+MDMODULE: {
+	eval {require MD5};
+	if ($@) {
+
+		print <<EOF;
+
+You don't have the MD5 module installed.  MiniVend uses it
+to advantage in quite a few ways -- you can operate without it
+but we will try to install it anyway.  It is included with MiniVend,
+but the latest version can be obtained from http://www.perl.com
+in the CPAN area.  It will be no problem if MiniVend is not able
+to install it.
+
+MiniVend will try and install the module now.
+
+EOF
+	(install_perl_module("MD5-1.6") and
+		print "\nInstall successful, apparently.\n")
+		or warn <<EOF . "\n";
+Install FAILED. This is not fatal -- but you might want
+to obtain MD5 and install it later.
+EOF
+
+	}
+}
 
 my @params = qw(PERL);
 

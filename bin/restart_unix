@@ -4,20 +4,23 @@
 # Modded to just stop and start
 # Support may come for multi-server
 #
-$VendRoot = '/home/mvend203';
+$VendRoot = '/ext/minivend';
 ## END CONFIGURABLE VARIABLES
 
 $ENV{PATH} = "/bin:/usr/bin:$VendRoot/bin";
 $ENV{IFS}  = " ";
 
-$n = shift || 1;
-
-# Untaint a single digit from $n;
-$n =~ /(\d)/;
-$n = $1;
+# Untaint alphanuerics, periods, slashes, and minus signs
+# for options
+my $tmp;
+for(@ARGV) {
+	m{([-./\w]+)};
+	$tmp = $1;
+	$_ = $tmp;
+}
 
 system("$VendRoot/bin/stop");
 
-sleep 1;
+#sleep 1;
 
-system("$VendRoot/bin/start $n");
+system("$VendRoot/bin/start_unix @ARGV");
