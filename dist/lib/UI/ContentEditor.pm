@@ -4,7 +4,8 @@
 # 
 # $Id$
 #
-# Copyright (C) 1996-2002 Red Hat, Inc. <interchange@redhat.com>
+# Copyright (C) 2003 Interchange Development Group
+# Copyright (C) 1996-2002 Red Hat, Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1526,8 +1527,7 @@ sub page_control_editor {
 		$meta->{$st} = {
 			label => 'how to set',
 			type => 'select',
-			passed => qq{
-					tmpn=Unparsed and temporary,
+			passed => qq{tmpn=Unparsed and temporary,
 					set=Unparsed and persistent,
 					tmp=Parsed and temporary,
 					seti=Parsed and persistent,
