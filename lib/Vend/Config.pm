@@ -2393,7 +2393,7 @@ my %Default = (
 			@base{@base} = @base;
 
 			my %seen;
-			my @types = grep !$seen{$_}, keys %$o, @base;
+			my @types = grep !$seen{$_}++, keys %$o, @base;
 
 			for(@types) {
 				my $loc = $o->{$_} ||= {};
@@ -2435,7 +2435,7 @@ my %Default = (
 			@base{@base} = @base;
 
 			my %seen;
-			my @types = grep !$seen{$_}, keys %$o, @base;
+			my @types = grep !$seen{$_}++, keys %$o, @base;
 
 			for(@types) {
 				my $loc = $o->{$_} ||= {};
