@@ -715,8 +715,10 @@ EOF
 		var html = "<table cellpadding=0 cellspacing=0 border=0>";
 
 		var idx = -1;
+		var digid = obj.id;
+		digid = digid.replace(/^$vpf/, '');
 		for(var j = 0; j < ${vpf}lines.length; j++) {
-			if(${vpf}lines[j][0] == obj.id) {
+			if(${vpf}lines[j][0] == digid) {
 				idx = j;
 				break;
 			}
