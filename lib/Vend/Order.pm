@@ -1440,7 +1440,7 @@ sub route_order {
 
 	# Careful! If you set it on one order and not on another,
 	# you must delete in between.
-	if(! $check_only and ! $Vend::Session->{mv_order_number}) {
+	if(! $check_only and ! $main->{no_increment} and ! $Vend::Session->{mv_order_number}) {
 		$::Values->{mv_order_number} = counter_number(
 											$main->{counter},
 											$main->{sql_counter},
