@@ -1956,13 +1956,16 @@ EOF
 			chdir "$Conf{relocate}$Conf{vendroot}"
 				or die "\nchdir $Conf{relocate}$Conf{vendroot}: $!\n";
 			# remember directories so we can chown below
-			chdir "share" or die "\nchdir 'share': $!\n";
+			chdir "share" or die "error.\nchdir 'share': $!\n";
 			map { push @sharedirs, $_ if -d $_ } glob('*');
 			chdir "..";
 			copy_dir("share", "$Conf{relocate}$Conf{sharedir}") or die;
 		};
-		if ($@) {
-			print "\nError installing share/ files: $@\n";
+		if (! @sharedirs) {
+			print "none found.\n";
+		}
+		elsif ($@) {
+			print "error.\nError installing share/ files: $@\n";
 		} else {
 			File::Find::find(
 				$chg_to_catuser,
