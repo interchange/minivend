@@ -73,7 +73,10 @@ sub init {
 
 	@{$s}{keys %Default} = (values %Default);
 	$s->{mv_all_chars}	        = [1];
-	$s->{mv_base_directory}     = $Vend::Cfg->{ProductDir};
+	
+	### This is a bit of a misnomer, for really it is the base table
+	### that we will use if no base=table param is specified
+	$s->{mv_base_directory}     = $Vend::Cfg->{ProductFiles}[0];
 	$s->{mv_begin_string}       = [];
 	$s->{mv_case}               = [];
 	$s->{mv_column_op}          = [];
