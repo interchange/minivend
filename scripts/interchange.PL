@@ -23,7 +23,7 @@ DOIT: {
 #!/usr/bin/perl
 ##!~_~perlpath~_~
 #
-# Interchange version 4.5.x
+# Interchange version 4.5.6
 #
 # $Id$
 #
