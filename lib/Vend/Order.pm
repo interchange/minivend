@@ -1165,8 +1165,10 @@ $state_template{US} = <<EOF;
 | PR DC AA AE GU VI AS MP FM MH PW AP FP FPO APO |
 EOF
 
+# NF = Newfoundland is deprecated and will be removed at some point;
+# use NL instead
 $state_template{CA} = <<EOF;
-| AB BC MB NB NF NS NT ON PE QC SK YT YK |
+| AB BC MB NB NF NL NS NT ON PE QC SK YT YK |
 EOF
 
 $zip_error{US} = "'%s' not a US zip code";
