@@ -1266,9 +1266,12 @@ entered:
 
 EOF
 
-	$tempurl  = prompt ("\nPlease re-enter or confirm: ",
+		if ($Vend::MakeCat::Force) {
+			$tempurl = $Conf{sampleurl};
+		} else {
+			$tempurl  = prompt ("\nPlease re-enter or confirm: ",
 						"http://$Conf{servername}/$guessdir");
-
+		}
 	}
 
 	$Conf{sampleurl} = $tempurl;
