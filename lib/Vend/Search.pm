@@ -255,9 +255,9 @@ EOF
 				if(	$s->{mv_column_op}[$i] =~ /([=][~]|rm|em)/ ) {
 					$specs[$i] = quotemeta $specs[$i]
 						if $s->{mv_all_chars}[$i];
-					$s->{regex_specs} = []
-						unless $s->{regex_specs};
 					last COLOP if $s->{mv_begin_string}[$i];
+					last COLOP if $s->{mv_column_op}[$i] eq 'em';
+					$s->{regex_specs} ||= [];
 					$specs[$i] =~ /(.*)/;
 					push @{$s->{regex_specs}}, $1
 				}
@@ -740,6 +740,7 @@ EOF
 #::logDebug("coderef=" . ::uneval_it(\@code));
 
 		undef $f if $s->{mv_search_relate} =~ s/\bor\b/or/ig;
+		undef $f unless $s->{regex_specs} or $s->{eq_specs};
 		DOLIMIT: {
 #::logDebug(::uneval_it({%$s}));
 #::logDebug("do_limit.");
