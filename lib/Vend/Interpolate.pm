@@ -3026,7 +3026,10 @@ sub tag_more_list {
 	$prefix = $q->{prefix} || '';
 	my $form_arg = "mv_more_ip=1\nmv_nextpage=$page";
 	$form_arg .= "\npf=$q->{prefix}" if $q->{prefix};
-	$form_arg .= "\nmi=$q->{mv_more_id}" if $q->{mv_more_id};
+	if($q->{mv_more_id}) {
+		$more_id = $q->{mv_more_id};
+		$form_arg .= "\nmi=$more_id";
+	}
 
 	if($r =~ s:\[border\]($All)\[/border\]::i) {
 		$border = $1;
