@@ -1160,7 +1160,7 @@ sub adjust_cgi {
 
 	# Fix Cobalt/CGIwrap problem
     if($Global::Variable->{CGIWRAP_WORKAROUND}) {
-        $CGI::path_info =~ s!^$CGI::script_name::;
+        $CGI::path_info =~ s!^$CGI::script_name!!;
     }
 
     $CGI::host = $host || $CGI::ip;
