@@ -1320,7 +1320,7 @@ sub import_from_ic_db {
 #::logDebug("idb=$idb odb=$odb");
 	eval {
 		my $f;
-		while($f = $idb->each_nokey()) {
+		while($f = $idb->each_nokey($options->{MIRROR_QUAL})) {
 #::logDebug("importing key=$f->[0]");
 			$odb->set_row(@$f);
 		}
