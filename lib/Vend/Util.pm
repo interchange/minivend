@@ -1208,14 +1208,7 @@ sub readfile {
 		(defined $loc ? $loc : $Vend::Cfg->{Locale}->{readfile} )
 		)
 	{
-		my $key;
-		$contents =~ s~\[L(\s+([^\]]+))?\]([\000-\377]*?)\[/L\]~
-						$key = $2 || $3;		
-						defined $Vend::Cfg->{Locale}->{$key}
-						?  ($Vend::Cfg->{Locale}->{$key})	: $3 ~eg;
-		$contents =~ s~\[LC\]([\000-\377]*?)\[/LC\]~
-						find_locale_bit($1) ~eg;
-		undef $Lang;
+		parse_locale(\$contents);
 	}
     return $contents;
 }
