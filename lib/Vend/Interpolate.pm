@@ -4378,10 +4378,12 @@ my $once = 0;
 	# used in if-prefix-param or prefix-param tags
 	my @field_msg = ('error', "Unknown field name '%s' used in tag %s");
 	$run = $text;
+	if(! $opt->{ignore_undefined}) {
 	$run =~ s#$B$QR{_param}# defined $fh->{$1} ||
 		::logOnce(@field_msg, $1, "$Orig_prefix-param") #ige;
 	$run =~ s#$IB$QR{_param_if}# defined $fh->{$3} ||
 		::logOnce(@field_msg, $3, "if-$Orig_prefix-param") #ige;
+	}
 
 	for( ; $i <= $end ; $i++, $count++ ) {
 		$row = $ary->[$i];
