@@ -342,7 +342,7 @@ sub create {
 		for(@{$config->{PRECREATE}} ) {
 			$db->do($_) 
 				or ::logError(
-								"DBI: Post creation query '%s' failed: %s" ,
+								"DBI: Prior creation query '%s' failed: %s" ,
 								$_,
 								$DBI::errstr,
 					);
