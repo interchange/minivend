@@ -1433,13 +1433,17 @@ sub conditional {
 
 	RUNSAFE: {
 		last RUNSAFE if defined $status;
-		last RUNSAFE if $status = ($noop && $op) ? 1 : 0;
+		
+		if ($noop) {
+			$status = $op ? 1 : 0;
+			last RUNSAFE;
+		}
+
 		$ready_safe->trap(@{$Global::SafeTrap});
 		$ready_safe->untrap(@{$Global::SafeUntrap});
-		$status = $ready_safe->reval($op) ? 1 : 0
-			unless $@;
+		$status = $ready_safe->reval($op) ? 1 : 0;
 		if ($@) {
-			logError qq%Bad if '@_': $@%;
+			logError "Bad if '@_': $@";
 			$status = 0;
 		}
 	}
