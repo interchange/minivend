@@ -422,14 +422,10 @@ sub _parse_sql {
 	my ($s, $query) = @_;
 	my (%sqlinfo);
 	
-	die "SQL is not enabled for Interchange. Get the SQL::Statement module.\n"
-		unless defined &SQL::Statement::new;
-
-	my ($parser, $stmt);
+	my ($stmt);
 	
-	$parser = SQL::Parser->new('Ansi');
 	eval {
-		$stmt = SQL::Statement->new($query, $parser);
+		$stmt = Vend::SQL_Parser->new($query, $parser);
 	};
 	
 	if ($@) {

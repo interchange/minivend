@@ -549,10 +549,6 @@ sub perform_search {
 
 }
 
-BEGIN {
-	eval { require SQL::Statement; };
-}
-
 my %scalar = (qw/ st 1 ra 1 co 1 os 1 sr 1 ml 1/);
 
 sub push_spec {
@@ -588,9 +584,6 @@ sub sql_statement {
 			unless "\L$table" eq 'glimpse';
 # END GLIMPSE
 	}
-
-#	die "SQL is not enabled for Interchange. Get the SQL::Statement module.\n"
-#		unless defined &SQL::Statement::new;
 
 	# Strip possible leading stuff
 	$text =~ s/^\s*sq\s*=//;
