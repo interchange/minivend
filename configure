@@ -1,8 +1,10 @@
 #!/bin/sh
 
+# $Id$
+
 cat <<EOF
 
- Interchange Version 4.7.x Configuration
+ Interchange Version 4.9.x Configuration
 
  Copyright 1996-2001 Red Hat, Inc. <interchange@redhat.com>
 
