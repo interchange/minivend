@@ -530,11 +530,11 @@ eval {
 		for(@tabs) {
 			s/\..*//;
 		}
-        $search = new Vend::DbSearch;
+        $search = new Vend::DbSearch();
 #::logDebug("created DbSearch object: " . ::uneval($search));
 	}
 	else {
-        $search = new Vend::TextSearch;
+        $search = new Vend::TextSearch();
 #::logDebug("created TextSearch object: " . ::uneval($search));
     }
 
