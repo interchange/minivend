@@ -1567,7 +1567,7 @@ EOF
 		$c->{$name} = $c->{_mvsafe}->reval($sub);
 	}
 	if($@) {
-		config_warn("Action '%s' did not compile correctly.", $name);
+		config_warn("Action '%s' did not compile correctly (%s).", $name, $@);
 	}
 	return $c;
 	
