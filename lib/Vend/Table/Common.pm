@@ -712,7 +712,7 @@ sub query {
 	}
 	else {
 		eval {
-			($spec, $stmt) = Vend::Scan::sql_statement($query, $ref);
+			($spec, $stmt) = Vend::Scan::sql_statement($query, $opt);
 		};
 		if($@) {
 			my $msg = ::errmsg("SQL query failed: %s\nquery was: %s", $@, $query);
@@ -754,23 +754,33 @@ sub query {
 
 eval {
 
+	my @vals;
 	if($stmt->command() ne 'SELECT') {
 		if(defined $s and $s->[$CONFIG]{Read_only}) {
 			die ("Attempt to write read-only database $s->[$CONFIG]{name}");
 		}
 		$update = $stmt->command();
+		@vals = $stmt->row_values();
+#::logDebug("row_values returned=" . ::uneval(\@vals));
 	}
-	my @vals = $stmt->row_values();
-	
+
+
 	@na = @{$spec->{rf}}     if $spec->{rf};
 
-	$spec->{ml} = $opt->{ml} || '1000';
+	$spec->{ml} = $opt->{ml} if $opt->{ml};
+	$spec->{ml} ||= '1000';
 	$spec->{fn} = [$s->columns];
 
 	my $sub;
 
 	if($update eq 'INSERT') {
-		@update_fields = $spec->{rf} ? @{$spec->{rf}} : @{$spec->{fn}};
+		if(! $spec->{rf} or  $spec->{rf}[0] eq '*') {
+			@update_fields = @{$spec->{fn}};
+		}
+		else {
+			@update_fields = @{$spec->{rf}};
+		}
+#::logDebug("update fields: " . uneval(\@update_fields));
 		@na = $codename;
 		$sub = $s->row_settor(@update_fields);
 	}

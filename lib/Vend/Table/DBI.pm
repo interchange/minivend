@@ -1952,18 +1952,29 @@ sub query {
 			return undef if $opt->{no_requery};
 
 			# Do nothing but log to debug and fall through to MVSEARCH
+			my $trytab;
+			my $newdb;
 			eval {
-				($spec, $stmt) = Vend::Scan::sql_statement($query, $ref);
-				my @additions = grep length($_) == 2, keys %$opt;
-				if(@additions) {
-					@{$spec}{@additions} = @{$opt}{@additions};
-				}
+				$trytab = Vend::Scan::sql_statement($query, { table_only => 1 } );
+				$newdb = Vend::Data::database_exists_ref($trytab);
 			};
 			if($@) {
 				my $msg = ::errmsg(
 						qq{Query rerouted from table %s failed: %s\nQuery was: %s},
-						$s->[$TABLE],
+						$trytab,
 						$@,
+						$query,
+					);
+				Carp::croak($msg) if $Vend::Try;
+				::logError($msg);
+				return undef;
+			}
+			if($newdb) {
+				return $newdb->query($opt, $text, @arg);
+			}
+			else {
+				my $msg = ::errmsg(
+						qq{Unable to find base table in query: %s},
 						$query,
 					);
 				Carp::croak($msg) if $Vend::Try;
