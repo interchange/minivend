@@ -1474,6 +1474,7 @@ EOF
 			;
 		$template = get_locale_message(500, $template, $err);
 		$template .= "($err)";
+		::logError($err);
 		::response($template);
 	}
 
