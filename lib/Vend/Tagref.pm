@@ -656,6 +656,8 @@ Causes the counter to count down instead of up.
 
 Shows the value of the counter without incrementing or decrementing it.
 
+=back
+
 %%%
 currency
 %%
