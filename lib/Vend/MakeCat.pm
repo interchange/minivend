@@ -672,15 +672,6 @@ sub conf_parse_http {
 	close(HTTPDCONF);
 
 	
-	$data =~ s!
-				<virtualhost
-				\s+
-					([^>\n]+)
-				\s*>\s+
-					([\000-\377]*?)
-				</virtualhost>!
-				$virtual->{$1} = $2; ''!xieg;
-
 	if($data =~ s/^\s*resourceconfig\s+(.*)//) {
 		$newfile = $1;
 	}
@@ -699,6 +690,15 @@ sub conf_parse_http {
 			close(HTTPDCONF);
 		}
 	}
+
+	$data =~ s!
+				<virtualhost
+				\s+
+					([^>\n]+)
+				\s*>\s+
+					([\000-\377]*?)
+				</virtualhost>!
+				$virtual->{$1} = $2; ''!xieg;
 
 	$virtual->{' '} = $data;
 
