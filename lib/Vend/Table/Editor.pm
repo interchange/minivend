@@ -591,7 +591,7 @@ EOF
 	my $vpf = $id . '_';
 	my $num_panels = scalar(@$cont);
 	my $tabs_per_row = int( $opt->{panel_width} / $opt->{tab_width}) || 1;
-	my $num_rows = POSIX::ceil( $num_panels / $opt->{tab_width});
+    my $num_rows = POSIX::ceil( $num_panels / $tabs_per_row);
 	my $width = $opt->{panel_width};
 	my $height = $opt->{tab_height} * $num_rows + $opt->{panel_height};
 	my $panel_y;
