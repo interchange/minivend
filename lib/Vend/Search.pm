@@ -574,6 +574,8 @@ EOF
 		my @negates =  map { $_ ? 'not ' : ''} @{$s->{mv_negate}};
 		my @begin = 	@{$s->{mv_begin_string}};
 		my @group = 	@{$s->{mv_search_group}};
+#::logDebug("Group=" . join ",", @group);
+#::logDebug("Ors=" . join ",", @{$s->{mv_orsearch}});
 		my @code;
 		my $candidate = '';
 		my ($i, $start, $term, $like);
