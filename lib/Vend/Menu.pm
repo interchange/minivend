@@ -562,7 +562,7 @@ EOF
 
 	for(@levels) {
 		push @out, <<EOF;
-<div id="$fdiv$_" style="
+<div class="$opt->{flyout_class}" id="$fdiv$_" style="
 						position:absolute;
 						display:none;
 						$opt->{flyout_style}
