@@ -650,6 +650,9 @@ sub start {
 			}
 			$Vend::StatusLine = '' if ! $Vend::StatusLine;
 			$Vend::StatusLine .= "\n" if $Vend::StatusLine !~ /\n$/;
+			$Vend::StatusLine .= <<EOF if $attr->{target};
+Window-Target: $attr->{target}
+EOF
 			$Vend::StatusLine .= <<EOF;
 Status: 302 moved
 Location: $attr->{href}
