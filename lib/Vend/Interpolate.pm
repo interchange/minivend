@@ -91,6 +91,7 @@ BEGIN {
 use strict;
 use Vend::Util;
 use Vend::Data;
+use Vend::Form;
 require Vend::Cart;
 
 
@@ -2208,6 +2209,9 @@ sub tag_accessories {
 	($attribute, $type, $field, $db, $name, $outboard, $passed) = 
 		@{$opt}{qw/attribute type column table name outboard passed/};
 
+	return Vend::Form::display($opt, $item)
+		if $::Variable->{MV_DANGEROUS_NEW_FORM}
+		or $Global::Variable->{MV_DANGEROUS_NEW_FORM};
 	my $p = $opt->{prepend} || '';
 	my $a = $opt->{append} || '';
 	my $delimiter = $opt->{delimiter} || ',';
@@ -3394,7 +3398,7 @@ sub escape_mv {
 	@args = grep $_, @args;
 	for(@args) {
 		s!/!__SLASH__!g unless defined $not_scan;
-		s!\0!__NULL__!g;
+		s!\0!-_NULL_-!g;
 		s!(\w\w=)(.*)!$1 . esc($2)!eg
 			or (undef $_, next);
 		s!__SLASH__!::!g unless defined $not_scan;
