@@ -194,6 +194,17 @@ my %transform = (
 		}
 		return $status;
 	},
+	items	=> sub {
+		my ($row, $fields) = @_;
+		return 1 if ref($fields) ne 'ARRAY';
+		my $status = 1;
+		my $nitems = scalar(@{$Vend::Items}) ? 1 : 0;
+		for(@$fields) {
+			next if ! length($row->{$_});
+			$status = $status && (! $nitems ^ $row->{$_});
+		}
+		return $status;
+	},
 	logged_in => sub {
 		my ($row, $fields) = @_;
 		return 1 if ref($fields) ne 'ARRAY';
