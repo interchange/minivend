@@ -1075,10 +1075,12 @@ sub length_exception {
 			   || $s->[$CONFIG]{LENGTH_EXCEPTION_DEFAULT};
 
 	my $slen = $fcfg->{LENGTH};
+	my $olen;
 
 	my $errout;
 	if( $action =~ /^truncate(?:_(\w+))$/i) {
-		my $errout = lc $1;
+		$errout = lc $1;
+		$olen = length($data);
 		$data = substr($data,0,$slen);			      
 	}
 	elsif ($action =~ /^filter/i){
@@ -1097,16 +1099,17 @@ sub length_exception {
 
 	if($errout) {
 		my $caller = caller();
-		my $msg1 = errmsg(
+		my $msg1 = ::errmsg(
 				"%s - Length Exception! - Data length: %s Field length: %s",
 				$caller,
-				length($data),
+				$olen,
 				$slen,
 			);
-		my $msg2 = errmsg(
+		my $msg2 = ::errmsg(
 				"%s - Length Exception - Table: %s, Field: %s. Action to take: %s",
 				$caller,
 				$s->[$TABLE],
+				$fname,
 				$action,
 			);
 		if($errout eq 'debug') {
@@ -1199,8 +1202,6 @@ sub set_slice {
 
 		my $lcfg   = $s->[$CONFIG]{FIELD_LENGTH_DATA}
 			or die "No field length data!";
-		my $ecfg   = $s->[$CONFIG]{LENGTH_EXCEPTION} || {};
-		my $edefault = $s->[$CONFIG]{LENGTH_EXCEPTION_DEFAULT};
 
 		for (my $i=0; $i < @$fary; $i++){
 			next unless defined $lcfg->{$fary->[$i]};
@@ -1512,6 +1513,19 @@ sub set_field {
 					);
 		return undef;
 	}
+
+	my $lcfg;
+    if(
+		$s->[$CONFIG]->{LENGTH_EXCEPTION_DEFAULT}
+		and $s->[$CONFIG]{FIELD_LENGTH_DATA}
+		and $lcfg = $s->[$CONFIG]{FIELD_LENGTH_DATA}{$column}
+		and $lcfg->{LENGTH} < length($value)
+		)
+	{
+
+		$value = $s->length_exception($column, $value);
+    }
+
 
 	$key = $s->autonumber()  if ! length($key);
 
