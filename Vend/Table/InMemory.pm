@@ -1,10 +1,13 @@
 # Table/InMemory.pm: store a table in memory
 #
-# $Id: InMemory.pm,v 1.3 1997/01/07 01:34:10 mike Exp $
+# $Id: InMemory.pm,v 1.3 1997/05/17 10:04:40 mike Exp $
 #
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 #
 # $Log: InMemory.pm,v $
+# Revision 1.3  1997/05/17 10:04:40  mike
+# mvend203c
+#
 # Revision 1.3  1997/01/07 01:34:10  mike
 # MiniVend 2.03 release version
 #

@@ -1,4 +1,4 @@
-# $Id: Session.pm,v 1.13 1997/03/14 07:54:16 mike Exp mike $
+# $Id: Session.pm,v 1.12 1997/05/17 10:04:09 mike Exp $
 
 package Vend::Session;
 require Exporter;

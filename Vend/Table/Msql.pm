@@ -1,6 +1,6 @@
 # Table/Msql.pm: access a table stored in an Msql Database
 #
-# $Id: Msql.pm,v 1.5 1997/01/18 15:06:03 mike Exp $
+# $Id: Msql.pm,v 1.5 1997/05/17 10:04:40 mike Exp $
 #
 
 # Basic schema

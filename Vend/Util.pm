@@ -1,4 +1,4 @@
-# $Id: Util.pm,v 2.10 1997/01/18 15:03:38 mike Exp $
+# $Id: Util.pm,v 2.11 1997/07/16 21:22:35 mike Exp $
 
 package Vend::Util;
 require Exporter;
@@ -115,7 +115,7 @@ my(%Tab);
 
 sub international_number {
     return $_[0] unless $Vend::Cfg->{Locale};
-	unless (%Tab ||= () ) {
+	unless (defined $Tab{'.'}) {
 		%Tab = (	',' => $Vend::Cfg->{Locale}->{mon_thousands_sep},
 					'.' => $Vend::Cfg->{Locale}->{mon_decimal_point}  );
 	}

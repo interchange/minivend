@@ -1,6 +1,6 @@
 # Config.pm - Configure MiniVend
 # 
-# $Id: Config.pm,v 2.17 1997/03/14 08:12:51 mike Exp mike $
+# $Id: Config.pm,v 2.16 1997/07/17 04:48:45 mike Exp mike $
 #
 # Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>
 #
@@ -52,6 +52,9 @@ sub global_directives {
     ['TcpPort',           undef,             '7786'],
     ['TcpHost',           undef,             'localhost'],
 	['SendMailProgram',  'executable',       $Global::SendMailLocation],
+    ['DomainTail',		 'yesno',     	     'Yes'],
+    ['IpHead',			 'yesno',     	     'No'],
+    ['SafeSignals',		 'yesno',     	     'Yes'],
     ['ForkSearches',	 'yesno',     	     'no'],
 	['HouseKeeping',      undef,             60],
 	['MaxServers',        undef,             2],

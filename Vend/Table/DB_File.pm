@@ -1,6 +1,6 @@
 # Table/DB_File.pm: access a table stored in a DB file hash
 #
-# $Id: DB_File.pm,v 1.3 1997/01/18 15:06:03 mike Exp $
+# $Id: DB_File.pm,v 1.3 1997/05/17 10:04:40 mike Exp $
 #
 
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -8,6 +8,9 @@
 # Modified 1996 by Mike Heins <mikeh@iac.net>
 #
 # $Log: DB_File.pm,v $
+# Revision 1.3  1997/05/17 10:04:40  mike
+# mvend203c
+#
 # Revision 1.3  1997/01/18 15:06:03  mike
 # Fixed % bug -- wouldn't display
 #

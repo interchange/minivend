@@ -1,8 +1,8 @@
 #!/usr/local/bin/perl
 #
-# MiniVend version 2.03b
+# MiniVend version 2.03d
 #
-# $Id: minivend.pl,v 2.16 1997/03/17 00:59:52 mike Exp mike $
+# $Id: minivend.pl,v 2.14 1997/07/17 04:48:45 mike Exp mike $
 #
 # This program is largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -1085,19 +1085,27 @@ EOF
 
 sub map_cgi {
 
-    my($host, $user);
+    my($host, $user, $ip);
 
     $CGI::request_method = ::http()->Method;
     die "REQUEST_METHOD is not defined" unless defined $CGI::request_method;
 
     $CGI::path_info = ::http()->Path_Info;
 
-	# Uncomment if secure and non-secure servers both do DNS
-    #$host = http()->Client_Hostname;
-    $host = http()->Client_IP_Address
-		unless (defined $host && $host ne '');
-    $host = '' unless defined $host;
-    $CGI::host = $host;
+    # The great and final AOL fix
+    $host = http()->Client_Hostname;
+    $ip   = http()->Client_IP_Address;
+
+    if($Global::DomainTail) {
+        $host =~ s/.*?([-A-Za-z0-9]+\.[A-Za-z]+)$/$1/;
+    }
+    elsif($Global::IpHead) {
+        $ip =~ s/\.\d+\.\d+$//;
+        $host = '';
+    }
+
+    $CGI::host = $host || $ip;
+
 
     $CGI::secure = 1
 		if http()->Https_on;
@@ -1294,6 +1302,8 @@ EOF
 sub dontwarn {
 	#my $junk = *Config;
 	$Global::DebugMode +
+	$Global::IpHead +
+	$Global::DomainTail +
 	$Global::MailErrorTo +
 	$File::Find::name +
 	#$Config::ExtraSecure +
@@ -1390,7 +1400,7 @@ sub parse_options {
 }
 
 sub version {
-	print "MiniVend version 2.03b Copyright 1995 Andrew M. Wilcox\n";
+	print "MiniVend version 2.03d Copyright 1995 Andrew M. Wilcox\n";
 	print "                       Copyright 1996, 1997 Michael J. Heins\n";
 }
 
@@ -1475,6 +1485,7 @@ sub main {
 
 	umask 077;
 	global_config();
+	$| = 1;
 	CATCONFIG: {
 		my $i = 0;
 		my ($g, $selector, $conf);

@@ -1,6 +1,6 @@
 # Interpolate.pm - Interpret MiniVend tags
 # 
-# $Id: Interpolate.pm,v 2.22 1997/03/14 07:54:16 mike Exp mike $
+# $Id: Interpolate.pm,v 2.16 1997/05/17 10:04:09 mike Exp $
 #
 # Copyright 1996 by Michael J. Heins <mikeh@iac.net>
 #
@@ -22,7 +22,7 @@ package Vend::Interpolate;
 require Exporter;
 @ISA = qw(Exporter);
 
-$VERSION = substr(q$Revision: 2.22 $, 10);
+$VERSION = substr(q$Revision: 2.16 $, 10);
 
 @EXPORT = qw (
 

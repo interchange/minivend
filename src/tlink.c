@@ -1,7 +1,7 @@
 /* tlink.c:  runs as a cgi program and passes request to Vend server
 			 via TCP/IP 
 
-   $Id: tlink.c,v 1.2 1997/01/07 01:40:44 mike Exp mike $
+   $Id: tlink.c,v 1.2 1997/05/17 10:06:37 mike Exp $
 
    Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
 
@@ -22,6 +22,9 @@
    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
    $Log: tlink.c,v $
+   Revision 1.2  1997/05/17 10:06:37  mike
+   mvend203c
+
    Revision 1.2  1997/01/07 01:40:44  mike
    MiniVend 2.03 release version
 

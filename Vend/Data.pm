@@ -1,4 +1,4 @@
-# $Id: Data.pm,v 2.11 1997/01/07 01:16:56 mike Exp $
+# $Id: Data.pm,v 2.10 1997/05/17 10:04:09 mike Exp $
 
 package Vend::Data;
 require Exporter;

@@ -1,6 +1,6 @@
-# MiniVend V2.03
+# MiniVend V2.03d
 # 
-# Copyright 1996 by Michael J. Heins <mikeh@iac.net>
+# Copyright 1996,1997 by Michael J. Heins <mikeh@iac.net>
 #
 # Largely based on Vend 0.2
 # Copyright 1995 by Andrew M. Wilcox <awilcox@world.std.com>
@@ -31,6 +31,33 @@ Please feel free to send them to Mike Heins, <mikeh@iac.net>.
 -------------------------------------------------------------
 
                       W H A T ' S   N E W 
+
+MiniVend 2.03d specifics:
+
+	* Now compatible with Perl 5.004.
+
+	* Sessions now can be handled in more than one way. The
+	  default is with the new directive DomainTail set to "yes".
+	  This qualifies the session ID with the major domain instead
+	  of the IP number (i.e. aol.com instead of 152.163.202.72).
+	  This should prevent problems with AOL and other ISPs who
+	  use multiple proxy servers.
+
+	  If you set DomainTail to 'no' and the new directive
+	  IpHead to 'yes', this will use the major two dot-quads
+	  of the IP number instead.  This will work well for systems
+	  that have HostNameLookups off (on either the secure or non-secure
+	  server).
+
+	  To keep the old (unreliable for AOL) behavior, set DomainTail
+	  to 'no' in minivend.cfg.
+
+	* Server should now be reliable on BSD. Uses the File::Counterfile
+	  module to keep server counts. The SafeSignals directive (minivend.cfg)
+	  can be set to 'no' if you wish to try this for other operating
+	  systems.
+
+-- 
 
 MiniVend 2.03 is greatly changed from MiniVend 2.02, though
 catalogs should be almost completely compatible, with the

@@ -1,7 +1,7 @@
 #!/usr/local/bin/perl -wT
 # vlink.pl: runs as a cgi program and passes request to Vend server
 #           via TCP UNIX-domain socket
-#   $Id: vlink.pl,v 1.2 1997/01/18 15:07:38 mike Exp mike $
+#   $Id: vlink.pl,v 1.2 1997/05/17 10:06:37 mike Exp $
 #
 #   Copyright 1996 by by Mike Heins <mikeh@iac.net>
 #
